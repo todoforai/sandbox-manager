@@ -1,0 +1,2 @@
+fn(axum::extract::State<Arc<VmManager>>, axum::extract::Path<std::string::String>) -> impl futures::Future<Output = Result<axum::http::StatusCode, (axum::http::StatusCode, std::string::String)>> {delete_sandbox}
+fn(axum::extract::State<Arc<VmManager>>, axum::extract::Path<std::string::String>) -> impl futures::Future<Output = Result<axum::http::StatusCode, (axum::http::StatusCode, std::string::String)>> {delete_sandbox}: Handler<_, _>

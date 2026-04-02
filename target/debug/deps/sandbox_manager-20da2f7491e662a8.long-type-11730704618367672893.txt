@@ -1,0 +1,2 @@
+fn(State<Arc<VmManager>>) -> impl futures::Future<Output = Json<Vec<std::string::String>>> {list_templates}
+fn(State<Arc<VmManager>>) -> impl futures::Future<Output = Json<Vec<std::string::String>>> {list_templates}: Handler<_, _>

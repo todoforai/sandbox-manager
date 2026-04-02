@@ -1,0 +1,61 @@
+{
+  "sizes": {
+    "small": {
+      "memory_mb": 64,
+      "vcpu_count": 1,
+      "cost_per_minute": 0.005,
+      "description": "Small (64MB, 1 vCPU) - simple scripts, quick tasks",
+      "use_cases": ["shell scripts", "simple API calls", "file operations"]
+    },
+    "medium": {
+      "memory_mb": 128,
+      "vcpu_count": 1,
+      "cost_per_minute": 0.01,
+      "description": "Medium (128MB, 1 vCPU) - standard agent tasks",
+      "use_cases": ["npm install", "git operations", "web scraping", "most agent tasks"]
+    },
+    "large": {
+      "memory_mb": 256,
+      "vcpu_count": 2,
+      "cost_per_minute": 0.02,
+      "description": "Large (256MB, 2 vCPU) - builds and computation",
+      "use_cases": ["builds", "compilation", "data processing", "multiple processes"]
+    },
+    "xlarge": {
+      "memory_mb": 512,
+      "vcpu_count": 4,
+      "cost_per_minute": 0.04,
+      "description": "XLarge (512MB, 4 vCPU) - heavy workloads",
+      "use_cases": ["large builds", "ML inference", "memory-intensive tasks"]
+    }
+  },
+  "plan_limits": {
+    "hobby": {
+      "max_size": "small",
+      "max_concurrent": 1,
+      "max_total_memory_mb": 64
+    },
+    "starter": {
+      "max_size": "medium",
+      "max_concurrent": 3,
+      "max_total_memory_mb": 384
+    },
+    "pro": {
+      "max_size": "large",
+      "max_concurrent": 10,
+      "max_total_memory_mb": 2048
+    },
+    "ultra": {
+      "max_size": "xlarge",
+      "max_concurrent": 50,
+      "max_total_memory_mb": 16384
+    }
+  },
+  "cow_memory_estimates": {
+    "_comment": "With CoW, actual memory used is only dirty pages (~1-5% of allocated)",
+    "small_actual_kb": 1000,
+    "medium_actual_kb": 2000,
+    "large_actual_kb": 4000,
+    "xlarge_actual_kb": 8000
+  }
+}

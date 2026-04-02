@@ -1,0 +1,2 @@
+fn(State<Arc<VmManager>>, axum::extract::Path<std::string::String>, WebSocketUpgrade) -> impl futures::Future<Output = Response<Body>> {tty_websocket}
+fn(State<Arc<VmManager>>, axum::extract::Path<std::string::String>, WebSocketUpgrade) -> impl futures::Future<Output = Response<Body>> {tty_websocket}: Handler<_, _>

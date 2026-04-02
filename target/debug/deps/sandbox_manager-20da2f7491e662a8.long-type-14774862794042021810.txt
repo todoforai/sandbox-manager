@@ -1,0 +1,2 @@
+fn(State<Arc<VmManager>>, axum::extract::Path<std::string::String>, Json<CreateTemplateRequest>) -> impl futures::Future<Output = Result<axum::http::StatusCode, (axum::http::StatusCode, std::string::String)>> {create_template}
+fn(State<Arc<VmManager>>, axum::extract::Path<std::string::String>, Json<CreateTemplateRequest>) -> impl futures::Future<Output = Result<axum::http::StatusCode, (axum::http::StatusCode, std::string::String)>> {create_template}: Handler<_, _>
