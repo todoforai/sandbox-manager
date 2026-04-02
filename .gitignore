@@ -1,0 +1,3 @@
+target/
+cli/.zig-cache/
+cli/zig-out/

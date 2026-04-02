@@ -1,2 +1,0 @@
-fn(axum::extract::State<Arc<VmManager>>, axum::extract::Path<std::string::String>) -> impl futures::Future<Output = Result<Json<Session>, (axum::http::StatusCode, std::string::String)>> {get_sandbox}
-fn(axum::extract::State<Arc<VmManager>>, axum::extract::Path<std::string::String>) -> impl futures::Future<Output = Result<Json<Session>, (axum::http::StatusCode, std::string::String)>> {get_sandbox}: Handler<_, _>
