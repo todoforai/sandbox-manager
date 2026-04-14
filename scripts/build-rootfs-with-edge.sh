@@ -11,7 +11,7 @@ ALPINE_VERSION="${ALPINE_VERSION:-3.20}"
 ARCH="x86_64"
 ROOTFS_DIR="${ROOTFS_DIR:-/tmp/rootfs-build}"
 OUTPUT="${OUTPUT:-rootfs-edge.ext4}"
-SIZE_MB="${SIZE_MB:-80}"  # Small - bridge is tiny
+SIZE_MB="${SIZE_MB:-500}"
 
 echo "=========================================="
 echo "Building Alpine $ALPINE_VERSION rootfs with bridge"
@@ -126,7 +126,43 @@ if [ "$(id -u)" = "0" ]; then
     chroot "$ROOTFS_DIR" /bin/sh -c "
         echo 'nameserver 8.8.8.8' > /etc/resolv.conf
         apk update
-        apk add --no-cache openssl ca-certificates
+        apk add --no-cache \
+            bash \
+            curl \
+            wget \
+            git \
+            openssh-client \
+            ca-certificates \
+            openssl \
+            busybox-extras \
+            util-linux \
+            procps \
+            coreutils \
+            findutils \
+            grep \
+            sed \
+            gawk \
+            jq \
+            zip \
+            unzip \
+            tar \
+            rsync \
+            file \
+            less \
+            htop \
+            ncurses \
+            make \
+            gcc \
+            g++ \
+            musl-dev \
+            linux-headers \
+            sqlite \
+            nodejs \
+            npm \
+            python3 \
+            py3-pip \
+            py3-setuptools \
+            tzdata
         rm -rf /var/cache/apk/*
     "
     
@@ -135,9 +171,7 @@ if [ "$(id -u)" = "0" ]; then
     umount "$ROOTFS_DIR/dev"
 else
     echo ""
-    echo "WARNING: Not running as root."
-    echo "         OpenSSL won't be installed. Run with sudo for full setup."
-    echo "         Or manually: apk add openssl ca-certificates"
+    echo "WARNING: Not running as root — packages not installed. Run with sudo for full setup."
     echo ""
 fi
 
@@ -155,6 +189,9 @@ echo ""
 echo "Contents:"
 echo "  /usr/local/bin/bridge    - PTY relay agent"
 echo "  /init                    - Boot script"
+echo "  bash, curl, wget, git, jq, zip, rsync"
+echo "  make, gcc, g++, musl-dev, linux-headers"
+echo "  nodejs, npm, python3, py3-pip, sqlite"
 echo ""
 echo "Usage:"
 echo "  Boot with: edge.token=<TOKEN> in kernel cmdline"

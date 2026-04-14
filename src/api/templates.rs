@@ -3,19 +3,11 @@ use axum::{
     http::StatusCode,
     Json,
 };
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 
 use crate::service::errors::{rest_error, ErrorCode};
 use crate::service::SandboxService;
 use crate::vm::config::TemplateConfig;
-
-/// Template info
-#[derive(Debug, Serialize)]
-pub struct TemplateInfo {
-    pub name: String,
-    pub description: String,
-    pub packages: Vec<String>,
-}
 
 /// List available templates
 pub async fn list_templates(

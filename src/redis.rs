@@ -1,9 +1,9 @@
-/// Redis client — mirrors the key schema from backend/src/redis/
-///
-/// Key schema (same as backend):
-///   apikey:<token>          HASH  { userId, ... }
-///   appuser:<userId>        HASH  { balance, subscriptionBalance, manualBalance, subscriptionUsageThisMonth, ... }
-///   resource:token:<token>  STRING userId  (short-lived, TTL 2h)
+//! Redis client — mirrors the key schema from backend/src/redis/
+//!
+//! Key schema (same as backend):
+//!   apikey:<token>          HASH  { userId, ... }
+//!   appuser:<userId>        HASH  { balance, subscriptionBalance, manualBalance, subscriptionUsageThisMonth, ... }
+//!   resource:token:<token>  STRING userId  (short-lived, TTL 2h)
 
 use anyhow::{Context, Result};
 use redis::{aio::MultiplexedConnection, AsyncCommands, Client, Script};
@@ -13,7 +13,6 @@ use tokio::sync::RwLock;
 #[derive(Clone)]
 pub struct RedisClient {
     inner: Arc<RwLock<Option<MultiplexedConnection>>>,
-    url: String,
 }
 
 impl RedisClient {
@@ -26,7 +25,6 @@ impl RedisClient {
         tracing::info!("Redis connected: {}", url);
         Ok(Self {
             inner: Arc::new(RwLock::new(Some(conn))),
-            url: url.to_string(),
         })
     }
 
@@ -41,19 +39,19 @@ impl RedisClient {
         let mut conn = self.conn().await?;
 
         // 1. Short-lived resource token
-        if let Some(user_id) = conn.get::<_, Option<String>>(format!("resource:token:{}", token)).await? {
+        if let Some(user_id) = conn.get::<_, Option<String>>(format!("resource:token:{token}")).await? {
             return Ok(Some(user_id));
         }
 
         // 2. API key hash
-        let user_id: Option<String> = conn.hget(format!("apikey:{}", token), "userId").await?;
+        let user_id: Option<String> = conn.hget(format!("apikey:{token}"), "userId").await?;
         Ok(user_id)
     }
 
     /// Check if user has enough balance to cover at least `minimum`.
     pub async fn has_balance(&self, user_id: &str, minimum: f64) -> Result<bool> {
         let mut conn = self.conn().await?;
-        let raw: Option<String> = conn.hget(format!("appuser:{}", user_id), "balance").await?;
+        let raw: Option<String> = conn.hget(format!("appuser:{user_id}"), "balance").await?;
         let balance: f64 = raw.as_deref().unwrap_or("0").parse().unwrap_or(0.0);
         Ok(balance > minimum)
     }
@@ -82,7 +80,7 @@ impl RedisClient {
             "#,
         );
         let new_balance: String = script
-            .key(format!("appuser:{}", user_id))
+            .key(format!("appuser:{user_id}"))
             .arg(amount.to_string())
             .invoke_async(&mut conn)
             .await

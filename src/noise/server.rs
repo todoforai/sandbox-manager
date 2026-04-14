@@ -179,11 +179,11 @@ fn load_remote_public_key() -> Result<Vec<u8>> {
 
 fn decode_key_env(name: &str, label: &str) -> Result<Vec<u8>> {
     let value = std::env::var(name)
-        .with_context(|| format!("missing {} env var: {}", label, name))?;
+        .with_context(|| format!("missing {label} env var: {name}"))?;
     let bytes = decode_hex(value.trim())
-        .with_context(|| format!("invalid hex in {}", name))?;
+        .with_context(|| format!("invalid hex in {name}"))?;
     if bytes.len() != 32 {
-        return Err(anyhow!("{} must be 32 bytes hex", name));
+        return Err(anyhow!("{name} must be 32 bytes hex"));
     }
     Ok(bytes)
 }

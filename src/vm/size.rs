@@ -9,25 +9,17 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 #[serde(rename_all = "lowercase")]
 pub enum VmSize {
-    /// Minimal: 64MB RAM, 0.5 vCPU
-    /// Good for: simple scripts, quick tasks
-    /// Cost: ~$0.005/min
+    /// 128MB RAM, 1 vCPU — simple scripts, quick tasks (~$0.005/min)
     Small,
     
-    /// Standard: 128MB RAM, 1 vCPU  
-    /// Good for: most agent tasks, npm install, git operations
-    /// Cost: ~$0.01/min
+    /// 256MB RAM, 1 vCPU — most agent tasks, npm install, git (~$0.01/min)
     #[default]
     Medium,
     
-    /// Power: 256MB RAM, 2 vCPU
-    /// Good for: builds, heavy computation, multiple processes
-    /// Cost: ~$0.02/min
+    /// 512MB RAM, 2 vCPU — builds, heavy computation, multiple processes (~$0.02/min)
     Large,
     
-    /// Maximum: 512MB RAM, 4 vCPU
-    /// Good for: large builds, ML inference, memory-intensive tasks
-    /// Cost: ~$0.04/min
+    /// 1024MB RAM, 4 vCPU — large builds, ML inference, memory-intensive tasks (~$0.04/min)
     XLarge,
     
     /// Custom configuration
@@ -90,10 +82,10 @@ impl VmSize {
     /// Human-readable description
     pub fn description(&self) -> &'static str {
         match self {
-            VmSize::Small => "Small (64MB, 1 vCPU) - simple scripts",
-            VmSize::Medium => "Medium (128MB, 1 vCPU) - standard tasks",
-            VmSize::Large => "Large (256MB, 2 vCPU) - builds & computation",
-            VmSize::XLarge => "XLarge (512MB, 4 vCPU) - heavy workloads",
+            VmSize::Small => "Small (128MB, 1 vCPU) - simple scripts",
+            VmSize::Medium => "Medium (256MB, 1 vCPU) - standard tasks",
+            VmSize::Large => "Large (512MB, 2 vCPU) - builds & computation",
+            VmSize::XLarge => "XLarge (1024MB, 4 vCPU) - heavy workloads",
             VmSize::Custom { .. } => "Custom configuration",
         }
     }
@@ -137,7 +129,7 @@ impl SizeLimits {
         Self {
             max_size: VmSize::Small,
             max_concurrent: 1,
-            max_total_memory_mb: 64,
+            max_total_memory_mb: 128,
         }
     }
     
@@ -146,7 +138,7 @@ impl SizeLimits {
         Self {
             max_size: VmSize::Medium,
             max_concurrent: 3,
-            max_total_memory_mb: 384,
+            max_total_memory_mb: 768,
         }
     }
     

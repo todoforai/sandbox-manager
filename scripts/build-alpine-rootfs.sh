@@ -1,12 +1,12 @@
 #!/bin/bash
-# Build minimal Alpine Linux rootfs for Firecracker
+# Build Alpine Linux rootfs for Firecracker
 set -e
 
 ALPINE_VERSION="${ALPINE_VERSION:-3.20}"
 ARCH="x86_64"
 ROOTFS_DIR="./rootfs"
 OUTPUT="${OUTPUT:-rootfs.ext4}"
-SIZE_MB="${SIZE_MB:-100}"
+SIZE_MB="${SIZE_MB:-500}"
 
 echo "Building Alpine $ALPINE_VERSION rootfs..."
 
@@ -47,10 +47,29 @@ apk add --no-cache \
     findutils \
     grep \
     sed \
-    gawk
-
-# Optional: Node.js and Python (comment out to save space)
-# apk add --no-cache nodejs npm python3 py3-pip
+    gawk \
+    jq \
+    zip \
+    unzip \
+    tar \
+    rsync \
+    file \
+    less \
+    htop \
+    ncurses \
+    make \
+    gcc \
+    g++ \
+    musl-dev \
+    linux-headers \
+    sqlite \
+    openssl \
+    nodejs \
+    npm \
+    python3 \
+    py3-pip \
+    py3-setuptools \
+    tzdata
 
 # Enable OpenRC services
 rc-update add devfs sysinit

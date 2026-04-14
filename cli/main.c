@@ -4,24 +4,12 @@
 ///   NOISE_ADDR              host:port of sandbox-manager Noise server (default: 127.0.0.1:9001)
 ///   NOISE_LOCAL_PRIVATE_KEY 32-byte hex — CLI private key
 ///   NOISE_REMOTE_PUBLIC_KEY 32-byte hex — sandbox-manager public key
-///
-/// Usage:
-///   sandbox health
-///   sandbox stats
-///   sandbox create --user <id> [--template alpine-base] [--size medium] [--token <api-key>]
-///   sandbox list [--user <id>]
-///   sandbox get <id>
-///   sandbox delete <id>
-///   sandbox pause <id>
-///   sandbox resume <id>
-///   sandbox template list
-///   sandbox template create <name> --kernel <path> --rootfs <path> [--boot-args <args>] [--description <text>] [--package <name> ...]
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include "noise.h"
-#include "vendor/monocypher.h"
+#include "args.h"
 
 // ── Platform socket abstraction ───────────────────────────────────────────────
 
@@ -52,25 +40,13 @@ static void sock_close(sock_t s) { close(s); }
 #endif
 
 #define MAX_FRAME (1024 * 1024)
+#define MAX_PACKAGES 64
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 static void fatal(const char *msg) {
     fprintf(stderr, "error: %s\n", msg);
     exit(1);
-}
-
-static const char *flag_value(int argc, char **argv, int start, const char *flag) {
-    for (int i = start; i < argc - 1; i++)
-        if (strcmp(argv[i], flag) == 0) return argv[i + 1];
-    return NULL;
-}
-
-static int flag_count(int argc, char **argv, int start, const char *flag) {
-    int count = 0;
-    for (int i = start; i < argc; i++)
-        if (strcmp(argv[i], flag) == 0) count++;
-    return count;
 }
 
 static int hex_decode(uint8_t *out, size_t out_len, const char *hex) {
@@ -85,11 +61,8 @@ static int hex_decode(uint8_t *out, size_t out_len, const char *hex) {
 }
 
 static void hex_encode(char *out, const uint8_t *data, size_t len) {
-    for (size_t i = 0; i < len; i++)
-        sprintf(out + i * 2, "%02x", data[i]);
+    for (size_t i = 0; i < len; i++) sprintf(out + i * 2, "%02x", data[i]);
 }
-
-// ── JSON builder (minimal, for known shapes) ─────────────────────────────────
 
 typedef struct {
     char *buf;
@@ -113,16 +86,15 @@ static void jb_char(json_buf_t *jb, char c) {
     jb->buf[jb->len++] = c;
 }
 
-// Write a JSON-escaped string value (handles \, ", control chars)
 static void jb_escaped(json_buf_t *jb, const char *s) {
     jb_char(jb, '"');
     for (; *s; s++) {
         switch (*s) {
         case '"':  jb_raw(jb, "\\\""); break;
         case '\\': jb_raw(jb, "\\\\"); break;
-        case '\n': jb_raw(jb, "\\n");  break;
-        case '\r': jb_raw(jb, "\\r");  break;
-        case '\t': jb_raw(jb, "\\t");  break;
+        case '\n': jb_raw(jb, "\\n"); break;
+        case '\r': jb_raw(jb, "\\r"); break;
+        case '\t': jb_raw(jb, "\\t"); break;
         default:
             if ((unsigned char)*s < 0x20) {
                 char esc[7];
@@ -136,7 +108,6 @@ static void jb_escaped(json_buf_t *jb, const char *s) {
     jb_char(jb, '"');
 }
 
-// Write "key":"value", — skips if val is NULL
 static void jb_str(json_buf_t *jb, const char *key, const char *val) {
     if (!val) return;
     jb_escaped(jb, key);
@@ -145,7 +116,7 @@ static void jb_str(json_buf_t *jb, const char *key, const char *val) {
     jb_char(jb, ',');
 }
 
-static void jb_obj_open(json_buf_t *jb)  { jb_char(jb, '{'); }
+static void jb_obj_open(json_buf_t *jb) { jb_char(jb, '{'); }
 static void jb_obj_close(json_buf_t *jb) {
     if (jb->len > 0 && jb->buf[jb->len - 1] == ',') jb->len--;
     jb_char(jb, '}');
@@ -226,7 +197,6 @@ static void print_response(const uint8_t *resp, size_t len) {
 static void run_cmd(const char *json_request, size_t req_len) {
     sock_init();
 
-    // Load keys
     const char *priv_hex = getenv("NOISE_LOCAL_PRIVATE_KEY");
     if (!priv_hex) fatal("NOISE_LOCAL_PRIVATE_KEY not set");
     const char *pub_hex = getenv("NOISE_REMOTE_PUBLIC_KEY");
@@ -238,9 +208,8 @@ static void run_cmd(const char *json_request, size_t req_len) {
 
     noise_keypair_t local_kp;
     noise_keypair_from_secret(&local_kp, secret);
-    crypto_wipe(secret, 32);
+    noise_wipe(secret, 32);
 
-    // Resolve address
     const char *addr_str = getenv("NOISE_ADDR");
     if (!addr_str) addr_str = "127.0.0.1:9001";
     char host[256], port_str[16];
@@ -252,11 +221,9 @@ static void run_cmd(const char *json_request, size_t req_len) {
     host[hlen] = '\0';
     snprintf(port_str, sizeof(port_str), "%s", colon + 1);
 
-    // Connect
     sock_t fd = tcp_connect(host, port_str);
     if (fd == SOCK_INVALID) fatal("connect failed");
 
-    // Handshake
     noise_handshake_t hs;
     noise_handshake_init(&hs, &local_kp, remote_pub);
 
@@ -278,23 +245,20 @@ static void run_cmd(const char *json_request, size_t req_len) {
     noise_transport_t transport;
     if (noise_handshake_split(&hs, &transport) < 0) fatal("handshake split failed");
 
-    // Encrypt and send request
     uint8_t *enc_buf = malloc(req_len + 64);
     if (!enc_buf) fatal("malloc");
     int enc_len = noise_transport_write(&transport, enc_buf, req_len + 64,
-                                         (const uint8_t *)json_request, req_len);
+        (const uint8_t *)json_request, req_len);
     if (enc_len < 0) { free(enc_buf); fatal("encrypt failed"); }
     if (write_frame(fd, enc_buf, (size_t)enc_len) < 0) { free(enc_buf); fatal("send failed"); }
     free(enc_buf);
 
-    // Read and decrypt response
     uint8_t *resp_enc;
     size_t resp_enc_len;
     if (read_frame(fd, &resp_enc, &resp_enc_len) < 0) fatal("recv failed");
     uint8_t *resp_dec = malloc(resp_enc_len);
     if (!resp_dec) { free(resp_enc); fatal("malloc"); }
-    int resp_len = noise_transport_read(&transport, resp_dec, resp_enc_len,
-                                         resp_enc, resp_enc_len);
+    int resp_len = noise_transport_read(&transport, resp_dec, resp_enc_len, resp_enc, resp_enc_len);
     free(resp_enc);
     if (resp_len < 0) { free(resp_dec); fatal("decrypt failed"); }
 
@@ -303,7 +267,7 @@ static void run_cmd(const char *json_request, size_t req_len) {
     free(resp_dec);
 }
 
-// ── Build JSON request and dispatch ───────────────────────────────────────────
+// ── Request builders ──────────────────────────────────────────────────────────
 
 static void build_and_run(const char *type, const char *payload_json) {
     uint8_t id_bytes[4];
@@ -318,12 +282,9 @@ static void build_and_run(const char *type, const char *payload_json) {
     jb_obj_open(&jb);
     jb_str(&jb, "id", id_hex);
     jb_str(&jb, "type", type);
-    if (payload_json && payload_json[0]) {
-        jb_raw(&jb, "\"payload\":");
-        jb_raw(&jb, payload_json);
-    } else {
-        jb_raw(&jb, "\"payload\":{}");
-    }
+    jb_escaped(&jb, "payload");
+    jb_char(&jb, ':');
+    jb_raw(&jb, payload_json && payload_json[0] ? payload_json : "{}");
     jb_obj_close(&jb);
     if (jb.overflow) fatal("request too large");
     jb.buf[jb.len] = '\0';
@@ -331,135 +292,291 @@ static void build_and_run(const char *type, const char *payload_json) {
     run_cmd(req, jb.len);
 }
 
-static void jb_str_array_from_flag(json_buf_t *jb, const char *key, int argc, char **argv, int start, const char *flag) {
-    int first = 1;
-    if (flag_count(argc, argv, start, flag) == 0) return;
-    jb_escaped(jb, key);
-    jb_char(jb, ':');
-    jb_char(jb, '[');
-    for (int i = start; i < argc - 1; i++) {
-        if (strcmp(argv[i], flag) != 0) continue;
-        if (!first) jb_char(jb, ',');
-        jb_escaped(jb, argv[i + 1]);
-        first = 0;
-    }
-    jb_char(jb, ']');
-    jb_char(jb, ',');
-}
-
-static void build_payload_and_run(const char *type, int argc, char **argv, int start) {
-    char payload[2048];
+static void build_empty_payload(char *payload, size_t size) {
     json_buf_t jb;
-    jb_init(&jb, payload, sizeof(payload));
+    jb_init(&jb, payload, size);
     jb_obj_open(&jb);
-
-    if (strcmp(type, "sandbox.list") == 0) {
-        jb_str(&jb, "user_id", flag_value(argc, argv, start, "--user"));
-    } else if (strcmp(type, "sandbox.get") == 0 || strcmp(type, "sandbox.delete") == 0 ||
-               strcmp(type, "sandbox.pause") == 0 || strcmp(type, "sandbox.resume") == 0) {
-        if (start < argc) jb_str(&jb, "id", argv[start]);
-    } else if (strcmp(type, "sandbox.create") == 0) {
-        jb_str(&jb, "user_id", flag_value(argc, argv, start, "--user"));
-        jb_str(&jb, "template", flag_value(argc, argv, start, "--template"));
-        jb_str(&jb, "size", flag_value(argc, argv, start, "--size"));
-        jb_str(&jb, "edge_token", flag_value(argc, argv, start, "--token"));
-    } else if (strcmp(type, "template.create") == 0) {
-        if (start < argc && argv[start][0] != '-')
-            jb_str(&jb, "name", argv[start]);
-        jb_str(&jb, "kernel_path", flag_value(argc, argv, start, "--kernel"));
-        jb_str(&jb, "rootfs_path", flag_value(argc, argv, start, "--rootfs"));
-        jb_str(&jb, "boot_args", flag_value(argc, argv, start, "--boot-args"));
-        jb_str(&jb, "description", flag_value(argc, argv, start, "--description"));
-        jb_str_array_from_flag(&jb, "packages", argc, argv, start, "--package");
-    }
-
     jb_obj_close(&jb);
     if (jb.overflow) fatal("payload too large");
     payload[jb.len] = '\0';
+}
 
-    build_and_run(type, payload);
+static void build_id_payload(char *payload, size_t size, const char *id) {
+    json_buf_t jb;
+    jb_init(&jb, payload, size);
+    jb_obj_open(&jb);
+    jb_str(&jb, "id", id);
+    jb_obj_close(&jb);
+    if (jb.overflow) fatal("payload too large");
+    payload[jb.len] = '\0';
 }
 
 // ── Usage ─────────────────────────────────────────────────────────────────────
 
 static void usage(void) {
-    fprintf(stderr,
+    fprintf(stdout,
         "Usage: sandbox <command> [options]\n"
         "\n"
         "Commands:\n"
-        "  health                          Health check\n"
-        "  stats                           VM statistics\n"
-        "  create --user <id> [opts]       Create sandbox VM\n"
-        "    --template <name>             Template (default: alpine-base)\n"
-        "    --size <small|medium|large|xlarge>\n"
-        "    --token <api-key>             Auth token\n"
-        "  list [--user <id>]              List sandboxes\n"
-        "  get <id>                        Get sandbox details\n"
-        "  delete <id>                     Delete sandbox\n"
-        "  pause <id>                      Pause sandbox\n"
-        "  resume <id>                     Resume sandbox\n"
-        "  template list                   List templates\n"
-        "  template create <name> --kernel <path> --rootfs <path>\n"
-        "    [--boot-args <args>]         Custom kernel boot arguments\n"
-        "    [--description <text>]       Template description metadata\n"
-        "    [--package <name> ...]       Template package metadata (repeatable)\n"
+        "  health\n"
+        "  stats\n"
+        "  create --user <id> [--template <name>] [--size <size>] [--token <api-key>]\n"
+        "  list [--user <id>]\n"
+        "  get <id>\n"
+        "  delete <id>\n"
+        "  pause <id>\n"
+        "  resume <id>\n"
+        "  template list\n"
+        "  template create <name> --kernel <path> --rootfs <path> [--boot-args <args>] [--description <text>] [--package <name> ...]\n"
+        "\n"
+        "Global options:\n"
+        "  -h, --help  Show help\n"
         "\n"
         "Env:\n"
         "  NOISE_ADDR              sandbox-manager Noise address (default: 127.0.0.1:9001)\n"
         "  NOISE_LOCAL_PRIVATE_KEY 32-byte hex private key\n"
-        "  NOISE_REMOTE_PUBLIC_KEY 32-byte hex server public key\n"
-    );
-    exit(1);
+        "  NOISE_REMOTE_PUBLIC_KEY 32-byte hex server public key\n");
 }
 
-static void usage_cmd(const char *hint) {
-    fprintf(stderr, "error: Usage: sandbox %s\n", hint);
-    exit(1);
+static void usage_health(void) { cli_usage(stdout, "sandbox", "health"); }
+static void usage_stats(void) { cli_usage(stdout, "sandbox", "stats"); }
+static void usage_list(void) { cli_usage(stdout, "sandbox", "list [--user <id>]"); }
+static void usage_id(const char *cmd) {
+    char usage_buf[64];
+    snprintf(usage_buf, sizeof(usage_buf), "%s <id>", cmd);
+    cli_usage(stdout, "sandbox", usage_buf);
+}
+static void usage_create(void) {
+    cli_usage(stdout, "sandbox", "create --user <id> [--template <name>] [--size <small|medium|large|xlarge>] [--token <api-key>]");
+}
+static void usage_template_list(void) { cli_usage(stdout, "sandbox", "template list"); }
+static void usage_template_create(void) {
+    cli_usage(stdout, "sandbox", "template create <name> --kernel <path> --rootfs <path> [--boot-args <args>] [--description <text>] [--package <name> ...]");
+}
+
+static void parse_no_args(const char *usage_str, void (*help_fn)(void), int argc, char **argv) {
+    ketopt_t opt = KETOPT_INIT;
+    ko_longopt_t longopts[] = {{ "help", ko_no_argument, 'h' }, { 0, 0, 0 }};
+    int c;
+    while ((c = ketopt(&opt, argc, argv, 1, "h", longopts)) >= 0) {
+        if (c == 'h') {
+            help_fn();
+            exit(0);
+        }
+        cli_parse_error("sandbox", usage_str, argc, argv, &opt, c);
+    }
+    if (opt.ind != argc) cli_usage_error("sandbox", usage_str, "unexpected argument");
+}
+
+static const char *parse_id_cmd(const char *cmd, int argc, char **argv) {
+    char usage_buf[64];
+    ketopt_t opt = KETOPT_INIT;
+    ko_longopt_t longopts[] = {{ "help", ko_no_argument, 'h' }, { 0, 0, 0 }};
+    int c;
+    snprintf(usage_buf, sizeof(usage_buf), "%s <id>", cmd);
+    while ((c = ketopt(&opt, argc, argv, 1, "h", longopts)) >= 0) {
+        if (c == 'h') {
+            usage_id(cmd);
+            exit(0);
+        }
+        cli_parse_error("sandbox", usage_buf, argc, argv, &opt, c);
+    }
+    if (opt.ind >= argc) cli_usage_error("sandbox", usage_buf, "missing <id>");
+    if (opt.ind + 1 != argc) cli_usage_error("sandbox", usage_buf, "unexpected argument");
+    return argv[opt.ind];
+}
+
+static void cmd_health(int argc, char **argv) {
+    parse_no_args("health", usage_health, argc, argv);
+    build_and_run("health.get", NULL);
+}
+
+static void cmd_stats(int argc, char **argv) {
+    parse_no_args("stats", usage_stats, argc, argv);
+    build_and_run("stats.get", NULL);
+}
+
+static void cmd_list(int argc, char **argv) {
+    const char *user = NULL;
+    ketopt_t opt = KETOPT_INIT;
+    ko_longopt_t longopts[] = {
+        { "help", ko_no_argument, 'h' },
+        { "user", ko_required_argument, 'u' },
+        { 0, 0, 0 }
+    };
+    int c;
+    while ((c = ketopt(&opt, argc, argv, 1, "hu:", longopts)) >= 0) {
+        if (c == 'h') { usage_list(); exit(0); }
+        if (c == 'u') { user = opt.arg; continue; }
+        cli_parse_error("sandbox", "list [--user <id>]", argc, argv, &opt, c);
+    }
+    if (opt.ind != argc) cli_usage_error("sandbox", "list [--user <id>]", "unexpected argument");
+
+    char payload[256];
+    json_buf_t jb;
+    jb_init(&jb, payload, sizeof(payload));
+    jb_obj_open(&jb);
+    jb_str(&jb, "user_id", user);
+    jb_obj_close(&jb);
+    if (jb.overflow) fatal("payload too large");
+    payload[jb.len] = '\0';
+    build_and_run("sandbox.list", payload);
+}
+
+static void cmd_id_request(const char *cmd, const char *type, int argc, char **argv) {
+    const char *id = parse_id_cmd(cmd, argc, argv);
+    char payload[256];
+    build_id_payload(payload, sizeof(payload), id);
+    build_and_run(type, payload);
+}
+
+static void cmd_create(int argc, char **argv) {
+    const char *user = NULL, *template_name = NULL, *size = NULL, *token = NULL;
+    ketopt_t opt = KETOPT_INIT;
+    ko_longopt_t longopts[] = {
+        { "help", ko_no_argument, 'h' },
+        { "user", ko_required_argument, 'u' },
+        { "template", ko_required_argument, 't' },
+        { "size", ko_required_argument, 's' },
+        { "token", ko_required_argument, 'k' },
+        { 0, 0, 0 }
+    };
+    int c;
+    while ((c = ketopt(&opt, argc, argv, 1, "hu:t:s:k:", longopts)) >= 0) {
+        if (c == 'h') { usage_create(); exit(0); }
+        if (c == 'u') { user = opt.arg; continue; }
+        if (c == 't') { template_name = opt.arg; continue; }
+        if (c == 's') { size = opt.arg; continue; }
+        if (c == 'k') { token = opt.arg; continue; }
+        cli_parse_error("sandbox", "create --user <id> [--template <name>] [--size <small|medium|large|xlarge>] [--token <api-key>]", argc, argv, &opt, c);
+    }
+    if (opt.ind != argc) cli_usage_error("sandbox", "create --user <id> [--template <name>] [--size <small|medium|large|xlarge>] [--token <api-key>]", "unexpected argument");
+    if (!user) cli_usage_error("sandbox", "create --user <id> [--template <name>] [--size <small|medium|large|xlarge>] [--token <api-key>]", "missing --user");
+
+    char payload[512];
+    json_buf_t jb;
+    jb_init(&jb, payload, sizeof(payload));
+    jb_obj_open(&jb);
+    jb_str(&jb, "user_id", user);
+    jb_str(&jb, "template", template_name);
+    jb_str(&jb, "size", size);
+    jb_str(&jb, "edge_token", token);
+    jb_obj_close(&jb);
+    if (jb.overflow) fatal("payload too large");
+    payload[jb.len] = '\0';
+    build_and_run("sandbox.create", payload);
+}
+
+static void cmd_template_list(int argc, char **argv) {
+    parse_no_args("template list", usage_template_list, argc, argv);
+    build_and_run("templates.list", NULL);
+}
+
+static void cmd_template_create(int argc, char **argv) {
+    const char *name = NULL, *kernel = NULL, *rootfs = NULL, *boot_args = NULL, *description = NULL;
+    const char *packages[MAX_PACKAGES];
+    size_t package_count = 0;
+    ketopt_t opt = KETOPT_INIT;
+    ko_longopt_t longopts[] = {
+        { "help", ko_no_argument, 'h' },
+        { "kernel", ko_required_argument, 'k' },
+        { "rootfs", ko_required_argument, 'r' },
+        { "boot-args", ko_required_argument, 'b' },
+        { "description", ko_required_argument, 'd' },
+        { "package", ko_required_argument, 'p' },
+        { 0, 0, 0 }
+    };
+    int c;
+    while ((c = ketopt(&opt, argc, argv, 1, "hk:r:b:d:p:", longopts)) >= 0) {
+        if (c == 'h') { usage_template_create(); exit(0); }
+        if (c == 'k') { kernel = opt.arg; continue; }
+        if (c == 'r') { rootfs = opt.arg; continue; }
+        if (c == 'b') { boot_args = opt.arg; continue; }
+        if (c == 'd') { description = opt.arg; continue; }
+        if (c == 'p') {
+            if (package_count == MAX_PACKAGES) fatal("too many --package values");
+            packages[package_count++] = opt.arg;
+            continue;
+        }
+        cli_parse_error("sandbox", "template create <name> --kernel <path> --rootfs <path> [--boot-args <args>] [--description <text>] [--package <name> ...]", argc, argv, &opt, c);
+    }
+    if (opt.ind >= argc) cli_usage_error("sandbox", "template create <name> --kernel <path> --rootfs <path> [--boot-args <args>] [--description <text>] [--package <name> ...]", "missing <name>");
+    name = argv[opt.ind++];
+    if (opt.ind != argc) cli_usage_error("sandbox", "template create <name> --kernel <path> --rootfs <path> [--boot-args <args>] [--description <text>] [--package <name> ...]", "unexpected argument");
+    if (!kernel || !rootfs) cli_usage_error("sandbox", "template create <name> --kernel <path> --rootfs <path> [--boot-args <args>] [--description <text>] [--package <name> ...]", "missing --kernel or --rootfs");
+
+    char payload[2048];
+    json_buf_t jb;
+    jb_init(&jb, payload, sizeof(payload));
+    jb_obj_open(&jb);
+    jb_str(&jb, "name", name);
+    jb_str(&jb, "kernel_path", kernel);
+    jb_str(&jb, "rootfs_path", rootfs);
+    jb_str(&jb, "boot_args", boot_args);
+    jb_str(&jb, "description", description);
+    if (package_count) {
+        jb_escaped(&jb, "packages");
+        jb_char(&jb, ':');
+        jb_char(&jb, '[');
+        for (size_t i = 0; i < package_count; i++) {
+            if (i) jb_char(&jb, ',');
+            jb_escaped(&jb, packages[i]);
+        }
+        jb_char(&jb, ']');
+        jb_char(&jb, ',');
+    }
+    jb_obj_close(&jb);
+    if (jb.overflow) fatal("payload too large");
+    payload[jb.len] = '\0';
+    build_and_run("template.create", payload);
 }
 
 // ── Main ──────────────────────────────────────────────────────────────────────
 
 int main(int argc, char **argv) {
-    if (argc < 2) usage();
-    const char *cmd = argv[1];
+    if (argc < 2) {
+        usage();
+        return 1;
+    }
+    if (cli_is_help(argv[1])) {
+        usage();
+        return 0;
+    }
 
-    if (strcmp(cmd, "health") == 0) {
-        build_and_run("health.get", NULL);
-    } else if (strcmp(cmd, "stats") == 0) {
-        build_and_run("stats.get", NULL);
-    } else if (strcmp(cmd, "list") == 0) {
-        build_payload_and_run("sandbox.list", argc, argv, 2);
-    } else if (strcmp(cmd, "get") == 0) {
-        if (argc < 3) usage_cmd("get <id>");
-        build_payload_and_run("sandbox.get", argc, argv, 2);
-    } else if (strcmp(cmd, "delete") == 0) {
-        if (argc < 3) usage_cmd("delete <id>");
-        build_payload_and_run("sandbox.delete", argc, argv, 2);
-    } else if (strcmp(cmd, "pause") == 0) {
-        if (argc < 3) usage_cmd("pause <id>");
-        build_payload_and_run("sandbox.pause", argc, argv, 2);
-    } else if (strcmp(cmd, "resume") == 0) {
-        if (argc < 3) usage_cmd("resume <id>");
-        build_payload_and_run("sandbox.resume", argc, argv, 2);
-    } else if (strcmp(cmd, "create") == 0) {
-        if (!flag_value(argc, argv, 2, "--user"))
-            usage_cmd("create --user <id>");
-        build_payload_and_run("sandbox.create", argc, argv, 2);
-    } else if (strcmp(cmd, "template") == 0) {
-        if (argc < 3) usage_cmd("template <list|create>");
-        if (strcmp(argv[2], "list") == 0) {
-            build_and_run("templates.list", NULL);
-        } else if (strcmp(argv[2], "create") == 0) {
-            if (argc < 4 || argv[3][0] == '-')
-                usage_cmd("template create <name> --kernel <path> --rootfs <path> [--boot-args <args>] [--description <text>] [--package <name> ...]");
-            if (!flag_value(argc, argv, 3, "--kernel") || !flag_value(argc, argv, 3, "--rootfs"))
-                usage_cmd("template create <name> --kernel <path> --rootfs <path> [--boot-args <args>] [--description <text>] [--package <name> ...]");
-            build_payload_and_run("template.create", argc, argv, 3);
+    if (!strcmp(argv[1], "health")) {
+        cmd_health(argc - 1, argv + 1);
+    } else if (!strcmp(argv[1], "stats")) {
+        cmd_stats(argc - 1, argv + 1);
+    } else if (!strcmp(argv[1], "list")) {
+        cmd_list(argc - 1, argv + 1);
+    } else if (!strcmp(argv[1], "get")) {
+        cmd_id_request("get", "sandbox.get", argc - 1, argv + 1);
+    } else if (!strcmp(argv[1], "delete")) {
+        cmd_id_request("delete", "sandbox.delete", argc - 1, argv + 1);
+    } else if (!strcmp(argv[1], "pause")) {
+        cmd_id_request("pause", "sandbox.pause", argc - 1, argv + 1);
+    } else if (!strcmp(argv[1], "resume")) {
+        cmd_id_request("resume", "sandbox.resume", argc - 1, argv + 1);
+    } else if (!strcmp(argv[1], "create")) {
+        cmd_create(argc - 1, argv + 1);
+    } else if (!strcmp(argv[1], "template")) {
+        if (argc < 3) {
+            cli_usage_error("sandbox", "template <list|create> ...", "missing template subcommand");
+        }
+        if (cli_is_help(argv[2])) {
+            cli_usage(stdout, "sandbox", "template <list|create> ...");
+            return 0;
+        }
+        if (!strcmp(argv[2], "list")) {
+            cmd_template_list(argc - 2, argv + 2);
+        } else if (!strcmp(argv[2], "create")) {
+            cmd_template_create(argc - 2, argv + 2);
         } else {
-            usage_cmd("template <list|create>");
+            cli_usage_error("sandbox", "template <list|create> ...", "unknown template subcommand");
         }
     } else {
         usage();
+        return 1;
     }
     return 0;
 }
