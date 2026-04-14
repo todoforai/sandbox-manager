@@ -1,0 +1,13 @@
+name = "SandboxCLI"
+uuid = "c7a3e2f1-8b4d-4e5f-9a1c-2d3e4f5a6b7c"
+version = "0.1.0"
+
+[deps]
+JSON3 = "0f8b85d8-7281-11e9-16c2-39a750bddbf1"
+PackageCompiler = "9b87118b-4619-50d2-8e1e-99f35a4d4d9d"
+Sockets = "6462fe0b-24de-5631-8697-dd941f90decc"
+libsodium_jll = "a9144af2-ca23-56d9-984f-0d03f7b5ccf8"
+
+[compat]
+PackageCompiler = "2.2.5"
+julia = "1.10"

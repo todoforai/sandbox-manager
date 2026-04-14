@@ -1,7 +1,5 @@
 target/
-cli/.zig-cache/
-cli/zig-out/
-cli-c/build/
-cli-c/.analysis/
-cli-c/.sweep/
-cli-c/.try/
+cli/build/
+cli/.analysis/
+cli/.sweep/
+cli/.try/

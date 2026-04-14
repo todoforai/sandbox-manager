@@ -138,7 +138,10 @@ Environment variables:
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `BIND_ADDR` | `0.0.0.0:9000` | Server bind address |
+| `BIND_ADDR` | `0.0.0.0:9000` | REST server bind address |
+| `NOISE_BIND_ADDR` | `0.0.0.0:9001` | Noise TCP bind address |
+| `NOISE_LOCAL_PRIVATE_KEY` | — | 32-byte hex server private key |
+| `NOISE_REMOTE_PUBLIC_KEY` | — | 32-byte hex allowed client public key |
 | `TEMPLATES_DIR` | `/data/templates` | Template storage |
 | `OVERLAYS_DIR` | `/data/overlays` | Runtime files |
 | `BRIDGE_NAME` | `br-sandbox` | Network bridge |
@@ -146,6 +149,48 @@ Environment variables:
 | `ENABLE_KVM` | `true` | Use KVM (false for mock) |
 | `DEFAULT_VM_SIZE` | `medium` | Default size tier |
 | `RUST_LOG` | `info` | Log level |
+
+## Noise CLI setup
+
+The CLI talks to `sandbox-manager` over `Noise_IK_25519_ChaChaPoly_BLAKE2s` TCP, not plain HTTP.
+
+Meaning of the env vars:
+
+- `NOISE_LOCAL_PRIVATE_KEY` = this process's private key
+- `NOISE_REMOTE_PUBLIC_KEY` = the peer's public key
+- `NOISE_ADDR` = client destination address
+- `NOISE_BIND_ADDR` = server listen address
+
+Generate a matching client/server keypair set:
+
+```bash
+./scripts/noise-keygen.sh .noise
+```
+
+This writes:
+
+- `.noise/server.env` for `sandbox-manager`
+- `.noise/client.env` for the CLI
+
+Start the server:
+
+```bash
+set -a
+source .noise/server.env
+set +a
+cargo run --release
+```
+
+Run the CLI:
+
+```bash
+cd cli && make build/sandbox-linux-x86_64
+cd ..
+set -a
+source .noise/client.env
+set +a
+./cli/build/sandbox-linux-x86_64 health
+```
 
 ## Guest Communication (bridge)
 
