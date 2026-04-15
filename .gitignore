@@ -3,3 +3,4 @@ cli/build/
 cli/.analysis/
 cli/.sweep/
 cli/.try/
+.noise/
