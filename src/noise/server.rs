@@ -11,7 +11,7 @@ use crate::service::SandboxService;
 use crate::vm::config::TemplateConfig;
 
 const MAX_FRAME: usize = 1024 * 1024;
-const NOISE_PATTERN: &str = "Noise_IK_25519_ChaChaPoly_BLAKE2s";
+const NOISE_PATTERN: &str = "Noise_NX_25519_ChaChaPoly_BLAKE2s";
 
 pub async fn serve(service: SandboxService) -> Result<()> {
     let addr = std::env::var("NOISE_BIND_ADDR").unwrap_or_else(|_| "0.0.0.0:9001".into());
@@ -114,10 +114,7 @@ async fn dispatch(service: &SandboxService, req: NoiseRequest) -> protocol::Nois
 async fn handshake_responder(stream: &mut TcpStream) -> Result<TransportState> {
     let params: NoiseParams = NOISE_PATTERN.parse()?;
     let local_private = load_local_private_key()?;
-    let remote_public = load_remote_public_key()?;
-    let builder = Builder::new(params)
-        .local_private_key(&local_private)
-        .remote_public_key(&remote_public);
+    let builder = Builder::new(params).local_private_key(&local_private);
     let mut state = builder.build_responder()?;
 
     let mut in_buf = vec![0u8; MAX_FRAME];

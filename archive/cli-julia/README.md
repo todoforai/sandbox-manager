@@ -1,6 +1,6 @@
 # sandbox CLI (Julia)
 
-Julia port of the sandbox-manager CLI. Communicates with `sandbox-manager` over **Noise_IK_25519_ChaChaPoly_BLAKE2s** TCP.
+Julia port of the sandbox-manager CLI. Communicates with `sandbox-manager` over **Noise_NX_25519_ChaChaPoly_BLAKE2s** TCP.
 
 Functionally equivalent to the [Zig CLI](../cli/), with the same commands, env vars, and wire protocol.
 
@@ -8,7 +8,7 @@ Functionally equivalent to the [Zig CLI](../cli/), with the same commands, env v
 
 ```
 SandboxCLI.jl          CLI entry point, arg parsing, JSON display
-  └─ noise.jl          Noise_IK handshake + transport state machine
+  └─ noise.jl          Noise_NX handshake + transport state machine
        └─ crypto.jl    X25519, ChaCha20-Poly1305 (libsodium), HMAC/HKDF
             └─ blake2s.jl  Pure Julia BLAKE2s-256 (RFC 7693)
 ```
@@ -48,10 +48,8 @@ sandbox template create <name> --kernel <path> --rootfs <path>
 | Variable | Description | Default |
 |---|---|---|
 | `NOISE_ADDR` | sandbox-manager Noise address | `127.0.0.1:9001` |
-| `NOISE_LOCAL_PRIVATE_KEY` | 32-byte hex CLI private key | required |
 | `NOISE_REMOTE_PUBLIC_KEY` | 32-byte hex server public key | required |
 
-`NOISE_LOCAL_PRIVATE_KEY` is always this CLI process's private key.
 `NOISE_REMOTE_PUBLIC_KEY` is always the `sandbox-manager` server public key.
 
 Generate matching client/server env files from the repo root:
@@ -75,7 +73,7 @@ julia --project=sandbox-manager/cli-jl sandbox-manager/cli-jl/sandbox.jl health
 julia --project=. test.jl
 ```
 
-Runs BLAKE2s test vectors, crypto primitive tests, and a full Noise_IK handshake self-test (initiator + manual responder).
+Runs BLAKE2s test vectors, crypto primitive tests, and a full Noise handshake self-test.
 
 ## Why not StaticCompiler.jl?
 

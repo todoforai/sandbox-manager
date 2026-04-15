@@ -1,8 +1,7 @@
-/// sandbox CLI — manages Firecracker VMs via Noise_IK TCP to sandbox-manager
+/// sandbox CLI — manages Firecracker VMs via Noise_NX TCP to sandbox-manager
 ///
 /// Config (env):
 ///   NOISE_ADDR              host:port of sandbox-manager Noise server (default: 127.0.0.1:9001)
-///   NOISE_LOCAL_PRIVATE_KEY 32-byte hex — CLI private key
 ///   NOISE_REMOTE_PUBLIC_KEY 32-byte hex — sandbox-manager public key
 
 #include <stdio.h>
@@ -197,18 +196,11 @@ static void print_response(const uint8_t *resp, size_t len) {
 static void run_cmd(const char *json_request, size_t req_len) {
     sock_init();
 
-    const char *priv_hex = getenv("NOISE_LOCAL_PRIVATE_KEY");
-    if (!priv_hex) fatal("NOISE_LOCAL_PRIVATE_KEY not set");
     const char *pub_hex = getenv("NOISE_REMOTE_PUBLIC_KEY");
     if (!pub_hex) fatal("NOISE_REMOTE_PUBLIC_KEY not set");
 
-    uint8_t secret[32], remote_pub[32];
-    if (hex_decode(secret, 32, priv_hex) < 0) fatal("NOISE_LOCAL_PRIVATE_KEY: invalid hex");
+    uint8_t remote_pub[32];
     if (hex_decode(remote_pub, 32, pub_hex) < 0) fatal("NOISE_REMOTE_PUBLIC_KEY: invalid hex");
-
-    noise_keypair_t local_kp;
-    noise_keypair_from_secret(&local_kp, secret);
-    noise_wipe(secret, 32);
 
     const char *addr_str = getenv("NOISE_ADDR");
     if (!addr_str) addr_str = "127.0.0.1:9001";
@@ -225,7 +217,7 @@ static void run_cmd(const char *json_request, size_t req_len) {
     if (fd == SOCK_INVALID) fatal("connect failed");
 
     noise_handshake_t hs;
-    noise_handshake_init(&hs, &local_kp, remote_pub);
+    noise_handshake_init(&hs, remote_pub);
 
     uint8_t m1_buf[256];
     int m1_len = noise_handshake_write(&hs, (const uint8_t *)"", 0, m1_buf, sizeof(m1_buf));
@@ -334,7 +326,6 @@ static void usage(void) {
         "\n"
         "Env:\n"
         "  NOISE_ADDR              sandbox-manager Noise address (default: 127.0.0.1:9001)\n"
-        "  NOISE_LOCAL_PRIVATE_KEY 32-byte hex private key\n"
         "  NOISE_REMOTE_PUBLIC_KEY 32-byte hex server public key\n");
 }
 

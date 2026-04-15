@@ -46,7 +46,6 @@ async fn main() -> Result<()> {
     // Spawn Noise/TCP adapter on a separate port.
     // Env: NOISE_BIND_ADDR=0.0.0.0:9001
     //      NOISE_LOCAL_PRIVATE_KEY=<32-byte hex>
-    //      NOISE_REMOTE_PUBLIC_KEY=<32-byte hex>
     let noise_service = service.clone();
     tokio::spawn(async move {
         if let Err(err) = noise::server::serve(noise_service).await {

@@ -141,7 +141,6 @@ Environment variables:
 | `BIND_ADDR` | `0.0.0.0:9000` | REST server bind address |
 | `NOISE_BIND_ADDR` | `0.0.0.0:9001` | Noise TCP bind address |
 | `NOISE_LOCAL_PRIVATE_KEY` | — | 32-byte hex server private key |
-| `NOISE_REMOTE_PUBLIC_KEY` | — | 32-byte hex allowed client public key |
 | `TEMPLATES_DIR` | `/data/templates` | Template storage |
 | `OVERLAYS_DIR` | `/data/overlays` | Runtime files |
 | `BRIDGE_NAME` | `br-sandbox` | Network bridge |
@@ -152,25 +151,22 @@ Environment variables:
 
 ## Noise CLI setup
 
-The CLI talks to `sandbox-manager` over `Noise_IK_25519_ChaChaPoly_BLAKE2s` TCP, not plain HTTP.
+The CLI talks to `sandbox-manager` over `Noise_NX_25519_ChaChaPoly_BLAKE2s` TCP, not plain HTTP.
 
 Meaning of the env vars:
 
-- `NOISE_LOCAL_PRIVATE_KEY` = this process's private key
-- `NOISE_REMOTE_PUBLIC_KEY` = the peer's public key
+- `NOISE_LOCAL_PRIVATE_KEY` = server private key
+- `NOISE_REMOTE_PUBLIC_KEY` = pinned server public key on the CLI
 - `NOISE_ADDR` = client destination address
 - `NOISE_BIND_ADDR` = server listen address
 
-Generate a matching client/server keypair set:
+Generate a server keypair:
 
 ```bash
 ./scripts/noise-keygen.sh .noise
 ```
 
-This writes:
-
-- `.noise/server.env` for `sandbox-manager`
-- `.noise/client.env` for the CLI
+This writes server and client helper env files. With NX, the CLI only needs the server public key.
 
 Start the server:
 
