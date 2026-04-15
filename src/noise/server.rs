@@ -170,9 +170,6 @@ fn load_local_private_key() -> Result<Vec<u8>> {
     decode_key_env("NOISE_LOCAL_PRIVATE_KEY", "responder private key")
 }
 
-fn load_remote_public_key() -> Result<Vec<u8>> {
-    decode_key_env("NOISE_REMOTE_PUBLIC_KEY", "initiator public key")
-}
 
 fn decode_key_env(name: &str, label: &str) -> Result<Vec<u8>> {
     let value = std::env::var(name)
