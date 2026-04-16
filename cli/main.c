@@ -3,12 +3,17 @@
 /// Config (env):
 ///   NOISE_ADDR              host:port of sandbox-manager Noise server (default: 127.0.0.1:9001)
 ///   NOISE_REMOTE_PUBLIC_KEY 32-byte hex — sandbox-manager public key
+///
+/// Or run `sandbox login` to authenticate via browser and save credentials.
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include "noise.h"
 #include "args.h"
+
+#define LOGIN_IMPLEMENTATION
+#include "login.h"
 
 // ── Platform socket abstraction ───────────────────────────────────────────────
 
@@ -197,12 +202,22 @@ static void run_cmd(const char *json_request, size_t req_len) {
     sock_init();
 
     const char *pub_hex = getenv("NOISE_REMOTE_PUBLIC_KEY");
-    if (!pub_hex) fatal("NOISE_REMOTE_PUBLIC_KEY not set");
+    const char *addr_str = getenv("NOISE_ADDR");
+
+    // Fall back to saved credentials from `sandbox login`
+    login_credentials_t saved_creds;
+    if ((!pub_hex || !addr_str) && login_load_credentials(&saved_creds) == 0) {
+        if (!pub_hex && saved_creds.sandbox_manager_noise_public_key[0])
+            pub_hex = saved_creds.sandbox_manager_noise_public_key;
+        if (!addr_str && saved_creds.sandbox_manager_noise_addr[0])
+            addr_str = saved_creds.sandbox_manager_noise_addr;
+    }
+
+    if (!pub_hex) fatal("NOISE_REMOTE_PUBLIC_KEY not set (run `sandbox login` or set env)");
 
     uint8_t remote_pub[32];
     if (hex_decode(remote_pub, 32, pub_hex) < 0) fatal("NOISE_REMOTE_PUBLIC_KEY: invalid hex");
 
-    const char *addr_str = getenv("NOISE_ADDR");
     if (!addr_str) addr_str = "127.0.0.1:9001";
     char host[256], port_str[16];
     const char *colon = strrchr(addr_str, ':');
@@ -305,11 +320,29 @@ static void build_id_payload(char *payload, size_t size, const char *id) {
 
 // ── Usage ─────────────────────────────────────────────────────────────────────
 
+static void cmd_login(int argc, char **argv) {
+    ketopt_t opt = KETOPT_INIT;
+    ko_longopt_t longopts[] = {{ "help", ko_no_argument, 'h' }, { 0, 0, 0 }};
+    int c;
+    while ((c = ketopt(&opt, argc, argv, 1, "h", longopts)) >= 0) {
+        if (c == 'h') { cli_usage(stdout, "sandbox", "login"); exit(0); }
+        cli_parse_error("sandbox", "login", argc, argv, &opt, c);
+    }
+
+    const char *addr = getenv("NOISE_BACKEND_ADDR");
+    const char *pub  = getenv("NOISE_BACKEND_PUBLIC_KEY");
+    if (!addr) addr = "api.todofor.ai:4100";
+    if (!pub) { fprintf(stderr, "error: NOISE_BACKEND_PUBLIC_KEY not set\n"); exit(1); }
+
+    if (login_device_flow(addr, pub, "sandbox") != 0) exit(1);
+}
+
 static void usage(void) {
     fprintf(stdout,
         "Usage: sandbox <command> [options]\n"
         "\n"
         "Commands:\n"
+        "  login\n"
         "  health\n"
         "  stats\n"
         "  create --user <id> [--template <name>] [--size <size>] [--token <api-key>]\n"
@@ -534,7 +567,9 @@ int main(int argc, char **argv) {
         return 0;
     }
 
-    if (!strcmp(argv[1], "health")) {
+    if (!strcmp(argv[1], "login")) {
+        cmd_login(argc - 1, argv + 1);
+    } else if (!strcmp(argv[1], "health")) {
         cmd_health(argc - 1, argv + 1);
     } else if (!strcmp(argv[1], "stats")) {
         cmd_stats(argc - 1, argv + 1);
