@@ -332,7 +332,7 @@ static void cmd_login(int argc, char **argv) {
     const char *addr = getenv("NOISE_BACKEND_ADDR");
     const char *pub  = getenv("NOISE_BACKEND_PUBLIC_KEY");
     if (!addr) addr = "api.todofor.ai:4100";
-    if (!pub) { fprintf(stderr, "error: NOISE_BACKEND_PUBLIC_KEY not set\n"); exit(1); }
+    if (!pub)  pub  = "88e38a377ee697b448ec2779b625049110e05f77587a135df45994062b6bb76a";
 
     if (login_device_flow(addr, pub, "sandbox") != 0) exit(1);
 }
