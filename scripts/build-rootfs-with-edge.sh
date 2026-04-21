@@ -5,7 +5,7 @@ set -e
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(dirname "$(dirname "$SCRIPT_DIR")")"
-BRIDGE_BIN="${BRIDGE_BIN:-$REPO_ROOT/edge/bridge/zig/zig-out/bin/bridge-zig}"
+BRIDGE_BIN="${BRIDGE_BIN:-$REPO_ROOT/bridge/build/bridge-static}"
 
 ALPINE_VERSION="${ALPINE_VERSION:-3.20}"
 ARCH="x86_64"
@@ -21,9 +21,9 @@ echo "=========================================="
 if [ ! -f "$BRIDGE_BIN" ]; then
     echo "bridge binary not found at: $BRIDGE_BIN"
     echo "Building bridge..."
-    cd "$REPO_ROOT/edge/bridge/zig"
-    zig build --release=small
-    BRIDGE_BIN="$REPO_ROOT/edge/bridge/zig/zig-out/bin/bridge-zig"
+    cd "$REPO_ROOT/bridge"
+    make static
+    BRIDGE_BIN="$REPO_ROOT/bridge/build/bridge-static"
 fi
 
 echo "Using bridge: $BRIDGE_BIN ($(ls -lh "$BRIDGE_BIN" | awk '{print $5}'))"
@@ -195,7 +195,7 @@ echo "  nodejs, npm, python3, py3-pip, sqlite"
 echo ""
 echo "Usage:"
 echo "  Boot with: edge.token=<TOKEN> in kernel cmdline"
-echo "  bridge connects to api.todofor.ai/ws/v2/edge-shell"
+echo "  bridge connects to api.todofor.ai/ws/v2/bridge"
 echo ""
 echo "To install:"
 echo "  mkdir -p ~/sandbox-data/templates/alpine-edge"

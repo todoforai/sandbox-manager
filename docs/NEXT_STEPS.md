@@ -3,8 +3,8 @@
 ## Current State
 
 ### ✅ Working
-- **bridge**: Full PTY relay agent (64KB), connects to `wss://api.todofor.ai/ws/v2/edge-shell`
-- **EdgeShellHandler**: Backend WebSocket handler for edge connections
+- **bridge**: Full PTY relay agent (64KB), connects to `wss://api.todofor.ai/ws/v2/bridge`
+- **BridgeHandler**: Backend WebSocket handler for bridge (edge) connections
 - **NetworkManager**: TAP device creation, bridge setup, NAT, VM isolation
 - **Firecracker launcher**: VM boot with edge token injection via kernel cmdline
 - **Resource gateway**: Auth (API key/Bearer/cookie) + per-minute billing
@@ -40,7 +40,7 @@ curl -X POST http://localhost:9000/sandbox \
   }'
 
 # 3. Check backend logs for edge connection
-# Should see: EdgeShellHandler: Edge connected, fingerprint=...
+# Should see: [Bridge] Connected: edge=... user=...
 ```
 
 ### Token Generation
@@ -195,9 +195,9 @@ curl -X POST http://localhost:9000/sandbox \
 
 | Component | File |
 |-----------|------|
-| bridge main | `edge/bridge/zig/src/main.zig:36` |
+| bridge main | `bridge/main.c` |
 | Edge token injection | `sandbox-manager/src/vm/firecracker.rs:243` |
 | TAP networking | `sandbox-manager/src/vm/network.rs` |
 | Resource proxy | `resource-gateway/proxy.ts` |
-| EdgeShellHandler | `backend/src/api/ws/handlers/EdgeShellHandler.ts` |
+| BridgeHandler | `backend/src/api/ws/handlers/BridgeHandler.ts` |
 | Init script (VM) | `sandbox-manager/scripts/build-rootfs-with-edge.sh:69` |
