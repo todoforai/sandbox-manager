@@ -5,6 +5,7 @@ use std::sync::Arc;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::{TcpListener, TcpStream};
 
+use crate::auth::{authenticate, AuthIdentity};
 use crate::noise::protocol::{self, CreateSandboxPayload, CreateTemplateRequest, IdPayload, ListPayload, NoiseRequest};
 use crate::service::errors::ErrorCode;
 use crate::service::SandboxService;
@@ -14,7 +15,7 @@ const MAX_FRAME: usize = 1024 * 1024;
 const NOISE_PATTERN: &str = "Noise_NX_25519_ChaChaPoly_BLAKE2s";
 
 pub async fn serve(service: SandboxService) -> Result<()> {
-    let addr = std::env::var("NOISE_BIND_ADDR").unwrap_or_else(|_| "0.0.0.0:9001".into());
+    let addr = std::env::var("NOISE_BIND_ADDR").unwrap_or_else(|_| "0.0.0.0:9010".into());
     let listener = TcpListener::bind(&addr).await?;
     tracing::info!("Sandbox manager Noise listening on {}", addr);
 
@@ -43,70 +44,108 @@ async fn handle_conn(mut stream: TcpStream, service: Arc<SandboxService>) -> Res
     }
 }
 
+/// Methods that do not require auth.
+fn is_public(kind: &str) -> bool {
+    matches!(kind, "health.get" | "templates.list")
+}
+
+async fn resolve_identity(
+    service: &SandboxService,
+    token: Option<&str>,
+) -> Result<AuthIdentity, String> {
+    let token = token.ok_or_else(|| "missing token".to_string())?;
+    authenticate(service.redis(), token).await.map_err(|e| e.to_string())
+}
+
 async fn dispatch(service: &SandboxService, req: NoiseRequest) -> protocol::NoiseResponse {
     use protocol::{err, ok, parse};
 
+    // Public methods skip auth.
+    if is_public(&req.kind) {
+        return match req.kind.as_str() {
+            "health.get" => ok(req.id, json!({ "status": "ok", "version": env!("CARGO_PKG_VERSION") })),
+            "templates.list" => ok(req.id, service.list_templates()),
+            _ => unreachable!(),
+        };
+    }
+
+    // Authenticate.
+    let identity = match resolve_identity(service, req.token.as_deref()).await {
+        Ok(id) => id,
+        Err(e) => return err(req.id, ErrorCode::Unauthorized, e),
+    };
+
     match req.kind.as_str() {
-        "health.get" => ok(req.id, json!({ "status": "ok", "version": env!("CARGO_PKG_VERSION") })),
-        "stats.get" => ok(req.id, service.stats()),
-        "templates.list" => ok(req.id, service.list_templates()),
+        "stats.get" => match service.stats().await {
+            Ok(s) => ok(req.id, s),
+            Err(e) => err(req.id, ErrorCode::Internal, e.to_string()),
+        },
         "sandbox.list" => match parse::<ListPayload>(req.payload) {
-            Ok(payload) => ok(req.id, service.list_sandboxes(payload.user_id.as_deref())),
+            Ok(payload) => match service.list_sandboxes(&identity, payload.user_id.as_deref()).await {
+                Ok(list) => ok(req.id, list),
+                Err(e) => err(req.id, ErrorCode::Internal, e.to_string()),
+            },
             Err(e) => err(req.id, ErrorCode::BadRequest, e),
         },
         "sandbox.get" => match parse::<IdPayload>(req.payload) {
-            Ok(payload) => match service.get_sandbox(&payload.id) {
-                Some(sandbox) => ok(req.id, sandbox),
-                None => err(req.id, ErrorCode::NotFound, "Sandbox not found"),
+            Ok(payload) => match service.get_sandbox(&identity, &payload.id).await {
+                Ok(Some(sandbox)) => ok(req.id, sandbox),
+                Ok(None) => err(req.id, ErrorCode::NotFound, "Sandbox not found"),
+                Err(e) => err(req.id, ErrorCode::Internal, e.to_string()),
             },
             Err(e) => err(req.id, ErrorCode::BadRequest, e),
         },
         "sandbox.create" => match parse::<CreateSandboxPayload>(req.payload) {
-            Ok(payload) => match service.create_sandbox(payload).await {
+            Ok(payload) => match service.create_sandbox(&identity, payload).await {
                 Ok(sandbox) => ok(req.id, sandbox),
                 Err(e) => err(req.id, ErrorCode::Internal, e.to_string()),
             },
             Err(e) => err(req.id, ErrorCode::BadRequest, e),
         },
         "sandbox.delete" => match parse::<IdPayload>(req.payload) {
-            Ok(payload) => match service.delete_sandbox(&payload.id).await {
+            Ok(payload) => match service.delete_sandbox(&identity, &payload.id).await {
                 Ok(()) => ok(req.id, json!({ "deleted": true })),
-                Err(e) => err(req.id, ErrorCode::Internal, e.to_string()),
+                Err(e) => err(req.id, ErrorCode::Forbidden, e.to_string()),
             },
             Err(e) => err(req.id, ErrorCode::BadRequest, e),
         },
         "sandbox.pause" => match parse::<IdPayload>(req.payload) {
-            Ok(payload) => match service.pause_sandbox(&payload.id).await {
+            Ok(payload) => match service.pause_sandbox(&identity, &payload.id).await {
                 Ok(()) => ok(req.id, json!({ "paused": true })),
                 Err(e) => err(req.id, ErrorCode::BadRequest, e.to_string()),
             },
             Err(e) => err(req.id, ErrorCode::BadRequest, e),
         },
         "sandbox.resume" => match parse::<IdPayload>(req.payload) {
-            Ok(payload) => match service.resume_sandbox(&payload.id).await {
+            Ok(payload) => match service.resume_sandbox(&identity, &payload.id).await {
                 Ok(()) => ok(req.id, json!({ "resumed": true })),
                 Err(e) => err(req.id, ErrorCode::BadRequest, e.to_string()),
             },
             Err(e) => err(req.id, ErrorCode::BadRequest, e),
         },
-        "template.create" => match parse::<CreateTemplateRequest>(req.payload) {
-            Ok(payload) => {
-                let config = TemplateConfig {
-                    name: payload.name.clone(),
-                    kernel_path: payload.kernel_path.into(),
-                    rootfs_path: payload.rootfs_path.into(),
-                    boot_args: payload.boot_args.unwrap_or_else(|| "console=ttyS0 reboot=k panic=1 pci=off init=/sbin/init".into()),
-                    description: payload.description.unwrap_or_default(),
-                    packages: payload.packages.unwrap_or_default(),
-                    ..Default::default()
-                };
-                match service.load_template(&payload.name, &config).await {
-                    Ok(()) => ok(req.id, json!({ "created": true })),
-                    Err(e) => err(req.id, ErrorCode::Internal, e.to_string()),
-                }
+        "template.create" => {
+            if !identity.is_admin() {
+                return err(req.id, ErrorCode::Forbidden, "admin role required");
             }
-            Err(e) => err(req.id, ErrorCode::BadRequest, e),
-        },
+            match parse::<CreateTemplateRequest>(req.payload) {
+                Ok(payload) => {
+                    let config = TemplateConfig {
+                        name: payload.name.clone(),
+                        kernel_path: payload.kernel_path.into(),
+                        rootfs_path: payload.rootfs_path.into(),
+                        boot_args: payload.boot_args.unwrap_or_else(|| "console=ttyS0 reboot=k panic=1 pci=off init=/sbin/init".into()),
+                        description: payload.description.unwrap_or_default(),
+                        packages: payload.packages.unwrap_or_default(),
+                        ..Default::default()
+                    };
+                    match service.load_template(&payload.name, &config).await {
+                        Ok(()) => ok(req.id, json!({ "created": true })),
+                        Err(e) => err(req.id, ErrorCode::Internal, e.to_string()),
+                    }
+                }
+                Err(e) => err(req.id, ErrorCode::BadRequest, e),
+            }
+        }
         _ => err(req.id, ErrorCode::NotImplemented, format!("Unknown request type: {}", req.kind)),
     }
 }

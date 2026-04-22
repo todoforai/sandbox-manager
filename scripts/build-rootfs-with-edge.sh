@@ -48,7 +48,14 @@ chmod +x "$ROOTFS_DIR/usr/local/bin/bridge"
 # Create init script
 cat > "$ROOTFS_DIR/init" << 'INIT_EOF'
 #!/bin/sh
-# Minimal init for Firecracker VM with bridge
+# Minimal init for Firecracker VM with bridge.
+#
+# Enrollment token arrives via Firecracker MMDS (169.254.169.254), not the
+# kernel cmdline — /proc/cmdline is world-readable, MMDS at least bounds
+# exposure to the short window between boot and redeem.
+
+export HOME=/root
+mkdir -p /root
 
 # Mount essential filesystems
 mount -t proc proc /proc
@@ -59,17 +66,15 @@ mount -t devpts devpts /dev/pts
 
 # Setup networking
 ip link set lo up
-if ip link show eth0 &>/dev/null; then
+if ip link show eth0 >/dev/null 2>&1; then
     ip link set eth0 up
 
-    # Parse kernel cmdline for network + edge config
-    EDGE_TOKEN=""
+    # Parse kernel cmdline for network config
     GUEST_IP=""
     GATEWAY_IP=""
     for param in $(cat /proc/cmdline); do
         case "$param" in
-            edge.token=*) EDGE_TOKEN="${param#edge.token=}" ;;
-            ip=*) 
+            ip=*)
                 # Format: ip=client_ip::gateway:netmask::interface:autoconf
                 GUEST_IP=$(echo "${param#ip=}" | cut -d: -f1)
                 GATEWAY_IP=$(echo "${param#ip=}" | cut -d: -f3)
@@ -86,25 +91,42 @@ if ip link show eth0 &>/dev/null; then
         # Fallback to DHCP
         udhcpc -i eth0 -s /bin/true -q -n 2>/dev/null || true
     fi
+
+    # Route to MMDS (169.254.169.254) via eth0 — needed for link-local metadata.
+    ip route add 169.254.169.254 dev eth0 2>/dev/null || true
 fi
 
-# Start bridge if token provided
-if [ -n "$EDGE_TOKEN" ]; then
-    echo "[init] Starting bridge..."
-    /usr/local/bin/bridge "$EDGE_TOKEN" &
-    EDGE_PID=$!
-    echo "[init] bridge started (pid=$EDGE_PID)"
+# Fetch enrollment token from MMDS (IMDSv2-style: session token then GET).
+echo "[init] Fetching enrollment token from MMDS..."
+MMDS_SESSION=$(wget -q -O - --method=PUT \
+    --header='X-metadata-token-ttl-seconds: 60' \
+    'http://169.254.169.254/latest/api/token' 2>/dev/null || true)
+ENROLL_TOKEN=""
+if [ -n "$MMDS_SESSION" ]; then
+    ENROLL_TOKEN=$(wget -q -O - \
+        --header="X-metadata-token: $MMDS_SESSION" \
+        'http://169.254.169.254/enroll_token' 2>/dev/null || true)
+fi
+
+if [ -n "$ENROLL_TOKEN" ] && [ "$ENROLL_TOKEN" != "null" ]; then
+    echo "[init] Redeeming enrollment token..."
+    if /usr/local/bin/bridge login \
+            --token "$ENROLL_TOKEN" \
+            --device-type SANDBOX \
+            --device-name "sandbox-$(cat /etc/hostname 2>/dev/null || echo unknown)"; then
+        echo "[init] Starting bridge..."
+        exec /usr/local/bin/bridge
+    else
+        echo "[init] FATAL: bridge login failed" >&2
+    fi
 else
-    echo "[init] No edge.token in cmdline, bridge not started"
+    echo "[init] No enrollment token in MMDS — bridge not started" >&2
 fi
 
-# Keep running
-echo "[init] VM ready"
+# Fallback — no working bridge. Keep VM alive for debug.
 if [ -t 0 ]; then
-    # Interactive - start shell
     exec /bin/sh
 else
-    # Non-interactive - wait forever
     while true; do sleep 3600; done
 fi
 INIT_EOF
@@ -194,7 +216,7 @@ echo "  make, gcc, g++, musl-dev, linux-headers"
 echo "  nodejs, npm, python3, py3-pip, sqlite"
 echo ""
 echo "Usage:"
-echo "  Boot with: edge.token=<TOKEN> in kernel cmdline"
+echo "  Boot with: enroll.token=<TOKEN> in kernel cmdline"
 echo "  bridge connects to api.todofor.ai/ws/v2/bridge"
 echo ""
 echo "To install:"

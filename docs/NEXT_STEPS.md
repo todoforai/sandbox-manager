@@ -7,11 +7,10 @@
 - **BridgeHandler**: Backend WebSocket handler for bridge (edge) connections
 - **NetworkManager**: TAP device creation, bridge setup, NAT, VM isolation
 - **Firecracker launcher**: VM boot with edge token injection via kernel cmdline
-- **Resource gateway**: Auth (API key/Bearer/cookie) + per-minute billing
 
 ### ⚠️ Needs Work
 1. Real backend connection testing with valid edge token
-2. Resource proxy integration for sandbox auth/billing
+2. Auth/billing integration (directly in backend)
 3. TAP networking (requires root)
 
 ---
@@ -19,7 +18,7 @@
 ## 1. Test Real Backend Connection
 
 ### What's Needed
-The VM boots with `edge.token=<TOKEN>` in kernel cmdline. bridge reads it and connects to backend.
+The VM boots with `enroll.token=<TOKEN>` in kernel cmdline. bridge reads it and connects to backend.
 
 ### Test Flow
 ```bash
@@ -30,14 +29,12 @@ TOKEN="your-api-key"
 # Option B: Generate resource token via tRPC
 # POST /trpc/resource.getToken → short-lived token stored in Redis as resource:token:xxx
 
-# 2. Boot sandbox with token
+# 2. Boot sandbox (user derived from Bearer token; enroll token is the same bearer,
+#    injected into the VM's kernel cmdline automatically)
 curl -X POST http://localhost:9000/sandbox \
+  -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{
-    "user_id": "test-user",
-    "template": "alpine-edge",
-    "edge_token": "'$TOKEN'"
-  }'
+  -d '{"template":"alpine-edge"}'
 
 # 3. Check backend logs for edge connection
 # Should see: [Bridge] Connected: edge=... user=...
@@ -59,48 +56,10 @@ sandboxToken: protectedProcedure
 
 ---
 
-## 2. Resource Proxy Integration ✅ DONE
+## 2. Auth & Billing Integration
 
-### Architecture
-```
-Client → Resource Gateway (auth + billing) → Sandbox Manager
-         ├─ Validates API key / resource token
-         ├─ Checks balance
-         ├─ Deducts per-minute ($0.01/min)
-         └─ Relays WebSocket
-```
-
-### Implementation
-Added to `resource-gateway/server.ts`:
-- `sandboxProxy` with `costPerMinute: 0.01`
-- WebSocket route: `/sandbox/:sandboxId`
-- Upstream: `SANDBOX_MANAGER_URL` env var (default: `http://localhost:9000`)
-
-### Usage
-```bash
-# Connect via resource gateway (handles auth + billing)
-wscat -c "ws://localhost:6000/sandbox/SANDBOX_ID?api_key=YOUR_API_KEY"
-
-# Or with Authorization header
-wscat -c "ws://localhost:6000/sandbox/SANDBOX_ID" -H "Authorization: Bearer YOUR_TOKEN"
-```
-
-### Optional: Sandbox Manager Auth
-If you want sandbox-manager to only accept requests from resource-gateway:
-
-```rust
-// src/api/middleware.rs
-pub async fn require_gateway_auth(headers: HeaderMap, next: Next) -> Result<Response, StatusCode> {
-    let secret = std::env::var("GATEWAY_SECRET").ok();
-    if let Some(expected) = secret {
-        let provided = headers.get("x-gateway-secret").and_then(|v| v.to_str().ok());
-        if provided != Some(&expected) {
-            return Err(StatusCode::UNAUTHORIZED);
-        }
-    }
-    Ok(next.run(request).await)
-}
-```
+Sandbox-manager should authenticate requests directly via backend (API key / resource token)
+and meter usage against user balance. No separate gateway service.
 
 ---
 
@@ -168,8 +127,8 @@ curl https://api.todofor.ai/health  # Full connectivity
 # Build sandbox-manager
 cd sandbox-manager && cargo build --release
 
-# Build bridge (if not already in rootfs)
-cd edge/bridge/zig && zig build --release=small
+# Build bridge (if not already in rootfs) — static musl, ~90 KB
+cd bridge && make static
 
 # Build rootfs with bridge
 sudo ./scripts/build-rootfs-with-edge.sh
@@ -185,8 +144,9 @@ sudo RUST_LOG=debug ./target/release/sandbox-manager
 
 # Terminal 3: Test
 curl -X POST http://localhost:9000/sandbox \
+  -H "Authorization: Bearer YOUR_TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{"user_id":"test","template":"alpine-edge","edge_token":"YOUR_TOKEN"}'
+  -d '{"template":"alpine-edge"}'
 ```
 
 ---
@@ -198,6 +158,5 @@ curl -X POST http://localhost:9000/sandbox \
 | bridge main | `bridge/main.c` |
 | Edge token injection | `sandbox-manager/src/vm/firecracker.rs:243` |
 | TAP networking | `sandbox-manager/src/vm/network.rs` |
-| Resource proxy | `resource-gateway/proxy.ts` |
 | BridgeHandler | `backend/src/api/ws/handlers/BridgeHandler.ts` |
 | Init script (VM) | `sandbox-manager/scripts/build-rootfs-with-edge.sh:69` |

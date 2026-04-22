@@ -168,7 +168,7 @@ impl FirecrackerLauncher {
         boot_config: &BootConfig,
         size: &VmSize,
         network: &VmNetwork,
-        edge_token: Option<&str>,
+        enroll_token: Option<&str>,
     ) -> Result<FirecrackerVm> {
         let socket_path = self.runtime_dir.join(format!("{}.sock", vm_id));
         let serial_path = self.runtime_dir.join(format!("{}.serial", vm_id));
@@ -206,7 +206,7 @@ impl FirecrackerLauncher {
         };
 
         // Configure VM via API
-        self.configure_vm(&vm, boot_config, size, network, edge_token)
+        self.configure_vm(&vm, boot_config, size, network, enroll_token)
             .await?;
 
         // Start VM
@@ -219,23 +219,24 @@ impl FirecrackerLauncher {
         Ok(vm)
     }
 
-    /// Configure VM before starting
+    /// Configure VM before starting.
+    ///
+    /// The enrollment token is delivered via Firecracker MMDS (metadata service
+    /// at 169.254.169.254) rather than kernel cmdline. Guest `/init` fetches
+    /// it, runs `bridge login --token`, and the token is consumed.
     async fn configure_vm(
         &self,
         vm: &FirecrackerVm,
         boot_config: &BootConfig,
         size: &VmSize,
         network: &VmNetwork,
-        edge_token: Option<&str>,
+        enroll_token: Option<&str>,
     ) -> Result<()> {
-        // Build boot args - add network config and edge token
-        let mut boot_args = format!(
+        // Boot args — network only, no secret material.
+        let boot_args = format!(
             "{} ip={}::{}:255.255.0.0::eth0:off",
             boot_config.boot_args, network.guest_ip, network.gateway_ip
         );
-        if let Some(token) = edge_token {
-            boot_args.push_str(&format!(" edge.token={}", token));
-        }
 
         // Boot source
         let boot_source = serde_json::json!({
@@ -266,15 +267,35 @@ impl FirecrackerLauncher {
             .await
             .context("Failed to configure drive")?;
 
-        // Network interface (optional - may fail without TAP)
+        // Network interface — flag it as MMDS-capable so the guest can reach
+        // 169.254.169.254. Without `allow_mmds_requests` the metadata server
+        // drops requests from this NIC.
         let net_iface = serde_json::json!({
             "iface_id": "eth0",
             "host_dev_name": network.tap_name,
-            "guest_mac": network.guest_mac
+            "guest_mac": network.guest_mac,
+            "allow_mmds_requests": true,
         });
         if let Err(e) = vm.api_request("PUT", "/network-interfaces/eth0", Some(&net_iface.to_string())).await {
             tracing::warn!("Failed to configure network (TAP may not exist): {}", e);
-            // Continue without networking
+            // Continue without networking — MMDS also won't work, but boot may succeed.
+            return Ok(());
+        }
+
+        // MMDS setup. Only enable when we have a token to deliver.
+        if let Some(token) = enroll_token {
+            let mmds_config = serde_json::json!({
+                "network_interfaces": ["eth0"],
+                "version": "V2",
+            });
+            vm.api_request("PUT", "/mmds/config", Some(&mmds_config.to_string()))
+                .await
+                .context("Failed to configure MMDS")?;
+
+            let mmds_data = serde_json::json!({ "enroll_token": token });
+            vm.api_request("PUT", "/mmds", Some(&mmds_data.to_string()))
+                .await
+                .context("Failed to populate MMDS")?;
         }
 
         Ok(())

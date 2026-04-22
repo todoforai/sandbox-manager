@@ -1,14 +1,17 @@
 use serde::{Deserialize, Serialize};
 
-use crate::vm::session::{Session, SessionState, SessionStats};
+use crate::vm::sandbox::{Sandbox, SandboxState};
 use crate::vm::size::VmSize;
+
+pub use crate::vm::sandbox::SandboxStats;
 
 #[derive(Debug, Deserialize)]
 pub struct CreateSandboxRequest {
-    pub user_id: String,
     pub template: Option<String>,
     pub size: Option<VmSize>,
-    pub edge_token: Option<String>,
+    /// Admin-only: create sandbox on behalf of another user.
+    /// Ignored for non-admin callers.
+    pub user_id: Option<String>,
 }
 
 #[derive(Debug, Serialize)]
@@ -27,35 +30,34 @@ pub struct SandboxInfo {
     pub last_activity: u64,
 }
 
-impl From<Session> for SandboxInfo {
-    fn from(session: Session) -> Self {
+impl From<Sandbox> for SandboxInfo {
+    fn from(sandbox: Sandbox) -> Self {
         Self {
-            ws_url: format!("/sandbox/{}/tty", session.id),
-            cost_per_minute: session.size.cost_per_minute(),
-            ip_address: session.ip_address.map(|ip| ip.to_string()),
-            state: state_name(session.state).to_string(),
-            id: session.id,
-            user_id: session.user_id,
-            template: session.template,
-            size: session.size,
-            pid: session.pid,
-            error: session.error,
-            created_at: session.created_at,
-            last_activity: session.last_activity,
+            ws_url: format!("/sandbox/{}/tty", sandbox.id),
+            cost_per_minute: sandbox.size.cost_per_minute(),
+            ip_address: sandbox.ip_address.map(|ip| ip.to_string()),
+            state: state_name(sandbox.state).to_string(),
+            id: sandbox.id,
+            user_id: sandbox.user_id,
+            template: sandbox.template,
+            size: sandbox.size,
+            pid: sandbox.pid,
+            error: sandbox.error,
+            created_at: sandbox.created_at,
+            last_activity: sandbox.last_activity,
         }
     }
 }
 
-pub fn state_name(state: SessionState) -> &'static str {
+pub fn state_name(state: SandboxState) -> &'static str {
     match state {
-        SessionState::Creating => "creating",
-        SessionState::Running => "running",
-        SessionState::Paused => "paused",
-        SessionState::Terminating => "terminating",
-        SessionState::Terminated => "terminated",
-        SessionState::Error => "error",
+        SandboxState::Creating => "creating",
+        SandboxState::Running => "running",
+        SandboxState::Paused => "paused",
+        SandboxState::Terminating => "terminating",
+        SandboxState::Terminated => "terminated",
+        SandboxState::Error => "error",
     }
 }
 
 pub type SandboxList = Vec<SandboxInfo>;
-pub type SandboxStats = SessionStats;

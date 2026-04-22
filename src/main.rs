@@ -1,4 +1,6 @@
 mod api;      // REST adapter
+mod auth;     // token → AuthIdentity
+mod backend;  // HTTP client for todofor.ai admin endpoints
 mod noise;    // Noise/TCP adapter
 mod redis;    // Redis client (auth + billing)
 mod service;  // transport-agnostic sandbox service
@@ -23,15 +25,21 @@ async fn main() -> Result<()> {
         .with(tracing_subscriber::fmt::layer())
         .init();
 
-    let config = vm::config::ManagerConfig::from_env();
-    let manager = Arc::new(VmManager::new(config).await?);
+    // Redis is required — it stores the sandbox inventory and resolves identities.
+    let redis = redis::connect_from_env().await?;
 
-    let redis = match redis::connect_from_env().await {
-        Ok(r) => { tracing::info!("Redis connected"); Some(r) }
-        Err(e) => { tracing::warn!("Redis unavailable (auth disabled): {}", e); None }
+    let config = vm::config::ManagerConfig::from_env();
+    let manager = Arc::new(VmManager::new(config, redis.clone()).await?);
+
+    let backend = match backend::BackendClient::from_env()? {
+        Some(c) => { tracing::info!("Backend client configured"); Some(c) }
+        None => {
+            tracing::warn!("BACKEND_URL / BACKEND_ADMIN_API_KEY not set — enroll token minting disabled; VMs will boot without bridge auth");
+            None
+        }
     };
 
-    let service = SandboxService::new(manager.clone(), redis);
+    let service = SandboxService::new(manager.clone(), redis, backend);
 
     // Spawn idle cleanup task
     let cleanup_manager = manager.clone();
@@ -44,7 +52,7 @@ async fn main() -> Result<()> {
     });
 
     // Spawn Noise/TCP adapter on a separate port.
-    // Env: NOISE_BIND_ADDR=0.0.0.0:9001
+    // Env: NOISE_BIND_ADDR=0.0.0.0:9010
     //      NOISE_LOCAL_PRIVATE_KEY=<32-byte hex>
     let noise_service = service.clone();
     tokio::spawn(async move {

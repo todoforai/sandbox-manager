@@ -2,6 +2,12 @@
 
 High-performance VM sandbox system using Firecracker microVMs with bridge PTY relay.
 
+## Role in the platform
+
+Sandbox Manager is a **VM factory**. Its job is narrow: produce Firecracker microVMs that come up with the bridge already running and connected to the backend. It does **not** manage networking between sandboxes, SSH keys, certs, user capabilities, or language runtimes — all of that is configured by the AI at the user's request via commands through the bridge.
+
+See [`ARCHITECTURE_BRIDGE_MACHINES.md`](../ARCHITECTURE_BRIDGE_MACHINES.md) for the overall model: bridges are islands by default, the AI acts as a sysadmin, capabilities are additive.
+
 ## Architecture
 
 ```
@@ -139,7 +145,7 @@ Environment variables:
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `BIND_ADDR` | `0.0.0.0:9000` | REST server bind address |
-| `NOISE_BIND_ADDR` | `0.0.0.0:9001` | Noise TCP bind address |
+| `NOISE_BIND_ADDR` | `0.0.0.0:9010` | Noise TCP bind address |
 | `NOISE_LOCAL_PRIVATE_KEY` | — | 32-byte hex server private key |
 | `TEMPLATES_DIR` | `/data/templates` | Template storage |
 | `OVERLAYS_DIR` | `/data/overlays` | Runtime files |
@@ -216,19 +222,18 @@ bridge → Backend:
 - **alpine-base**: Minimal Alpine, no edge agent
 - **alpine-edge**: Alpine + bridge, connects to backend on boot
 
-### Passing Edge Token
+### Booting a sandbox
+
+The caller's API key is the Bearer token. The sandbox-manager:
+- derives the owner `user_id` from the token (`resource:token:*` or `apikey:*` in Redis)
+- forwards the same token to the VM via kernel cmdline (`enroll.token=...`); bridge inside the VM reads it on boot and enrolls the VM as a device.
 
 ```bash
 curl -X POST http://localhost:9000/sandbox \
+  -H "Authorization: Bearer your-api-key" \
   -H "Content-Type: application/json" \
-  -d '{
-    "user_id": "user123",
-    "template": "alpine-edge",
-    "edge_token": "your-edge-token"
-  }'
+  -d '{"template":"alpine-edge"}'
 ```
-
-The token is passed via kernel cmdline (`edge.token=...`) and bridge reads it on boot.
 
 ## Integration with Resource Proxy
 

@@ -1,7 +1,7 @@
 /// sandbox CLI — manages Firecracker VMs via Noise_NX TCP to sandbox-manager
 ///
 /// Config (env):
-///   NOISE_ADDR              host:port of sandbox-manager Noise server (default: 127.0.0.1:9001)
+///   NOISE_ADDR              host:port of sandbox-manager Noise server (default: 127.0.0.1:9010)
 ///   NOISE_REMOTE_PUBLIC_KEY 32-byte hex — sandbox-manager public key
 ///
 /// Or run `sandbox login` to authenticate via browser and save credentials.
@@ -218,7 +218,7 @@ static void run_cmd(const char *json_request, size_t req_len) {
     uint8_t remote_pub[32];
     if (hex_decode(remote_pub, 32, pub_hex) < 0) fatal("NOISE_REMOTE_PUBLIC_KEY: invalid hex");
 
-    if (!addr_str) addr_str = "127.0.0.1:9001";
+    if (!addr_str) addr_str = "127.0.0.1:9010";
     char host[256], port_str[16];
     const char *colon = strrchr(addr_str, ':');
     if (!colon) fatal("NOISE_ADDR: missing port");
@@ -276,6 +276,17 @@ static void run_cmd(const char *json_request, size_t req_len) {
 
 // ── Request builders ──────────────────────────────────────────────────────────
 
+/// Load the bearer token (apiKey) from saved credentials.
+/// Returns NULL if no credentials are saved. Caller must not free.
+static const char *load_bearer_token(void) {
+    static login_credentials_t creds;
+    static int loaded = 0;
+    if (loaded) return creds.api_key[0] ? creds.api_key : NULL;
+    loaded = 1;
+    if (login_load_credentials(&creds) != 0) return NULL;
+    return creds.api_key[0] ? creds.api_key : NULL;
+}
+
 static void build_and_run(const char *type, const char *payload_json) {
     uint8_t id_bytes[4];
     if (noise_random(id_bytes, 4) < 0) fatal("RNG failed");
@@ -283,12 +294,15 @@ static void build_and_run(const char *type, const char *payload_json) {
     hex_encode(id_hex, id_bytes, 4);
     id_hex[8] = '\0';
 
+    const char *token = load_bearer_token();
+
     char req[4096];
     json_buf_t jb;
     jb_init(&jb, req, sizeof(req));
     jb_obj_open(&jb);
     jb_str(&jb, "id", id_hex);
     jb_str(&jb, "type", type);
+    if (token) jb_str(&jb, "token", token);
     jb_escaped(&jb, "payload");
     jb_char(&jb, ':');
     jb_raw(&jb, payload_json && payload_json[0] ? payload_json : "{}");
@@ -334,7 +348,7 @@ static void cmd_login(int argc, char **argv) {
     if (!addr) addr = "api.todofor.ai:4100";
     if (!pub)  pub  = "88e38a377ee697b448ec2779b625049110e05f77587a135df45994062b6bb76a";
 
-    if (login_device_flow(addr, pub, "sandbox") != 0) exit(1);
+    if (login_device_flow(addr, pub, "sandbox", NULL) != 0) exit(1);
 }
 
 static void usage(void) {
@@ -358,7 +372,7 @@ static void usage(void) {
         "  -h, --help  Show help\n"
         "\n"
         "Env:\n"
-        "  NOISE_ADDR              sandbox-manager Noise address (default: 127.0.0.1:9001)\n"
+        "  NOISE_ADDR              sandbox-manager Noise address (default: 127.0.0.1:9010)\n"
         "  NOISE_REMOTE_PUBLIC_KEY 32-byte hex server public key\n");
 }
 
@@ -371,8 +385,9 @@ static void usage_id(const char *cmd) {
     cli_usage(stdout, "sandbox", usage_buf);
 }
 static void usage_create(void) {
-    cli_usage(stdout, "sandbox", "create --user <id> [--template <name>] [--size <small|medium|large|xlarge>] [--token <api-key>]");
+    cli_usage(stdout, "sandbox", "create [--template <name>] [--size <small|medium|large|xlarge>]");
 }
+
 static void usage_template_list(void) { cli_usage(stdout, "sandbox", "template list"); }
 static void usage_template_create(void) {
     cli_usage(stdout, "sandbox", "template create <name> --kernel <path> --rootfs <path> [--boot-args <args>] [--description <text>] [--package <name> ...]");
@@ -455,36 +470,30 @@ static void cmd_id_request(const char *cmd, const char *type, int argc, char **a
 }
 
 static void cmd_create(int argc, char **argv) {
-    const char *user = NULL, *template_name = NULL, *size = NULL, *token = NULL;
+    const char *template_name = NULL, *size = NULL;
+    const char *usage_str = "create [--template <name>] [--size <small|medium|large|xlarge>]";
     ketopt_t opt = KETOPT_INIT;
     ko_longopt_t longopts[] = {
         { "help", ko_no_argument, 'h' },
-        { "user", ko_required_argument, 'u' },
         { "template", ko_required_argument, 't' },
         { "size", ko_required_argument, 's' },
-        { "token", ko_required_argument, 'k' },
         { 0, 0, 0 }
     };
     int c;
-    while ((c = ketopt(&opt, argc, argv, 1, "hu:t:s:k:", longopts)) >= 0) {
+    while ((c = ketopt(&opt, argc, argv, 1, "ht:s:", longopts)) >= 0) {
         if (c == 'h') { usage_create(); exit(0); }
-        if (c == 'u') { user = opt.arg; continue; }
         if (c == 't') { template_name = opt.arg; continue; }
         if (c == 's') { size = opt.arg; continue; }
-        if (c == 'k') { token = opt.arg; continue; }
-        cli_parse_error("sandbox", "create --user <id> [--template <name>] [--size <small|medium|large|xlarge>] [--token <api-key>]", argc, argv, &opt, c);
+        cli_parse_error("sandbox", usage_str, argc, argv, &opt, c);
     }
-    if (opt.ind != argc) cli_usage_error("sandbox", "create --user <id> [--template <name>] [--size <small|medium|large|xlarge>] [--token <api-key>]", "unexpected argument");
-    if (!user) cli_usage_error("sandbox", "create --user <id> [--template <name>] [--size <small|medium|large|xlarge>] [--token <api-key>]", "missing --user");
+    if (opt.ind != argc) cli_usage_error("sandbox", usage_str, "unexpected argument");
 
     char payload[512];
     json_buf_t jb;
     jb_init(&jb, payload, sizeof(payload));
     jb_obj_open(&jb);
-    jb_str(&jb, "user_id", user);
     jb_str(&jb, "template", template_name);
     jb_str(&jb, "size", size);
-    jb_str(&jb, "edge_token", token);
     jb_obj_close(&jb);
     if (jb.overflow) fatal("payload too large");
     payload[jb.len] = '\0';

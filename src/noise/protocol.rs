@@ -9,6 +9,9 @@ pub struct NoiseRequest {
     pub id: String,
     #[serde(rename = "type")]
     pub kind: String,
+    /// Bearer token; required for all non-public methods.
+    #[serde(default)]
+    pub token: Option<String>,
     #[serde(default)]
     pub payload: Value,
 }

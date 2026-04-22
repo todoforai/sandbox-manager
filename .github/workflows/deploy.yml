@@ -1,0 +1,58 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches: [ prod ]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.7.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_DEPLOY_KEY }}
+
+      - name: Add host to known_hosts
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -H api.todofor.ai >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Annotate Grafana (start)
+        if: ${{ secrets.GRAFANA_URL != '' }}
+        run: |
+          curl -s -X POST "${{ secrets.GRAFANA_URL }}/api/annotations" \
+            -H "Authorization: Bearer ${{ secrets.GRAFANA_API_KEY }}" \
+            -H "Content-Type: application/json" \
+            -d '{"text": "🚀 Deploy started: sandbox-manager", "tags": ["deploy", "start", "sandbox-manager"]}'
+
+      - name: Deploy
+        id: deploy
+        run: ./deploy.sh
+
+      - name: Annotate Grafana (end)
+        if: ${{ always() && secrets.GRAFANA_URL != '' }}
+        env:
+          STATUS: ${{ steps.deploy.outcome }}
+        run: |
+          EMOJI=$([[ "$STATUS" == "success" ]] && echo "✅" || echo "❌")
+          curl -s -X POST "${{ secrets.GRAFANA_URL }}/api/annotations" \
+            -H "Authorization: Bearer ${{ secrets.GRAFANA_API_KEY }}" \
+            -H "Content-Type: application/json" \
+            -d "{\"text\": \"$EMOJI Deploy $STATUS: sandbox-manager\", \"tags\": [\"deploy\", \"$STATUS\", \"sandbox-manager\"]}"
+
+      - name: Record deployment status
+        if: always()
+        run: |
+          if [ "${{ steps.deploy.outcome }}" == "success" ]; then
+            echo "## ✅ Deployment Successful" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "## ❌ Deployment Failed" >> $GITHUB_STEP_SUMMARY
+          fi
+          echo "- **Branch:** ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
