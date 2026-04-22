@@ -1,0 +1,50 @@
+# Packages installed into the ubuntu-base sandbox rootfs.
+# One package per line. Lines starting with '#' are ignored.
+# Used by scripts/build-ubuntu-rootfs.sh.
+
+# --- init & networking (required for boot) ---
+sysvinit-core
+iproute2
+iputils-ping
+ca-certificates
+
+# --- shell & core utilities ---
+bash
+coreutils
+util-linux
+procps
+findutils
+grep
+sed
+gawk
+file
+less
+htop
+tzdata
+
+# --- network tooling ---
+curl
+wget
+openssh-client
+openssl
+
+# --- archive / transfer ---
+jq
+zip
+unzip
+tar
+rsync
+
+# --- dev & build ---
+git
+build-essential
+
+# --- languages ---
+python3
+python3-pip
+python3-venv
+nodejs
+npm
+
+# --- storage ---
+sqlite3

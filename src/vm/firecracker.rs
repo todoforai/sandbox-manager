@@ -128,8 +128,8 @@ impl Default for BootConfig {
             .unwrap_or_else(|_| format!("{}/sandbox-data", home));
         
         Self {
-            kernel_path: PathBuf::from(format!("{}/templates/alpine-base/vmlinux", data_dir)),
-            rootfs_path: PathBuf::from(format!("{}/templates/alpine-base/rootfs.ext4", data_dir)),
+            kernel_path: PathBuf::from(format!("{}/templates/ubuntu-base/vmlinux", data_dir)),
+            rootfs_path: PathBuf::from(format!("{}/templates/ubuntu-base/rootfs.ext4", data_dir)),
             boot_args: "console=ttyS0 reboot=k panic=1 pci=off init=/init".into(),
         }
     }

@@ -119,7 +119,7 @@ curl https://api.todofor.ai/health  # Full connectivity
 ### Prerequisites
 - [ ] Firecracker binary installed
 - [ ] Linux kernel (`vmlinux`) for VMs
-- [ ] Root filesystem with bridge (`rootfs-edge.ext4`)
+- [ ] Root filesystem with bridge (`rootfs-bridge.ext4`)
 - [ ] Backend running with Redis
 
 ### Build
@@ -131,7 +131,7 @@ cd sandbox-manager && cargo build --release
 cd bridge && make static
 
 # Build rootfs with bridge
-sudo ./scripts/build-rootfs-with-edge.sh
+sudo ./scripts/build-rootfs-with-bridge.sh
 ```
 
 ### Run
@@ -159,4 +159,4 @@ curl -X POST http://localhost:9000/sandbox \
 | Edge token injection | `sandbox-manager/src/vm/firecracker.rs:243` |
 | TAP networking | `sandbox-manager/src/vm/network.rs` |
 | BridgeHandler | `backend/src/api/ws/handlers/BridgeHandler.ts` |
-| Init script (VM) | `sandbox-manager/scripts/build-rootfs-with-edge.sh:69` |
+| Init script (VM) | `sandbox-manager/scripts/build-rootfs-with-bridge.sh:69` |

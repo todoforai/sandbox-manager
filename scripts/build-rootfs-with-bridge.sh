@@ -10,7 +10,7 @@ BRIDGE_BIN="${BRIDGE_BIN:-$REPO_ROOT/bridge/build/bridge-static}"
 ALPINE_VERSION="${ALPINE_VERSION:-3.20}"
 ARCH="x86_64"
 ROOTFS_DIR="${ROOTFS_DIR:-/tmp/rootfs-build}"
-OUTPUT="${OUTPUT:-rootfs-edge.ext4}"
+OUTPUT="${OUTPUT:-rootfs-bridge.ext4}"
 SIZE_MB="${SIZE_MB:-500}"
 
 echo "=========================================="

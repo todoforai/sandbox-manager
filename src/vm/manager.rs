@@ -64,10 +64,29 @@ impl VmManager {
         };
 
         // Load default template configs
-        manager.boot_configs.insert("alpine-base".to_string(), BootConfig::default());
-
         let home = std::env::var("HOME").unwrap_or_else(|_| "/root".to_string());
         let data_dir = std::env::var("DATA_DIR").unwrap_or_else(|_| format!("{}/sandbox-data", home));
+
+        let ubuntu_config = BootConfig {
+            kernel_path: std::path::PathBuf::from(format!("{}/templates/ubuntu-base/vmlinux", data_dir)),
+            rootfs_path: std::path::PathBuf::from(format!("{}/templates/ubuntu-base/rootfs.ext4", data_dir)),
+            boot_args: "console=ttyS0 reboot=k panic=1 pci=off init=/init".into(),
+        };
+        if ubuntu_config.kernel_path.exists() && ubuntu_config.rootfs_path.exists() {
+            manager.boot_configs.insert("ubuntu-base".to_string(), ubuntu_config);
+            tracing::info!("Loaded ubuntu-base template");
+        }
+
+        let alpine_config = BootConfig {
+            kernel_path: std::path::PathBuf::from(format!("{}/templates/alpine-base/vmlinux", data_dir)),
+            rootfs_path: std::path::PathBuf::from(format!("{}/templates/alpine-base/rootfs.ext4", data_dir)),
+            boot_args: "console=ttyS0 reboot=k panic=1 pci=off init=/sbin/init".into(),
+        };
+        if alpine_config.kernel_path.exists() && alpine_config.rootfs_path.exists() {
+            manager.boot_configs.insert("alpine-base".to_string(), alpine_config);
+            tracing::info!("Loaded alpine-base template");
+        }
+
         let edge_config = BootConfig {
             kernel_path: std::path::PathBuf::from(format!("{}/templates/alpine-edge/vmlinux", data_dir)),
             rootfs_path: std::path::PathBuf::from(format!("{}/templates/alpine-edge/rootfs.ext4", data_dir)),
@@ -116,7 +135,7 @@ impl VmManager {
         size: Option<VmSize>,
         enroll_token: Option<String>,
     ) -> Result<Sandbox> {
-        let template_name = template.unwrap_or_else(|| "alpine-base".to_string());
+        let template_name = template.unwrap_or_else(|| "ubuntu-base".to_string());
         let vm_size = size.unwrap_or_else(|| VmSize::from_str(&self.config.default_size).unwrap_or_default());
 
         // Quota check

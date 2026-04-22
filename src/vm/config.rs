@@ -116,21 +116,21 @@ pub struct TemplateConfig {
 impl Default for TemplateConfig {
     fn default() -> Self {
         Self {
-            name: "alpine-base".into(),
+            name: "ubuntu-base".into(),
             kernel_path: PathBuf::from("vmlinux"),
             rootfs_path: PathBuf::from("rootfs.ext4"),
             memory_path: PathBuf::from("memory.snap"),
             vmstate_path: PathBuf::from("vmstate.snap"),
-            boot_args: "console=ttyS0 reboot=k panic=1 pci=off init=/sbin/init".into(),
+            boot_args: "console=ttyS0 reboot=k panic=1 pci=off init=/init".into(),
             packages: vec![
                 "bash".into(), "curl".into(), "wget".into(), "git".into(),
                 "jq".into(), "zip".into(), "unzip".into(), "rsync".into(),
-                "make".into(), "gcc".into(), "g++".into(), "musl-dev".into(),
-                "sqlite".into(), "openssl".into(),
+                "build-essential".into(),
+                "sqlite3".into(), "openssl".into(),
                 "nodejs".into(), "npm".into(),
-                "python3".into(), "py3-pip".into(),
+                "python3".into(), "python3-pip".into(),
             ],
-            description: "Alpine Linux with Node.js, Python3, build tools, git, jq, sqlite".into(),
+            description: "Ubuntu Base with Node.js, Python3, build tools, git, jq, sqlite".into(),
         }
     }
 }
