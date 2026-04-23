@@ -103,6 +103,16 @@ impl SandboxService {
 
     pub async fn delete_sandbox(&self, identity: &AuthIdentity, id: &str) -> Result<()> {
         self.assert_owner(identity, id).await?;
+
+        // Refuse to delete the user's last sandbox — they'd lose their only
+        // cloud device. Admins bypass this to allow cleanup / support ops.
+        if !identity.is_admin() {
+            let remaining = self.redis.sandbox_list(Some(&identity.user_id)).await?;
+            if remaining.len() <= 1 {
+                bail!("cannot delete the user's only sandbox");
+            }
+        }
+
         self.manager.delete_sandbox(id).await
     }
 
@@ -114,6 +124,11 @@ impl SandboxService {
     pub async fn resume_sandbox(&self, identity: &AuthIdentity, id: &str) -> Result<()> {
         self.assert_owner(identity, id).await?;
         self.manager.resume_sandbox(id).await
+    }
+
+    pub async fn balloon_sandbox(&self, identity: &AuthIdentity, id: &str, target_mib: u32) -> Result<()> {
+        self.assert_owner(identity, id).await?;
+        self.manager.balloon_sandbox(id, target_mib).await
     }
 
     pub async fn stats(&self) -> Result<SandboxStats> {

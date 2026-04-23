@@ -79,6 +79,26 @@ pub async fn resume_sandbox(
     Ok(StatusCode::OK)
 }
 
+/// Set the virtio-balloon target (MiB). Guest gives that much RAM back to the host.
+#[derive(Debug, Deserialize)]
+pub struct BalloonRequest {
+    pub target_mib: u32,
+}
+
+pub async fn balloon_sandbox(
+    State(service): State<SandboxService>,
+    Auth(identity): Auth,
+    Path(id): Path<String>,
+    Json(req): Json<BalloonRequest>,
+) -> Result<StatusCode, (StatusCode, String)> {
+    service
+        .balloon_sandbox(&identity, &id, req.target_mib)
+        .await
+        .map_err(|e| rest_error(ErrorCode::BadRequest, e.to_string()))?;
+
+    Ok(StatusCode::OK)
+}
+
 /// Query params for listing sandboxes (admin-only `user_id` filter)
 #[derive(Debug, Deserialize)]
 pub struct ListQuery {

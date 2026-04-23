@@ -98,6 +98,19 @@ impl FirecrackerVm {
         Ok(())
     }
 
+    /// Inflate the guest balloon to `target_mib`, reclaiming that much guest RAM
+    /// back to the host. Requires CONFIG_VIRTIO_BALLOON in the guest kernel.
+    pub async fn balloon_set(&self, target_mib: u32) -> Result<()> {
+        let body = serde_json::json!({ "amount_mib": target_mib });
+        self.api_request("PATCH", "/balloon", Some(&body.to_string())).await?;
+        Ok(())
+    }
+
+    /// Read current balloon statistics (if stats_polling_interval_s > 0 at config time).
+    pub async fn balloon_stats(&self) -> Result<String> {
+        self.api_request("GET", "/balloon/statistics", None).await
+    }
+
     /// Kill the VM process
     pub fn kill(&mut self) -> Result<()> {
         self.process.kill().ok();
@@ -280,6 +293,19 @@ impl FirecrackerLauncher {
             tracing::warn!("Failed to configure network (TAP may not exist): {}", e);
             // Continue without networking — MMDS also won't work, but boot may succeed.
             return Ok(());
+        }
+
+        // Virtio-balloon — lets the host reclaim guest RAM on idle.
+        // Start at 0 (no reclaim); backend can inflate via /sandbox/:id/balloon.
+        // deflate_on_oom avoids killing guest processes under memory pressure.
+        let balloon = serde_json::json!({
+            "amount_mib": 0,
+            "deflate_on_oom": true,
+            "stats_polling_interval_s": 1,
+        });
+        if let Err(e) = vm.api_request("PUT", "/balloon", Some(&balloon.to_string())).await {
+            tracing::warn!("Failed to configure balloon (guest may lack CONFIG_VIRTIO_BALLOON): {}", e);
+            // Non-fatal — boot continues without balloon.
         }
 
         // MMDS setup. Only enable when we have a token to deliver.

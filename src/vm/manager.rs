@@ -265,6 +265,18 @@ impl VmManager {
         Ok(())
     }
 
+    /// Ask the guest to give back `target_mib` of RAM via virtio-balloon.
+    /// Set to 0 to deflate fully. Requires CONFIG_VIRTIO_BALLOON in the guest.
+    pub async fn balloon_sandbox(&self, id: &str, target_mib: u32) -> Result<()> {
+        let _ = self.redis.sandbox_get(id).await?
+            .context("Sandbox not found")?;
+        let vm_ref = self.vms.get(id)
+            .context("VM process handle lost (orphaned); delete and recreate")?;
+        vm_ref.read().await.balloon_set(target_mib).await?;
+        tracing::info!("Ballooned sandbox {} to {} MiB", id, target_mib);
+        Ok(())
+    }
+
     pub async fn stats(&self) -> Result<SandboxStats> {
         let mut stats = SandboxStats {
             total_created: self.redis.sandbox_total_created().await.unwrap_or(0),

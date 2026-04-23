@@ -34,6 +34,7 @@ make tinyconfig
 ./scripts/config --enable CONFIG_VIRTIO_BLK
 ./scripts/config --enable CONFIG_VIRTIO_NET
 ./scripts/config --enable CONFIG_VIRTIO_CONSOLE
+./scripts/config --enable CONFIG_VIRTIO_BALLOON
 ./scripts/config --enable CONFIG_HW_RANDOM_VIRTIO
 
 # Networking

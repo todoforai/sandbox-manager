@@ -72,6 +72,7 @@ async fn main() -> Result<()> {
         .route("/sandbox/:id", delete(api::sandbox::delete_sandbox))
         .route("/sandbox/:id/pause", post(api::sandbox::pause_sandbox))
         .route("/sandbox/:id/resume", post(api::sandbox::resume_sandbox))
+        .route("/sandbox/:id/balloon", post(api::sandbox::balloon_sandbox))
         
         // Templates
         .route("/templates", get(api::templates::list_templates))

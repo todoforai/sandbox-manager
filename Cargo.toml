@@ -2,7 +2,7 @@
 name = "sandbox-manager"
 version = "0.1.0"
 edition = "2021"
-description = "VM sandbox manager using Zeroboot CoW fork engine"
+description = "VM sandbox manager using Firecracker microVMs"
 license = "Apache-2.0"
 
 [dependencies]
