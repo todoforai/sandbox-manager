@@ -150,7 +150,10 @@ fi
 INIT_EOF
 chmod +x "$ROOTFS_DIR/init"
 
-# Minimal /etc files (apt will overwrite resolv.conf etc. during install)
+# Minimal /etc files. During build we bind-mount the host's resolv.conf so DNS
+# works regardless of the host's setup (systemd-resolved stub, corporate DNS,
+# firewalled public resolvers, etc.). The in-image resolv.conf written here is
+# for the VM at boot — 8.8.8.8 is a reasonable default if the VM has egress.
 echo "sandbox" > "$ROOTFS_DIR/etc/hostname"
 echo "nameserver 8.8.8.8" > "$ROOTFS_DIR/etc/resolv.conf"
 
@@ -159,7 +162,14 @@ echo "Installing packages in chroot..."
 mount --bind /dev "$ROOTFS_DIR/dev"
 mount --bind /proc "$ROOTFS_DIR/proc"
 mount --bind /sys "$ROOTFS_DIR/sys"
-trap 'umount -l "$ROOTFS_DIR/sys" "$ROOTFS_DIR/proc" "$ROOTFS_DIR/dev" 2>/dev/null || true' EXIT
+# Bind-mount host resolv.conf so chroot's apt can resolve names via whatever
+# DNS actually works from this host (systemd-resolved stub at 127.0.0.53, etc.).
+# Follow the symlink — host's /etc/resolv.conf is usually a link to
+# /run/systemd/resolve/stub-resolv.conf.
+HOST_RESOLV=$(readlink -f /etc/resolv.conf)
+cp "$ROOTFS_DIR/etc/resolv.conf" "$ROOTFS_DIR/etc/resolv.conf.vm"
+mount --bind "$HOST_RESOLV" "$ROOTFS_DIR/etc/resolv.conf"
+trap 'umount -l "$ROOTFS_DIR/etc/resolv.conf" "$ROOTFS_DIR/sys" "$ROOTFS_DIR/proc" "$ROOTFS_DIR/dev" 2>/dev/null || true' EXIT
 
 chroot "$ROOTFS_DIR" /bin/bash -c "
     set -e
@@ -240,6 +250,9 @@ ttyS0::respawn:/sbin/getty -L ttyS0 115200 vt100
 ca:12345:ctrlaltdel:/sbin/shutdown -r now
 INITTAB_EOF
 
+umount "$ROOTFS_DIR/etc/resolv.conf"
+# Restore the VM-facing resolv.conf (apt may have overwritten via bind).
+mv "$ROOTFS_DIR/etc/resolv.conf.vm" "$ROOTFS_DIR/etc/resolv.conf"
 umount "$ROOTFS_DIR/sys"
 umount "$ROOTFS_DIR/proc"
 umount "$ROOTFS_DIR/dev"
