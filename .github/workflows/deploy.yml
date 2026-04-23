@@ -21,7 +21,7 @@ jobs:
       - name: Add host to known_hosts
         run: |
           mkdir -p ~/.ssh
-          ssh-keyscan -H api.todofor.ai >> ~/.ssh/known_hosts 2>/dev/null
+          ssh-keyscan -H sandbox.todofor.ai >> ~/.ssh/known_hosts 2>/dev/null
 
       - name: Annotate Grafana (start)
         if: ${{ secrets.GRAFANA_URL != '' }}

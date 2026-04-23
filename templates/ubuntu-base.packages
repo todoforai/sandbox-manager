@@ -1,50 +1,20 @@
 # Packages installed into the ubuntu-base sandbox rootfs.
 # One package per line. Lines starting with '#' are ignored.
 # Used by scripts/build-ubuntu-rootfs.sh.
+#
+# Philosophy: KEEP THIS MINIMAL. Target rootfs size ~100 MB.
+# Anything heavier (python, node, gcc, build-essential) installs on-demand
+# inside the sandbox via `apt-get install` — persists for the session.
 
 # --- init & networking (required for boot) ---
 sysvinit-core
 iproute2
-iputils-ping
 ca-certificates
 
-# --- shell & core utilities ---
+# --- shell & absolute-minimum userland ---
 bash
 coreutils
 util-linux
-procps
-findutils
-grep
-sed
-gawk
-file
-less
-htop
-tzdata
 
-# --- network tooling ---
+# --- HTTPS fetch (AI almost always needs this) ---
 curl
-wget
-openssh-client
-openssl
-
-# --- archive / transfer ---
-jq
-zip
-unzip
-tar
-rsync
-
-# --- dev & build ---
-git
-build-essential
-
-# --- languages ---
-python3
-python3-pip
-python3-venv
-nodejs
-npm
-
-# --- storage ---
-sqlite3

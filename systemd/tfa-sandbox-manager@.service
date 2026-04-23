@@ -1,5 +1,5 @@
 [Unit]
-Description=sandbox-manager (slot %i)
+Description=tfa-sandbox-manager (slot %i)
 After=network-online.target
 Wants=network-online.target
 

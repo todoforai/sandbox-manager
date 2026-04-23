@@ -13,7 +13,7 @@
 
 set -e
 
-SERVER="root@api.todofor.ai"
+SERVER="root@sandbox.todofor.ai"
 DEPLOY_PATH="/var/www/todoforai/apps/sandbox-manager"
 REPO="git@github.com:todoforai/sandbox-manager.git"
 BRANCH="prod"
@@ -72,21 +72,31 @@ deploy() {
         # Determine active REST port (9000 or 9002); pair: Noise = REST + 10
         OLD_PORT=""
         NEW_PORT=9000
-        if systemctl is-active --quiet sandbox-manager@9000; then
+        if systemctl is-active --quiet tfa-sandbox-manager@9000; then
             OLD_PORT=9000; NEW_PORT=9002
-        elif systemctl is-active --quiet sandbox-manager@9002; then
+        elif systemctl is-active --quiet tfa-sandbox-manager@9002; then
             OLD_PORT=9002; NEW_PORT=9000
         fi
 
         NGINX_CONF=/etc/nginx/sites-available/vm.todofor.ai
         STREAM_CONF=/etc/nginx/streams-available/sandbox-noise-stream.conf
 
+        # One-shot migration: retire the legacy unit name (sandbox-manager@ → tfa-sandbox-manager@).
+        # Safe to leave in place — does nothing once the old unit is gone.
+        if [ -f /etc/systemd/system/sandbox-manager@.service ]; then
+            echo "Migrating legacy unit name → tfa-sandbox-manager@..."
+            systemctl disable --now sandbox-manager@9000 sandbox-manager@9002 2>/dev/null || true
+            rm -f /etc/systemd/system/sandbox-manager@.service
+            systemctl daemon-reload
+            OLD_PORT=""; NEW_PORT=9000
+        fi
+
         # Install/refresh systemd unit from repo
-        cp $DEPLOY_PATH/current/systemd/sandbox-manager@.service /etc/systemd/system/sandbox-manager@.service
+        cp $DEPLOY_PATH/current/systemd/tfa-sandbox-manager@.service /etc/systemd/system/tfa-sandbox-manager@.service
         systemctl daemon-reload
 
         echo "Starting new instance on port \$NEW_PORT..."
-        systemctl enable --now sandbox-manager@\$NEW_PORT
+        systemctl enable --now tfa-sandbox-manager@\$NEW_PORT
 
         echo "Waiting for new instance..."
         for i in \$(seq 1 30); do
@@ -94,7 +104,7 @@ deploy() {
                 echo "✅ New instance healthy on port \$NEW_PORT"
                 break
             fi
-            [ \$i -eq 30 ] && { echo "❌ New instance failed to start!"; journalctl -u sandbox-manager@\$NEW_PORT -n 40 --no-pager; exit 1; }
+            [ \$i -eq 30 ] && { echo "❌ New instance failed to start!"; journalctl -u tfa-sandbox-manager@\$NEW_PORT -n 40 --no-pager; exit 1; }
             sleep 1
         done
 
@@ -123,7 +133,7 @@ deploy() {
 
         if [ -n "\$OLD_PORT" ]; then
             echo "Draining old instance on port \$OLD_PORT..."
-            systemctl disable --now sandbox-manager@\$OLD_PORT || true
+            systemctl disable --now tfa-sandbox-manager@\$OLD_PORT || true
             echo "✅ Old instance stopped"
         fi
 
@@ -132,7 +142,7 @@ deploy() {
             echo "✅ sandbox-manager healthy on port \$NEW_PORT!"
         else
             echo "❌ Final health check failed!"
-            journalctl -u sandbox-manager@\$NEW_PORT -n 40 --no-pager
+            journalctl -u tfa-sandbox-manager@\$NEW_PORT -n 40 --no-pager
             exit 1
         fi
 
@@ -161,16 +171,16 @@ rollback() {
         ln -sfn $DEPLOY_PATH/releases/$PREVIOUS $DEPLOY_PATH/current
 
         LIVE_PORT=""
-        systemctl is-active --quiet sandbox-manager@9000 && LIVE_PORT=9000
-        systemctl is-active --quiet sandbox-manager@9002 && LIVE_PORT=9002
+        systemctl is-active --quiet tfa-sandbox-manager@9000 && LIVE_PORT=9000
+        systemctl is-active --quiet tfa-sandbox-manager@9002 && LIVE_PORT=9002
         ROLLBACK_PORT=9000
         [ "$LIVE_PORT" = "9000" ] && ROLLBACK_PORT=9002
 
-        systemctl enable --now sandbox-manager@$ROLLBACK_PORT
+        systemctl enable --now tfa-sandbox-manager@$ROLLBACK_PORT
 
         for i in $(seq 1 15); do
             curl -sf http://127.0.0.1:$ROLLBACK_PORT/health >/dev/null 2>&1 && break
-            [ $i -eq 15 ] && { echo "❌ Rollback health check failed!"; journalctl -u sandbox-manager@$ROLLBACK_PORT -n 40 --no-pager; exit 1; }
+            [ $i -eq 15 ] && { echo "❌ Rollback health check failed!"; journalctl -u tfa-sandbox-manager@$ROLLBACK_PORT -n 40 --no-pager; exit 1; }
             sleep 2
         done
 
@@ -188,7 +198,7 @@ rollback() {
 
         nginx -t && systemctl reload nginx
 
-        [ -n "$LIVE_PORT" ] && systemctl disable --now sandbox-manager@$LIVE_PORT || true
+        [ -n "$LIVE_PORT" ] && systemctl disable --now tfa-sandbox-manager@$LIVE_PORT || true
         echo "Rolled back to $PREVIOUS"
 EOF
 
@@ -196,11 +206,11 @@ EOF
 }
 
 status() {
-    ssh $SERVER "systemctl status 'sandbox-manager@*' --no-pager || true; echo ''; ls -la /var/www/todoforai/apps/sandbox-manager/releases/; echo ''; echo 'Current:'; readlink /var/www/todoforai/apps/sandbox-manager/current"
+    ssh $SERVER "systemctl status 'tfa-sandbox-manager@*' --no-pager || true; echo ''; ls -la /var/www/todoforai/apps/sandbox-manager/releases/; echo ''; echo 'Current:'; readlink /var/www/todoforai/apps/sandbox-manager/current"
 }
 
 logs() {
-    ssh $SERVER "journalctl -u 'sandbox-manager@*' -n 200 --no-pager"
+    ssh $SERVER "journalctl -u 'tfa-sandbox-manager@*' -n 200 --no-pager"
 }
 
 setup() {
