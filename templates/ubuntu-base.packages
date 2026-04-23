@@ -7,7 +7,6 @@
 # inside the sandbox via `apt-get install` — persists for the session.
 
 # --- init & networking (required for boot) ---
-sysvinit-core
 iproute2
 ca-certificates
 

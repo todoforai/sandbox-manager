@@ -13,7 +13,7 @@
 
 set -e
 
-SERVER="root@sandbox.todofor.ai"
+SERVER="${SERVER:-root@sandbox.todofor.ai}"
 DEPLOY_PATH="/var/www/todoforai/apps/sandbox-manager"
 REPO="git@github.com:todoforai/sandbox-manager.git"
 BRANCH="prod"
