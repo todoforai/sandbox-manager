@@ -18,6 +18,16 @@ use crate::vm::manager::VmManager;
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    // Subcommands (run before tracing init so output is clean):
+    //   sandbox-manager keygen   — print a new Noise static keypair (hex)
+    let args: Vec<String> = std::env::args().collect();
+    if args.get(1).map(|s| s.as_str()) == Some("keygen") {
+        let kp = noise::server::generate_static_keypair()?;
+        println!("NOISE_LOCAL_PRIVATE_KEY={}", hex_encode(&kp.private));
+        println!("NOISE_LOCAL_PUBLIC_KEY={}", hex_encode(&kp.public));
+        return Ok(());
+    }
+
     tracing_subscriber::registry()
         .with(tracing_subscriber::EnvFilter::new(
             std::env::var("RUST_LOG").unwrap_or_else(|_| "sandbox_manager=debug,info".into()),
@@ -88,4 +98,8 @@ async fn main() -> Result<()> {
     axum::serve(listener, app).await?;
 
     Ok(())
+}
+
+fn hex_encode(bytes: &[u8]) -> String {
+    bytes.iter().map(|b| format!("{:02x}", b)).collect()
 }

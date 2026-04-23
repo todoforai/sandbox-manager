@@ -236,3 +236,8 @@ fn generate_keypair() -> Result<Keypair> {
     let params: NoiseParams = NOISE_PATTERN.parse()?;
     Ok(Builder::new(params).generate_keypair()?)
 }
+
+/// Public entrypoint used by the `keygen` subcommand.
+pub fn generate_static_keypair() -> Result<Keypair> {
+    generate_keypair()
+}

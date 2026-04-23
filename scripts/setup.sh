@@ -53,14 +53,14 @@ fi
 echo ""
 echo "=== Creating directories ==="
 
-mkdir -p "${DATA_DIR}/templates/alpine-base"
+mkdir -p "${DATA_DIR}/templates/ubuntu-base"
 mkdir -p "${DATA_DIR}/overlays/runtime"
 mkdir -p "${DATA_DIR}/snapshots"
 
 chown -R "$(logname):$(logname)" "${DATA_DIR}" 2>/dev/null || true
 
 echo "Created:"
-echo "  ${DATA_DIR}/templates/alpine-base"
+echo "  ${DATA_DIR}/templates/ubuntu-base"
 echo "  ${DATA_DIR}/overlays/runtime"
 echo "  ${DATA_DIR}/snapshots"
 
@@ -78,24 +78,25 @@ else
     ip link add "$BRIDGE_NAME" type bridge
     ip addr add "$BRIDGE_IP" dev "$BRIDGE_NAME"
     ip link set "$BRIDGE_NAME" up
-    
-    # Enable IP forwarding
-    echo 1 > /proc/sys/net/ipv4/ip_forward
-    
-    # Add NAT rule
-    iptables -t nat -A POSTROUTING -s 10.0.0.0/16 -j MASQUERADE
-    
-    # Block inter-VM traffic
-    iptables -A FORWARD -i "$BRIDGE_NAME" -o "$BRIDGE_NAME" -j DROP
-    
     echo "Bridge $BRIDGE_NAME created with IP $BRIDGE_IP"
 fi
+
+# Enable IP forwarding (idempotent)
+echo 1 > /proc/sys/net/ipv4/ip_forward
+
+# NAT rule (idempotent)
+iptables -t nat -C POSTROUTING -s 10.0.0.0/16 -j MASQUERADE 2>/dev/null \
+    || iptables -t nat -A POSTROUTING -s 10.0.0.0/16 -j MASQUERADE
+
+# Block inter-VM traffic (idempotent)
+iptables -C FORWARD -i "$BRIDGE_NAME" -o "$BRIDGE_NAME" -j DROP 2>/dev/null \
+    || iptables -A FORWARD -i "$BRIDGE_NAME" -o "$BRIDGE_NAME" -j DROP
 
 # Check for kernel and rootfs
 echo ""
 echo "=== Checking template files ==="
 
-TEMPLATE_DIR="${DATA_DIR}/templates/alpine-base"
+TEMPLATE_DIR="${DATA_DIR}/templates/ubuntu-base"
 
 if [ -f "${TEMPLATE_DIR}/vmlinux" ]; then
     echo "✓ Kernel found: ${TEMPLATE_DIR}/vmlinux"

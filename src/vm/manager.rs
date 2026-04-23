@@ -75,6 +75,12 @@ impl VmManager {
         if ubuntu_config.kernel_path.exists() && ubuntu_config.rootfs_path.exists() {
             manager.boot_configs.insert("ubuntu-base".to_string(), ubuntu_config);
             tracing::info!("Loaded ubuntu-base template");
+        } else {
+            tracing::warn!(
+                "ubuntu-base template not loaded: missing {} or {}",
+                ubuntu_config.kernel_path.display(),
+                ubuntu_config.rootfs_path.display()
+            );
         }
 
         let alpine_config = BootConfig {
@@ -85,6 +91,8 @@ impl VmManager {
         if alpine_config.kernel_path.exists() && alpine_config.rootfs_path.exists() {
             manager.boot_configs.insert("alpine-base".to_string(), alpine_config);
             tracing::info!("Loaded alpine-base template");
+        } else {
+            tracing::debug!("alpine-base template not present (optional)");
         }
 
         let edge_config = BootConfig {
@@ -95,6 +103,15 @@ impl VmManager {
         if edge_config.kernel_path.exists() && edge_config.rootfs_path.exists() {
             manager.boot_configs.insert("alpine-edge".to_string(), edge_config);
             tracing::info!("Loaded alpine-edge template");
+        } else {
+            tracing::debug!("alpine-edge template not present (optional)");
+        }
+
+        if manager.boot_configs.is_empty() {
+            tracing::error!(
+                "No templates loaded from {} — sandbox creation will fail until templates are built",
+                data_dir
+            );
         }
 
         // Mark all previously-active sandboxes as Error — on restart we lose
