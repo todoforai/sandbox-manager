@@ -9,7 +9,7 @@ REPO_ROOT="$(dirname "$(dirname "$SCRIPT_DIR")")"
 BRIDGE_BIN="${BRIDGE_BIN:-$REPO_ROOT/bridge/build/bridge-static}"
 
 UBUNTU_VERSION="${UBUNTU_VERSION:-24.04}"
-UBUNTU_POINT="${UBUNTU_POINT:-24.04.1}"
+UBUNTU_POINT="${UBUNTU_POINT:-24.04.3}"
 ARCH="amd64"
 ROOTFS_DIR="${ROOTFS_DIR:-/tmp/rootfs-ubuntu-build}"
 OUTPUT="${OUTPUT:-rootfs-ubuntu.ext4}"
