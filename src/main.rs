@@ -18,6 +18,15 @@ use crate::vm::manager::VmManager;
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    // NODE_ENV=production → .env, otherwise .env.development.
+    // Both files are committed; .env.template documents the schema.
+    let env_file = if std::env::var("NODE_ENV").as_deref() == Ok("production") {
+        ".env"
+    } else {
+        ".env.development"
+    };
+    dotenvy::from_filename(env_file).ok();
+
     // Subcommands (run before tracing init so output is clean):
     //   sandbox-manager keygen   — print a new Noise static keypair (hex)
     let args: Vec<String> = std::env::args().collect();
