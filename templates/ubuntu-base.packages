@@ -17,3 +17,8 @@ util-linux
 
 # --- HTTPS fetch (AI almost always needs this) ---
 curl
+wget
+jq
+
+# --- native SSH in guest ---
+openssh-server
