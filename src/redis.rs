@@ -238,7 +238,11 @@ impl RedisClient {
     async fn hydrate(&self, ids: Vec<String>) -> Result<Vec<Sandbox>> {
         let mut out = Vec::with_capacity(ids.len());
         for id in ids {
-            if let Some(s) = self.sandbox_get(&id).await? { out.push(s); }
+            match self.sandbox_get(&id).await {
+                Ok(Some(s)) => out.push(s),
+                Ok(None) => {}
+                Err(e) => tracing::warn!("hydrate: skipping undecodable sandbox {id}: {e}"),
+            }
         }
         Ok(out)
     }

@@ -152,8 +152,12 @@ impl VmManager {
         size: Option<VmSize>,
         enroll_token: Option<String>,
     ) -> Result<Sandbox> {
-        let template_name = template.unwrap_or_else(|| "ubuntu-base".to_string());
+        let template_name = template.unwrap_or_else(|| "alpine-base".to_string());
         let vm_size = size.unwrap_or_else(|| VmSize::from_str(&self.config.default_size).unwrap_or_default());
+
+        if !self.boot_configs.contains_key(&template_name) {
+            anyhow::bail!("unknown template: {template_name}");
+        }
 
         // Quota check
         let active = self.redis.sandbox_user_active_count(&user_id).await?;
