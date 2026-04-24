@@ -182,7 +182,6 @@ impl FirecrackerLauncher {
         size: &VmSize,
         network: &VmNetwork,
         enroll_token: Option<&str>,
-        ssh_public_key: Option<&str>,
     ) -> Result<FirecrackerVm> {
         let socket_path = self.runtime_dir.join(format!("{}.sock", vm_id));
         let serial_path = self.runtime_dir.join(format!("{}.serial", vm_id));
@@ -220,7 +219,7 @@ impl FirecrackerLauncher {
         };
 
         // Configure VM via API
-        self.configure_vm(&vm, boot_config, size, network, enroll_token, ssh_public_key)
+        self.configure_vm(&vm, boot_config, size, network, enroll_token)
             .await?;
 
         // Start VM
@@ -245,7 +244,6 @@ impl FirecrackerLauncher {
         size: &VmSize,
         network: &VmNetwork,
         enroll_token: Option<&str>,
-        ssh_public_key: Option<&str>,
     ) -> Result<()> {
         // Boot args — network only, no secret material.
         let boot_args = format!(
@@ -311,7 +309,7 @@ impl FirecrackerLauncher {
         }
 
         // MMDS setup. Only enable when we have a token to deliver.
-        if enroll_token.is_some() || ssh_public_key.is_some() {
+        if enroll_token.is_some() {
             let mmds_config = serde_json::json!({
                 "network_interfaces": ["eth0"],
                 "version": "V2",
@@ -323,9 +321,6 @@ impl FirecrackerLauncher {
             let mut mmds = serde_json::Map::new();
             if let Some(token) = enroll_token {
                 mmds.insert("enroll_token".into(), serde_json::Value::String(token.to_string()));
-            }
-            if let Some(key) = ssh_public_key {
-                mmds.insert("ssh_public_key".into(), serde_json::Value::String(key.to_string()));
             }
             vm.api_request("PUT", "/mmds", Some(&serde_json::Value::Object(mmds).to_string()))
                 .await

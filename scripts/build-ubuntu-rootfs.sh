@@ -120,27 +120,10 @@ MMDS_SESSION=$(wget -q -O - --method=PUT \
     --header='X-metadata-token-ttl-seconds: 60' \
     'http://169.254.169.254/latest/api/token' 2>/dev/null || true)
 ENROLL_TOKEN=""
-SSH_PUBLIC_KEY=""
 if [ -n "$MMDS_SESSION" ]; then
     ENROLL_TOKEN=$(wget -q -O - \
         --header="X-metadata-token: $MMDS_SESSION" \
         'http://169.254.169.254/enroll_token' 2>/dev/null || true)
-    SSH_PUBLIC_KEY=$(wget -q -O - \
-        --header="X-metadata-token: $MMDS_SESSION" \
-        'http://169.254.169.254/ssh_public_key' 2>/dev/null || true)
-fi
-
-# Native SSH access: dev user + sshd + authorized_keys.
-if [ -n "$SSH_PUBLIC_KEY" ] && [ "$SSH_PUBLIC_KEY" != "null" ]; then
-    echo "[init] Configuring native SSH access for user dev..."
-    id -u dev >/dev/null 2>&1 || useradd -m -s /bin/bash dev
-    install -d -m 700 -o dev -g dev /home/dev/.ssh
-    printf '%s\n' "$SSH_PUBLIC_KEY" > /home/dev/.ssh/authorized_keys
-    chown dev:dev /home/dev/.ssh/authorized_keys
-    chmod 600 /home/dev/.ssh/authorized_keys
-    mkdir -p /run/sshd
-    ssh-keygen -A >/dev/null 2>&1 || true
-    /usr/sbin/sshd
 fi
 
 if [ -n "$ENROLL_TOKEN" ] && [ "$ENROLL_TOKEN" != "null" ]; then

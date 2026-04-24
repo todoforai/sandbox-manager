@@ -71,7 +71,7 @@ impl SandboxService {
 
         Ok(self
             .manager
-            .create_sandbox(owner_id, req.template, req.size, enroll_token, req.ssh_public_key)
+            .create_sandbox(owner_id, req.template, req.size, enroll_token)
             .await?
             .into())
     }

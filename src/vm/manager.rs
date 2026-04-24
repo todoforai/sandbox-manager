@@ -151,7 +151,6 @@ impl VmManager {
         template: Option<String>,
         size: Option<VmSize>,
         enroll_token: Option<String>,
-        ssh_public_key: Option<String>,
     ) -> Result<Sandbox> {
         let template_name = template.unwrap_or_else(|| "ubuntu-base".to_string());
         let vm_size = size.unwrap_or_else(|| VmSize::from_str(&self.config.default_size).unwrap_or_default());
@@ -186,7 +185,7 @@ impl VmManager {
                 .map(|c| c.clone()).unwrap_or_default();
             let start = std::time::Instant::now();
 
-            match launcher.boot(&sandbox.id, &boot_config, &vm_size, &network, enroll_token.as_deref(), ssh_public_key.as_deref()).await {
+            match launcher.boot(&sandbox.id, &boot_config, &vm_size, &network, enroll_token.as_deref()).await {
                 Ok(vm) => {
                     tracing::info!("Booted VM {} in {:?} (size: {:?})", sandbox.id, start.elapsed(), vm_size);
                     sandbox.pid = Some(vm.pid());
