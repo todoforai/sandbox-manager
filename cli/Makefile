@@ -3,7 +3,7 @@ OPTFLAGS ?= -Oz -ffunction-sections -fdata-sections -fomit-frame-pointer -fno-un
 LDFLAGS ?= -Wl,--gc-sections -Wl,--build-id=none
 WARNFLAGS ?= -Wall -Wextra -Wpedantic -Wshadow -Wformat=2 -Wno-unused-function
 CFLAGS ?= $(OPTFLAGS) $(WARNFLAGS) -I../../todoforai-c-core/noise -I../../todoforai-c-core/cli -I../../todoforai-c-core/login
-SRCS = main.c ../../todoforai-c-core/noise/noise.c ../../todoforai-c-core/noise/vendor/blake2s.c ../../todoforai-c-core/noise/vendor/monocypher.c
+SRCS = main.c ../../todoforai-c-core/noise/noise.c ../../todoforai-c-core/noise/vendor/monocypher.c
 STRIP ?= strip --strip-all -R .comment -R .note -R .eh_frame
 
 TARGETS = \

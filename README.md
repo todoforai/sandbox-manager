@@ -157,7 +157,7 @@ Environment variables:
 
 ## Noise CLI setup
 
-The CLI talks to `sandbox-manager` over `Noise_NX_25519_ChaChaPoly_BLAKE2s` TCP, not plain HTTP.
+The CLI talks to `sandbox-manager` over `Noise_NX_25519_ChaChaPoly_BLAKE2b` TCP, not plain HTTP.
 
 Meaning of the env vars:
 

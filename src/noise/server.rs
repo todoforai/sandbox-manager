@@ -12,7 +12,7 @@ use crate::service::SandboxService;
 use crate::vm::config::TemplateConfig;
 
 const MAX_FRAME: usize = 1024 * 1024;
-const NOISE_PATTERN: &str = "Noise_NX_25519_ChaChaPoly_BLAKE2s";
+const NOISE_PATTERN: &str = "Noise_NX_25519_ChaChaPoly_BLAKE2b";
 
 pub async fn serve(service: SandboxService) -> Result<()> {
     let addr = std::env::var("NOISE_BIND_ADDR").unwrap_or_else(|_| "0.0.0.0:9010".into());

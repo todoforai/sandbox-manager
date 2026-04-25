@@ -1,10 +1,10 @@
 /// sandbox CLI — manages Firecracker VMs via Noise_NX TCP to sandbox-manager
 ///
-/// Config (env):
-///   NOISE_ADDR              host:port of sandbox-manager Noise server (default: 127.0.0.1:9010)
+/// Config (env, optional overrides):
+///   NOISE_ADDR              host:port of sandbox-manager Noise server (default: sandbox.todofor.ai:4110)
 ///   NOISE_REMOTE_PUBLIC_KEY 32-byte hex — sandbox-manager public key
 ///
-/// Or run `sandbox login` to authenticate via browser and save credentials.
+/// Run `sandbox login` first to mint an API key (sent with every request).
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -14,6 +14,11 @@
 
 #define LOGIN_IMPLEMENTATION
 #include "login.h"
+
+// Hardcoded sandbox-manager coordinates. Override with NOISE_ADDR / NOISE_REMOTE_PUBLIC_KEY.
+// Keep in sync with the sandbox-manager's NOISE_LOCAL_PRIVATE_KEY on deploy.
+#define DEFAULT_SANDBOX_MANAGER_ADDR "sandbox.todofor.ai:4110"
+#define DEFAULT_SANDBOX_MANAGER_PUB  "0000000000000000000000000000000000000000000000000000000000000000"
 
 // ── Platform socket abstraction ───────────────────────────────────────────────
 
@@ -201,24 +206,14 @@ static void print_response(const uint8_t *resp, size_t len) {
 static void run_cmd(const char *json_request, size_t req_len) {
     sock_init();
 
-    const char *pub_hex = getenv("NOISE_REMOTE_PUBLIC_KEY");
+    const char *pub_hex  = getenv("NOISE_REMOTE_PUBLIC_KEY");
     const char *addr_str = getenv("NOISE_ADDR");
-
-    // Fall back to saved credentials from `sandbox login`
-    login_credentials_t saved_creds;
-    if ((!pub_hex || !addr_str) && login_load_credentials(&saved_creds) == 0) {
-        if (!pub_hex && saved_creds.sandbox_manager_noise_public_key[0])
-            pub_hex = saved_creds.sandbox_manager_noise_public_key;
-        if (!addr_str && saved_creds.sandbox_manager_noise_addr[0])
-            addr_str = saved_creds.sandbox_manager_noise_addr;
-    }
-
-    if (!pub_hex) fatal("NOISE_REMOTE_PUBLIC_KEY not set (run `sandbox login` or set env)");
+    if (!pub_hex)  pub_hex  = DEFAULT_SANDBOX_MANAGER_PUB;
+    if (!addr_str) addr_str = DEFAULT_SANDBOX_MANAGER_ADDR;
 
     uint8_t remote_pub[32];
     if (hex_decode(remote_pub, 32, pub_hex) < 0) fatal("NOISE_REMOTE_PUBLIC_KEY: invalid hex");
 
-    if (!addr_str) addr_str = "127.0.0.1:9010";
     char host[256], port_str[16];
     const char *colon = strrchr(addr_str, ':');
     if (!colon) fatal("NOISE_ADDR: missing port");
@@ -372,7 +367,7 @@ static void usage(void) {
         "  -h, --help  Show help\n"
         "\n"
         "Env:\n"
-        "  NOISE_ADDR              sandbox-manager Noise address (default: 127.0.0.1:9010)\n"
+        "  NOISE_ADDR              sandbox-manager Noise address (default: " DEFAULT_SANDBOX_MANAGER_ADDR ")\n"
         "  NOISE_REMOTE_PUBLIC_KEY 32-byte hex server public key\n");
 }
 
