@@ -346,12 +346,25 @@ static void cmd_login(int argc, char **argv) {
     if (login_device_flow(addr, pub, "sandbox", NULL) != 0) exit(1);
 }
 
+static void cmd_whoami(int argc, char **argv) {
+    ketopt_t opt = KETOPT_INIT;
+    ko_longopt_t longopts[] = {{ "help", ko_no_argument, 'h' }, { 0, 0, 0 }};
+    int c;
+    while ((c = ketopt(&opt, argc, argv, 1, "h", longopts)) >= 0) {
+        if (c == 'h') { cli_usage(stdout, "sandbox", "whoami"); exit(0); }
+        cli_parse_error("sandbox", "whoami", argc, argv, &opt, c);
+    }
+    if (login_print_whoami("sandbox") != 0) exit(1);
+}
+
 static void usage(void) {
     fprintf(stdout,
         "Usage: sandbox <command> [options]\n"
         "\n"
         "Commands:\n"
-        "  login\n"
+        "  login                       Interactive device login\n"
+        "  whoami                      Show the logged-in user\n"
+        "  version                     Show version\n"
         "  health\n"
         "  stats\n"
         "  create [--template <name>] [--size <size>]\n"
@@ -364,7 +377,8 @@ static void usage(void) {
         "  template create <name> --kernel <path> --rootfs <path> [--boot-args <args>] [--description <text>] [--package <name> ...]\n"
         "\n"
         "Global options:\n"
-        "  -h, --help  Show help\n"
+        "  -h, --help     Show help\n"
+        "  -v, --version  Show version\n"
         "\n"
         "Env:\n"
         "  NOISE_ADDR              sandbox-manager Noise address (default: " DEFAULT_SANDBOX_MANAGER_ADDR ")\n"
@@ -570,9 +584,15 @@ int main(int argc, char **argv) {
         usage();
         return 0;
     }
+    if (!strcmp(argv[1], "--version") || !strcmp(argv[1], "-v") || !strcmp(argv[1], "version")) {
+        printf("%s\n", SANDBOX_VERSION);
+        return 0;
+    }
 
     if (!strcmp(argv[1], "login")) {
         cmd_login(argc - 1, argv + 1);
+    } else if (!strcmp(argv[1], "whoami")) {
+        cmd_whoami(argc - 1, argv + 1);
     } else if (!strcmp(argv[1], "health")) {
         cmd_health(argc - 1, argv + 1);
     } else if (!strcmp(argv[1], "stats")) {
