@@ -50,13 +50,8 @@ async fn main() -> Result<()> {
     let config = vm::config::ManagerConfig::from_env();
     let manager = Arc::new(VmManager::new(config, redis.clone()).await?);
 
-    let backend = match backend::BackendClient::from_env()? {
-        Some(c) => { tracing::info!("Backend client configured"); Some(c) }
-        None => {
-            tracing::warn!("BACKEND_URL / BACKEND_ADMIN_API_KEY not set — enroll token minting disabled; VMs will boot without bridge auth");
-            None
-        }
-    };
+    let backend = backend::BackendClient::from_env()?;
+    tracing::info!("Backend client configured");
 
     let service = SandboxService::new(manager.clone(), redis, backend);
 

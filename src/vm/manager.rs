@@ -22,7 +22,7 @@ const DEFAULT_USER_LIMIT: usize = 10;
 
 pub struct VmManager {
     config: ManagerConfig,
-    launcher: Option<FirecrackerLauncher>,
+    launcher: FirecrackerLauncher,
     network: NetworkManager,
     redis: RedisClient,
     /// Running Firecracker process handles (not in Redis — non-serializable)
@@ -33,16 +33,10 @@ pub struct VmManager {
 
 impl VmManager {
     pub async fn new(config: ManagerConfig, redis: RedisClient) -> Result<Self> {
-        let launcher = if config.enable_kvm {
-            let runtime_dir = config.overlays_dir.join("runtime");
-            match FirecrackerLauncher::new(runtime_dir) {
-                Ok(l) => { tracing::info!("Firecracker launcher initialized"); Some(l) }
-                Err(e) => { tracing::warn!("Firecracker not available: {}. Running in mock mode.", e); None }
-            }
-        } else {
-            tracing::info!("KVM disabled, running in mock mode");
-            None
-        };
+        let runtime_dir = config.overlays_dir.join("runtime");
+        let launcher = FirecrackerLauncher::new(runtime_dir)
+            .context("Firecracker launcher init failed (need /dev/kvm + firecracker binary)")?;
+        tracing::info!("Firecracker launcher initialized");
 
         let network = NetworkManager::new(&config.bridge_name, &config.network_subnet)?;
         if let Err(e) = network.init_bridge() {
@@ -184,30 +178,25 @@ impl VmManager {
             return Ok(sandbox);
         }
 
-        if let Some(ref launcher) = self.launcher {
-            let boot_config = self.boot_configs.get(&template_name)
-                .map(|c| c.clone()).unwrap_or_default();
-            let start = std::time::Instant::now();
+        let boot_config = self.boot_configs.get(&template_name)
+            .map(|c| c.clone()).unwrap_or_default();
+        let start = std::time::Instant::now();
 
-            match launcher.boot(&sandbox.id, &boot_config, &vm_size, &network, enroll_token.as_deref()).await {
-                Ok(vm) => {
-                    tracing::info!("Booted VM {} in {:?} (size: {:?})", sandbox.id, start.elapsed(), vm_size);
-                    sandbox.pid = Some(vm.pid());
-                    sandbox.state = SandboxState::Running;
-                    self.vms.insert(sandbox.id.clone(), Arc::new(RwLock::new(vm)));
-                }
-                Err(e) => {
-                    tracing::error!("Failed to boot VM {}: {}", sandbox.id, e);
-                    sandbox.state = SandboxState::Error;
-                    sandbox.error = Some(e.to_string());
-                    if let Some(ref tap) = sandbox.tap_device {
-                        self.network.destroy_tap(tap).ok();
-                    }
+        match self.launcher.boot(&sandbox.id, &boot_config, &vm_size, &network, enroll_token.as_deref()).await {
+            Ok(vm) => {
+                tracing::info!("Booted VM {} in {:?} (size: {:?})", sandbox.id, start.elapsed(), vm_size);
+                sandbox.pid = Some(vm.pid());
+                sandbox.state = SandboxState::Running;
+                self.vms.insert(sandbox.id.clone(), Arc::new(RwLock::new(vm)));
+            }
+            Err(e) => {
+                tracing::error!("Failed to boot VM {}: {}", sandbox.id, e);
+                sandbox.state = SandboxState::Error;
+                sandbox.error = Some(e.to_string());
+                if let Some(ref tap) = sandbox.tap_device {
+                    self.network.destroy_tap(tap).ok();
                 }
             }
-        } else {
-            sandbox.state = SandboxState::Running;
-            tracing::info!("Created mock sandbox {}", sandbox.id);
         }
 
         self.redis.sandbox_put(&sandbox).await?;

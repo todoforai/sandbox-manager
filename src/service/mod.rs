@@ -20,14 +20,14 @@ const ENROLL_TOKEN_TTL_SEC: u32 = 300;
 pub struct SandboxService {
     manager: Arc<VmManager>,
     redis: RedisClient,
-    backend: Option<BackendClient>,
+    backend: BackendClient,
 }
 
 impl SandboxService {
     pub fn new(
         manager: Arc<VmManager>,
         redis: RedisClient,
-        backend: Option<BackendClient>,
+        backend: BackendClient,
     ) -> Self {
         Self { manager, redis, backend }
     }
@@ -53,25 +53,15 @@ impl SandboxService {
             _ => identity.user_id.clone(),
         };
 
-        let enroll_token = match &self.backend {
-            Some(b) => Some(
-                b.mint_enroll_token(&owner_id, Some(ENROLL_TOKEN_TTL_SEC))
-                    .await
-                    .context("failed to mint enroll token")?
-                    .token,
-            ),
-            None => {
-                tracing::warn!(
-                    "No backend configured; VM will boot without bridge credentials for user {}",
-                    owner_id
-                );
-                None
-            }
-        };
+        let enroll_token = self.backend
+            .mint_enroll_token(&owner_id, Some(ENROLL_TOKEN_TTL_SEC))
+            .await
+            .context("failed to mint enroll token")?
+            .token;
 
         Ok(self
             .manager
-            .create_sandbox(owner_id, req.template, req.size, enroll_token)
+            .create_sandbox(owner_id, req.template, req.size, Some(enroll_token))
             .await?
             .into())
     }

@@ -26,9 +26,6 @@ pub struct ManagerConfig {
     
     /// Default VM size
     pub default_size: String,
-    
-    /// Enable KVM (false for testing without KVM)
-    pub enable_kvm: bool,
 }
 
 impl Default for ManagerConfig {
@@ -45,7 +42,6 @@ impl Default for ManagerConfig {
             network_subnet: "10.0.0.0/16".into(),
             max_vms: 5000,
             default_size: "medium".into(),
-            enable_kvm: true,
         }
     }
 }
@@ -78,9 +74,6 @@ impl ManagerConfig {
                 .unwrap_or(5000),
             default_size: std::env::var("DEFAULT_VM_SIZE")
                 .unwrap_or_else(|_| "medium".into()),
-            enable_kvm: std::env::var("ENABLE_KVM")
-                .map(|s| s != "false" && s != "0")
-                .unwrap_or(true),
         }
     }
 }

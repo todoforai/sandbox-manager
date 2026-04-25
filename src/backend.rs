@@ -31,15 +31,13 @@ pub struct MintResponse {
 }
 
 impl BackendClient {
-    /// Build from env vars. Returns Ok(None) if either var is unset — callers
-    /// can then decide whether to hard-fail or continue in mock mode.
-    pub fn from_env() -> Result<Option<Self>> {
-        let base_url = std::env::var("BACKEND_URL").ok();
-        let admin_api_key = std::env::var("BACKEND_ADMIN_API_KEY").ok();
-        match (base_url, admin_api_key) {
-            (Some(u), Some(k)) => Ok(Some(Self::new(u, k)?)),
-            _ => Ok(None),
-        }
+    /// Build from env vars. Both BACKEND_URL and BACKEND_ADMIN_API_KEY are required.
+    pub fn from_env() -> Result<Self> {
+        let base_url = std::env::var("BACKEND_URL")
+            .context("BACKEND_URL not set")?;
+        let admin_api_key = std::env::var("BACKEND_ADMIN_API_KEY")
+            .context("BACKEND_ADMIN_API_KEY not set")?;
+        Self::new(base_url, admin_api_key)
     }
 
     pub fn new(base_url: String, admin_api_key: String) -> Result<Self> {
