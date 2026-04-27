@@ -25,6 +25,9 @@ pub struct ExecOutput {
     pub exit_code: i32,
     pub stdout: String,
     pub stderr: String,
+    /// True if either stdout or stderr was capped at `max_output_bytes`.
+    #[serde(default)]
+    pub truncated: bool,
 }
 
 /// Static config for the lite backend, loaded once at startup.
@@ -113,12 +116,13 @@ impl LiteBackend {
             Err(_) => bail!("exec timed out after {}s", self.timeout_sec),
         };
 
-        let stdout = truncate_utf8(out.stdout, self.max_output_bytes);
-        let stderr = truncate_utf8(out.stderr, self.max_output_bytes);
+        let (stdout, t1) = truncate_utf8(out.stdout, self.max_output_bytes);
+        let (stderr, t2) = truncate_utf8(out.stderr, self.max_output_bytes);
         Ok(ExecOutput {
             exit_code: out.status.code().unwrap_or(-1),
             stdout,
             stderr,
+            truncated: t1 || t2,
         })
     }
 }
@@ -127,7 +131,8 @@ fn path_str(p: &Path) -> Result<&str> {
     p.to_str().with_context(|| format!("non-utf8 path: {p:?}"))
 }
 
-fn truncate_utf8(mut bytes: Vec<u8>, max: usize) -> String {
-    if bytes.len() > max { bytes.truncate(max); }
-    String::from_utf8_lossy(&bytes).into_owned()
+fn truncate_utf8(mut bytes: Vec<u8>, max: usize) -> (String, bool) {
+    let truncated = bytes.len() > max;
+    if truncated { bytes.truncate(max); }
+    (String::from_utf8_lossy(&bytes).into_owned(), truncated)
 }
