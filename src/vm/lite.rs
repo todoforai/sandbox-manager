@@ -1,8 +1,8 @@
 //! Lite sandbox backend — process-level isolation via `bwrap` (bubblewrap).
 //!
-//! Designed for unlogged/anonymous users (the FREE tier) running our own CLI
-//! binaries. No KVM, no Firecracker, no networking, no language runtimes —
-//! just a read-only rootfs of pre-approved CLIs and a writable `/work` dir.
+//! Designed for unlogged/anonymous users (the FREE tier). No KVM, no
+//! Firecracker — just a read-only rootfs and a writable `/work` dir,
+//! with host-shared networking so HTTPS / git / package installs work.
 //!
 //! A lite sandbox has no long-running process. Each `exec` spawns a fresh
 //! bwrap. The per-sandbox state that *does* persist between calls is the
@@ -72,7 +72,9 @@ impl LiteBackend {
 
     /// Run `argv` inside a fresh bwrap jail rooted at `template.rootfs_dir`,
     /// with `<scratch_root>/<id>/` mounted at `/work` and cwd set to `/work`.
-    /// No network. Read-only rootfs. New PID/IPC/UTS/cgroup/user namespaces.
+    /// Read-only rootfs. New PID/IPC/UTS/cgroup/user namespaces. Net is
+    /// shared with the host (no per-sandbox netns isolation) — outbound
+    /// abuse must be limited at the host firewall level.
     pub async fn exec(
         &self,
         id: &str,
@@ -94,12 +96,15 @@ impl LiteBackend {
             "--dev", "/dev",
             "--tmpfs", "/tmp",
             "--unshare-all",         // user/pid/ipc/uts/cgroup/net
+            "--share-net",           // re-share net so HTTPS, DNS, git clone work
             "--die-with-parent",
             "--new-session",
             "--chdir", "/work",
             "--clearenv",
             "--setenv", "PATH", "/usr/bin:/bin",
             "--setenv", "HOME", "/work",
+            "--setenv", "SSL_CERT_FILE", "/etc/ssl/certs/ca-certificates.crt",
+            "--setenv", "SSL_CERT_DIR", "/etc/ssl/certs",
             "--",
         ]);
         cmd.args(argv);
