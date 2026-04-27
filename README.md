@@ -62,23 +62,18 @@ See [`ARCHITECTURE_BRIDGE_MACHINES.md`](../ARCHITECTURE_BRIDGE_MACHINES.md) for 
 sudo ./scripts/setup.sh
 ```
 
-### 2. Build VM Images
+### 2. Build templates
+
+Templates are auto-discovered from `$DATA_DIR/templates/<name>/`:
+- VM template: directory contains `vmlinux` + `rootfs.ext4`
+- Lite template: directory contains a `rootfs/` subdirectory (bwrap root)
 
 ```bash
-# Download pre-built kernel (fastest)
-sudo mkdir -p /data/templates/alpine-base
-curl -sSL https://s3.amazonaws.com/spec.ccfc.min/img/quickstart_guide/x86_64/kernels/vmlinux.bin \
-  -o /data/templates/alpine-base/vmlinux
+# Ubuntu VM template (full sandbox)
+sudo ./scripts/build-ubuntu-rootfs.sh
 
-# Build rootfs
-sudo ./scripts/build-rootfs.sh
-sudo mv rootfs.ext4 /data/templates/alpine-base/
-```
-
-Or build kernel from source:
-```bash
-sudo ./scripts/build-kernel.sh
-sudo mv vmlinux /data/templates/alpine-base/
+# cli-lite template (FREE / unlogged tier — bwrap, CLI-only)
+sudo ./scripts/build-cli-lite.sh
 ```
 
 ### 3. Run
@@ -92,9 +87,16 @@ cargo run --release
 ### Create Sandbox
 
 ```bash
+# Authenticated full VM
+curl -X POST http://localhost:9000/sandbox \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"template":"ubuntu-base","size":"medium"}'
+
+# Anonymous lite (FREE tier — only allow-listed templates)
 curl -X POST http://localhost:9000/sandbox \
   -H "Content-Type: application/json" \
-  -d '{"user_id": "user123", "size": "medium"}'
+  -d '{"template":"cli-lite"}'
 ```
 
 Response:
@@ -219,7 +221,8 @@ bridge → Backend:
 
 ### Templates
 
-- **alpine-base**: Minimal Alpine, no edge agent
+- **ubuntu-base**: Ubuntu minimal VM with edge agent
+- **cli-lite**: bwrap jail with our CLI binaries only — FREE / anonymous tier
 - **alpine-edge**: Alpine + bridge, connects to backend on boot
 
 ### Booting a sandbox

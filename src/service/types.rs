@@ -1,13 +1,14 @@
 use serde::{Deserialize, Serialize};
 
-use crate::vm::sandbox::{Sandbox, SandboxState};
+use crate::vm::sandbox::{Sandbox, SandboxKind, SandboxState};
 use crate::vm::size::VmSize;
 
 pub use crate::vm::sandbox::SandboxStats;
 
 #[derive(Debug, Deserialize)]
 pub struct CreateSandboxRequest {
-    pub template: Option<String>,
+    /// Required. e.g. "ubuntu-base" (VM) or "cli-lite" (FREE tier).
+    pub template: String,
     pub size: Option<VmSize>,
     /// Admin-only: create sandbox on behalf of another user.
     /// Ignored for non-admin callers.
@@ -18,6 +19,7 @@ pub struct CreateSandboxRequest {
 pub struct SandboxInfo {
     pub id: String,
     pub user_id: String,
+    pub kind: SandboxKind,
     pub template: String,
     pub size: VmSize,
     pub state: String,
@@ -39,6 +41,7 @@ impl From<Sandbox> for SandboxInfo {
             state: state_name(sandbox.state).to_string(),
             id: sandbox.id,
             user_id: sandbox.user_id,
+            kind: sandbox.kind,
             template: sandbox.template,
             size: sandbox.size,
             pid: sandbox.pid,

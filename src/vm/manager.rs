@@ -12,8 +12,9 @@ use tokio::sync::RwLock;
 
 use super::config::{ManagerConfig, TemplateConfig};
 use super::firecracker::{BootConfig, FirecrackerLauncher, FirecrackerVm};
+use super::lite::{ExecOutput, LiteBackend, LiteTemplate};
 use super::network::NetworkManager;
-use super::sandbox::{Sandbox, SandboxState, SandboxStats};
+use super::sandbox::{Sandbox, SandboxKind, SandboxState, SandboxStats};
 use super::size::VmSize;
 use crate::redis::RedisClient;
 
@@ -27,8 +28,11 @@ pub struct VmManager {
     redis: RedisClient,
     /// Running Firecracker process handles (not in Redis — non-serializable)
     vms: DashMap<String, Arc<RwLock<FirecrackerVm>>>,
-    /// Static template registry
+    /// Static Firecracker template registry
     boot_configs: DashMap<String, BootConfig>,
+    /// Lite (bwrap) backend + its templates
+    lite: LiteBackend,
+    lite_templates: DashMap<String, LiteTemplate>,
 }
 
 impl VmManager {
@@ -47,6 +51,8 @@ impl VmManager {
         tokio::fs::create_dir_all(&config.overlays_dir).await.ok();
         tokio::fs::create_dir_all(&config.snapshots_dir).await.ok();
         tokio::fs::create_dir_all(config.overlays_dir.join("runtime")).await.ok();
+        let lite_scratch = config.overlays_dir.join("lite");
+        tokio::fs::create_dir_all(&lite_scratch).await.ok();
 
         let manager = Self {
             config,
@@ -55,55 +61,20 @@ impl VmManager {
             redis,
             vms: DashMap::new(),
             boot_configs: DashMap::new(),
+            lite: LiteBackend::new(lite_scratch),
+            lite_templates: DashMap::new(),
         };
 
-        // Load default template configs
+        // Auto-discover templates from disk:
+        //   $DATA_DIR/templates/<name>/{vmlinux,rootfs.ext4}  → Firecracker VM
+        //   $DATA_DIR/templates/<name>/rootfs/                → bwrap (lite)
         let home = std::env::var("HOME").unwrap_or_else(|_| "/root".to_string());
         let data_dir = std::env::var("DATA_DIR").unwrap_or_else(|_| format!("{}/sandbox-data", home));
+        manager.discover_templates(&data_dir).await;
 
-        let ubuntu_config = BootConfig {
-            kernel_path: std::path::PathBuf::from(format!("{}/templates/ubuntu-base/vmlinux", data_dir)),
-            rootfs_path: std::path::PathBuf::from(format!("{}/templates/ubuntu-base/rootfs.ext4", data_dir)),
-            boot_args: "console=ttyS0 reboot=k panic=1 pci=off init=/init".into(),
-        };
-        if ubuntu_config.kernel_path.exists() && ubuntu_config.rootfs_path.exists() {
-            manager.boot_configs.insert("ubuntu-base".to_string(), ubuntu_config);
-            tracing::info!("Loaded ubuntu-base template");
-        } else {
-            tracing::warn!(
-                "ubuntu-base template not loaded: missing {} or {}",
-                ubuntu_config.kernel_path.display(),
-                ubuntu_config.rootfs_path.display()
-            );
-        }
-
-        let alpine_config = BootConfig {
-            kernel_path: std::path::PathBuf::from(format!("{}/templates/alpine-base/vmlinux", data_dir)),
-            rootfs_path: std::path::PathBuf::from(format!("{}/templates/alpine-base/rootfs.ext4", data_dir)),
-            boot_args: "console=ttyS0 reboot=k panic=1 pci=off init=/sbin/init".into(),
-        };
-        if alpine_config.kernel_path.exists() && alpine_config.rootfs_path.exists() {
-            manager.boot_configs.insert("alpine-base".to_string(), alpine_config);
-            tracing::info!("Loaded alpine-base template");
-        } else {
-            tracing::debug!("alpine-base template not present (optional)");
-        }
-
-        let edge_config = BootConfig {
-            kernel_path: std::path::PathBuf::from(format!("{}/templates/alpine-edge/vmlinux", data_dir)),
-            rootfs_path: std::path::PathBuf::from(format!("{}/templates/alpine-edge/rootfs.ext4", data_dir)),
-            boot_args: "console=ttyS0 reboot=k panic=1 pci=off init=/init".into(),
-        };
-        if edge_config.kernel_path.exists() && edge_config.rootfs_path.exists() {
-            manager.boot_configs.insert("alpine-edge".to_string(), edge_config);
-            tracing::info!("Loaded alpine-edge template");
-        } else {
-            tracing::debug!("alpine-edge template not present (optional)");
-        }
-
-        if manager.boot_configs.is_empty() {
+        if manager.boot_configs.is_empty() && manager.lite_templates.is_empty() {
             tracing::error!(
-                "No templates loaded from {} — sandbox creation will fail until templates are built",
+                "No templates discovered in {}/templates — sandbox creation will fail until at least one is built",
                 data_dir
             );
         }
@@ -142,21 +113,33 @@ impl VmManager {
     pub async fn create_sandbox(
         &self,
         user_id: String,
-        template: Option<String>,
+        template_name: String,
         size: Option<VmSize>,
         enroll_token: Option<String>,
     ) -> Result<Sandbox> {
-        let template_name = template.unwrap_or_else(|| "alpine-base".to_string());
+        let kind = self.template_kind(&template_name)
+            .with_context(|| format!("unknown template: {template_name}"))?;
         let vm_size = size.unwrap_or_else(|| VmSize::from_str(&self.config.default_size).unwrap_or_default());
-
-        if !self.boot_configs.contains_key(&template_name) {
-            anyhow::bail!("unknown template: {template_name}");
-        }
 
         // Quota check
         let active = self.redis.sandbox_user_active_count(&user_id).await?;
         if active >= DEFAULT_USER_LIMIT {
             anyhow::bail!("Maximum concurrent sandboxes reached ({DEFAULT_USER_LIMIT})");
+        }
+
+        if kind == SandboxKind::Lite {
+            let mut sandbox = Sandbox::new_kind(user_id, template_name, vm_size, SandboxKind::Lite);
+            // Lite is "running" in the sense that exec is allowed against it;
+            // there's no actual long-running process. State persists in /work.
+            self.redis.sandbox_put(&sandbox).await?;
+            if let Err(e) = self.lite.provision(&sandbox.id).await {
+                self.fail_sandbox(&mut sandbox, format!("lite provision: {e}")).await;
+                return Ok(sandbox);
+            }
+            sandbox.state = SandboxState::Running;
+            self.redis.sandbox_put(&sandbox).await?;
+            self.redis.sandbox_inc_created().await.ok();
+            return Ok(sandbox);
         }
 
         let mut sandbox = Sandbox::new(user_id, template_name.clone(), vm_size.clone());
@@ -229,6 +212,13 @@ impl VmManager {
         let sandbox = self.redis.sandbox_get(id).await?
             .context("Sandbox not found")?;
 
+        if sandbox.kind == SandboxKind::Lite {
+            self.lite.destroy(id).await;
+            self.redis.sandbox_delete(id).await?;
+            tracing::info!("Deleted lite sandbox {}", id);
+            return Ok(());
+        }
+
         // Kill VM process if we have its handle
         if let Some((_, vm)) = self.vms.remove(id) {
             let mut vm = vm.write().await;
@@ -247,9 +237,31 @@ impl VmManager {
         Ok(())
     }
 
+    /// Run `argv` in a lite sandbox. Errors if the sandbox is a Vm.
+    pub async fn exec_lite(&self, id: &str, argv: &[String]) -> Result<ExecOutput> {
+        let sandbox = self.redis.sandbox_get(id).await?
+            .context("Sandbox not found")?;
+        if sandbox.kind != SandboxKind::Lite {
+            anyhow::bail!("exec is only supported on lite sandboxes; use the bridge for VMs");
+        }
+        let template = self.lite_templates.get(&sandbox.template)
+            .with_context(|| format!("lite template missing: {}", sandbox.template))?
+            .clone();
+        let out = self.lite.exec(id, &template, argv).await?;
+        // Touch last_activity so cleanup_idle works for lite sandboxes too.
+        if let Ok(Some(mut s)) = self.redis.sandbox_get(id).await {
+            s.touch();
+            self.redis.sandbox_put(&s).await.ok();
+        }
+        Ok(out)
+    }
+
     pub async fn pause_sandbox(&self, id: &str) -> Result<()> {
         let sandbox = self.redis.sandbox_get(id).await?
             .context("Sandbox not found")?;
+        if sandbox.kind == SandboxKind::Lite {
+            anyhow::bail!("pause is not supported on lite sandboxes");
+        }
         if sandbox.state != SandboxState::Running {
             anyhow::bail!("Sandbox is not running");
         }
@@ -264,6 +276,9 @@ impl VmManager {
     pub async fn resume_sandbox(&self, id: &str) -> Result<()> {
         let sandbox = self.redis.sandbox_get(id).await?
             .context("Sandbox not found")?;
+        if sandbox.kind == SandboxKind::Lite {
+            anyhow::bail!("resume is not supported on lite sandboxes");
+        }
         if sandbox.state != SandboxState::Paused {
             anyhow::bail!("Sandbox is not paused");
         }
@@ -278,13 +293,63 @@ impl VmManager {
     /// Ask the guest to give back `target_mib` of RAM via virtio-balloon.
     /// Set to 0 to deflate fully. Requires CONFIG_VIRTIO_BALLOON in the guest.
     pub async fn balloon_sandbox(&self, id: &str, target_mib: u32) -> Result<()> {
-        let _ = self.redis.sandbox_get(id).await?
+        let sandbox = self.redis.sandbox_get(id).await?
             .context("Sandbox not found")?;
+        if sandbox.kind == SandboxKind::Lite {
+            anyhow::bail!("balloon is not supported on lite sandboxes");
+        }
         let vm_ref = self.vms.get(id)
             .context("VM process handle lost (orphaned); delete and recreate")?;
         vm_ref.read().await.balloon_set(target_mib).await?;
         tracing::info!("Ballooned sandbox {} to {} MiB", id, target_mib);
         Ok(())
+    }
+
+    /// Look up which backend a template uses. Errors if the template is unknown.
+    pub fn template_kind(&self, name: &str) -> Result<SandboxKind> {
+        if self.boot_configs.contains_key(name) { return Ok(SandboxKind::Vm); }
+        if self.lite_templates.contains_key(name) { return Ok(SandboxKind::Lite); }
+        anyhow::bail!("unknown template: {name}")
+    }
+
+    /// Walk `<data_dir>/templates/*` and register every discoverable template.
+    /// VM template:   contains `vmlinux` + `rootfs.ext4`.
+    /// Lite template: contains a `rootfs/` directory (used as bwrap root).
+    /// `*-allowed-bins.txt` next to a lite rootfs (one binary per line) restricts
+    /// what callers may exec; missing file means no restriction beyond PATH.
+    async fn discover_templates(&self, data_dir: &str) {
+        let templates_dir = std::path::Path::new(data_dir).join("templates");
+        let mut entries = match tokio::fs::read_dir(&templates_dir).await {
+            Ok(e) => e,
+            Err(e) => { tracing::warn!("templates dir {templates_dir:?} unreadable: {e}"); return; }
+        };
+        while let Ok(Some(entry)) = entries.next_entry().await {
+            let dir = entry.path();
+            let Some(name) = dir.file_name().and_then(|n| n.to_str()).map(str::to_owned) else { continue };
+
+            let kernel = dir.join("vmlinux");
+            let rootfs_ext4 = dir.join("rootfs.ext4");
+            let lite_rootfs = dir.join("rootfs");
+
+            if kernel.is_file() && rootfs_ext4.is_file() {
+                self.boot_configs.insert(name.clone(), BootConfig {
+                    kernel_path: kernel,
+                    rootfs_path: rootfs_ext4,
+                    boot_args: "console=ttyS0 reboot=k panic=1 pci=off init=/init".into(),
+                });
+                tracing::info!("template '{name}' (vm) loaded");
+            } else if lite_rootfs.is_dir() {
+                let allowed_bins = tokio::fs::read_to_string(dir.join("allowed-bins.txt")).await
+                    .ok()
+                    .map(|s| s.lines().map(|l| l.trim().to_string()).filter(|l| !l.is_empty() && !l.starts_with('#')).collect())
+                    .unwrap_or_default();
+                self.lite_templates.insert(name.clone(), LiteTemplate {
+                    rootfs_dir: lite_rootfs,
+                    allowed_bins,
+                });
+                tracing::info!("template '{name}' (lite) loaded");
+            }
+        }
     }
 
     pub async fn stats(&self) -> Result<SandboxStats> {
@@ -327,7 +392,9 @@ impl VmManager {
     }
 
     pub fn list_templates(&self) -> Vec<String> {
-        self.boot_configs.iter().map(|t| t.key().clone()).collect()
+        let mut out: Vec<String> = self.boot_configs.iter().map(|t| t.key().clone()).collect();
+        out.extend(self.lite_templates.iter().map(|t| t.key().clone()));
+        out
     }
 
     /// Cleanup sandboxes idle longer than `max_idle_seconds`.
@@ -336,8 +403,14 @@ impl VmManager {
             Ok(s) => s,
             Err(e) => { tracing::warn!("cleanup_idle: list failed: {}", e); return 0; }
         };
+        // Lite sandboxes get a much shorter idle TTL — they're cheap and
+        // anonymous, so don't let them accumulate.
+        let lite_idle = max_idle_seconds.min(300);
         let to_remove: Vec<String> = sandboxes.into_iter()
-            .filter(|s| s.state == SandboxState::Running && s.idle_seconds() > max_idle_seconds)
+            .filter(|s| s.state == SandboxState::Running && s.idle_seconds() > match s.kind {
+                SandboxKind::Lite => lite_idle,
+                SandboxKind::Vm => max_idle_seconds,
+            })
             .map(|s| s.id)
             .collect();
         let mut cleaned = 0;

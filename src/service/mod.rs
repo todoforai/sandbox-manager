@@ -5,12 +5,17 @@ use crate::auth::AuthIdentity;
 use crate::backend::BackendClient;
 use crate::redis::RedisClient;
 use crate::vm::config::TemplateConfig;
+use crate::vm::lite::ExecOutput;
 use crate::vm::manager::VmManager;
+use crate::vm::sandbox::SandboxKind;
 
 use self::types::{CreateSandboxRequest, SandboxInfo, SandboxList, SandboxStats};
 
 pub mod errors;
 pub mod types;
+
+/// Templates an unauthenticated caller is allowed to spawn.
+const ANON_ALLOWED_TEMPLATES: &[&str] = &["cli-lite"];
 
 /// TTL for sandbox enroll tokens. Must cover cold boot + network up + redeem
 /// round-trip; single-use + short-lived is the security property we want.
@@ -36,32 +41,46 @@ impl SandboxService {
         &self.redis
     }
 
-    /// Create a sandbox owned by the authenticated caller.
-    ///
-    /// Mints a fresh, short-lived enrollment token via backend admin API
-    /// scoped to `identity.user_id`, then injects it into the VM at boot.
-    /// The caller's own bearer token never enters the VM.
+    /// Create a sandbox. The template determines the backend kind:
+    /// - VM templates (e.g. `ubuntu-base`): authenticated callers only;
+    ///   we mint a short-lived enroll token and inject it at boot.
+    /// - Lite templates (e.g. `cli-lite`, the FREE tier): allow-listed
+    ///   templates may be created anonymously; no enroll token.
     pub async fn create_sandbox(
         &self,
-        identity: &AuthIdentity,
+        identity: Option<&AuthIdentity>,
         req: CreateSandboxRequest,
     ) -> Result<SandboxInfo> {
-        // Admins may create on behalf of another user; regular users always
-        // create for themselves regardless of what they put in the body.
-        let owner_id = match (identity.is_admin(), req.user_id) {
-            (true, Some(uid)) => uid,
-            _ => identity.user_id.clone(),
+        let kind = self.manager.template_kind(&req.template)
+            .with_context(|| format!("unknown template: {}", req.template))?;
+
+        let owner_id = match (identity, &req.user_id) {
+            (Some(id), Some(uid)) if id.is_admin() => uid.clone(),
+            (Some(id), _) => id.user_id.clone(),
+            (None, _) => {
+                if kind != SandboxKind::Lite {
+                    bail!("authentication required for template '{}'", req.template);
+                }
+                if !ANON_ALLOWED_TEMPLATES.contains(&req.template.as_str()) {
+                    bail!("template '{}' not available without authentication", req.template);
+                }
+                format!("anon-{}", &uuid::Uuid::new_v4().to_string()[..8])
+            }
         };
 
-        let enroll_token = self.backend
-            .mint_enroll_token(&owner_id, Some(ENROLL_TOKEN_TTL_SEC))
-            .await
-            .context("failed to mint enroll token")?
-            .token;
+        let enroll_token = if kind == SandboxKind::Vm {
+            Some(self.backend
+                .mint_enroll_token(&owner_id, Some(ENROLL_TOKEN_TTL_SEC))
+                .await
+                .context("failed to mint enroll token")?
+                .token)
+        } else {
+            None
+        };
 
         Ok(self
             .manager
-            .create_sandbox(owner_id, req.template, req.size, Some(enroll_token))
+            .create_sandbox(owner_id, req.template, req.size, enroll_token)
             .await?
             .into())
     }
@@ -94,12 +113,15 @@ impl SandboxService {
     pub async fn delete_sandbox(&self, identity: &AuthIdentity, id: &str) -> Result<()> {
         self.assert_owner(identity, id).await?;
 
-        // Refuse to delete the user's last sandbox — they'd lose their only
-        // cloud device. Admins bypass this to allow cleanup / support ops.
+        // Refuse to delete the user's last *VM* sandbox — they'd lose their
+        // only cloud device. Lite sandboxes are throwaway, no such guard.
+        // Admins bypass this entirely.
         if !identity.is_admin() {
             let remaining = self.redis.sandbox_list(Some(&identity.user_id)).await?;
-            if remaining.len() <= 1 {
-                bail!("cannot delete the user's only sandbox");
+            let vm_remaining = remaining.iter().filter(|s| s.kind == SandboxKind::Vm).count();
+            let target_is_vm = remaining.iter().find(|s| s.id == id).map(|s| s.kind == SandboxKind::Vm).unwrap_or(false);
+            if target_is_vm && vm_remaining <= 1 {
+                bail!("cannot delete the user's only VM sandbox");
             }
         }
 
@@ -119,6 +141,24 @@ impl SandboxService {
     pub async fn balloon_sandbox(&self, identity: &AuthIdentity, id: &str, target_mib: u32) -> Result<()> {
         self.assert_owner(identity, id).await?;
         self.manager.balloon_sandbox(id, target_mib).await
+    }
+
+    /// Run argv in a lite sandbox. Anonymous callers may exec on `anon-*`
+    /// sandboxes (we identify them by the matching prefix on the user_id).
+    pub async fn exec_sandbox(
+        &self,
+        identity: Option<&AuthIdentity>,
+        id: &str,
+        argv: &[String],
+    ) -> Result<ExecOutput> {
+        let sandbox = self.manager.get_sandbox(id).await?
+            .context("Sandbox not found")?;
+        let allowed = match identity {
+            Some(id) => id.is_admin() || id.user_id == sandbox.user_id,
+            None => sandbox.user_id.starts_with("anon-"),
+        };
+        if !allowed { bail!("forbidden"); }
+        self.manager.exec_lite(id, argv).await
     }
 
     pub async fn stats(&self) -> Result<SandboxStats> {

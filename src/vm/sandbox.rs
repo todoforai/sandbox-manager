@@ -6,6 +6,17 @@ use uuid::Uuid;
 
 use super::size::VmSize;
 
+/// Backend that runs a sandbox.
+/// `Vm` = Firecracker microVM (full isolation, networking, persistent).
+/// `Lite` = bwrap-jailed exec for our CLIs only (no network, stateless).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "lowercase")]
+pub enum SandboxKind {
+    #[default]
+    Vm,
+    Lite,
+}
+
 /// Sandbox lifecycle state
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
@@ -24,7 +35,7 @@ pub enum SandboxState {
     Error,
 }
 
-/// Sandbox instance — one Firecracker VM owned by one user.
+/// Sandbox instance — owned by one user (or `anon-*` for unlogged callers).
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Sandbox {
     /// Unique sandbox ID
@@ -32,6 +43,10 @@ pub struct Sandbox {
 
     /// User ID (owner)
     pub user_id: String,
+
+    /// Backend kind. Defaults to Vm so old records deserialize unchanged.
+    #[serde(default)]
+    pub kind: SandboxKind,
 
     /// Template used
     pub template: String,
@@ -64,10 +79,15 @@ pub struct Sandbox {
 impl Sandbox {
     /// Create a new sandbox (state=Creating)
     pub fn new(user_id: String, template: String, size: VmSize) -> Self {
+        Self::new_kind(user_id, template, size, SandboxKind::Vm)
+    }
+
+    pub fn new_kind(user_id: String, template: String, size: VmSize, kind: SandboxKind) -> Self {
         let now = now_ms();
         Self {
             id: Uuid::new_v4().to_string(),
             user_id,
+            kind,
             template,
             size,
             state: SandboxState::Creating,

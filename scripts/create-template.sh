@@ -2,7 +2,7 @@
 # Create a Firecracker template (snapshot) for CoW forking
 set -e
 
-TEMPLATE_NAME="${1:-alpine-base}"
+TEMPLATE_NAME="${1:-ubuntu-base}"
 KERNEL="${KERNEL:-vmlinux}"
 ROOTFS="${ROOTFS:-rootfs.ext4}"
 OUTPUT_DIR="${OUTPUT_DIR:-/data/templates/$TEMPLATE_NAME}"

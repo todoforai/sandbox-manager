@@ -34,7 +34,7 @@ TOKEN="your-api-key"
 curl -X POST http://localhost:9000/sandbox \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{"template":"alpine-edge"}'
+  -d '{"template":"ubuntu-base"}'
 
 # 3. Check backend logs for edge connection
 # Should see: [Bridge] Connected: edge=... user=...
@@ -146,7 +146,7 @@ sudo RUST_LOG=debug ./target/release/sandbox-manager
 curl -X POST http://localhost:9000/sandbox \
   -H "Authorization: Bearer YOUR_TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{"template":"alpine-edge"}'
+  -d '{"template":"ubuntu-base"}'
 ```
 
 ---
