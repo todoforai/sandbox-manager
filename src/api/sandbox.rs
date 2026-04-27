@@ -3,24 +3,28 @@ use axum::{
     http::StatusCode,
     Json,
 };
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
-use crate::api::auth_extractor::Auth;
+use crate::api::auth_extractor::{Auth, OptionalAuth};
 use crate::service::errors::{rest_error, ErrorCode};
 use crate::service::types::{CreateSandboxRequest, SandboxInfo, SandboxStats};
 use crate::service::SandboxService;
+use crate::vm::lite::ExecOutput;
 
-/// Create a new sandbox (owned by the authenticated caller)
+/// Create a new sandbox.
+///
+/// Auth required for VM sandboxes. Anonymous callers may create a `lite`
+/// sandbox on the allow-listed templates (e.g. `cli-lite`).
 pub async fn create_sandbox(
     State(service): State<SandboxService>,
-    Auth(identity): Auth,
+    OptionalAuth(identity): OptionalAuth,
     Json(req): Json<CreateSandboxRequest>,
 ) -> Result<Json<SandboxInfo>, (StatusCode, String)> {
     service
-        .create_sandbox(&identity, req)
+        .create_sandbox(identity.as_ref(), req)
         .await
         .map(Json)
-        .map_err(|e| rest_error(ErrorCode::Internal, e.to_string()))
+        .map_err(|e| rest_error(ErrorCode::BadRequest, e.to_string()))
 }
 
 /// Get sandbox details (caller must own it, or be admin)
@@ -127,4 +131,37 @@ pub async fn get_stats(
         .await
         .map(Json)
         .map_err(|e| rest_error(ErrorCode::Internal, e.to_string()))
+}
+
+/// Run a CLI command inside a lite sandbox.
+#[derive(Debug, Deserialize)]
+pub struct ExecRequest {
+    /// argv[0] is the binary name; must be in the template's allow-list.
+    pub argv: Vec<String>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct ExecResponse {
+    pub exit_code: i32,
+    pub stdout: String,
+    pub stderr: String,
+}
+
+impl From<ExecOutput> for ExecResponse {
+    fn from(o: ExecOutput) -> Self {
+        Self { exit_code: o.exit_code, stdout: o.stdout, stderr: o.stderr }
+    }
+}
+
+pub async fn exec_sandbox(
+    State(service): State<SandboxService>,
+    OptionalAuth(identity): OptionalAuth,
+    Path(id): Path<String>,
+    Json(req): Json<ExecRequest>,
+) -> Result<Json<ExecResponse>, (StatusCode, String)> {
+    service
+        .exec_sandbox(identity.as_ref(), &id, &req.argv)
+        .await
+        .map(|o| Json(o.into()))
+        .map_err(|e| rest_error(ErrorCode::BadRequest, e.to_string()))
 }
