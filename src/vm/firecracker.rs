@@ -143,7 +143,7 @@ impl Default for BootConfig {
         Self {
             kernel_path: PathBuf::from(format!("{}/templates/ubuntu-base/vmlinux", data_dir)),
             rootfs_path: PathBuf::from(format!("{}/templates/ubuntu-base/rootfs.ext4", data_dir)),
-            boot_args: "console=ttyS0 reboot=k panic=1 pci=off init=/init".into(),
+            boot_args: "console=ttyS0 reboot=k panic=1 pci=off root=/dev/vda rw init=/init".into(),
         }
     }
 }

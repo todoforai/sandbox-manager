@@ -133,7 +133,7 @@ async fn dispatch(service: &SandboxService, req: NoiseRequest) -> protocol::Nois
                         name: payload.name.clone(),
                         kernel_path: payload.kernel_path.into(),
                         rootfs_path: payload.rootfs_path.into(),
-                        boot_args: payload.boot_args.unwrap_or_else(|| "console=ttyS0 reboot=k panic=1 pci=off init=/sbin/init".into()),
+                        boot_args: payload.boot_args.unwrap_or_else(|| "console=ttyS0 reboot=k panic=1 pci=off root=/dev/vda rw init=/sbin/init".into()),
                         description: payload.description.unwrap_or_default(),
                         packages: payload.packages.unwrap_or_default(),
                         ..Default::default()

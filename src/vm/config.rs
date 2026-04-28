@@ -114,7 +114,7 @@ impl Default for TemplateConfig {
             rootfs_path: PathBuf::from("rootfs.ext4"),
             memory_path: PathBuf::from("memory.snap"),
             vmstate_path: PathBuf::from("vmstate.snap"),
-            boot_args: "console=ttyS0 reboot=k panic=1 pci=off init=/init".into(),
+            boot_args: "console=ttyS0 reboot=k panic=1 pci=off root=/dev/vda rw init=/init".into(),
             packages: vec![
                 "bash".into(), "curl".into(), "wget".into(), "git".into(),
                 "jq".into(), "zip".into(), "unzip".into(), "rsync".into(),
