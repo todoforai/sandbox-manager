@@ -27,7 +27,7 @@ deploy() {
 
     RELEASE=$(date +%Y%m%d%H%M%S)
 
-    ssh $SERVER << EOF
+    ssh $SERVER 'bash -s' << EOF
         set -e
 
         mkdir -p $DEPLOY_PATH/releases $DEPLOY_PATH/shared
@@ -198,8 +198,9 @@ EOF
     log "Rollback complete!"
 }
 
-status() { pm2_status 'sandbox-manager-*' "$DEPLOY_PATH"; }
-logs()   { pm2_app_logs 'sandbox-manager-*'; }
+status()   { pm2_status 'sandbox-manager-*' "$DEPLOY_PATH"; }
+logs()     { pm2_app_logs 'sandbox-manager-*'; }
+releases() { list_releases "$DEPLOY_PATH"; }
 
 setup() {
     log "Setting up server..."
@@ -249,6 +250,7 @@ case "${1:-deploy}" in
     rollback) rollback ;;
     status)   status ;;
     logs)     logs ;;
+    releases) releases ;;
     setup)    setup ;;
-    *)        echo "Usage: $0 {deploy|rollback|status|logs|setup}" ;;
+    *)        echo "Usage: $0 {deploy|rollback|status|logs|releases|setup}" ;;
 esac
