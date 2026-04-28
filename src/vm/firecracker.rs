@@ -322,6 +322,20 @@ impl FirecrackerLauncher {
             if let Some(token) = enroll_token {
                 mmds.insert("enroll_token".into(), serde_json::Value::String(token.to_string()));
             }
+            // Optional dev override: tell bridge inside the VM to talk to a non-prod
+            // Noise endpoint (e.g. the local backend). Bridge falls back to its
+            // hardcoded prod default when these are absent. Logged at WARN so a
+            // misconfigured prod deployment is loud about redirecting guest enrollment.
+            if let Ok(addr) = std::env::var("MMDS_NOISE_BACKEND_ADDR") {
+                tracing::warn!("MMDS override: noise_backend_addr={}", addr);
+                mmds.insert("noise_backend_addr".into(), serde_json::Value::String(addr));
+            }
+            if let Ok(pub_hex) = std::env::var("MMDS_NOISE_BACKEND_PUBLIC_KEY") {
+                if pub_hex.len() != 64 || !pub_hex.chars().all(|c| c.is_ascii_hexdigit()) {
+                    anyhow::bail!("MMDS_NOISE_BACKEND_PUBLIC_KEY must be 64 hex chars");
+                }
+                mmds.insert("noise_backend_pub".into(), serde_json::Value::String(pub_hex));
+            }
             vm.api_request("PUT", "/mmds", Some(&serde_json::Value::Object(mmds).to_string()))
                 .await
                 .context("Failed to populate MMDS")?;

@@ -120,10 +120,34 @@ MMDS_SESSION=$(wget -q -O - --method=PUT \
     --header='X-metadata-token-ttl-seconds: 60' \
     'http://169.254.169.254/latest/api/token' 2>/dev/null || true)
 ENROLL_TOKEN=""
+NOISE_BACKEND_ADDR_OVR=""
+NOISE_BACKEND_PUB_OVR=""
 if [ -n "$MMDS_SESSION" ]; then
     ENROLL_TOKEN=$(wget -q -O - \
         --header="X-metadata-token: $MMDS_SESSION" \
         'http://169.254.169.254/enroll_token' 2>/dev/null || true)
+    # Optional dev/non-prod overrides — point bridge at a different Noise endpoint.
+    NOISE_BACKEND_ADDR_OVR=$(wget -q -O - \
+        --header="X-metadata-token: $MMDS_SESSION" \
+        'http://169.254.169.254/noise_backend_addr' 2>/dev/null || true)
+    NOISE_BACKEND_PUB_OVR=$(wget -q -O - \
+        --header="X-metadata-token: $MMDS_SESSION" \
+        'http://169.254.169.254/noise_backend_pub' 2>/dev/null || true)
+fi
+
+if [ -n "$NOISE_BACKEND_ADDR_OVR" ] && [ "$NOISE_BACKEND_ADDR_OVR" != "null" ]; then
+    export NOISE_BACKEND_ADDR="$NOISE_BACKEND_ADDR_OVR"
+    echo "[init] Using NOISE_BACKEND_ADDR=$NOISE_BACKEND_ADDR"
+    # Bridge runtime (post-login persistent WS) reads EDGE_HOST/EDGE_PORT.
+    # Reuse the same dev backend host; default port 4000 (HTTP, Noise-in-WS).
+    edge_host="${NOISE_BACKEND_ADDR_OVR%:*}"
+    export EDGE_HOST="$edge_host"
+    export EDGE_PORT="4000"
+    echo "[init] Using EDGE_HOST=$EDGE_HOST EDGE_PORT=$EDGE_PORT"
+fi
+if [ -n "$NOISE_BACKEND_PUB_OVR" ] && [ "$NOISE_BACKEND_PUB_OVR" != "null" ]; then
+    export NOISE_BACKEND_PUBLIC_KEY="$NOISE_BACKEND_PUB_OVR"
+    export EDGE_SERVER_PUBKEY="$NOISE_BACKEND_PUB_OVR"
 fi
 
 if [ -n "$ENROLL_TOKEN" ] && [ "$ENROLL_TOKEN" != "null" ]; then
