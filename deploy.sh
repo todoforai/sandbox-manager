@@ -9,38 +9,17 @@
 #   ./deploy.sh rollback     Rollback to previous release
 #   ./deploy.sh status       Check status
 #   ./deploy.sh logs         View logs
-#   ./deploy.sh setup        First-time server setup
+#   ./deploy.sh setup        First-time server setup (installs PM2, .env)
 
 set -e
+
+source "$(dirname "$0")/../scripts/deploy-lib.sh"
 
 SERVER="${SERVER:-root@sandbox.todofor.ai}"
 DEPLOY_PATH="/var/www/todoforai/apps/sandbox-manager"
 REPO="git@github.com:todoforai/sandbox-manager.git"
 BRANCH="prod"
 KEEP_RELEASES=5
-
-RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'; NC='\033[0m'
-log()   { echo -e "${GREEN}[deploy]${NC} $1"; }
-warn()  { echo -e "${YELLOW}[warn]${NC} $1"; }
-error() { echo -e "${RED}[error]${NC} $1"; exit 1; }
-
-check_prod_status() {
-    [ -n "${CI:-}" ] && return 0
-    git fetch origin --quiet 2>/dev/null
-    local main_hash=$(git rev-parse origin/main 2>/dev/null)
-    local prod_hash=$(git rev-parse origin/prod 2>/dev/null)
-    if [ "$main_hash" != "$prod_hash" ]; then
-        local ahead=$(git rev-list --count origin/prod..origin/main 2>/dev/null)
-        if [ "$ahead" -gt 0 ]; then
-            warn "prod is $ahead commit(s) behind main!"
-            git log --oneline origin/prod..origin/main | head -5
-            read -p "Continue deploying from prod? [y/N] " -n 1 -r; echo
-            [[ $REPLY =~ ^[Yy]$ ]] || exit 0
-        fi
-    else
-        log "prod is up to date with main"
-    fi
-}
 
 deploy() {
     check_prod_status
@@ -61,54 +40,57 @@ deploy() {
         cargo build --release --locked
         cp target/release/sandbox-manager ./sandbox-manager
 
-        echo "Linking shared env..."
-        ln -sf $DEPLOY_PATH/shared/.env $DEPLOY_PATH/releases/$RELEASE/.env
+        echo "Linking shared dir for ecosystem.config.js to read..."
+        ln -sfn $DEPLOY_PATH/shared $DEPLOY_PATH/releases/$RELEASE/shared
 
         echo "Updating current symlink..."
         ln -sfn $DEPLOY_PATH/releases/$RELEASE $DEPLOY_PATH/current
 
         echo "Rolling deploy..."
+        cd $DEPLOY_PATH/current
 
-        # Determine active REST port (9000 or 9002); pair: Noise = REST + 10
+        # One-shot migration: retire systemd-managed instances (sandbox-manager@,
+        # tfa-sandbox-manager@) before PM2 takes over. Safe to leave in place —
+        # does nothing once the units are gone.
+        for unit in sandbox-manager@.service tfa-sandbox-manager@.service; do
+            if [ -f /etc/systemd/system/\$unit ]; then
+                echo "Migrating off systemd: \$unit..."
+                systemctl disable --now "\${unit%.service}9000" "\${unit%.service}9002" 2>/dev/null || true
+                rm -f /etc/systemd/system/\$unit
+            fi
+        done
+        systemctl daemon-reload
+
+        # Determine which port is currently active under PM2
         OLD_PORT=""
-        NEW_PORT=9000
-        if systemctl is-active --quiet tfa-sandbox-manager@9000; then
+        NEW_PORT=""
+        if pm2 list 2>/dev/null | grep -q "sandbox-manager-9000"; then
             OLD_PORT=9000; NEW_PORT=9002
-        elif systemctl is-active --quiet tfa-sandbox-manager@9002; then
+        elif pm2 list 2>/dev/null | grep -q "sandbox-manager-9002"; then
             OLD_PORT=9002; NEW_PORT=9000
+        else
+            NEW_PORT=9000
         fi
 
         NGINX_CONF=/etc/nginx/sites-available/vm.todofor.ai
         STREAM_CONF=/etc/nginx/streams-available/sandbox-noise-stream.conf
 
-        # One-shot migration: retire the legacy unit name (sandbox-manager@ → tfa-sandbox-manager@).
-        # Safe to leave in place — does nothing once the old unit is gone.
-        if [ -f /etc/systemd/system/sandbox-manager@.service ]; then
-            echo "Migrating legacy unit name → tfa-sandbox-manager@..."
-            systemctl disable --now sandbox-manager@9000 sandbox-manager@9002 2>/dev/null || true
-            rm -f /etc/systemd/system/sandbox-manager@.service
-            systemctl daemon-reload
-            OLD_PORT=""; NEW_PORT=9000
-        fi
-
-        # Install/refresh systemd unit from repo
-        cp $DEPLOY_PATH/current/systemd/tfa-sandbox-manager@.service /etc/systemd/system/tfa-sandbox-manager@.service
-        systemctl daemon-reload
-
         echo "Starting new instance on port \$NEW_PORT..."
-        systemctl enable --now tfa-sandbox-manager@\$NEW_PORT
+        DEPLOY_PORT=\$NEW_PORT pm2 start ecosystem.config.js --env production
+        pm2 save --force
 
+        # Wait for new instance to be healthy before touching nginx
         echo "Waiting for new instance..."
         for i in \$(seq 1 30); do
             if curl -sf http://127.0.0.1:\$NEW_PORT/health >/dev/null 2>&1; then
                 echo "✅ New instance healthy on port \$NEW_PORT"
                 break
             fi
-            [ \$i -eq 30 ] && { echo "❌ New instance failed to start!"; journalctl -u tfa-sandbox-manager@\$NEW_PORT -n 40 --no-pager; exit 1; }
+            [ \$i -eq 30 ] && { echo "❌ New instance failed to start!"; pm2 logs sandbox-manager-\$NEW_PORT --lines 40 --nostream; exit 1; }
             sleep 1
         done
 
-        # Sync nginx site + stream confs
+        # Sync nginx site + stream confs from repo
         cp $DEPLOY_PATH/current/nginx/vm.todofor.ai.conf \$NGINX_CONF
         ln -sf \$NGINX_CONF /etc/nginx/sites-enabled/vm.todofor.ai
 
@@ -131,9 +113,12 @@ deploy() {
 
         nginx -t && systemctl reload nginx
 
+        # Drain old instance (if any) — nginx already switched, safe to stop
         if [ -n "\$OLD_PORT" ]; then
             echo "Draining old instance on port \$OLD_PORT..."
-            systemctl disable --now tfa-sandbox-manager@\$OLD_PORT || true
+            pm2 stop sandbox-manager-\$OLD_PORT
+            pm2 delete sandbox-manager-\$OLD_PORT 2>/dev/null || true
+            pm2 save --force
             echo "✅ Old instance stopped"
         fi
 
@@ -142,7 +127,7 @@ deploy() {
             echo "✅ sandbox-manager healthy on port \$NEW_PORT!"
         else
             echo "❌ Final health check failed!"
-            journalctl -u tfa-sandbox-manager@\$NEW_PORT -n 40 --no-pager
+            pm2 logs sandbox-manager-\$NEW_PORT --lines 40 --nostream
             exit 1
         fi
 
@@ -170,24 +155,28 @@ rollback() {
         echo "Current: $CURRENT → Rolling back to: $PREVIOUS"
         ln -sfn $DEPLOY_PATH/releases/$PREVIOUS $DEPLOY_PATH/current
 
+        # Determine which port is currently live
         LIVE_PORT=""
-        systemctl is-active --quiet tfa-sandbox-manager@9000 && LIVE_PORT=9000
-        systemctl is-active --quiet tfa-sandbox-manager@9002 && LIVE_PORT=9002
+        pm2 list 2>/dev/null | grep -q "sandbox-manager-9000" && LIVE_PORT=9000
+        pm2 list 2>/dev/null | grep -q "sandbox-manager-9002" && LIVE_PORT=9002
         ROLLBACK_PORT=9000
         [ "$LIVE_PORT" = "9000" ] && ROLLBACK_PORT=9002
 
-        systemctl enable --now tfa-sandbox-manager@$ROLLBACK_PORT
+        # Start rollback on the inactive port first
+        cd $DEPLOY_PATH/current
+        DEPLOY_PORT=$ROLLBACK_PORT pm2 start ecosystem.config.js --env production
+        pm2 save --force
 
+        # Wait healthy before touching nginx
+        NGINX_CONF=/etc/nginx/sites-available/vm.todofor.ai
+        STREAM_CONF=/etc/nginx/streams-available/sandbox-noise-stream.conf
         for i in $(seq 1 15); do
-            curl -sf http://127.0.0.1:$ROLLBACK_PORT/health >/dev/null 2>&1 && break
-            [ $i -eq 15 ] && { echo "❌ Rollback health check failed!"; journalctl -u tfa-sandbox-manager@$ROLLBACK_PORT -n 40 --no-pager; exit 1; }
+            curl -sf http://127.0.0.1:$ROLLBACK_PORT/health >/dev/null 2>&1 && echo "✅ Rollback instance healthy" && break
+            [ $i -eq 15 ] && { echo "❌ Rollback health check failed!"; pm2 logs sandbox-manager-$ROLLBACK_PORT --lines 40 --nostream; pm2 delete sandbox-manager-$ROLLBACK_PORT 2>/dev/null; exit 1; }
             sleep 2
         done
 
-        NGINX_CONF=/etc/nginx/sites-available/vm.todofor.ai
-        STREAM_CONF=/etc/nginx/streams-available/sandbox-noise-stream.conf
         ROLLBACK_NOISE=$((ROLLBACK_PORT + 10))
-
         sed -i "s|server 127.0.0.1:9000[^;]*;|server 127.0.0.1:9000 down;|g" $NGINX_CONF
         sed -i "s|server 127.0.0.1:9002[^;]*;|server 127.0.0.1:9002 down;|g" $NGINX_CONF
         sed -i "s|server 127.0.0.1:${ROLLBACK_PORT} down;|server 127.0.0.1:${ROLLBACK_PORT} max_fails=2 fail_timeout=5s;|" $NGINX_CONF
@@ -198,27 +187,36 @@ rollback() {
 
         nginx -t && systemctl reload nginx
 
-        [ -n "$LIVE_PORT" ] && systemctl disable --now tfa-sandbox-manager@$LIVE_PORT || true
+        if [ -n "$LIVE_PORT" ]; then
+            pm2 delete sandbox-manager-$LIVE_PORT 2>/dev/null || true
+            pm2 save --force
+        fi
+
         echo "Rolled back to $PREVIOUS"
 EOF
 
     log "Rollback complete!"
 }
 
-status() {
-    ssh $SERVER "systemctl status 'tfa-sandbox-manager@*' --no-pager || true; echo ''; ls -la /var/www/todoforai/apps/sandbox-manager/releases/; echo ''; echo 'Current:'; readlink /var/www/todoforai/apps/sandbox-manager/current"
-}
-
-logs() {
-    ssh $SERVER "journalctl -u 'tfa-sandbox-manager@*' -n 200 --no-pager"
-}
+status() { pm2_status 'sandbox-manager-*' "$DEPLOY_PATH"; }
+logs()   { pm2_app_logs 'sandbox-manager-*'; }
 
 setup() {
     log "Setting up server..."
     ssh $SERVER << 'EOF'
         set -e
         mkdir -p /var/www/todoforai/apps/sandbox-manager/{releases,shared}
+        mkdir -p /var/log/todoforai
         SHARED=/var/www/todoforai/apps/sandbox-manager/shared
+
+        # Install Node + PM2 if missing (sandbox host has neither by default)
+        if ! command -v pm2 >/dev/null 2>&1; then
+            echo "Installing Node.js + PM2..."
+            curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+            apt-get install -y nodejs
+            npm install -g pm2
+            pm2 startup systemd -u root --hp /root
+        fi
 
         if [ ! -f $SHARED/.env ]; then
             cat > $SHARED/.env << 'ENVEOF'
@@ -227,8 +225,9 @@ TEMPLATES_DIR=/data/templates
 OVERLAYS_DIR=/data/overlays
 BRIDGE_NAME=br-sandbox
 NETWORK_SUBNET=10.0.0.0/16
-ENABLE_KVM=true
 DEFAULT_VM_SIZE=medium
+BACKEND_URL=https://api.todofor.ai
+BACKEND_ADMIN_API_KEY=CHANGE_ME
 ENVEOF
             echo "Created default .env — edit $SHARED/.env"
         fi
