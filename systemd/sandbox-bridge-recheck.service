@@ -1,0 +1,7 @@
+[Unit]
+Description=Restart sandbox-bridge.service to reconcile state
+After=sandbox-bridge.service
+
+[Service]
+Type=oneshot
+ExecStart=/bin/systemctl restart sandbox-bridge.service

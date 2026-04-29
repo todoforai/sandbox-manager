@@ -1,0 +1,20 @@
+[Unit]
+Description=Sandbox bridge (br-sandbox) for Firecracker VMs
+Documentation=file:/usr/local/lib/sandbox-manager/ensure-bridge.sh
+After=network-pre.target
+Before=network.target sandbox-manager.service
+Wants=network-pre.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+# Defaults live in ensure-bridge.sh; override via /etc/default/sandbox-bridge.
+EnvironmentFile=-/etc/default/sandbox-bridge
+ExecStart=/usr/local/lib/sandbox-manager/ensure-bridge.sh
+# No ExecStop: tearing the bridge down would break running VMs.
+# Restart on transient failure (e.g. iptables xtables-lock contention).
+Restart=on-failure
+RestartSec=2s
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,15 @@
+[Unit]
+Description=Periodic recheck of sandbox-bridge.service
+After=sandbox-bridge.service
+
+[Timer]
+# Restart the (idempotent) main service every 30s so it reconciles bridge,
+# NAT, ip_forward, isolation rules, and any orphan TAPs. A plain `start` is a
+# no-op for oneshot+RemainAfterExit, so the recheck unit issues `restart`.
+OnBootSec=30s
+OnUnitActiveSec=30s
+AccuracySec=5s
+Unit=sandbox-bridge-recheck.service
+
+[Install]
+WantedBy=timers.target
