@@ -30,6 +30,43 @@ fn now_ms() -> u64 {
         .unwrap_or(0)
 }
 
+/// Parse ISO-8601 UTC (e.g. "2025-12-10T23:00:00.000Z") to unix ms.
+/// Accepts `YYYY-MM-DDTHH:MM:SS[.fff]Z`. Returns None on any other shape.
+fn parse_iso8601_ms(s: &str) -> Option<u64> {
+    let b = s.as_bytes();
+    if b.len() < 20 || b.last() != Some(&b'Z') || b[10] != b'T' { return None }
+    let p = |a: usize, e: usize| std::str::from_utf8(&b[a..e]).ok()?.parse::<i64>().ok();
+    let (y, mo, d) = (p(0, 4)?, p(5, 7)?, p(8, 10)?);
+    let (h, mi, se) = (p(11, 13)?, p(14, 16)?, p(17, 19)?);
+    let ms = if b[19] == b'.' { p(20, 23).unwrap_or(0) } else { 0 };
+    // Howard Hinnant's date algorithm — works for any year ≥ -32767.
+    let y = y - if mo <= 2 { 1 } else { 0 };
+    let era = (if y >= 0 { y } else { y - 399 }) / 400;
+    let yoe = y - era * 400;                        // [0, 399]
+    let m_shift = if mo > 2 { mo - 3 } else { mo + 9 };
+    let doy = (153 * m_shift + 2) / 5 + d - 1;      // [0, 365]
+    let doe = yoe * 365 + yoe / 4 - yoe / 100 + doy;
+    let days = era * 146097 + doe - 719468;
+    let total_ms = days * 86_400_000 + h * 3_600_000 + mi * 60_000 + se * 1000 + ms;
+    if total_ms < 0 { None } else { Some(total_ms as u64) }
+}
+
+#[cfg(test)]
+mod date_tests {
+    use super::parse_iso8601_ms;
+    #[test] fn iso_basic() {
+        assert_eq!(parse_iso8601_ms("1970-01-01T00:00:00.000Z"), Some(0));
+        assert_eq!(parse_iso8601_ms("2025-12-10T23:00:00.000Z"), Some(1_765_407_600_000));
+        assert_eq!(parse_iso8601_ms("2024-02-29T12:00:00.000Z"), Some(1_709_208_000_000));
+        assert_eq!(parse_iso8601_ms("2025-12-10T23:00:00Z"),     Some(1_765_407_600_000));
+    }
+    #[test] fn iso_invalid() {
+        assert_eq!(parse_iso8601_ms("garbage"), None);
+        assert_eq!(parse_iso8601_ms("2025-12-10X23:00:00.000Z"), None);
+        assert_eq!(parse_iso8601_ms(""), None);
+    }
+}
+
 fn events_channel(user_id: &str) -> String {
     format!("sandbox:events:{user_id}")
 }
@@ -59,8 +96,13 @@ impl RedisClient {
 
     // ── Identity ──────────────────────────────────────────────────────────────
 
-    /// Resolve token → (userId, role). Role defaults to "user".
-    /// Resource tokens never carry admin role; only apikey:<token> can have role=admin.
+    /// Resolve token → (userId, role). Sources, in order:
+    ///   1. `resource:token:<token>` STRING → userId  (short-lived, role=user)
+    ///   2. `apikey:<token>` HASH `{userId, role?}`   (long-lived; only source that may be admin)
+    ///   3. Better Auth session: `session:idx:token:<token>` SET → sessionId,
+    ///      `session:<id>` HASH `{userId, expiresAt}`. Role is `guest` if the
+    ///      `user:<userId>.isAnonymous` flag is set, else `user`.
+    /// Resource tokens never carry admin role; only apikey:<token> can.
     pub async fn resolve_identity(&self, token: &str) -> Result<Option<(String, String)>> {
         let mut conn = self.conn().await?;
 
@@ -70,10 +112,26 @@ impl RedisClient {
 
         let (user_id, role): (Option<String>, Option<String>) =
             conn.hget(format!("apikey:{token}"), &["userId", "role"][..]).await?;
-        match user_id {
-            Some(uid) => Ok(Some((uid, role.unwrap_or_else(|| "user".into())))),
-            None => Ok(None),
+        if let Some(uid) = user_id {
+            return Ok(Some((uid, role.unwrap_or_else(|| "user".into()))));
         }
+
+        // Better Auth bearer/session token. Schema written by backend's
+        // SessionRepository — see backend/src/redis/repositories.ts:637.
+        let session_ids: Vec<String> = conn.smembers(format!("session:idx:token:{token}")).await?;
+        let Some(sid) = session_ids.into_iter().next() else { return Ok(None) };
+        let (uid, expires_at): (Option<String>, Option<String>) =
+            conn.hget(format!("session:{sid}"), &["userId", "expiresAt"][..]).await?;
+        let Some(uid) = uid else { return Ok(None) };
+        if let Some(exp) = expires_at {
+            // ISO-8601 UTC, e.g. "2025-12-10T23:00:00.000Z". Reject expired sessions.
+            if let Some(exp_ms) = parse_iso8601_ms(&exp) {
+                if exp_ms < now_ms() { return Ok(None) }
+            }
+        }
+        let is_anon: Option<String> = conn.hget(format!("user:{uid}"), "isAnonymous").await?;
+        let role = if is_anon.as_deref() == Some("1") { "guest" } else { "user" };
+        Ok(Some((uid, role.into())))
     }
 
     // ── Billing (unused until metering wired up) ──────────────────────────────
@@ -247,15 +305,25 @@ impl RedisClient {
         Ok(out)
     }
 
-    /// List a user's sandboxes (any state) or all active sandboxes if `user_id`
-    /// is None. There is no "every sandbox regardless of state" listing: stats
-    /// and cleanup operate on `sandbox:active`; admin tooling that needs to
-    /// see terminated records should scan `sandbox:user:*` per user.
+    /// List a user's sandboxes (any state) if `user_id` is set, otherwise every
+    /// sandbox across all users (any state) — used by the admin view.
+    /// Scans `sandbox:user:*` to include terminated/error records, not just `sandbox:active`.
     pub async fn sandbox_list(&self, user_id: Option<&str>) -> Result<Vec<Sandbox>> {
         let mut conn = self.conn().await?;
         let ids: Vec<String> = match user_id {
             Some(uid) => conn.smembers(format!("sandbox:user:{uid}")).await?,
-            None => conn.smembers("sandbox:active").await?,
+            None => {
+                let mut all = std::collections::HashSet::<String>::new();
+                let mut iter = conn.scan_match::<_, String>("sandbox:user:*").await?;
+                let mut user_keys = Vec::new();
+                while let Some(k) = iter.next_item().await { user_keys.push(k); }
+                drop(iter);
+                for key in user_keys {
+                    let members: Vec<String> = conn.smembers(&key).await?;
+                    all.extend(members);
+                }
+                all.into_iter().collect()
+            }
         };
         self.hydrate(ids).await
     }

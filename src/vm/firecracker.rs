@@ -65,8 +65,8 @@ impl FirecrackerVm {
         stream.write_all(request.as_bytes()).await?;
 
         let mut reader = BufReader::new(stream);
-        let mut response = String::new();
-        reader.read_line(&mut response).await?;
+        let mut status_line = String::new();
+        reader.read_line(&mut status_line).await?;
 
         // Read headers until empty line
         loop {
@@ -78,10 +78,23 @@ impl FirecrackerVm {
         }
 
         // Read body (simplified - assumes small responses)
-        let mut body = String::new();
-        let _ = timeout(Duration::from_millis(100), reader.read_line(&mut body)).await;
+        let mut resp_body = String::new();
+        let _ = timeout(Duration::from_millis(100), reader.read_line(&mut resp_body)).await;
 
-        Ok(response)
+        // Parse status code: "HTTP/1.1 204 No Content" -> 204
+        let code: u16 = status_line
+            .split_whitespace()
+            .nth(1)
+            .and_then(|s| s.parse().ok())
+            .unwrap_or(0);
+        if !(200..300).contains(&code) {
+            anyhow::bail!(
+                "Firecracker {} {} -> {} {}",
+                method, path, status_line.trim(), resp_body.trim()
+            );
+        }
+
+        Ok(status_line)
     }
 
     /// Pause the VM
@@ -114,8 +127,8 @@ impl FirecrackerVm {
     /// Kill the VM process
     pub fn kill(&mut self) -> Result<()> {
         self.process.kill().ok();
-        // Reap so the child doesn't linger as <defunct>. The process has
-        // already received SIGKILL, so wait() returns ~immediately.
+        // Reap so the child doesn't linger as <defunct>. wait() blocks but the
+        // process has already received SIGKILL, so it returns ~immediately.
         let _ = self.process.wait();
         std::fs::remove_file(&self.socket_path).ok();
         std::fs::remove_file(&self.serial_path).ok();
@@ -188,19 +201,31 @@ impl FirecrackerLauncher {
     ) -> Result<FirecrackerVm> {
         let socket_path = self.runtime_dir.join(format!("{}.sock", vm_id));
         let serial_path = self.runtime_dir.join(format!("{}.serial", vm_id));
+        let console_log = self.runtime_dir.join(format!("{}.console.log", vm_id));
+        let fc_log      = self.runtime_dir.join(format!("{}.fc.log", vm_id));
 
         // Remove stale sockets
         std::fs::remove_file(&socket_path).ok();
         std::fs::remove_file(&serial_path).ok();
 
+        // Capture guest serial console (`console=ttyS0` in boot_args -> FC stdout)
+        // and Firecracker's own stderr. These are the only on-disk traces of
+        // what the guest /init / bridge actually did, so don't drop them.
+        let console_out = std::fs::File::create(&console_log)
+            .with_context(|| format!("create {}", console_log.display()))?;
+        let fc_err = std::fs::File::create(&fc_log)
+            .with_context(|| format!("create {}", fc_log.display()))?;
+
         // Spawn Firecracker process
         let process = Command::new(&self.firecracker_bin)
             .args(["--api-sock", socket_path.to_str().unwrap()])
             .stdin(Stdio::null())
-            .stdout(Stdio::null())
-            .stderr(Stdio::piped())
+            .stdout(Stdio::from(console_out))
+            .stderr(Stdio::from(fc_err))
             .spawn()
             .context("Failed to spawn Firecracker")?;
+
+        tracing::info!("VM {} logs: console={} fc={}", vm_id, console_log.display(), fc_log.display());
 
         // Wait for socket to be ready
         for _ in 0..50 {
@@ -283,20 +308,18 @@ impl FirecrackerLauncher {
             .await
             .context("Failed to configure drive")?;
 
-        // Network interface — flag it as MMDS-capable so the guest can reach
-        // 169.254.169.254. Without `allow_mmds_requests` the metadata server
-        // drops requests from this NIC.
+        // Network interface. MMDS reachability is granted later by listing
+        // this iface in `/mmds/config.network_interfaces` — Firecracker ≥1.0
+        // removed the per-iface `allow_mmds_requests` field (it's serde-strict,
+        // so leaving it in causes a 400 and the whole NIC creation fails).
         let net_iface = serde_json::json!({
             "iface_id": "eth0",
             "host_dev_name": network.tap_name,
             "guest_mac": network.guest_mac,
-            "allow_mmds_requests": true,
         });
-        if let Err(e) = vm.api_request("PUT", "/network-interfaces/eth0", Some(&net_iface.to_string())).await {
-            tracing::warn!("Failed to configure network (TAP may not exist): {}", e);
-            // Continue without networking — MMDS also won't work, but boot may succeed.
-            return Ok(());
-        }
+        vm.api_request("PUT", "/network-interfaces/eth0", Some(&net_iface.to_string()))
+            .await
+            .context("Failed to configure network interface (TAP missing or Firecracker rejected config)")?;
 
         // Virtio-balloon — lets the host reclaim guest RAM on idle.
         // Start at 0 (no reclaim); backend can inflate via /sandbox/:id/balloon.
@@ -356,18 +379,27 @@ impl FirecrackerLauncher {
     ) -> Result<FirecrackerVm> {
         let socket_path = self.runtime_dir.join(format!("{}.sock", vm_id));
         let serial_path = self.runtime_dir.join(format!("{}.serial", vm_id));
+        let console_log = self.runtime_dir.join(format!("{}.console.log", vm_id));
+        let fc_log      = self.runtime_dir.join(format!("{}.fc.log", vm_id));
 
         // Remove stale sockets
         std::fs::remove_file(&socket_path).ok();
+
+        let console_out = std::fs::File::create(&console_log)
+            .with_context(|| format!("create {}", console_log.display()))?;
+        let fc_err = std::fs::File::create(&fc_log)
+            .with_context(|| format!("create {}", fc_log.display()))?;
 
         // Spawn Firecracker
         let process = Command::new(&self.firecracker_bin)
             .args(["--api-sock", socket_path.to_str().unwrap()])
             .stdin(Stdio::null())
-            .stdout(Stdio::null())
-            .stderr(Stdio::piped())
+            .stdout(Stdio::from(console_out))
+            .stderr(Stdio::from(fc_err))
             .spawn()
             .context("Failed to spawn Firecracker")?;
+
+        tracing::info!("VM {} (snapshot) logs: console={} fc={}", vm_id, console_log.display(), fc_log.display());
 
         // Wait for socket
         for _ in 0..50 {

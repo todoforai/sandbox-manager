@@ -96,7 +96,7 @@ async fn dispatch(service: &SandboxService, req: NoiseRequest) -> protocol::Nois
             Err(e) => err(req.id, ErrorCode::BadRequest, e),
         },
         "sandbox.create" => match parse::<CreateSandboxPayload>(req.payload) {
-            Ok(payload) => match service.create_sandbox(Some(&identity), payload).await {
+            Ok(payload) => match service.create_sandbox(&identity, payload).await {
                 Ok(sandbox) => ok(req.id, sandbox),
                 Err(e) => err(req.id, ErrorCode::Internal, e.to_string()),
             },
@@ -123,6 +123,7 @@ async fn dispatch(service: &SandboxService, req: NoiseRequest) -> protocol::Nois
             },
             Err(e) => err(req.id, ErrorCode::BadRequest, e),
         },
+
         "template.create" => {
             if !identity.is_admin() {
                 return err(req.id, ErrorCode::Forbidden, "admin role required");

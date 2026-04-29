@@ -73,6 +73,14 @@ async fn main() -> Result<()> {
     });
 
     let app = Router::new()
+        // Admin UI is served by nginx from sandbox-manager/web/ (see nginx/vm.todofor.ai.conf).
+        .route("/admin/api/sandbox", get(api::admin::list_sandboxes))
+        .route("/admin/api/sandbox/:id", delete(api::admin::delete_sandbox))
+        .route("/admin/api/sandbox/:id/pause", post(api::admin::pause_sandbox))
+        .route("/admin/api/sandbox/:id/resume", post(api::admin::resume_sandbox))
+        .route("/admin/api/sandbox/:id/logs", get(api::admin::sandbox_logs))
+        .route("/admin/api/stats", get(api::admin::stats))
+
         // Health & Stats
         .route("/health", get(api::health::health))
         .route("/stats", get(api::sandbox::get_stats))

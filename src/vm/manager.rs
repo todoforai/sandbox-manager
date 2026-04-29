@@ -36,6 +36,10 @@ pub struct VmManager {
 }
 
 impl VmManager {
+    pub fn runtime_dir(&self) -> std::path::PathBuf {
+        self.config.overlays_dir.join("runtime")
+    }
+
     pub async fn new(config: ManagerConfig, redis: RedisClient) -> Result<Self> {
         let runtime_dir = config.overlays_dir.join("runtime");
         let launcher = FirecrackerLauncher::new(runtime_dir)

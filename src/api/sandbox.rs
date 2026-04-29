@@ -5,7 +5,7 @@ use axum::{
 };
 use serde::{Deserialize, Serialize};
 
-use crate::api::auth_extractor::{Auth, OptionalAuth};
+use crate::api::auth_extractor::Auth;
 use crate::service::errors::{rest_error, ErrorCode};
 use crate::service::types::{CreateSandboxRequest, SandboxInfo, SandboxStats};
 use crate::service::SandboxService;
@@ -17,11 +17,11 @@ use crate::vm::lite::ExecOutput;
 /// sandbox on the allow-listed templates (e.g. `cli-lite`).
 pub async fn create_sandbox(
     State(service): State<SandboxService>,
-    OptionalAuth(identity): OptionalAuth,
+    Auth(identity): Auth,
     Json(req): Json<CreateSandboxRequest>,
 ) -> Result<Json<SandboxInfo>, (StatusCode, String)> {
     service
-        .create_sandbox(identity.as_ref(), req)
+        .create_sandbox(&identity, req)
         .await
         .map(Json)
         .map_err(|e| rest_error(ErrorCode::BadRequest, e.to_string()))
@@ -155,12 +155,12 @@ impl From<ExecOutput> for ExecResponse {
 
 pub async fn exec_sandbox(
     State(service): State<SandboxService>,
-    OptionalAuth(identity): OptionalAuth,
+    Auth(identity): Auth,
     Path(id): Path<String>,
     Json(req): Json<ExecRequest>,
 ) -> Result<Json<ExecResponse>, (StatusCode, String)> {
     service
-        .exec_sandbox(identity.as_ref(), &id, &req.argv)
+        .exec_sandbox(&identity, &id, &req.argv)
         .await
         .map(|o| Json(o.into()))
         .map_err(|e| rest_error(ErrorCode::BadRequest, e.to_string()))

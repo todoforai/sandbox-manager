@@ -64,33 +64,10 @@ echo "  ${DATA_DIR}/templates/ubuntu-base"
 echo "  ${DATA_DIR}/overlays/runtime"
 echo "  ${DATA_DIR}/snapshots"
 
-# Setup network bridge
+# Install + start the bridge systemd unit (owns br-sandbox + NAT + forwarding)
 echo ""
-echo "=== Setting up network bridge ==="
-
-BRIDGE_NAME="br-sandbox"
-BRIDGE_IP="10.0.0.1/16"
-
-if ip link show "$BRIDGE_NAME" &>/dev/null; then
-    echo "Bridge $BRIDGE_NAME already exists"
-else
-    echo "Creating bridge $BRIDGE_NAME..."
-    ip link add "$BRIDGE_NAME" type bridge
-    ip addr add "$BRIDGE_IP" dev "$BRIDGE_NAME"
-    ip link set "$BRIDGE_NAME" up
-    echo "Bridge $BRIDGE_NAME created with IP $BRIDGE_IP"
-fi
-
-# Enable IP forwarding (idempotent)
-echo 1 > /proc/sys/net/ipv4/ip_forward
-
-# NAT rule (idempotent)
-iptables -t nat -C POSTROUTING -s 10.0.0.0/16 -j MASQUERADE 2>/dev/null \
-    || iptables -t nat -A POSTROUTING -s 10.0.0.0/16 -j MASQUERADE
-
-# Block inter-VM traffic (idempotent)
-iptables -C FORWARD -i "$BRIDGE_NAME" -o "$BRIDGE_NAME" -j DROP 2>/dev/null \
-    || iptables -A FORWARD -i "$BRIDGE_NAME" -o "$BRIDGE_NAME" -j DROP
+echo "=== Installing sandbox-bridge systemd unit ==="
+"$(dirname "$0")/../systemd/install.sh"
 
 # Check for kernel and rootfs
 echo ""
