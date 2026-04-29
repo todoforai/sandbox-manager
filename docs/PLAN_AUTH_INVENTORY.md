@@ -219,7 +219,7 @@ Noise: `admin.sandboxes.list / get / delete`, `admin.stats.get`, `admin.host.get
     "active": 87,
     "running": 71,
     "paused": 16,
-    "by_template": { "alpine-base": 40, "alpine-edge": 47 },
+    "by_template": { "ubuntu-base": 87 },
     "by_size": { "small": 20, "medium": 50, "large": 17 },
     "total_memory_mb": 42800,
     "actual_memory_kb": 1820000

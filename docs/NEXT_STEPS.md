@@ -18,7 +18,7 @@
 ## 1. Test Real Backend Connection
 
 ### What's Needed
-The VM boots with `enroll.token=<TOKEN>` in kernel cmdline. bridge reads it and connects to backend.
+The VM boots with the enroll token injected via Firecracker MMDS (169.254.169.254). The guest `/init` fetches it, runs `bridge login --token`, and bridge connects to backend.
 
 ### Test Flow
 ```bash
@@ -131,7 +131,7 @@ cd sandbox-manager && cargo build --release
 cd bridge && make static
 
 # Build rootfs with bridge
-sudo ./scripts/build-rootfs-with-bridge.sh
+sudo ./scripts/build-ubuntu-rootfs.sh
 ```
 
 ### Run
@@ -159,4 +159,4 @@ curl -X POST http://localhost:9000/sandbox \
 | Edge token injection | `sandbox-manager/src/vm/firecracker.rs:243` |
 | TAP networking | `sandbox-manager/src/vm/network.rs` |
 | BridgeHandler | `backend/src/api/ws/handlers/BridgeHandler.ts` |
-| Init script (VM) | `sandbox-manager/scripts/build-rootfs-with-bridge.sh:69` |
+| Init script (VM) | `sandbox-manager/scripts/build-ubuntu-rootfs.sh:68` |

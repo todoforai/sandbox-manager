@@ -48,6 +48,15 @@ fi
 
 echo "Using bridge: $BRIDGE_BIN ($(ls -lh "$BRIDGE_BIN" | awk '{print $5}'))"
 
+# Build version stamp — sha256 of (this script + bridge binary). Written to
+# /etc/todoforai-template-version inside the rootfs and echoed by /init at
+# boot, so console logs make stale rootfs immediately visible.
+SCRIPT_PATH="${BASH_SOURCE[0]}"
+[ -r "$SCRIPT_PATH" ] || { echo "ERROR: build script not readable at $SCRIPT_PATH" >&2; exit 1; }
+[ -r "$BRIDGE_BIN" ]  || { echo "ERROR: bridge binary not readable at $BRIDGE_BIN" >&2; exit 1; }
+TEMPLATE_VERSION="$(sha256sum "$SCRIPT_PATH" "$BRIDGE_BIN" | sha256sum | cut -d' ' -f1)"
+echo "Template version: $TEMPLATE_VERSION"
+
 # Download Ubuntu Base tarball
 UBUNTU_URL="https://cdimage.ubuntu.com/ubuntu-base/releases/${UBUNTU_VERSION}/release/ubuntu-base-${UBUNTU_POINT}-base-${ARCH}.tar.gz"
 if [ ! -f /tmp/ubuntu-base.tar.gz ]; then
@@ -65,7 +74,11 @@ mkdir -p "$ROOTFS_DIR/usr/local/bin"
 cp "$BRIDGE_BIN" "$ROOTFS_DIR/usr/local/bin/bridge"
 chmod +x "$ROOTFS_DIR/usr/local/bin/bridge"
 
-# /init — same logic as alpine-edge, but uses Ubuntu's ip/wget (busybox not default).
+# Stamp the rootfs with a build version so stale rootfs is detectable.
+mkdir -p "$ROOTFS_DIR/etc"
+printf '%s\n' "$TEMPLATE_VERSION" > "$ROOTFS_DIR/etc/todoforai-template-version"
+
+# /init — fetch enroll token from MMDS, redeem via `bridge login`, then exec bridge.
 cat > "$ROOTFS_DIR/init" << 'INIT_EOF'
 #!/bin/bash
 # Minimal init for Firecracker VM with bridge.
@@ -77,6 +90,10 @@ cat > "$ROOTFS_DIR/init" << 'INIT_EOF'
 export HOME=/root
 export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 mkdir -p /root
+
+# Print build version for log-driven staleness detection.
+[ -r /etc/todoforai-template-version ] && \
+    echo "[init] template-version=$(cat /etc/todoforai-template-version)"
 
 # Mount essential filesystems
 mount -t proc proc /proc
@@ -150,20 +167,22 @@ if [ -n "$NOISE_BACKEND_PUB_OVR" ] && [ "$NOISE_BACKEND_PUB_OVR" != "null" ]; th
     export EDGE_SERVER_PUBKEY="$NOISE_BACKEND_PUB_OVR"
 fi
 
+# Redeem the enroll token if present (first boot). On subsequent boots there's
+# no token in MMDS, but `bridge login --token` already saved durable creds to
+# ~/.config/todoforai/credentials.json — so we always fall through to `exec
+# bridge` and let it run with whatever creds are on disk.
 if [ -n "$ENROLL_TOKEN" ] && [ "$ENROLL_TOKEN" != "null" ]; then
     echo "[init] Redeeming enrollment token..."
-    if /usr/local/bin/bridge login \
-            --token "$ENROLL_TOKEN" \
-            --device-type SANDBOX \
-            --device-name "sandbox-$(cat /etc/hostname 2>/dev/null || echo unknown)"; then
-        echo "[init] Starting bridge..."
-        exec /usr/local/bin/bridge
-    else
-        echo "[init] FATAL: bridge login failed" >&2
-    fi
-else
-    echo "[init] No enrollment token in MMDS — bridge not started" >&2
+    # Bridge auto-detects deviceType=SANDBOX from /etc/todoforai-sandbox marker
+    # (dropped during rootfs build) — no flag needed.
+    /usr/local/bin/bridge login \
+        --token "$ENROLL_TOKEN" \
+        --device-name "sandbox-$(cat /etc/hostname 2>/dev/null || echo unknown)" \
+        || echo "[init] bridge login failed (will try saved creds)" >&2
 fi
+
+echo "[init] Starting bridge..."
+exec /usr/local/bin/bridge
 
 # Fallback — no working bridge. Keep VM alive for debug.
 if [ -t 0 ]; then
@@ -180,6 +199,10 @@ chmod +x "$ROOTFS_DIR/init"
 # for the VM at boot — 8.8.8.8 is a reasonable default if the VM has egress.
 echo "sandbox" > "$ROOTFS_DIR/etc/hostname"
 echo "nameserver 8.8.8.8" > "$ROOTFS_DIR/etc/resolv.conf"
+
+# Sandbox marker — bridge identity.c reads this to self-classify as DeviceType.SANDBOX
+# instead of PC at enroll time. Avoids ever passing --device-type from outside.
+touch "$ROOTFS_DIR/etc/todoforai-sandbox"
 
 # Install packages in chroot
 echo "Installing packages in chroot..."
@@ -206,22 +229,15 @@ chroot "$ROOTFS_DIR" /bin/bash -c "
 
     # Verify critical tooling is installed and runnable.
     # \`set -e\` above means any failure here aborts the whole build.
+    # Only check what's in ubuntu-base.packages — anything heavier installs
+    # on-demand inside the sandbox per the package list's stated philosophy.
     echo '--- verification ---'
-    python3 --version
-    pip3 --version
-    node --version
-    npm --version
-    git --version
-    openssl version
-    sqlite3 --version
-    command -v bash curl wget jq make gcc >/dev/null
+    command -v bash curl wget jq ip ssh >/dev/null
     echo '--- verification OK ---'
 
     # Generate tool manifest — human-readable list and JSON metadata.
     # Any CLI the user is likely to invoke. Missing tools render as '(missing)'.
-    TOOLS='bash sh python3 pip3 node npm npx git curl wget jq zip unzip tar rsync
-           make gcc g++ ld ssh scp sqlite3 openssl htop less file sed gawk grep
-           find ps top uname hostname ip ping'
+    TOOLS='bash sh curl wget jq tar sed gawk grep find ps uname hostname ip ssh scp'
     mkdir -p /etc
     : > /etc/sandbox-tools.txt
     printf '{\n  \"distro\": \"ubuntu-base-%s\",\n  \"tools\": {\n' \"\$(. /etc/os-release && echo \$VERSION_ID)\" > /etc/sandbox-manifest.json
@@ -292,10 +308,9 @@ echo "Verifying image contents..."
 VERIFY_MNT=$(mktemp -d)
 mount -o loop,ro "$OUTPUT" "$VERIFY_MNT"
 trap 'umount "$VERIFY_MNT" 2>/dev/null || true; rmdir "$VERIFY_MNT" 2>/dev/null || true' EXIT
-for bin in /usr/bin/python3 /usr/bin/pip3 /usr/bin/node /usr/bin/npm \
-           /usr/bin/git /usr/bin/bash /usr/local/bin/bridge \
-           /usr/local/bin/sandbox-tools /etc/sandbox-tools.txt \
-           /etc/sandbox-manifest.json /init; do
+for bin in /usr/bin/bash /usr/bin/curl /usr/bin/wget /usr/bin/jq \
+           /usr/local/bin/bridge /usr/local/bin/sandbox-tools \
+           /etc/sandbox-tools.txt /etc/sandbox-manifest.json /init; do
     if [ ! -e "$VERIFY_MNT$bin" ]; then
         echo "FAIL: $bin missing from image" >&2
         exit 1
@@ -317,8 +332,7 @@ echo "  /usr/local/bin/sandbox-tools  - lists installed CLIs (run inside VM)"
 echo "  /etc/sandbox-tools.txt        - human-readable tool manifest"
 echo "  /etc/sandbox-manifest.json    - machine-readable tool manifest"
 echo "  /init                         - Boot script (invoked via init=/init)"
-echo "  bash, curl, wget, git, jq, zip, rsync, build-essential"
-echo "  nodejs, npm, python3, python3-pip, sqlite3"
+echo "  bash, curl, wget, jq, openssh-server (minimal — install more on-demand inside the VM)"
 echo ""
 echo "Inside the VM, run:  sandbox-tools        # pretty list"
 echo "                     sandbox-tools json   # JSON manifest"
@@ -326,4 +340,4 @@ echo ""
 echo "To install:"
 echo "  mkdir -p ~/sandbox-data/templates/ubuntu-base"
 echo "  mv $OUTPUT ~/sandbox-data/templates/ubuntu-base/rootfs.ext4"
-echo "  cp ~/sandbox-data/templates/alpine-base/vmlinux ~/sandbox-data/templates/ubuntu-base/"
+echo "  ./scripts/build-kernel.sh   # builds vmlinux into ~/sandbox-data/templates/ubuntu-base/"

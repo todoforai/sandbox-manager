@@ -41,11 +41,11 @@ module.exports = {
   apps: [
     {
       name: `sandbox-manager-${port}`,
-      // Prod copies the binary to ./sandbox-manager (see deploy.sh); dev runs
-      // straight out of cargo's target dir. Try the prod path, fall back to dev.
-      script: fs.existsSync(path.join(baseDir, 'sandbox-manager'))
-        ? './sandbox-manager'
-        : './target/release/sandbox-manager',
+      // run.sh re-applies CAP_NET_ADMIN+CAP_NET_RAW on the binary if missing
+      // (file caps get wiped on every rebuild) before exec'ing it, then picks
+      // prod (./sandbox-manager from deploy.sh) or dev (target/release).
+      script: './run.sh',
+      args: isProd ? 'prod' : 'dev',
       cwd: __dirname,
       instances: 1,
       exec_mode: 'fork',
