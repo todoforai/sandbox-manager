@@ -55,15 +55,12 @@ async fn main() -> Result<()> {
 
     let service = SandboxService::new(manager.clone(), redis, backend);
 
-    // Spawn idle cleanup task
-    let cleanup_manager = manager.clone();
-    tokio::spawn(async move {
-        let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(60));
-        loop {
-            interval.tick().await;
-            cleanup_manager.cleanup_idle(300).await; // 5 min idle timeout
-        }
-    });
+    // No background idle cleanup. Lifecycle is fully user-driven:
+    //   - VMs run until owner/admin explicitly deletes them. Never auto-paused.
+    //   - Lite sandboxes are stateless: each `exec` is a fresh bwrap that exits
+    //     when the command finishes. The scratch dir is removed by the explicit
+    //     `delete_sandbox` call. Stale Lite scratch GC, if needed, belongs in a
+    //     separate startup sweep — not in a periodic loop here.
 
     // Spawn Noise/TCP adapter on a separate port.
     // Env: NOISE_BIND_ADDR=0.0.0.0:9010
