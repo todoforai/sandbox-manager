@@ -6,7 +6,7 @@ const ROOT = new URL("./", import.meta.url);
 const API = "http://127.0.0.1:9000";
 
 serve({
-  port: 8090,
+  port: 8190,
   async fetch(req) {
     const url = new URL(req.url);
     if (url.pathname.startsWith("/admin/api/")) {
@@ -17,4 +17,4 @@ serve({
     return (await file.exists()) ? new Response(file) : new Response("Not found", { status: 404 });
   },
 });
-console.log("→ http://127.0.0.1:8090/  (proxying /admin/api/* to " + API + ")");
+console.log("→ http://127.0.0.1:8190/  (proxying /admin/api/* to " + API + ")");
