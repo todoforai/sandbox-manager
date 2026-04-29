@@ -114,6 +114,9 @@ impl FirecrackerVm {
     /// Kill the VM process
     pub fn kill(&mut self) -> Result<()> {
         self.process.kill().ok();
+        // Reap so the child doesn't linger as <defunct>. The process has
+        // already received SIGKILL, so wait() returns ~immediately.
+        let _ = self.process.wait();
         std::fs::remove_file(&self.socket_path).ok();
         std::fs::remove_file(&self.serial_path).ok();
         Ok(())

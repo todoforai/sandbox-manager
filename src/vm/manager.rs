@@ -96,6 +96,16 @@ impl VmManager {
 
         let mut orphaned = 0;
         for id in &ids {
+            // Destroy any leftover persistent TAP so it doesn't accumulate on
+            // the bridge across restarts (we lost the firecracker Child handle,
+            // so the VM is gone but the tap was kept persistent).
+            if let Ok(Some(s)) = self.redis.sandbox_get(id).await {
+                if let Some(ref tap) = s.tap_device {
+                    if let Err(ce) = self.network.destroy_tap(tap) {
+                        tracing::warn!("reconcile: destroy_tap({}) failed: {:#}", tap, ce);
+                    }
+                }
+            }
             if let Err(e) = self.redis.sandbox_set_state(
                 id,
                 SandboxState::Error,
