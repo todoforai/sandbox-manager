@@ -28,13 +28,13 @@ fi
 
 # CAP_NET_ADMIN+CAP_NET_RAW so the binary can manage TAP devices without
 # running as root. File caps are wiped on every rebuild — re-apply if missing.
-if [ "$NODE_ENV" = "production" ] && ! getcap "$BIN" 2>/dev/null | grep -q cap_net_admin; then
+if ! getcap "$BIN" 2>/dev/null | grep -q cap_net_admin; then
     sudo setcap cap_net_admin,cap_net_raw=eip "$BIN"
 fi
 
 # Fallback: if caps still aren't set (e.g. no sudo), run via sudo so the process
 # inherits root caps and can create TAPs / open /dev/kvm.
-if [ "$NODE_ENV" = "production" ] && [ "$(id -u)" -ne 0 ] && ! getcap "$BIN" 2>/dev/null | grep -q cap_net_admin; then
+if [ "$(id -u)" -ne 0 ] && ! getcap "$BIN" 2>/dev/null | grep -q cap_net_admin; then
     exec sudo -E "$BIN" "${@:2}"
 fi
 exec "$BIN" "${@:2}"
