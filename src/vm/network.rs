@@ -1,7 +1,8 @@
 //! TAP network setup for VMs
 //!
 //! Creates TAP devices using direct ioctl (works with CAP_NET_ADMIN capability).
-//! Bridge + NAT are expected to be pre-created once with sudo (see setup_host_network.sh).
+//! Bridge + NAT are owned by the `sandbox-bridge.service` systemd unit
+//! (see `sandbox-manager/systemd/`).
 
 use anyhow::{bail, Context, Result};
 use std::ffi::CString;
@@ -81,6 +82,34 @@ fn check_ioctl(ret: libc::c_int, op: &str) -> Result<()> {
     Ok(())
 }
 
+/// Set IFF_UP on an existing interface (idempotent). Requires CAP_NET_ADMIN.
+fn bring_iface_up(name: &str) -> Result<()> {
+    let sock = new_socket().context("socket for iface up")?;
+    let mut ifr = IfReqFlags {
+        ifr_name: [0; libc::IFNAMSIZ],
+        ifr_flags: 0,
+        _pad: [0; 22],
+    };
+    write_ifr_name(&mut ifr.ifr_name, name);
+
+    check_ioctl(
+        unsafe { libc::ioctl(sock.as_raw_fd(), SIOCGIFFLAGS, &mut ifr as *mut IfReqFlags) },
+        "SIOCGIFFLAGS",
+    )
+    .with_context(|| format!("get flags for {}", name))?;
+
+    if (ifr.ifr_flags & libc::IFF_UP as libc::c_short) != 0 {
+        return Ok(());
+    }
+    ifr.ifr_flags |= libc::IFF_UP as libc::c_short;
+
+    check_ioctl(
+        unsafe { libc::ioctl(sock.as_raw_fd(), SIOCSIFFLAGS, &ifr as *const IfReqFlags) },
+        "SIOCSIFFLAGS",
+    )
+    .with_context(|| format!("bring up {}", name))
+}
+
 /// Network configuration for a VM
 #[derive(Debug, Clone)]
 pub struct VmNetwork {
@@ -94,7 +123,6 @@ pub struct VmNetwork {
 pub struct NetworkManager {
     bridge_name: String,
     bridge_ip: Ipv4Addr,
-    subnet_mask: u8,
     next_ip: std::sync::atomic::AtomicU32,
 }
 
@@ -102,7 +130,6 @@ impl NetworkManager {
     pub fn new(bridge_name: &str, subnet: &str) -> Result<Self> {
         let parts: Vec<&str> = subnet.split('/').collect();
         let base_ip: Ipv4Addr = parts[0].parse()?;
-        let mask: u8 = parts.get(1).unwrap_or(&"16").parse()?;
 
         let octets = base_ip.octets();
         let bridge_ip = Ipv4Addr::new(octets[0], octets[1], 0, 1);
@@ -111,33 +138,27 @@ impl NetworkManager {
         Ok(Self {
             bridge_name: bridge_name.to_string(),
             bridge_ip,
-            subnet_mask: mask,
             next_ip: std::sync::atomic::AtomicU32::new(start_ip),
         })
     }
 
-    /// Validate that the bridge exists. Does NOT create it.
-    /// Bridge + NAT must be pre-created with sudo (see setup_host_network.sh).
+    /// Validate that the bridge exists, then ensure it is administratively UP.
+    /// Bridge + NAT are owned by the `sandbox-bridge.service` systemd unit;
+    /// bringing it UP only needs CAP_NET_ADMIN, which sandbox-manager already has.
     pub fn init_bridge(&self) -> Result<()> {
         if_nametoindex(&self.bridge_name).with_context(|| {
-            let o = self.bridge_ip.octets();
-            let subnet = Ipv4Addr::new(o[0], o[1], 0, 0);
             format!(
-                "Bridge {} not found. Run once as root:\n  \
-                 sudo sandbox-manager/scripts/setup_host_network.sh\n  \
-                 or manually:\n  \
-                 sudo ip link add {br} type bridge && sudo ip addr add {ip}/{mask} dev {br} && sudo ip link set {br} up\n  \
-                 sudo iptables -t nat -A POSTROUTING -s {subnet}/{mask} -j MASQUERADE\n  \
-                 sudo sysctl -w net.ipv4.ip_forward=1",
+                "Bridge {} not found. Install + start the systemd unit:\n  \
+                 sudo sandbox-manager/systemd/install.sh\n  \
+                 sudo systemctl status sandbox-bridge.service",
                 self.bridge_name,
-                br = self.bridge_name,
-                ip = self.bridge_ip,
-                mask = self.subnet_mask,
-                subnet = subnet,
             )
         })?;
 
-        tracing::info!("Network bridge {} validated (IP {})", self.bridge_name, self.bridge_ip);
+        bring_iface_up(&self.bridge_name)
+            .with_context(|| format!("bring up bridge {}", self.bridge_name))?;
+
+        tracing::info!("Network bridge {} validated and UP (IP {})", self.bridge_name, self.bridge_ip);
         Ok(())
     }
 
@@ -164,7 +185,28 @@ impl NetworkManager {
     }
 
     /// Create TAP device, attach to bridge, bring UP. All via ioctl (no child processes).
+    /// Transactional: any failure after the TAP is made persistent triggers `destroy_tap`
+    /// so we never leak orphan persistent TAPs in the kernel. Pre-persist failures don't
+    /// need rollback — the TAP dies with the fd.
     pub fn create_tap(&self, network: &VmNetwork) -> Result<()> {
+        let mut persisted = false;
+        match self.create_tap_inner(network, &mut persisted) {
+            Ok(()) => Ok(()),
+            Err(e) => {
+                if persisted {
+                    if let Err(cleanup_err) = self.destroy_tap(&network.tap_name) {
+                        tracing::warn!(
+                            "create_tap rollback failed for {}: {:#}",
+                            network.tap_name, cleanup_err
+                        );
+                    }
+                }
+                Err(e)
+            }
+        }
+    }
+
+    fn create_tap_inner(&self, network: &VmNetwork, persisted: &mut bool) -> Result<()> {
         // 1. Open /dev/net/tun
         let tun_fd = open_fd(b"/dev/net/tun\0", libc::O_RDWR | libc::O_CLOEXEC)
             .context("open /dev/net/tun")?;
@@ -183,12 +225,14 @@ impl NetworkManager {
         )
         .with_context(|| format!("create TAP {}", network.tap_name))?;
 
-        // 3. Make persistent (so TAP survives fd close)
+        // 3. Make persistent (so TAP survives fd close).
+        // From here on, any failure must roll back via destroy_tap (handled by create_tap).
         check_ioctl(
             unsafe { libc::ioctl(tun_fd.as_raw_fd(), TUNSETPERSIST, 1 as libc::c_int) },
             "TUNSETPERSIST",
         )
         .with_context(|| format!("persist TAP {}", network.tap_name))?;
+        *persisted = true;
 
         drop(tun_fd);
 
@@ -211,26 +255,8 @@ impl NetworkManager {
         .with_context(|| format!("attach {} to {}", network.tap_name, self.bridge_name))?;
 
         // 5. Bring TAP UP
-        let mut up_ifr = IfReqFlags {
-            ifr_name: [0; libc::IFNAMSIZ],
-            ifr_flags: 0,
-            _pad: [0; 22],
-        };
-        write_ifr_name(&mut up_ifr.ifr_name, &network.tap_name);
-
-        check_ioctl(
-            unsafe { libc::ioctl(sock.as_raw_fd(), SIOCGIFFLAGS, &mut up_ifr as *mut IfReqFlags) },
-            "SIOCGIFFLAGS",
-        )
-        .with_context(|| format!("get flags for {}", network.tap_name))?;
-
-        up_ifr.ifr_flags |= libc::IFF_UP as libc::c_short;
-
-        check_ioctl(
-            unsafe { libc::ioctl(sock.as_raw_fd(), SIOCSIFFLAGS, &up_ifr as *const IfReqFlags) },
-            "SIOCSIFFLAGS",
-        )
-        .with_context(|| format!("bring up {}", network.tap_name))?;
+        drop(sock);
+        bring_iface_up(&network.tap_name)?;
 
         tracing::info!(
             "Created TAP {} on {} for VM {}",
@@ -239,12 +265,12 @@ impl NetworkManager {
         Ok(())
     }
 
-    /// Destroy TAP device by clearing persistent flag
+    /// Destroy TAP device by clearing persistent flag.
+    /// Returns Err if /dev/net/tun cannot be opened or TUNSETIFF/TUNSETPERSIST fail —
+    /// callers can log/metric, but in cleanup paths we still want best-effort behaviour.
     pub fn destroy_tap(&self, tap_name: &str) -> Result<()> {
-        let tun_fd = match open_fd(b"/dev/net/tun\0", libc::O_RDWR | libc::O_CLOEXEC) {
-            Ok(fd) => fd,
-            Err(_) => return Ok(()), // Can't open tun, device may already be gone
-        };
+        let tun_fd = open_fd(b"/dev/net/tun\0", libc::O_RDWR | libc::O_CLOEXEC)
+            .with_context(|| format!("open /dev/net/tun for destroy {}", tap_name))?;
 
         let mut ifr = IfReqFlags {
             ifr_name: [0; libc::IFNAMSIZ],
@@ -253,11 +279,17 @@ impl NetworkManager {
         };
         write_ifr_name(&mut ifr.ifr_name, tap_name);
 
-        unsafe {
-            if libc::ioctl(tun_fd.as_raw_fd(), TUNSETIFF, &mut ifr as *mut IfReqFlags) == 0 {
-                libc::ioctl(tun_fd.as_raw_fd(), TUNSETPERSIST, 0 as libc::c_int);
-            }
-        }
+        check_ioctl(
+            unsafe { libc::ioctl(tun_fd.as_raw_fd(), TUNSETIFF, &mut ifr as *mut IfReqFlags) },
+            "TUNSETIFF (destroy)",
+        )
+        .with_context(|| format!("attach to TAP {} for destroy", tap_name))?;
+
+        check_ioctl(
+            unsafe { libc::ioctl(tun_fd.as_raw_fd(), TUNSETPERSIST, 0 as libc::c_int) },
+            "TUNSETPERSIST(0)",
+        )
+        .with_context(|| format!("clear persist on TAP {}", tap_name))?;
 
         tracing::debug!("Destroyed TAP {}", tap_name);
         Ok(())
