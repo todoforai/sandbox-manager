@@ -1,8 +1,6 @@
 //! Auth — resolve a Bearer token to an AuthIdentity via Redis.
 //!
-//! Sources (in order):
-//!   1. `resource:token:<token>` → userId  (short-lived, role=User)
-//!   2. `apikey:<token>` HASH { userId, role? } (long-lived, role default=User)
+//! Sources are documented on `RedisClient::resolve_identity`.
 
 use anyhow::{bail, Result};
 
@@ -13,12 +11,12 @@ use crate::redis::RedisClient;
 pub struct AuthIdentity {
     pub user_id: String,
     pub role: Role,
+    /// Better Auth `isAnonymous=1`. Anonymous users are restricted to lite templates.
+    pub is_anonymous: bool,
 }
 
 impl AuthIdentity {
-    pub fn is_admin(&self) -> bool {
-        matches!(self.role, Role::Admin)
-    }
+    pub fn is_admin(&self) -> bool { matches!(self.role, Role::Admin) }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -38,7 +36,7 @@ impl Role {
 
 /// Resolve a bearer token to an identity. Returns error if the token is invalid.
 pub async fn authenticate(redis: &RedisClient, token: &str) -> Result<AuthIdentity> {
-    let (user_id, role) = redis
+    let (user_id, role, is_anonymous) = redis
         .resolve_identity(token)
         .await?
         .ok_or_else(|| anyhow::anyhow!("invalid token"))?;
@@ -46,6 +44,7 @@ pub async fn authenticate(redis: &RedisClient, token: &str) -> Result<AuthIdenti
     Ok(AuthIdentity {
         user_id,
         role: Role::from_str(&role),
+        is_anonymous,
     })
 }
 

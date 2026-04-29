@@ -96,24 +96,24 @@ impl RedisClient {
 
     // ── Identity ──────────────────────────────────────────────────────────────
 
-    /// Resolve token → (userId, role). Sources, in order:
+    /// Resolve token → (userId, role, isAnonymous). Sources, in order:
     ///   1. `resource:token:<token>` STRING → userId  (short-lived, role=user)
     ///   2. `apikey:<token>` HASH `{userId, role?}`   (long-lived; only source that may be admin)
     ///   3. Better Auth session: `session:idx:token:<token>` SET → sessionId,
-    ///      `session:<id>` HASH `{userId, expiresAt}`. Role is `guest` if the
-    ///      `user:<userId>.isAnonymous` flag is set, else `user`.
+    ///      `session:<id>` HASH `{userId, expiresAt}`. `isAnonymous` is read
+    ///      from `user:<userId>.isAnonymous` (only meaningful for this source).
     /// Resource tokens never carry admin role; only apikey:<token> can.
-    pub async fn resolve_identity(&self, token: &str) -> Result<Option<(String, String)>> {
+    pub async fn resolve_identity(&self, token: &str) -> Result<Option<(String, String, bool)>> {
         let mut conn = self.conn().await?;
 
         if let Some(user_id) = conn.get::<_, Option<String>>(format!("resource:token:{token}")).await? {
-            return Ok(Some((user_id, "user".into())));
+            return Ok(Some((user_id, "user".into(), false)));
         }
 
         let (user_id, role): (Option<String>, Option<String>) =
             conn.hget(format!("apikey:{token}"), &["userId", "role"][..]).await?;
         if let Some(uid) = user_id {
-            return Ok(Some((uid, role.unwrap_or_else(|| "user".into()))));
+            return Ok(Some((uid, role.unwrap_or_else(|| "user".into()), false)));
         }
 
         // Better Auth bearer/session token. Schema written by backend's
@@ -130,8 +130,7 @@ impl RedisClient {
             }
         }
         let is_anon: Option<String> = conn.hget(format!("user:{uid}"), "isAnonymous").await?;
-        let role = if is_anon.as_deref() == Some("1") { "guest" } else { "user" };
-        Ok(Some((uid, role.into())))
+        Ok(Some((uid, "user".into(), is_anon.as_deref() == Some("1"))))
     }
 
     // ── Billing (unused until metering wired up) ──────────────────────────────

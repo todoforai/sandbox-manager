@@ -46,7 +46,7 @@ impl SandboxService {
     /// - VM templates (e.g. `ubuntu-base`): we mint a short-lived enroll
     ///   token scoped to the owner and inject it into the VM at boot.
     /// - Lite templates (e.g. `cli-lite`, the FREE tier): no enroll token;
-    ///   guest (`Better Auth isAnonymous`) callers are restricted to these.
+    ///   anonymous (`Better Auth isAnonymous`) callers are restricted to these.
     pub async fn create_sandbox(
         &self,
         identity: &AuthIdentity,
@@ -55,8 +55,8 @@ impl SandboxService {
         let kind = self.manager.template_kind(&req.template)
             .with_context(|| format!("unknown template: {}", req.template))?;
 
-        if identity.is_guest() && kind != SandboxKind::Lite {
-            bail!("guest accounts may only use lite templates");
+        if identity.is_anonymous && kind != SandboxKind::Lite {
+            bail!("anonymous accounts may only use lite templates");
         }
 
         let owner_id = match (identity.is_admin(), &req.user_id) {

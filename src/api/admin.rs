@@ -23,7 +23,7 @@ use crate::vm::sandbox::SandboxKind;
 const LOG_TAIL_BYTES: u64 = 64 * 1024;
 
 fn root_admin() -> AuthIdentity {
-    AuthIdentity { user_id: "admin".into(), role: Role::Admin }
+    AuthIdentity { user_id: "admin".into(), role: Role::Admin, is_anonymous: false }
 }
 
 pub async fn list_sandboxes(
