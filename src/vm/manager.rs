@@ -187,13 +187,13 @@ impl VmManager {
         // leak a Creating record.
         let network = match self.network.allocate(&sandbox.id) {
             Ok(n) => n,
-            Err(e) => { self.fail_sandbox(&mut sandbox, format!("network allocate: {e}")).await; return Ok(sandbox); }
+            Err(e) => { self.fail_sandbox(&mut sandbox, format!("network allocate: {e:#}")).await; return Ok(sandbox); }
         };
         sandbox.ip_address = Some(network.guest_ip);
         if let Err(e) = self.network.create_tap(&network) {
             // create_tap is transactional: it has already rolled back any persistent TAP.
             // Don't set tap_device, so fail_sandbox won't try to destroy it again.
-            self.fail_sandbox(&mut sandbox, format!("create_tap: {e}")).await;
+            self.fail_sandbox(&mut sandbox, format!("create_tap: {e:#}")).await;
             return Ok(sandbox);
         }
         sandbox.tap_device = Some(network.tap_name.clone());

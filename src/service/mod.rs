@@ -79,19 +79,19 @@ impl SandboxService {
             .create_sandbox(owner_id.clone(), req.template.clone(), req.size, enroll_token)
             .await?;
 
-        // For Lite sandboxes, register a marker device row so they appear in
-        // the user's device list. VM bridges enroll themselves via the token
-        // flow above. Best-effort: a registration failure does not roll back
-        // the sandbox — it just won't show up in the device list.
+        // For Lite sandboxes, materialize a Device row via the standard
+        // mint+redeem flow so they appear in the user's device list. VM
+        // bridges enroll themselves with the token injected at boot. Best
+        // effort: a registration failure does not roll back the sandbox.
         if kind == SandboxKind::Lite && sandbox.state == SandboxState::Running {
-            let name = format!("sandbox-{}", &sandbox.id[..8]);
-            match self.backend.create_sandbox_device(&owner_id, &sandbox.id, &name, "lite").await {
-                Ok(resp) => {
-                    sandbox.device_id = Some(resp.device_id.clone());
+            let hostname = format!("sandbox-{}", &sandbox.id[..8]);
+            match self.backend.create_lite_sandbox_device(&owner_id, &sandbox.id, &hostname, ENROLL_TOKEN_TTL_SEC).await {
+                Ok(device_id) => {
+                    sandbox.device_id = Some(device_id.clone());
                     if let Err(e) = self.redis.sandbox_put(&sandbox).await {
                         // Backend row exists but we couldn't remember its id —
                         // it will never be cleaned up by us. Log loudly.
-                        tracing::error!("lite sandbox {}: leaked device row {} (redis put failed: {})", sandbox.id, resp.device_id, e);
+                        tracing::error!("lite sandbox {}: leaked device row {} (redis put failed: {})", sandbox.id, device_id, e);
                     }
                 }
                 Err(e) => tracing::warn!("lite sandbox {} device registration failed: {}", sandbox.id, e),
@@ -141,25 +141,20 @@ impl SandboxService {
             }
         }
 
-        // Read device_id before tearing down so we can clean up the marker row.
-        // Order: tear down sandbox first, then delete the marker. Reverse order
-        // would briefly hide a still-existing sandbox from the device list.
-        // Read sandbox before tearing down: lite uses an explicit device_id
-        // marker row; VM uses metadata.sandboxId on the bridge-enrolled device.
+        // Read device_id before tearing down so we can clean up the device row.
+        // Order: tear down sandbox first, then delete the device row. Reverse
+        // order would briefly hide a still-existing sandbox from the UI.
+        // VM cleanup-by-sandbox is a separate, unresolved problem (manager
+        // never learns the VM's redeemed device id) — tracked elsewhere.
         let pre = self.manager.get_sandbox(id).await.ok().flatten();
+        let owner_id = pre.as_ref().map(|s| s.user_id.clone());
         let lite_device_id = pre.as_ref().and_then(|s| s.device_id.clone());
-        let is_vm = pre.as_ref().map(|s| s.kind == SandboxKind::Vm).unwrap_or(false);
 
         self.manager.delete_sandbox(id).await?;
 
-        if let Some(device_id) = lite_device_id {
-            if let Err(e) = self.backend.delete_sandbox_device(&device_id).await {
-                tracing::warn!("failed to delete sandbox device {}: {}", device_id, e);
-            }
-        }
-        if is_vm {
-            if let Err(e) = self.backend.delete_devices_by_sandbox_id(id).await {
-                tracing::warn!("failed to delete VM sandbox devices for {}: {}", id, e);
+        if let (Some(device_id), Some(owner)) = (lite_device_id, owner_id) {
+            if let Err(e) = self.backend.delete_device(&owner, &device_id).await {
+                tracing::warn!("failed to delete lite sandbox device {}: {}", device_id, e);
             }
         }
         Ok(())

@@ -7,6 +7,7 @@
 
 use anyhow::{bail, Context, Result};
 use serde::{Deserialize, Serialize};
+use serde_json::{json, Value};
 
 #[derive(Clone)]
 pub struct BackendClient {
@@ -26,8 +27,22 @@ struct MintRequest<'a> {
 #[derive(Deserialize)]
 pub struct MintResponse {
     pub token: String,
-    #[serde(rename = "expiresIn")]
-    pub expires_in: u32,
+}
+
+#[derive(Serialize)]
+struct RedeemRequest<'a> {
+    token: &'a str,
+    identity: Value,
+}
+
+#[derive(Deserialize)]
+struct RedeemResponseDevice {
+    id: String,
+}
+
+#[derive(Deserialize)]
+struct RedeemResponse {
+    device: RedeemResponseDevice,
 }
 
 impl BackendClient {
@@ -71,5 +86,68 @@ impl BackendClient {
         }
 
         Ok(resp.json().await.context("mint response decode failed")?)
+    }
+
+    /// Materialize a Device row for a Lite sandbox (no bridge process inside).
+    /// Mints + redeems an enrollment token on behalf of the sandbox so it goes
+    /// through the exact same path as a real bridge enrollment. Returns the
+    /// new device id, which we persist on the sandbox for cleanup.
+    pub async fn create_lite_sandbox_device(
+        &self,
+        user_id: &str,
+        sandbox_id: &str,
+        hostname: &str,
+        token_ttl_sec: u32,
+    ) -> Result<String> {
+        let token = self.mint_enroll_token(user_id, Some(token_ttl_sec)).await
+            .context("mint enroll token for lite sandbox")?
+            .token;
+
+        let identity = json!({
+            "deviceType":  "SANDBOX",
+            "sandboxId":   sandbox_id,
+            "sandboxKind": "lite",
+            "hostname":    hostname,
+        });
+
+        // Public, no-auth route — token is the capability.
+        let url = format!("{}/api/v1/cli/enroll/redeem", self.base_url);
+        let resp = self
+            .http
+            .post(&url)
+            .json(&RedeemRequest { token: &token, identity })
+            .send()
+            .await
+            .context("redeem request failed")?;
+
+        if !resp.status().is_success() {
+            let status = resp.status();
+            let body = resp.text().await.unwrap_or_default();
+            bail!("redeem failed: {} {}", status, body);
+        }
+
+        let r: RedeemResponse = resp.json().await.context("redeem response decode failed")?;
+        Ok(r.device.id)
+    }
+
+    /// Delete a Device row by id. Uses the standard admin device-delete endpoint
+    /// with `X-User-Id` for ownership. Idempotent (404 ⇒ Ok).
+    pub async fn delete_device(&self, user_id: &str, device_id: &str) -> Result<()> {
+        let url = format!("{}/admin/v1/devices/{}", self.base_url, device_id);
+        let resp = self
+            .http
+            .delete(&url)
+            .header("X-API-Key", &self.admin_api_key)
+            .header("X-User-Id", user_id)
+            .send()
+            .await
+            .context("delete_device request failed")?;
+
+        if !resp.status().is_success() && resp.status().as_u16() != 404 {
+            let status = resp.status();
+            let body = resp.text().await.unwrap_or_default();
+            bail!("delete_device failed: {} {}", status, body);
+        }
+        Ok(())
     }
 }
