@@ -2,6 +2,7 @@
 
 use serde::{Deserialize, Serialize};
 use std::net::Ipv4Addr;
+use std::path::PathBuf;
 use uuid::Uuid;
 
 use super::size::VmSize;
@@ -74,6 +75,16 @@ pub struct Sandbox {
 
     /// Error message if state is Error
     pub error: Option<String>,
+
+    /// Backend device row id created for Lite sandboxes so they appear in the
+    /// device list. None for Vm sandboxes (their bridge enrolls itself).
+    #[serde(default)]
+    pub device_id: Option<String>,
+
+    /// Per-sandbox rootfs overlay directory (holds the reflink/copy of the
+    /// template's `rootfs.ext4`). VM only. Removed on sandbox delete.
+    #[serde(default)]
+    pub rootfs_overlay: Option<PathBuf>,
 }
 
 impl Sandbox {
@@ -83,9 +94,13 @@ impl Sandbox {
     }
 
     pub fn new_kind(user_id: String, template: String, size: VmSize, kind: SandboxKind) -> Self {
+        Self::new_with_id(Uuid::new_v4().to_string(), user_id, template, size, kind)
+    }
+
+    pub fn new_with_id(id: String, user_id: String, template: String, size: VmSize, kind: SandboxKind) -> Self {
         let now = now_ms();
         Self {
-            id: Uuid::new_v4().to_string(),
+            id,
             user_id,
             kind,
             template,
@@ -97,6 +112,8 @@ impl Sandbox {
             created_at: now,
             last_activity: now,
             error: None,
+            device_id: None,
+            rootfs_overlay: None,
         }
     }
 
@@ -156,4 +173,11 @@ fn now_ms() -> u64 {
         .duration_since(std::time::UNIX_EPOCH)
         .unwrap()
         .as_millis() as u64
+}
+
+/// Generate a fresh sandbox id without instantiating a Sandbox. Lets callers
+/// reserve the id (e.g. to stamp it onto an enroll token) before the actual
+/// VM creation path runs.
+pub fn generate_sandbox_id() -> String {
+    Uuid::new_v4().to_string()
 }

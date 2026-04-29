@@ -43,13 +43,18 @@ impl VmManager {
         tracing::info!("Firecracker launcher initialized");
 
         let network = NetworkManager::new(&config.bridge_name, &config.network_subnet)?;
-        if let Err(e) = network.init_bridge() {
-            tracing::warn!("Failed to initialize bridge: {}. Networking may not work.", e);
-        }
+        network.init_bridge()
+            .context("bridge init failed — is sandbox-bridge.service running? (sudo systemctl status sandbox-bridge)")?;
 
         tokio::fs::create_dir_all(&config.templates_dir).await.ok();
         tokio::fs::create_dir_all(&config.overlays_dir).await.ok();
         tokio::fs::create_dir_all(&config.snapshots_dir).await.ok();
+        // Probe reflink support: at 1000 VMs, ext4 fallback (real copies) blows up disk.
+        let probe = config.overlays_dir.join(".reflink-probe");
+        let _ = tokio::fs::write(&probe, b"x").await;
+        let supports_reflink = tokio::process::Command::new("cp").args(["--reflink=always"]).arg(&probe).arg(probe.with_extension("c")).status().await.map(|s| s.success()).unwrap_or(false);
+        let _ = tokio::fs::remove_file(&probe).await; let _ = tokio::fs::remove_file(probe.with_extension("c")).await;
+        if !supports_reflink { tracing::warn!("overlays_dir {} is on a filesystem without reflink — VM rootfs clones will be real copies. Use xfs(reflink=1) or btrfs to scale to 1000+ VMs.", config.overlays_dir.display()); }
         tokio::fs::create_dir_all(config.overlays_dir.join("runtime")).await.ok();
         let lite_scratch = config.overlays_dir.join("lite");
         tokio::fs::create_dir_all(&lite_scratch).await.ok();
@@ -65,17 +70,15 @@ impl VmManager {
             lite_templates: DashMap::new(),
         };
 
-        // Auto-discover templates from disk:
-        //   $DATA_DIR/templates/<name>/{vmlinux,rootfs.ext4}  → Firecracker VM
-        //   $DATA_DIR/templates/<name>/rootfs/                → bwrap (lite)
-        let home = std::env::var("HOME").unwrap_or_else(|_| "/root".to_string());
-        let data_dir = std::env::var("DATA_DIR").unwrap_or_else(|_| format!("{}/sandbox-data", home));
-        manager.discover_templates(&data_dir).await;
+        // Auto-discover templates from `config.templates_dir` (TEMPLATES_DIR env):
+        //   <templates_dir>/<name>/{vmlinux,rootfs.ext4}  → Firecracker VM
+        //   <templates_dir>/<name>/rootfs/                → bwrap (lite)
+        manager.discover_templates().await;
 
         if manager.boot_configs.is_empty() && manager.lite_templates.is_empty() {
             tracing::error!(
-                "No templates discovered in {}/templates — sandbox creation will fail until at least one is built",
-                data_dir
+                "No templates discovered in {} — sandbox creation will fail until at least one is built",
+                manager.config.templates_dir.display()
             );
         }
 
@@ -86,24 +89,28 @@ impl VmManager {
         Ok(manager)
     }
 
-    /// On startup, every sandbox in `sandbox:active` (Running|Paused) is
-    /// orphaned: we don't have its `FirecrackerVm` handle. Mark them all
-    /// Error and leave cleanup to the user. Records in other states
-    /// (Creating/Error/Terminated) are not touched.
+    /// On startup, every active *VM* sandbox is orphaned (we lost the
+    /// Firecracker process handle) — mark those Error. Lite sandboxes
+    /// have no process to lose; their state lives entirely in Redis +
+    /// a scratch dir on disk, so they survive restart untouched.
     async fn reconcile_on_startup(&self) -> Result<()> {
         let ids = self.redis.sandbox_active_ids().await?;
         if ids.is_empty() { return Ok(()) }
 
-        let mut orphaned = 0;
+        let (mut orphaned, mut preserved) = (0, 0);
         for id in &ids {
-            // Destroy any leftover persistent TAP so it doesn't accumulate on
-            // the bridge across restarts (we lost the firecracker Child handle,
-            // so the VM is gone but the tap was kept persistent).
-            if let Ok(Some(s)) = self.redis.sandbox_get(id).await {
-                if let Some(ref tap) = s.tap_device {
-                    if let Err(ce) = self.network.destroy_tap(tap) {
-                        tracing::warn!("reconcile: destroy_tap({}) failed: {:#}", tap, ce);
-                    }
+            let sandbox = match self.redis.sandbox_get(id).await {
+                Ok(Some(s)) => s,
+                Ok(None) => continue,
+                Err(e) => { tracing::warn!("reconcile: get {} failed: {}", id, e); continue; }
+            };
+            if sandbox.kind == SandboxKind::Lite { preserved += 1; continue; }
+            // VM sandbox: previous firecracker is gone (we lost the Child handle on
+            // restart). Destroy its persistent TAP so it doesn't accumulate on the
+            // bridge across restarts.
+            if let Some(ref tap) = sandbox.tap_device {
+                if let Err(ce) = self.network.destroy_tap(tap) {
+                    tracing::warn!("reconcile: destroy_tap({}) failed: {:#}", tap, ce);
                 }
             }
             if let Err(e) = self.redis.sandbox_set_state(
@@ -116,12 +123,26 @@ impl VmManager {
             }
             orphaned += 1;
         }
-        tracing::info!("reconciled {} sandbox(es): {} marked Error (orphaned)", ids.len(), orphaned);
+        tracing::info!("reconciled {} sandbox(es): {} VM marked Error, {} lite preserved", ids.len(), orphaned, preserved);
         Ok(())
     }
 
     pub async fn create_sandbox(
         &self,
+        user_id: String,
+        template_name: String,
+        size: Option<VmSize>,
+        enroll_token: Option<String>,
+    ) -> Result<Sandbox> {
+        self.create_sandbox_with_id(crate::vm::sandbox::generate_sandbox_id(), user_id, template_name, size, enroll_token).await
+    }
+
+    /// Same as `create_sandbox`, but the caller provides the sandbox id ahead
+    /// of time. Used so the id can be stamped onto the bridge enroll token
+    /// before the VM is booted (enables device-row cleanup on sandbox delete).
+    pub async fn create_sandbox_with_id(
+        &self,
+        sandbox_id: String,
         user_id: String,
         template_name: String,
         size: Option<VmSize>,
@@ -138,7 +159,7 @@ impl VmManager {
         }
 
         if kind == SandboxKind::Lite {
-            let mut sandbox = Sandbox::new_kind(user_id, template_name, vm_size, SandboxKind::Lite);
+            let mut sandbox = Sandbox::new_with_id(sandbox_id, user_id, template_name, vm_size, SandboxKind::Lite);
             // Lite is "running" in the sense that exec is allowed against it;
             // there's no actual long-running process. State persists in /work.
             self.redis.sandbox_put(&sandbox).await?;
@@ -152,7 +173,7 @@ impl VmManager {
             return Ok(sandbox);
         }
 
-        let mut sandbox = Sandbox::new(user_id, template_name.clone(), vm_size.clone());
+        let mut sandbox = Sandbox::new_with_id(sandbox_id, user_id, template_name.clone(), vm_size.clone(), SandboxKind::Vm);
 
         // Persist Creating state immediately so crashes mid-boot are visible.
         // Creating is NOT in sandbox:active by design — it's not reconcilable.
@@ -165,14 +186,49 @@ impl VmManager {
             Err(e) => { self.fail_sandbox(&mut sandbox, format!("network allocate: {e}")).await; return Ok(sandbox); }
         };
         sandbox.ip_address = Some(network.guest_ip);
-        sandbox.tap_device = Some(network.tap_name.clone());
         if let Err(e) = self.network.create_tap(&network) {
+            // create_tap is transactional: it has already rolled back any persistent TAP.
+            // Don't set tap_device, so fail_sandbox won't try to destroy it again.
             self.fail_sandbox(&mut sandbox, format!("create_tap: {e}")).await;
             return Ok(sandbox);
         }
+        sandbox.tap_device = Some(network.tap_name.clone());
 
-        let boot_config = self.boot_configs.get(&template_name)
+        let template_boot = self.boot_configs.get(&template_name)
             .map(|c| c.clone()).unwrap_or_default();
+
+        // Clone the template rootfs into a per-sandbox file so concurrent VMs
+        // don't share a writable ext4 (would corrupt each other's creds).
+        // `--reflink=auto` is metadata-only on xfs(reflink=1)/btrfs (~ms, ~0 disk);
+        // falls back to a real copy on ext4 etc — `--sparse=always` keeps that
+        // copy thin. Host should be xfs+reflink=1 or btrfs to scale to 1k+ VMs.
+        let overlay_dir = self.config.overlays_dir.join("rootfs").join(&sandbox.id);
+        if let Err(e) = tokio::fs::create_dir_all(&overlay_dir).await {
+            self.fail_sandbox(&mut sandbox, format!("overlay dir: {e}")).await;
+            return Ok(sandbox);
+        }
+        let overlay_rootfs = overlay_dir.join("rootfs.ext4");
+        let cp_status = tokio::process::Command::new("cp")
+            .args(["--reflink=auto", "--sparse=always"])
+            .arg(&template_boot.rootfs_path)
+            .arg(&overlay_rootfs)
+            .status().await;
+        match cp_status {
+            Ok(s) if s.success() => {}
+            Ok(s) => {
+                tokio::fs::remove_dir_all(&overlay_dir).await.ok();
+                self.fail_sandbox(&mut sandbox, format!("rootfs clone: cp exited {s}")).await;
+                return Ok(sandbox);
+            }
+            Err(e) => {
+                tokio::fs::remove_dir_all(&overlay_dir).await.ok();
+                self.fail_sandbox(&mut sandbox, format!("rootfs clone: {e}")).await;
+                return Ok(sandbox);
+            }
+        }
+        sandbox.rootfs_overlay = Some(overlay_rootfs.clone());
+
+        let boot_config = BootConfig { rootfs_path: overlay_rootfs, ..template_boot };
         let start = std::time::Instant::now();
 
         match self.launcher.boot(&sandbox.id, &boot_config, &vm_size, &network, enroll_token.as_deref()).await {
@@ -187,7 +243,9 @@ impl VmManager {
                 sandbox.state = SandboxState::Error;
                 sandbox.error = Some(e.to_string());
                 if let Some(ref tap) = sandbox.tap_device {
-                    self.network.destroy_tap(tap).ok();
+                    if let Err(ce) = self.network.destroy_tap(tap) {
+                        tracing::warn!("destroy_tap({}) failed: {:#}", tap, ce);
+                    }
                 }
             }
         }
@@ -205,7 +263,14 @@ impl VmManager {
         sandbox.state = SandboxState::Error;
         sandbox.error = Some(reason);
         if let Some(ref tap) = sandbox.tap_device {
-            self.network.destroy_tap(tap).ok();
+            if let Err(ce) = self.network.destroy_tap(tap) {
+                tracing::warn!("destroy_tap({}) failed: {:#}", tap, ce);
+            }
+        }
+        if let Some(ref p) = sandbox.rootfs_overlay {
+            if let Some(dir) = p.parent() {
+                tokio::fs::remove_dir_all(dir).await.ok();
+            }
         }
         self.redis.sandbox_put(sandbox).await.ok();
     }
@@ -239,7 +304,17 @@ impl VmManager {
         }
 
         if let Some(tap) = sandbox.tap_device {
-            self.network.destroy_tap(&tap).ok();
+            if let Err(ce) = self.network.destroy_tap(&tap) {
+                tracing::warn!("destroy_tap({}) failed: {:#}", tap, ce);
+            }
+        }
+
+        if let Some(p) = sandbox.rootfs_overlay {
+            if let Some(dir) = p.parent() {
+                if let Err(e) = tokio::fs::remove_dir_all(dir).await {
+                    tracing::warn!("remove rootfs overlay {}: {}", dir.display(), e);
+                }
+            }
         }
 
         self.redis.sandbox_delete(id).await?;
@@ -322,14 +397,14 @@ impl VmManager {
         anyhow::bail!("unknown template: {name}")
     }
 
-    /// Walk `<data_dir>/templates/*` and register every discoverable template.
+    /// Walk `config.templates_dir/*` and register every discoverable template.
     /// VM template:   contains `vmlinux` + `rootfs.ext4`.
     /// Lite template: contains a `rootfs/` directory (used as bwrap root).
-    /// `*-allowed-bins.txt` next to a lite rootfs (one binary per line) restricts
+    /// `allowed-bins.txt` next to a lite rootfs (one binary per line) restricts
     /// what callers may exec; missing file means no restriction beyond PATH.
-    async fn discover_templates(&self, data_dir: &str) {
-        let templates_dir = std::path::Path::new(data_dir).join("templates");
-        let mut entries = match tokio::fs::read_dir(&templates_dir).await {
+    async fn discover_templates(&self) {
+        let templates_dir = &self.config.templates_dir;
+        let mut entries = match tokio::fs::read_dir(templates_dir).await {
             Ok(e) => e,
             Err(e) => { tracing::warn!("templates dir {templates_dir:?} unreadable: {e}"); return; }
         };
@@ -405,29 +480,5 @@ impl VmManager {
         let mut out: Vec<String> = self.boot_configs.iter().map(|t| t.key().clone()).collect();
         out.extend(self.lite_templates.iter().map(|t| t.key().clone()));
         out
-    }
-
-    /// Cleanup sandboxes idle longer than `max_idle_seconds`.
-    pub async fn cleanup_idle(&self, max_idle_seconds: u64) -> usize {
-        let sandboxes = match self.redis.sandbox_list(None).await {
-            Ok(s) => s,
-            Err(e) => { tracing::warn!("cleanup_idle: list failed: {}", e); return 0; }
-        };
-        // Lite sandboxes get a much shorter idle TTL — they're cheap and
-        // anonymous, so don't let them accumulate.
-        let lite_idle = max_idle_seconds.min(300);
-        let to_remove: Vec<String> = sandboxes.into_iter()
-            .filter(|s| s.state == SandboxState::Running && s.idle_seconds() > match s.kind {
-                SandboxKind::Lite => lite_idle,
-                SandboxKind::Vm => max_idle_seconds,
-            })
-            .map(|s| s.id)
-            .collect();
-        let mut cleaned = 0;
-        for id in to_remove {
-            if self.delete_sandbox(&id).await.is_ok() { cleaned += 1; }
-        }
-        if cleaned > 0 { tracing::info!("Cleaned up {} idle sandboxes", cleaned); }
-        cleaned
     }
 }
