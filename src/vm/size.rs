@@ -79,17 +79,6 @@ impl VmSize {
         }
     }
     
-    /// Human-readable description
-    pub fn description(&self) -> &'static str {
-        match self {
-            VmSize::Small => "Small (128MB, 1 vCPU) - simple scripts",
-            VmSize::Medium => "Medium (256MB, 1 vCPU) - standard tasks",
-            VmSize::Large => "Large (512MB, 2 vCPU) - builds & computation",
-            VmSize::XLarge => "XLarge (1024MB, 4 vCPU) - heavy workloads",
-            VmSize::Custom { .. } => "Custom configuration",
-        }
-    }
-    
     /// Parse from string
     pub fn from_str(s: &str) -> Option<Self> {
         match s.to_lowercase().as_str() {
@@ -99,70 +88,6 @@ impl VmSize {
             "xlarge" | "xl" | "x-large" | "extra-large" => Some(VmSize::XLarge),
             _ => None,
         }
-    }
-}
-
-/// VM size limits for a user/plan
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct SizeLimits {
-    /// Maximum allowed size tier
-    pub max_size: VmSize,
-    /// Maximum concurrent VMs
-    pub max_concurrent: u32,
-    /// Maximum total memory across all VMs (MB)
-    pub max_total_memory_mb: u32,
-}
-
-impl Default for SizeLimits {
-    fn default() -> Self {
-        Self {
-            max_size: VmSize::Medium,
-            max_concurrent: 3,
-            max_total_memory_mb: 512,
-        }
-    }
-}
-
-impl SizeLimits {
-    /// Hobby plan limits
-    pub fn hobby() -> Self {
-        Self {
-            max_size: VmSize::Small,
-            max_concurrent: 1,
-            max_total_memory_mb: 128,
-        }
-    }
-    
-    /// Starter plan limits
-    pub fn starter() -> Self {
-        Self {
-            max_size: VmSize::Medium,
-            max_concurrent: 3,
-            max_total_memory_mb: 768,
-        }
-    }
-    
-    /// Pro plan limits
-    pub fn pro() -> Self {
-        Self {
-            max_size: VmSize::Large,
-            max_concurrent: 10,
-            max_total_memory_mb: 2048,
-        }
-    }
-    
-    /// Ultra plan limits
-    pub fn ultra() -> Self {
-        Self {
-            max_size: VmSize::XLarge,
-            max_concurrent: 50,
-            max_total_memory_mb: 16384,
-        }
-    }
-    
-    /// Check if a size is allowed
-    pub fn allows_size(&self, size: &VmSize) -> bool {
-        size.memory_mb() <= self.max_size.memory_mb()
     }
 }
 

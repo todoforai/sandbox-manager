@@ -5,7 +5,7 @@
 
 use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::process::{Child, Command, Stdio};
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::net::UnixStream;
@@ -16,8 +16,6 @@ use super::size::VmSize;
 
 /// Firecracker VM instance
 pub struct FirecrackerVm {
-    /// VM ID
-    pub id: String,
     /// Firecracker process
     process: Child,
     /// API socket path
@@ -30,15 +28,6 @@ impl FirecrackerVm {
     /// Get process ID
     pub fn pid(&self) -> u32 {
         self.process.id()
-    }
-
-    /// Check if process is still running
-    pub fn is_running(&self) -> bool {
-        std::process::Command::new("kill")
-            .args(["-0", &self.process.id().to_string()])
-            .status()
-            .map(|s| s.success())
-            .unwrap_or(false)
     }
 
     /// Send API request to Firecracker
@@ -117,11 +106,6 @@ impl FirecrackerVm {
         let body = serde_json::json!({ "amount_mib": target_mib });
         self.api_request("PATCH", "/balloon", Some(&body.to_string())).await?;
         Ok(())
-    }
-
-    /// Read current balloon statistics (if stats_polling_interval_s > 0 at config time).
-    pub async fn balloon_stats(&self) -> Result<String> {
-        self.api_request("GET", "/balloon/statistics", None).await
     }
 
     /// Kill the VM process
@@ -240,7 +224,6 @@ impl FirecrackerLauncher {
         }
 
         let vm = FirecrackerVm {
-            id: vm_id.to_string(),
             process,
             socket_path: socket_path.clone(),
             serial_path: serial_path.clone(),
@@ -370,79 +353,6 @@ impl FirecrackerLauncher {
         Ok(())
     }
 
-    /// Boot from a snapshot (faster than cold boot)
-    pub async fn boot_from_snapshot(
-        &self,
-        vm_id: &str,
-        snapshot_dir: &Path,
-        network: &VmNetwork,
-    ) -> Result<FirecrackerVm> {
-        let socket_path = self.runtime_dir.join(format!("{}.sock", vm_id));
-        let serial_path = self.runtime_dir.join(format!("{}.serial", vm_id));
-        let console_log = self.runtime_dir.join(format!("{}.console.log", vm_id));
-        let fc_log      = self.runtime_dir.join(format!("{}.fc.log", vm_id));
-
-        // Remove stale sockets
-        std::fs::remove_file(&socket_path).ok();
-
-        let console_out = std::fs::File::create(&console_log)
-            .with_context(|| format!("create {}", console_log.display()))?;
-        let fc_err = std::fs::File::create(&fc_log)
-            .with_context(|| format!("create {}", fc_log.display()))?;
-
-        // Spawn Firecracker
-        let process = Command::new(&self.firecracker_bin)
-            .args(["--api-sock", socket_path.to_str().unwrap()])
-            .stdin(Stdio::null())
-            .stdout(Stdio::from(console_out))
-            .stderr(Stdio::from(fc_err))
-            .spawn()
-            .context("Failed to spawn Firecracker")?;
-
-        tracing::info!("VM {} (snapshot) logs: console={} fc={}", vm_id, console_log.display(), fc_log.display());
-
-        // Wait for socket
-        for _ in 0..50 {
-            if socket_path.exists() {
-                break;
-            }
-            tokio::time::sleep(Duration::from_millis(20)).await;
-        }
-
-        let vm = FirecrackerVm {
-            id: vm_id.to_string(),
-            process,
-            socket_path: socket_path.clone(),
-            serial_path,
-        };
-
-        // Load snapshot
-        let snapshot_load = serde_json::json!({
-            "snapshot_path": snapshot_dir.join("vmstate.snap"),
-            "mem_backend": {
-                "backend_type": "File",
-                "backend_path": snapshot_dir.join("memory.snap")
-            },
-            "enable_diff_snapshots": false,
-            "resume_vm": true
-        });
-        vm.api_request("PUT", "/snapshot/load", Some(&snapshot_load.to_string()))
-            .await
-            .context("Failed to load snapshot")?;
-
-        // Reconfigure network (TAP device changed)
-        let net_iface = serde_json::json!({
-            "iface_id": "eth0",
-            "host_dev_name": network.tap_name
-        });
-        vm.api_request("PATCH", "/network-interfaces/eth0", Some(&net_iface.to_string()))
-            .await
-            .ok(); // May fail if network wasn't in snapshot
-
-        tracing::info!("Restored Firecracker VM {} from snapshot", vm_id);
-
-        Ok(vm)
-    }
 }
 
 /// Find firecracker binary

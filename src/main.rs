@@ -5,7 +5,6 @@ mod noise;    // Noise/TCP adapter
 mod redis;    // Redis client (auth + billing)
 mod service;  // transport-agnostic sandbox service
 mod vm;
-mod template;
 
 use anyhow::Result;
 use axum::{routing::{get, post, delete}, Router};

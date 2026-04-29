@@ -88,15 +88,6 @@ pub struct Sandbox {
 }
 
 impl Sandbox {
-    /// Create a new sandbox (state=Creating)
-    pub fn new(user_id: String, template: String, size: VmSize) -> Self {
-        Self::new_kind(user_id, template, size, SandboxKind::Vm)
-    }
-
-    pub fn new_kind(user_id: String, template: String, size: VmSize, kind: SandboxKind) -> Self {
-        Self::new_with_id(Uuid::new_v4().to_string(), user_id, template, size, kind)
-    }
-
     pub fn new_with_id(id: String, user_id: String, template: String, size: VmSize, kind: SandboxKind) -> Self {
         let now = now_ms();
         Self {
@@ -125,22 +116,6 @@ impl Sandbox {
     /// Check if sandbox is active (running or paused)
     pub fn is_active(&self) -> bool {
         matches!(self.state, SandboxState::Running | SandboxState::Paused)
-    }
-
-    /// Get sandbox age in seconds
-    pub fn age_seconds(&self) -> u64 {
-        (now_ms() - self.created_at) / 1000
-    }
-
-    /// Get idle time in seconds
-    pub fn idle_seconds(&self) -> u64 {
-        (now_ms() - self.last_activity) / 1000
-    }
-
-    /// Calculate cost so far
-    pub fn cost_so_far(&self) -> f64 {
-        let minutes = self.age_seconds() as f64 / 60.0;
-        minutes * self.size.cost_per_minute()
     }
 }
 

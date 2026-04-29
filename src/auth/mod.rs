@@ -2,7 +2,7 @@
 //!
 //! Sources are documented on `RedisClient::resolve_identity`.
 
-use anyhow::{bail, Result};
+use anyhow::Result;
 
 use crate::redis::RedisClient;
 
@@ -48,10 +48,4 @@ pub async fn authenticate(redis: &RedisClient, token: &str) -> Result<AuthIdenti
     })
 }
 
-/// Require admin role.
-pub fn require_admin(identity: &AuthIdentity) -> Result<()> {
-    if !identity.is_admin() {
-        bail!("admin role required");
-    }
-    Ok(())
-}
+
