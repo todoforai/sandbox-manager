@@ -39,6 +39,10 @@ deploy() {
         cd $DEPLOY_PATH/releases/$RELEASE
         cargo build --release --locked
         cp target/release/sandbox-manager ./sandbox-manager
+        # CAP_NET_ADMIN+CAP_NET_RAW so the binary can create/destroy TAP
+        # devices on br-sandbox without running as root. File caps are wiped
+        # on every rebuild, so re-apply here.
+        sudo setcap cap_net_admin,cap_net_raw=eip ./sandbox-manager
 
         echo "Linking shared dir for ecosystem.config.js to read..."
         ln -sfn $DEPLOY_PATH/shared $DEPLOY_PATH/releases/$RELEASE/shared

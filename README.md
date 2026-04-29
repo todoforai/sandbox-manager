@@ -44,7 +44,7 @@ See [`ARCHITECTURE_BRIDGE_MACHINES.md`](../ARCHITECTURE_BRIDGE_MACHINES.md) for 
 │         │                    │                                  │
 │         ▼                    ▼                                  │
 │  ┌─────────────────────────────────┐                          │
-│  │ Firecracker VMs (Alpine Linux)  │                          │
+│  │ Firecracker VMs (Ubuntu Base)   │                          │
 │  │ • One process per VM            │                          │
 │  │ • TAP networking                │                          │
 │  │ • Vsock for guest communication │                          │
@@ -153,9 +153,12 @@ Environment variables:
 | `OVERLAYS_DIR` | `/data/overlays` | Runtime files |
 | `BRIDGE_NAME` | `br-sandbox` | Network bridge |
 | `NETWORK_SUBNET` | `10.0.0.0/16` | VM network |
-| `ENABLE_KVM` | `true` | Use KVM (false for mock) |
 | `DEFAULT_VM_SIZE` | `medium` | Default size tier |
 | `RUST_LOG` | `info` | Log level |
+| `BACKEND_URL` | — | Backend base URL (used to mint enroll tokens) |
+| `BACKEND_ADMIN_API_KEY` | — | Admin API key for `/admin/v1/enroll/*` |
+| `MMDS_NOISE_BACKEND_ADDR` | — | Optional. `<host>:<port>` injected into MMDS so VMs talk to a non-prod backend. Without it, bridge dials the compiled prod default. For localhost dev: `10.0.0.1:14100`. Backend must bind Noise on `0.0.0.0`. |
+| `MMDS_NOISE_BACKEND_PUBLIC_KEY` | — | Optional. 32-byte hex matching the backend's `NOISE_LOCAL_PRIVATE_KEY`. Required iff `MMDS_NOISE_BACKEND_ADDR` is set. |
 
 ## Noise CLI setup
 
@@ -221,21 +224,20 @@ bridge → Backend:
 
 ### Templates
 
-- **ubuntu-base**: Ubuntu minimal VM with edge agent
+- **ubuntu-base**: Ubuntu minimal VM with bridge, connects to backend on boot
 - **cli-lite**: bwrap jail with our CLI binaries only — FREE / anonymous tier
-- **alpine-edge**: Alpine + bridge, connects to backend on boot
 
 ### Booting a sandbox
 
 The caller's API key is the Bearer token. The sandbox-manager:
 - derives the owner `user_id` from the token (`resource:token:*` or `apikey:*` in Redis)
-- forwards the same token to the VM via kernel cmdline (`enroll.token=...`); bridge inside the VM reads it on boot and enrolls the VM as a device.
+- mints a short-lived enroll token from the backend and injects it into the VM via Firecracker MMDS; bridge inside the VM redeems it on boot and registers as a device.
 
 ```bash
 curl -X POST http://localhost:9000/sandbox \
   -H "Authorization: Bearer your-api-key" \
   -H "Content-Type: application/json" \
-  -d '{"template":"alpine-edge"}'
+  -d '{"template":"ubuntu-base"}'
 ```
 
 ## Integration with Resource Proxy
@@ -255,10 +257,7 @@ Resource proxy handles:
 ## Development
 
 ```bash
-# Run in mock mode (no KVM required)
-ENABLE_KVM=false cargo run
-
-# Run with debug logging
+# Run with debug logging (KVM + Firecracker required, no mock mode)
 RUST_LOG=sandbox_manager=debug cargo run
 ```
 
