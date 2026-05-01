@@ -62,9 +62,6 @@
 <body>
 <header>
   <h1>Sandbox Manager</h1>
-  <label style="display:flex;align-items:center;gap:6px;color:#aaa;font-size:13px;">
-    <input type="checkbox" id="groupByUser"> group by user
-  </label>
   <button id="refresh">Refresh</button>
 </header>
 <main>
@@ -74,8 +71,6 @@
 
 <script>
 const $ = s => document.querySelector(s);
-const groupCb = $('#groupByUser');
-groupCb.checked = localStorage.getItem('sbm_group') !== '0'; // default ON
 
 async function api(path, opts = {}) {
   const r = await fetch(path, {
@@ -110,11 +105,11 @@ async function refresh() {
       <div class="stat"><div class="v">${stats.total_memory_mb} MB</div><div class="l">allocated</div></div>
       <div class="stat"><div class="v">${(stats.actual_memory_kb/1024).toFixed(0)} MB</div><div class="l">actual (CoW)</div></div>` : '';
     if (!list.length) { content.innerHTML = '<div class="empty">No sandboxes.</div>'; return; }
-    localStorage.setItem('sbm_group', groupCb.checked ? '1' : '0');
     const rowFor = s => `
         <tr class="clickable" data-row-id="${s.id}">
           <td class="id" title="${s.id}">${s.id.slice(0,8)}…</td>
           <td>${s.user_id}</td>
+          <td>sandbox-${s.id.slice(0,8)}</td>
           <td><span class="badge ${s.kind}">${s.kind}</span></td>
           <td>${s.template}</td>
           <td>${s.size}</td>
@@ -129,26 +124,22 @@ async function refresh() {
           </td>
         </tr>`;
     const headRow = `<tr>
-        <th>ID</th><th>User</th><th>Kind</th><th>Template</th><th>Size</th>
+        <th>ID</th><th>User</th><th>Device</th><th>Kind</th><th>Template</th><th>Size</th>
         <th>State</th><th>IP</th><th>Age</th><th>Idle</th><th>Actions</th>
       </tr>`;
-    if (groupCb.checked) {
-      const groups = list.reduce((m, s) => ((m[s.user_id] ||= []).push(s), m), {});
-      const users = Object.keys(groups).sort((a,b) => groups[b].length - groups[a].length);
-      content.innerHTML = `<div class="userbar">${users.length} user${users.length===1?'':'s'} · ${list.length} sandbox${list.length===1?'':'es'}</div>` +
-        users.map(u => {
-          const items = groups[u];
-          const vm = items.filter(s => s.kind === 'vm').length;
-          const lite = items.filter(s => s.kind === 'lite').length;
-          const running = items.filter(s => s.state === 'running').length;
-          return `<details open class="userblock">
-            <summary><b>${u}</b> <span class="muted">— ${items.length} total · ${vm} vm · ${lite} lite · ${running} running</span></summary>
-            <table><thead>${headRow}</thead><tbody>${items.map(rowFor).join('')}</tbody></table>
-          </details>`;
-        }).join('');
-    } else {
-      content.innerHTML = `<table><thead>${headRow}</thead><tbody>${list.map(rowFor).join('')}</tbody></table>`;
-    }
+    const groups = list.reduce((m, s) => ((m[s.user_id] ||= []).push(s), m), {});
+    const users = Object.keys(groups).sort();
+    content.innerHTML = `<div class="userbar">${users.length} user${users.length===1?'':'s'} · ${list.length} sandbox${list.length===1?'':'es'}</div>` +
+      users.map(u => {
+        const items = groups[u];
+        const vm = items.filter(s => s.kind === 'vm').length;
+        const lite = items.filter(s => s.kind === 'lite').length;
+        const running = items.filter(s => s.state === 'running').length;
+        return `<details open class="userblock">
+          <summary><b>${u}</b> <span class="muted">— ${items.length} total · ${vm} vm · ${lite} lite · ${running} running</span></summary>
+          <table><thead>${headRow}</thead><tbody>${items.map(rowFor).join('')}</tbody></table>
+        </details>`;
+      }).join('');
     reopenLogs();
   } catch (e) {
     content.innerHTML = `<div class="err">Error: ${e.message}</div>`;
@@ -257,7 +248,6 @@ function reopenLogs() {
 }
 
 $('#refresh').addEventListener('click', refresh);
-groupCb.addEventListener('change', refresh);
 refresh();
 setInterval(refresh, 10000);
 </script>
