@@ -160,12 +160,17 @@ fi
 # /etc/hostname=sandbox (set at build time, see below), which would collide
 # across VMs and show up as "(none)" / "sandbox" in bridge identity. Lite
 # sandboxes don't use this rootfs (they use bwrap), so this branch is always
-# a real VM — name it vm-<id> rather than sandbox-<id>.
+# a real VM — name it vm-<id> rather than sandbox-<id>. Always rename, even
+# if SANDBOX_ID is missing (random suffix), so `uname -n` never returns the
+# kernel default "(none)" that would otherwise leak into the device name.
 if [ -n "$SANDBOX_ID" ] && [ "$SANDBOX_ID" != "null" ]; then
     HN="vm-$(printf '%s' "$SANDBOX_ID" | cut -c1-8)"
-    echo "$HN" > /etc/hostname
-    hostname "$HN" 2>/dev/null || true
+else
+    HN="vm-$(tr -dc a-f0-9 </dev/urandom | head -c8)"
 fi
+echo "$HN" > /etc/hostname
+# `hostname` binary may be missing in trimmed rootfs; /proc fallback always works.
+hostname "$HN" 2>/dev/null || echo "$HN" > /proc/sys/kernel/hostname
 
 if [ -n "$NOISE_BACKEND_ADDR_OVR" ] && [ "$NOISE_BACKEND_ADDR_OVR" != "null" ]; then
     export NOISE_BACKEND_ADDR="$NOISE_BACKEND_ADDR_OVR"
