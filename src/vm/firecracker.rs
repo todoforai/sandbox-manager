@@ -230,7 +230,7 @@ impl FirecrackerLauncher {
         };
 
         // Configure VM via API
-        self.configure_vm(&vm, boot_config, size, network, enroll_token)
+        self.configure_vm(&vm, boot_config, size, network, enroll_token, vm_id)
             .await?;
 
         // Start VM
@@ -255,6 +255,7 @@ impl FirecrackerLauncher {
         size: &VmSize,
         network: &VmNetwork,
         enroll_token: Option<&str>,
+        sandbox_id: &str,
     ) -> Result<()> {
         // Boot args — network only, no secret material.
         let boot_args = format!(
@@ -331,6 +332,7 @@ impl FirecrackerLauncher {
             if let Some(token) = enroll_token {
                 mmds.insert("enroll_token".into(), serde_json::Value::String(token.to_string()));
             }
+            mmds.insert("sandbox_id".into(), serde_json::Value::String(sandbox_id.to_string()));
             // Optional dev override: tell bridge inside the VM to talk to a non-prod
             // Noise endpoint (e.g. the local backend). Bridge falls back to its
             // hardcoded prod default when these are absent. Logged at WARN so a

@@ -139,10 +139,14 @@ MMDS_SESSION=$(wget -q -O - --method=PUT \
 ENROLL_TOKEN=""
 NOISE_BACKEND_ADDR_OVR=""
 NOISE_BACKEND_PUB_OVR=""
+SANDBOX_ID=""
 if [ -n "$MMDS_SESSION" ]; then
     ENROLL_TOKEN=$(wget -q -O - \
         --header="X-metadata-token: $MMDS_SESSION" \
         'http://169.254.169.254/enroll_token' 2>/dev/null || true)
+    SANDBOX_ID=$(wget -q -O - \
+        --header="X-metadata-token: $MMDS_SESSION" \
+        'http://169.254.169.254/sandbox_id' 2>/dev/null || true)
     # Optional dev/non-prod overrides — point bridge at a different Noise endpoint.
     NOISE_BACKEND_ADDR_OVR=$(wget -q -O - \
         --header="X-metadata-token: $MMDS_SESSION" \
@@ -150,6 +154,17 @@ if [ -n "$MMDS_SESSION" ]; then
     NOISE_BACKEND_PUB_OVR=$(wget -q -O - \
         --header="X-metadata-token: $MMDS_SESSION" \
         'http://169.254.169.254/noise_backend_pub' 2>/dev/null || true)
+fi
+
+# Give every VM a unique, human-readable hostname. The rootfs ships with
+# /etc/hostname=sandbox (set at build time, see below), which would collide
+# across VMs and show up as "(none)" / "sandbox" in bridge identity. Lite
+# sandboxes don't use this rootfs (they use bwrap), so this branch is always
+# a real VM — name it vm-<id> rather than sandbox-<id>.
+if [ -n "$SANDBOX_ID" ] && [ "$SANDBOX_ID" != "null" ]; then
+    HN="vm-$(printf '%s' "$SANDBOX_ID" | cut -c1-8)"
+    echo "$HN" > /etc/hostname
+    hostname "$HN" 2>/dev/null || true
 fi
 
 if [ -n "$NOISE_BACKEND_ADDR_OVR" ] && [ "$NOISE_BACKEND_ADDR_OVR" != "null" ]; then
@@ -177,7 +192,7 @@ if [ -n "$ENROLL_TOKEN" ] && [ "$ENROLL_TOKEN" != "null" ]; then
     # (dropped during rootfs build) — no flag needed.
     /usr/local/bin/bridge login \
         --token "$ENROLL_TOKEN" \
-        --device-name "sandbox-$(cat /etc/hostname 2>/dev/null || echo unknown)" \
+        --device-name "$(cat /etc/hostname 2>/dev/null || echo unknown)" \
         || echo "[init] bridge login failed (will try saved creds)" >&2
 fi
 
