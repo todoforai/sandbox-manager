@@ -26,15 +26,25 @@ else
     [ -x "$BIN" ] || cargo build --release
 fi
 
-# CAP_NET_ADMIN+CAP_NET_RAW so the binary can manage TAP devices without
-# running as root. File caps are wiped on every rebuild — re-apply if missing.
+# CAP_NET_ADMIN+CAP_NET_RAW are required for TAP device management.
+# Prod: applied at deploy time (deploy.sh) AND PM2 runs as root anyway.
+# Dev: cargo rebuilds wipe file caps — re-apply via passwordless sudoers entry.
+# See /etc/sudoers.d/sandbox-manager-setcap (one-time host setup).
 if ! getcap "$BIN" 2>/dev/null | grep -q cap_net_admin; then
-    sudo setcap cap_net_admin,cap_net_raw=eip "$BIN"
+    if sudo -n setcap cap_net_admin,cap_net_raw=eip "$BIN" 2>/dev/null; then
+        echo "[run.sh] re-applied CAP_NET_ADMIN to $BIN"
+    fi
 fi
 
-# Fallback: if caps still aren't set (e.g. no sudo), run via sudo so the process
-# inherits root caps and can create TAPs / open /dev/kvm.
 if [ "$(id -u)" -ne 0 ] && ! getcap "$BIN" 2>/dev/null | grep -q cap_net_admin; then
-    exec sudo -E "$BIN" "${@:2}"
+    echo "ERROR: $BIN lacks CAP_NET_ADMIN and not running as root." >&2
+    echo "Fix (one-time): sudo tee /etc/sudoers.d/sandbox-manager-setcap <<EOF" >&2
+    echo "$(id -un) ALL=(root) NOPASSWD: /usr/sbin/setcap cap_net_admin\\,cap_net_raw=eip $(readlink -f "$BIN")" >&2
+    echo "EOF" >&2
+    echo "Then: sudo chmod 440 /etc/sudoers.d/sandbox-manager-setcap" >&2
+    exit 1
 fi
+
+# Startup self-check: log effective cap state so regressions surface in pm2 logs.
+echo "[run.sh] starting $BIN as uid=$(id -u) caps=$(getcap "$BIN" 2>/dev/null | sed "s|^$BIN ||" || echo none)"
 exec "$BIN" "${@:2}"

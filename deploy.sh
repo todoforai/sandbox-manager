@@ -94,6 +94,19 @@ deploy() {
             sleep 1
         done
 
+        # Verify TAP capability path: either binary has CAP_NET_ADMIN or process runs as root.
+        # Catches silent setcap failures and PM2-not-root regressions before they hit users.
+        BIN_PATH=$DEPLOY_PATH/current/sandbox-manager
+        PM2_PID=\$(pm2 pid sandbox-manager-\$NEW_PORT 2>/dev/null | tr -d '[:space:]')
+        PROC_UID=\$([ -n "\$PM2_PID" ] && awk '/^Uid:/{print \$2}' /proc/\$PM2_PID/status 2>/dev/null || echo "?")
+        BIN_CAPS=\$(getcap "\$BIN_PATH" 2>/dev/null || true)
+        if [ "\$PROC_UID" != "0" ] && ! echo "\$BIN_CAPS" | grep -q cap_net_admin; then
+            echo "❌ TAP capability check FAILED: pid=\$PM2_PID uid=\$PROC_UID caps='\$BIN_CAPS'"
+            echo "   sandbox-manager will fail TUNSETIFF on every VM create. Fix: re-run setcap or restart PM2 as root."
+            exit 1
+        fi
+        echo "✅ TAP caps OK (uid=\$PROC_UID, caps=\${BIN_CAPS:-<root>})"
+
         # Sync nginx site + stream confs from repo
         cp $DEPLOY_PATH/current/nginx/vm.todofor.ai.conf \$NGINX_CONF
         ln -sf \$NGINX_CONF /etc/nginx/sites-enabled/vm.todofor.ai
