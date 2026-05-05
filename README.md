@@ -104,7 +104,6 @@ Response:
 {
   "id": "550e8400-e29b-41d4-a716-446655440000",
   "ip_address": "10.0.0.2",
-  "ws_url": "/sandbox/550e8400-e29b-41d4-a716-446655440000/tty",
   "size": "medium",
   "cost_per_minute": 0.01,
   "state": "running"

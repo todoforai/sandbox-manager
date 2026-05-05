@@ -165,3 +165,32 @@ pub async fn exec_sandbox(
         .map(|o| Json(o.into()))
         .map_err(|e| rest_error(ErrorCode::BadRequest, e.to_string()))
 }
+
+/// Mint a short-lived SSH user cert that grants access to this sandbox over
+/// vsock recovery. Body: `{ "public_key": "ssh-ed25519 AAAA...", "ttl_secs": 600 }`.
+#[derive(Debug, Deserialize)]
+pub struct RecoveryCertRequest {
+    /// User-supplied OpenSSH public key. Server signs only this; never
+    /// accepts a private key from the client.
+    pub public_key: String,
+    pub ttl_secs: Option<u64>,
+}
+
+pub async fn recovery_cert(
+    State(service): State<SandboxService>,
+    Auth(identity): Auth,
+    Path(id): Path<String>,
+    Json(req): Json<RecoveryCertRequest>,
+) -> Result<Json<crate::service::types::RecoveryCertResponse>, (StatusCode, String)> {
+    service
+        .issue_recovery_cert(&identity, &id, &req.public_key, req.ttl_secs)
+        .await
+        .map(Json)
+        .map_err(|e| rest_error(ErrorCode::BadRequest, e.to_string()))
+}
+
+/// Public key of the recovery CA. Unauthenticated: it's public by design.
+/// Used by build tooling to bake the trust anchor into rootfs templates.
+pub async fn recovery_ca_pub(State(service): State<SandboxService>) -> (StatusCode, String) {
+    (StatusCode::OK, format!("{}\n", service.recovery_ca_authorized_key()))
+}

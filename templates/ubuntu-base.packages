@@ -22,3 +22,10 @@ jq
 
 # --- native SSH in guest ---
 openssh-server
+
+# --- vsock recovery channel ---
+# socat bridges the Firecracker virtio-vsock listener to sshd on loopback.
+# Keeps sshd unmodified (no vsock-aware build needed) and gives the recovery
+# path full SSH semantics (scp, port-forward, exec).
+socat
+sudo

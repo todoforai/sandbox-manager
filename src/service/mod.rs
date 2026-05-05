@@ -3,13 +3,14 @@ use std::sync::Arc;
 
 use crate::auth::AuthIdentity;
 use crate::backend::BackendClient;
+use crate::recovery::{RecoveryCa, DEFAULT_CERT_TTL_SECS};
 use crate::redis::RedisClient;
 use crate::vm::config::TemplateConfig;
 use crate::vm::lite::ExecOutput;
 use crate::vm::manager::VmManager;
 use crate::vm::sandbox::{SandboxKind, SandboxState};
 
-use self::types::{CreateSandboxRequest, SandboxInfo, SandboxList, SandboxStats};
+use self::types::{CreateSandboxRequest, RecoveryCertResponse, SandboxInfo, SandboxList, SandboxStats};
 
 pub mod errors;
 pub mod types;
@@ -23,6 +24,7 @@ pub struct SandboxService {
     manager: Arc<VmManager>,
     redis: RedisClient,
     backend: BackendClient,
+    recovery_ca: Arc<RecoveryCa>,
 }
 
 impl SandboxService {
@@ -30,8 +32,56 @@ impl SandboxService {
         manager: Arc<VmManager>,
         redis: RedisClient,
         backend: BackendClient,
+        recovery_ca: Arc<RecoveryCa>,
     ) -> Self {
-        Self { manager, redis, backend }
+        Self { manager, redis, backend, recovery_ca }
+    }
+
+    /// Issue a short-lived SSH recovery cert for a sandbox the caller owns.
+    /// Returns `(cert_openssh, vsock_uds_path, ttl_secs)`. The caller uses
+    /// the cert plus their private key with `fc-vsock-proxy` as ProxyCommand.
+    pub async fn issue_recovery_cert(
+        &self,
+        identity: &AuthIdentity,
+        id: &str,
+        user_pubkey_openssh: &str,
+        ttl_secs: Option<u64>,
+    ) -> Result<RecoveryCertResponse> {
+        self.assert_owner(identity, id).await?;
+        let sandbox = self.manager.get_sandbox(id).await?
+            .context("sandbox not found")?;
+        if sandbox.kind != SandboxKind::Vm {
+            bail!("recovery cert is only available for VM sandboxes");
+        }
+        if sandbox.state != SandboxState::Running && sandbox.state != SandboxState::Paused {
+            bail!("sandbox not in a state that allows recovery (state={:?})", sandbox.state);
+        }
+        let vsock_path = self.manager.vsock_path_for(id);
+        // FC failed to attach the vsock device → no point handing out a cert
+        // for a path that will never accept connections. Avoids confusing
+        // "Connection refused" downstream.
+        if !vsock_path.exists() {
+            bail!("recovery vsock UDS missing for sandbox {id}; the VM may be too old (rebuild rootfs) or vsock setup failed");
+        }
+        let ttl_req = ttl_secs.unwrap_or(DEFAULT_CERT_TTL_SECS);
+        let (cert, ttl_eff) = self.recovery_ca.sign_recovery_cert(
+            user_pubkey_openssh,
+            id,
+            &identity.user_id,
+            ttl_req,
+        )?;
+        Ok(RecoveryCertResponse {
+            cert,
+            vsock_uds_path: vsock_path.display().to_string(),
+            // The vsock listener inside the guest runs on port 22 (see /init).
+            vsock_port: 22,
+            principal: format!("recovery:{id}"),
+            ttl_secs: ttl_eff,
+        })
+    }
+
+    pub fn recovery_ca_authorized_key(&self) -> &str {
+        self.recovery_ca.authorized_key_line()
     }
 
     pub fn redis(&self) -> &RedisClient {

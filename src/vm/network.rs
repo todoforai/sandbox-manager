@@ -117,28 +117,54 @@ pub struct VmNetwork {
     pub guest_ip: Ipv4Addr,
     pub guest_mac: String,
     pub gateway_ip: Ipv4Addr,
+    pub netmask: Ipv4Addr,
 }
 
-/// Network manager for VM TAP devices
+/// Network manager for VM TAP devices.
+///
+/// IP allocation is **stateless** in the manager: claims live in Redis under
+/// `sandbox:network:ip:<ipv4>` (see `redis::ip_claim`). This means concurrent
+/// managers can't double-allocate, and a manager restart never re-issues an
+/// IP that's still in use by a re-attached VM.
 pub struct NetworkManager {
     bridge_name: String,
     bridge_ip: Ipv4Addr,
-    next_ip: std::sync::atomic::AtomicU32,
+    /// Subnet mask (e.g. `255.255.0.0` for /16). Passed into the guest's
+    /// kernel cmdline so it computes the right broadcast/route.
+    netmask: Ipv4Addr,
+    /// First assignable host address (e.g. `10.42.0.2`).
+    range_start: u32,
+    /// Last assignable host address (broadcast - 1).
+    range_end: u32,
+    redis: crate::redis::RedisClient,
 }
 
 impl NetworkManager {
-    pub fn new(bridge_name: &str, subnet: &str) -> Result<Self> {
-        let parts: Vec<&str> = subnet.split('/').collect();
-        let base_ip: Ipv4Addr = parts[0].parse()?;
+    pub fn new(bridge_name: &str, subnet: &str, redis: crate::redis::RedisClient) -> Result<Self> {
+        // Parse `a.b.c.d/prefix`. Only /16 has been deployed; for safety we
+        // compute the actual subnet bounds rather than hardcoding `.0.2..`.
+        let (addr_str, prefix_str) = subnet.split_once('/').context("subnet missing /prefix")?;
+        let base_ip: Ipv4Addr = addr_str.parse().context("invalid subnet address")?;
+        let prefix: u32 = prefix_str.parse().context("invalid subnet prefix")?;
+        if !(8..=30).contains(&prefix) { bail!("subnet prefix /{prefix} out of supported range /8../30"); }
 
-        let octets = base_ip.octets();
-        let bridge_ip = Ipv4Addr::new(octets[0], octets[1], 0, 1);
-        let start_ip = u32::from(Ipv4Addr::new(octets[0], octets[1], 0, 2));
+        let mask: u32 = if prefix == 0 { 0 } else { u32::MAX << (32 - prefix) };
+        let network = u32::from(base_ip) & mask;
+        let broadcast = network | !mask;
+
+        // .1 = bridge, .2..broadcast-1 = guests
+        let bridge_ip = Ipv4Addr::from(network + 1);
+        let range_start = network + 2;
+        let range_end = broadcast.saturating_sub(1);
+        if range_start > range_end { bail!("subnet too small for guest IPs"); }
 
         Ok(Self {
             bridge_name: bridge_name.to_string(),
             bridge_ip,
-            next_ip: std::sync::atomic::AtomicU32::new(start_ip),
+            netmask: Ipv4Addr::from(mask),
+            range_start,
+            range_end,
+            redis,
         })
     }
 
@@ -162,10 +188,21 @@ impl NetworkManager {
         Ok(())
     }
 
-    /// Allocate network for a new VM
-    pub fn allocate(&self, vm_id: &str) -> Result<VmNetwork> {
-        let ip_u32 = self.next_ip.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
-        let guest_ip = Ipv4Addr::from(ip_u32);
+    /// Allocate a guest IP by claiming the lowest free address in the subnet
+    /// via Redis `SET NX`. O(N) on the address space worst-case, but in
+    /// practice O(1) since claims are dense from the bottom.
+    ///
+    /// Returns `Err` only if the subnet is exhausted or Redis is unreachable.
+    pub async fn allocate(&self, vm_id: &str) -> Result<VmNetwork> {
+        let mut guest_ip: Option<Ipv4Addr> = None;
+        for ip_u32 in self.range_start..=self.range_end {
+            let candidate = Ipv4Addr::from(ip_u32);
+            if self.redis.ip_claim(candidate, vm_id).await? {
+                guest_ip = Some(candidate);
+                break;
+            }
+        }
+        let guest_ip = guest_ip.context("subnet exhausted: no free guest IPs")?;
 
         // TAP name max 15 chars for Linux IFNAMSIZ
         let tap_name = format!("tap-{}", &vm_id[..8.min(vm_id.len())]);
@@ -181,7 +218,14 @@ impl NetworkManager {
             guest_ip,
             guest_mac,
             gateway_ip: self.bridge_ip,
+            netmask: self.netmask,
         })
+    }
+
+    /// Release an IP back to the pool *if* the caller still owns the claim.
+    /// Idempotent. Prevents a late cleanup from clobbering a reused IP.
+    pub async fn release_ip(&self, ip: Ipv4Addr, sandbox_id: &str) -> Result<()> {
+        self.redis.ip_release_if_owner(ip, sandbox_id).await
     }
 
     /// Create TAP device, attach to bridge, bring UP. All via ioctl (no child processes).
@@ -299,18 +343,6 @@ impl NetworkManager {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn test_network_allocation() {
-        let nm = NetworkManager::new("br-test", "10.0.0.0/16").unwrap();
-
-        let net1 = nm.allocate("vm-001-aaa").unwrap();
-        let net2 = nm.allocate("vm-002-bbb").unwrap();
-
-        assert_ne!(net1.guest_ip, net2.guest_ip);
-        assert!(net1.guest_mac.starts_with("AA:FC:"));
-        assert!(net1.tap_name.len() <= 15); // IFNAMSIZ - 1
-    }
 
     #[test]
     fn test_ifreq_sizes() {

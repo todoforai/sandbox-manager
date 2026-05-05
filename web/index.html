@@ -57,6 +57,16 @@
   .log-block h4 button:hover { background: #444; }
   .log-block pre { margin: 0; padding: 8px 10px; background: #0e0e0e; border: 1px solid #222; border-radius: 4px; font: 12px/1.45 ui-monospace, monospace; color: #ddd; white-space: pre-wrap; word-break: break-all; max-height: 400px; overflow: auto; }
   .log-block .none { color: #777; font-size: 12px; padding: 6px 0; font-style: italic; }
+  .modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; z-index: 100; }
+  .modal { background: #1a1a1a; border: 1px solid #333; border-radius: 8px; padding: 16px 18px; max-width: 720px; width: 92%; max-height: 86vh; overflow: auto; }
+  .modal h3 { margin: 0 0 6px; font-size: 15px; }
+  .modal .warn { color: #fa3; font-size: 12px; margin-bottom: 10px; }
+  .modal .meta { color: #aaa; font-size: 12px; margin-bottom: 10px; font-family: monospace; }
+  .modal pre { background: #0e0e0e; border: 1px solid #222; border-radius: 4px; padding: 8px 10px; max-height: 360px; overflow: auto; font: 12px/1.45 ui-monospace, monospace; color: #ddd; white-space: pre; }
+  .modal .row { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+  .modal button { background: #2a4; color: white; border: 0; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 13px; }
+  .modal button.secondary { background: #333; border: 1px solid #555; }
+  .modal button:hover { filter: brightness(1.15); }
 </style>
 </head>
 <body>
@@ -120,6 +130,7 @@ async function refresh() {
           <td class="actions">
             ${s.state === 'running' ? `<button data-act="pause" data-id="${s.id}">Pause</button>` : ''}
             ${s.state === 'paused' ? `<button data-act="resume" data-id="${s.id}">Resume</button>` : ''}
+            ${s.kind === 'vm' && (s.state === 'running' || s.state === 'paused') ? `<button data-act="recovery" data-id="${s.id}">Recovery SSH</button>` : ''}
             <button class="danger" data-act="delete" data-id="${s.id}">Delete</button>
           </td>
         </tr>`;
@@ -153,9 +164,15 @@ document.addEventListener('click', async e => {
     if (act === 'delete' && !confirm('Delete sandbox ' + id.slice(0,8) + '?')) return;
     btn.disabled = true;
     try {
-      if (act === 'pause')  await api(`/admin/api/sandbox/${id}/pause`,  { method: 'POST' });
-      if (act === 'resume') await api(`/admin/api/sandbox/${id}/resume`, { method: 'POST' });
-      if (act === 'delete') await api(`/admin/api/sandbox/${id}`,        { method: 'DELETE' });
+      if (act === 'pause')    await api(`/admin/api/sandbox/${id}/pause`,  { method: 'POST' });
+      if (act === 'resume')   await api(`/admin/api/sandbox/${id}/resume`, { method: 'POST' });
+      if (act === 'delete')   await api(`/admin/api/sandbox/${id}`,        { method: 'DELETE' });
+      if (act === 'recovery') {
+        const r = await api(`/admin/api/sandbox/${id}/recovery-script`, { method: 'POST' });
+        showRecoveryModal(id, r);
+        btn.disabled = false;
+        return;
+      }
       await refresh();
     } catch (err) {
       alert(err.message);
@@ -245,6 +262,41 @@ function reopenLogs() {
     if (row) expandLogs(row);
     else openLogIds.delete(id);
   }
+}
+
+function showRecoveryModal(id, r) {
+  const bg = document.createElement('div');
+  bg.className = 'modal-bg';
+  bg.innerHTML = `
+    <div class="modal" onclick="event.stopPropagation()">
+      <h3>Recovery SSH — sandbox ${id.slice(0,8)}…</h3>
+      <div class="warn">⚠ This script grants root-equivalent access (passwordless sudo) inside the VM. Cert valid for ${r.ttl_secs}s. Run on the sandbox-manager host.</div>
+      <div class="meta">principal: ${r.principal}</div>
+      <pre id="rec-script"></pre>
+      <div class="row">
+        <button data-rec-copy>Copy script</button>
+        <button data-rec-download class="secondary">Download .sh</button>
+        <button data-rec-close class="secondary">Close</button>
+      </div>
+    </div>`;
+  bg.addEventListener('click', () => bg.remove());
+  bg.querySelector('#rec-script').textContent = r.script;
+  bg.querySelector('[data-rec-copy]').addEventListener('click', e => {
+    navigator.clipboard.writeText(r.script).then(() => {
+      e.target.textContent = 'Copied!';
+      setTimeout(() => e.target.textContent = 'Copy script', 900);
+    });
+  });
+  bg.querySelector('[data-rec-download]').addEventListener('click', () => {
+    const blob = new Blob([r.script], { type: 'text/x-shellscript' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `recovery-${id.slice(0,8)}.sh`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  });
+  bg.querySelector('[data-rec-close]').addEventListener('click', () => bg.remove());
+  document.body.appendChild(bg);
 }
 
 $('#refresh').addEventListener('click', refresh);

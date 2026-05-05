@@ -11,6 +11,7 @@ axum = { version = "0.7", features = ["ws"] }
 tokio = { version = "1", features = ["full"] }
 tower = "0.4"
 tower-http = { version = "0.5", features = ["cors", "trace"] }
+chrono = { version = "0.4", default-features = false, features = ["std"] }
 
 # KVM/VM management
 kvm-ioctls = "0.16"
@@ -41,6 +42,22 @@ futures = "0.3"
 snow = "0.9"
 async-trait = "0.1"
 reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
+
+# SSH user-cert signing for the recovery channel. `ed25519` keeps cert
+# size small + signing fast; no extra C deps.
+ssh-key = { version = "0.6", features = ["ed25519", "rand_core", "std"] }
+rand = "0.8"
+
+[[bin]]
+name = "sandbox-manager"
+path = "src/main.rs"
+
+# ProxyCommand helper used by `ssh -o ProxyCommand="fc-vsock-proxy <uds> <port>"`.
+# Bridges stdin/stdout to a Firecracker vsock UDS after sending the CONNECT
+# handshake. Tiny, no async runtime needed.
+[[bin]]
+name = "fc-vsock-proxy"
+path = "src/bin/fc_vsock_proxy.rs"
 
 [dev-dependencies]
 tokio-test = "0.4"

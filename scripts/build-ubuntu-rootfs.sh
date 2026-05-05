@@ -201,6 +201,26 @@ if [ -n "$ENROLL_TOKEN" ] && [ "$ENROLL_TOKEN" != "null" ]; then
         || echo "[init] bridge login failed (will try saved creds)" >&2
 fi
 
+# --- Recovery SSH (vsock) bring-up ----------------------------------------
+# Lock this VM's recovery principal to its sandbox id. A cert minted for a
+# different sandbox is signed by the same CA but will fail principal check.
+if [ -n "$SANDBOX_ID" ] && [ "$SANDBOX_ID" != "null" ]; then
+    mkdir -p /etc/ssh/auth_principals
+    printf 'recovery:%s\n' "$SANDBOX_ID" > /etc/ssh/auth_principals/recovery
+    chmod 0644 /etc/ssh/auth_principals/recovery
+fi
+# First-boot host keys (rootfs is per-VM, so these are unique per sandbox).
+if [ ! -f /etc/ssh/ssh_host_ed25519_key ]; then
+    ssh-keygen -A >/dev/null 2>&1 || echo "[init] ssh-keygen -A failed" >&2
+fi
+mkdir -p /run/sshd /var/run/sshd
+# Start sshd on loopback only (ListenAddress 127.0.0.1 in 10-recovery.conf).
+/usr/sbin/sshd 2>/dev/null && echo "[init] sshd started (recovery channel)" || \
+    echo "[init] sshd failed to start" >&2
+# Bridge vsock port 22 → loopback sshd. Background; logs to console.
+/usr/local/bin/recovery-vsock-bridge </dev/null >/dev/console 2>&1 &
+echo "[init] vsock recovery bridge started (pid=$!)"
+
 echo "[init] Starting bridge..."
 exec /usr/local/bin/bridge
 
@@ -223,6 +243,68 @@ echo "nameserver 8.8.8.8" > "$ROOTFS_DIR/etc/resolv.conf"
 # Sandbox marker — bridge identity.c reads this to self-classify as DeviceType.SANDBOX
 # instead of PC at enroll time. Avoids ever passing --device-type from outside.
 touch "$ROOTFS_DIR/etc/todoforai-sandbox"
+
+# --- Recovery SSH channel (vsock) ----------------------------------------
+# Bake the platform recovery CA pubkey into every rootfs as the trust anchor
+# for /etc/ssh/recovery_ca.pub. Source of truth: live manager (preferred) or
+# the local CA file. RECOVERY_CA_PUB env can override (e.g. CI).
+RECOVERY_CA_PUB_FILE="$ROOTFS_DIR/etc/ssh/recovery_ca.pub"
+mkdir -p "$ROOTFS_DIR/etc/ssh"
+if [ -n "${RECOVERY_CA_PUB:-}" ]; then
+    printf '%s\n' "$RECOVERY_CA_PUB" > "$RECOVERY_CA_PUB_FILE"
+elif [ -n "${RECOVERY_CA_URL:-}" ]; then
+    curl -fsSL "$RECOVERY_CA_URL" -o "$RECOVERY_CA_PUB_FILE"
+elif [ -r "${RECOVERY_CA_PATH:-${HOME:-/root}/sandbox-data/recovery_ca}" ]; then
+    # Extract just the public key from the OpenSSH private key file via ssh-keygen.
+    ssh-keygen -y -f "${RECOVERY_CA_PATH:-${HOME:-/root}/sandbox-data/recovery_ca}" \
+        > "$RECOVERY_CA_PUB_FILE"
+else
+    echo "WARN: no recovery CA pubkey source — recovery SSH will reject all certs." >&2
+    : > "$RECOVERY_CA_PUB_FILE"
+fi
+chmod 0644 "$RECOVERY_CA_PUB_FILE"
+echo "Recovery CA pubkey: $(cat "$RECOVERY_CA_PUB_FILE" 2>/dev/null | head -c 60)..."
+
+# Drop-in sshd config: trust the recovery CA only for the `recovery` user,
+# and only for cert principals listed in /etc/ssh/auth_principals/recovery
+# (rendered at boot from MMDS sandbox_id — locks each cert to one sandbox).
+mkdir -p "$ROOTFS_DIR/etc/ssh/sshd_config.d"
+cat > "$ROOTFS_DIR/etc/ssh/sshd_config.d/10-recovery.conf" << 'SSHD_EOF'
+# Recovery channel — vsock-only access via the platform CA.
+# sshd itself listens on loopback; socat bridges vsock:22 -> 127.0.0.1:22.
+ListenAddress 127.0.0.1
+PasswordAuthentication no
+PermitRootLogin no
+PubkeyAuthentication yes
+LogLevel VERBOSE
+
+# CA trust is scoped to the `recovery` user only — even though only that user
+# has an auth_principals file, this makes the policy explicit (defense in
+# depth against a future image change).
+Match User recovery
+    TrustedUserCAKeys /etc/ssh/recovery_ca.pub
+    AuthorizedPrincipalsFile /etc/ssh/auth_principals/%u
+SSHD_EOF
+
+# Recovery user. Sudo is intentional — this is a *recovery* identity, root-equiv.
+# Login is gated by an SSH cert with a sandbox-scoped principal and a TTL of
+# minutes, signed only by the platform CA. No password, no static keys.
+mkdir -p "$ROOTFS_DIR/etc/ssh/auth_principals"
+# Boot-time /init rewrites this to `recovery:<sandbox-id>` so a cert minted
+# for sandbox A is rejected by sandbox B even though both trust the same CA.
+echo "recovery:UNCONFIGURED" > "$ROOTFS_DIR/etc/ssh/auth_principals/recovery"
+chmod 0644 "$ROOTFS_DIR/etc/ssh/auth_principals/recovery"
+
+# vsock<->loopback bridge runs at boot. systemd-free init: invoked from /init.
+cat > "$ROOTFS_DIR/usr/local/bin/recovery-vsock-bridge" << 'BRIDGE_EOF'
+#!/bin/sh
+# Bridge Firecracker vsock port 22 to local sshd. Loops forever; socat exits
+# per-connection with `fork`, so the outer loop only matters if socat itself
+# crashes. Keep stderr → console for first-boot diagnosis.
+set -eu
+exec socat -d VSOCK-LISTEN:22,fork,reuseaddr TCP:127.0.0.1:22
+BRIDGE_EOF
+chmod +x "$ROOTFS_DIR/usr/local/bin/recovery-vsock-bridge"
 
 # Install packages in chroot
 echo "Installing packages in chroot..."
@@ -247,12 +329,23 @@ chroot "$ROOTFS_DIR" /bin/bash -c "
     apt-get update
     apt-get install -y --no-install-recommends $PACKAGES
 
+    # Recovery user: shell-able, sudo-NOPASSWD, no password, no authorized_keys.
+    # Authentication is exclusively via SSH cert signed by the platform CA
+    # (TrustedUserCAKeys + AuthorizedPrincipalsFile in 10-recovery.conf).
+    if ! id recovery >/dev/null 2>&1; then
+        useradd -m -s /bin/bash -c 'platform recovery' recovery
+        passwd -l recovery >/dev/null
+        # Sudo: emergency repair has to be root-equivalent to be useful.
+        echo 'recovery ALL=(ALL) NOPASSWD:ALL' > /etc/sudoers.d/recovery-nopw
+        chmod 0440 /etc/sudoers.d/recovery-nopw
+    fi
+
     # Verify critical tooling is installed and runnable.
     # \`set -e\` above means any failure here aborts the whole build.
     # Only check what's in ubuntu-base.packages — anything heavier installs
     # on-demand inside the sandbox per the package list's stated philosophy.
     echo '--- verification ---'
-    command -v bash curl wget jq ip ssh >/dev/null
+    command -v bash curl wget jq ip ssh socat sudo >/dev/null
     echo '--- verification OK ---'
 
     # Generate tool manifest — human-readable list and JSON metadata.
@@ -330,6 +423,10 @@ mount -o loop,ro "$OUTPUT" "$VERIFY_MNT"
 trap 'umount "$VERIFY_MNT" 2>/dev/null || true; rmdir "$VERIFY_MNT" 2>/dev/null || true' EXIT
 for bin in /usr/bin/bash /usr/bin/curl /usr/bin/wget /usr/bin/jq \
            /usr/local/bin/bridge /usr/local/bin/sandbox-tools \
+           /usr/local/bin/recovery-vsock-bridge \
+           /usr/sbin/sshd /usr/bin/socat /usr/bin/sudo \
+           /etc/ssh/recovery_ca.pub /etc/ssh/sshd_config.d/10-recovery.conf \
+           /etc/ssh/auth_principals/recovery \
            /etc/sandbox-tools.txt /etc/sandbox-manifest.json /init; do
     if [ ! -e "$VERIFY_MNT$bin" ]; then
         echo "FAIL: $bin missing from image" >&2

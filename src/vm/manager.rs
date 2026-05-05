@@ -1,17 +1,21 @@
-//! VM Manager — orchestrates VM lifecycle using Firecracker processes.
+//! VM Manager — thin orchestration layer over Firecracker.
+//!
+//! VMs are spawned detached (`setsid`) and reparented to PID 1; the manager
+//! never owns their `Child` handle. All control happens via API socket on
+//! disk. Manager restart, crash, or redeploy leaves running VMs untouched —
+//! `reconcile_on_startup` re-attaches them by pid + socket lookup.
 //!
 //! State split:
-//! - Redis (`sandbox:*`): sandbox inventory. Source of truth.
-//! - In-memory `vms` DashMap: `FirecrackerVm` process handles (non-serializable).
+//! - Redis (`sandbox:*`): sandbox inventory. Source of truth, includes pid.
+//! - In-memory `vms` DashMap: lightweight [`FirecrackerVm`] handles
+//!   (pid + socket path), rebuilt on startup from Redis.
 //! - In-memory `boot_configs`: static template registry, loaded at startup.
 
 use anyhow::{Context, Result};
 use dashmap::DashMap;
-use std::sync::Arc;
-use tokio::sync::RwLock;
 
 use super::config::{ManagerConfig, TemplateConfig};
-use super::firecracker::{BootConfig, FirecrackerLauncher, FirecrackerVm};
+use super::firecracker::{read_proc_starttime, BootConfig, FirecrackerLauncher, FirecrackerVm};
 use super::lite::{ExecOutput, LiteBackend, LiteTemplate};
 use super::network::NetworkManager;
 use super::sandbox::{Sandbox, SandboxKind, SandboxState, SandboxStats};
@@ -26,8 +30,9 @@ pub struct VmManager {
     launcher: FirecrackerLauncher,
     network: NetworkManager,
     redis: RedisClient,
-    /// Running Firecracker process handles (not in Redis — non-serializable)
-    vms: DashMap<String, Arc<RwLock<FirecrackerVm>>>,
+    /// Live VM handles. Each is just `{pid, socket_path}` — cheap to construct,
+    /// no kernel resources. Rebuilt from Redis on startup via re-attach.
+    vms: DashMap<String, FirecrackerVm>,
     /// Static Firecracker template registry
     boot_configs: DashMap<String, BootConfig>,
     /// Lite (bwrap) backend + its templates
@@ -40,13 +45,19 @@ impl VmManager {
         self.config.overlays_dir.join("runtime")
     }
 
+    /// Host UDS that maps to the VM's virtio-vsock device. Used by clients
+    /// (SSH ProxyCommand `fc-vsock-proxy`) to reach guest vsock ports.
+    pub fn vsock_path_for(&self, id: &str) -> std::path::PathBuf {
+        self.launcher.vsock_path_for(id)
+    }
+
     pub async fn new(config: ManagerConfig, redis: RedisClient) -> Result<Self> {
         let runtime_dir = config.overlays_dir.join("runtime");
         let launcher = FirecrackerLauncher::new(runtime_dir)
             .context("Firecracker launcher init failed (need /dev/kvm + firecracker binary)")?;
         tracing::info!("Firecracker launcher initialized");
 
-        let network = NetworkManager::new(&config.bridge_name, &config.network_subnet)?;
+        let network = NetworkManager::new(&config.bridge_name, &config.network_subnet, redis.clone())?;
         network.init_bridge()
             .context("bridge init failed — is sandbox-bridge.service running? (sudo systemctl status sandbox-bridge)")?;
 
@@ -93,42 +104,185 @@ impl VmManager {
         Ok(manager)
     }
 
-    /// On startup, every active *VM* sandbox is orphaned (we lost the
-    /// Firecracker process handle) — mark those Error. Lite sandboxes
-    /// have no process to lose; their state lives entirely in Redis +
-    /// a scratch dir on disk, so they survive restart untouched.
+    /// On startup, re-attach to every still-running Firecracker. Because VMs
+    /// are spawned detached (`setsid` + dropped Child), they survive manager
+    /// restarts. Re-attach requires:
+    ///   1. `pid` + `pid_starttime` recorded in Redis
+    ///   2. `/proc/<pid>/stat` start_time still matches (defends vs PID reuse)
+    ///   3. the API socket responds to a probe request (defends vs stale
+    ///      socket file from a crashed FC whose pid was reused)
+    /// Anything else → Error + tear down TAP/IP claim.
     async fn reconcile_on_startup(&self) -> Result<()> {
         let ids = self.redis.sandbox_active_ids().await?;
         if ids.is_empty() { return Ok(()) }
 
-        let (mut orphaned, mut preserved) = (0, 0);
+        let (mut reattached, mut dead, mut lite) = (0, 0, 0);
         for id in &ids {
             let sandbox = match self.redis.sandbox_get(id).await {
                 Ok(Some(s)) => s,
                 Ok(None) => continue,
                 Err(e) => { tracing::warn!("reconcile: get {} failed: {}", id, e); continue; }
             };
-            if sandbox.kind == SandboxKind::Lite { preserved += 1; continue; }
-            // VM sandbox: previous firecracker is gone (we lost the Child handle on
-            // restart). Destroy its persistent TAP so it doesn't accumulate on the
-            // bridge across restarts.
+            if sandbox.kind == SandboxKind::Lite { lite += 1; continue; }
+
+            let socket_path = self.launcher.socket_path_for(id);
+            // Old records (pre-pid_starttime) have only `pid`. Backfill from
+            // /proc on first encounter — safe because we additionally require
+            // the API socket health probe below to confirm it's actually the
+            // Firecracker we expect, not just any process that inherited the
+            // pid. Backfilled value is persisted only if reattach succeeds.
+            let vm = match (sandbox.pid, sandbox.pid_starttime) {
+                (Some(pid), Some(st)) => FirecrackerVm::attach(pid, st, socket_path.clone()),
+                (Some(pid), None) => {
+                    read_proc_starttime(pid).and_then(|st| {
+                        FirecrackerVm::attach(pid, st, socket_path.clone())
+                    })
+                }
+                _ => None,
+            };
+            // A live attach also requires the API socket to actually answer
+            // — a `GET /` round-trip catches stale socket files / wedged FCs.
+            // Tight timeout: at startup we want to make a verdict in ms, not
+            // wait 2s per orphaned VM.
+            let healthy = if let Some(ref v) = vm {
+                v.is_alive()
+                    && v.api_request_with_timeout("GET", "/", None, std::time::Duration::from_millis(500))
+                        .await.is_ok()
+            } else { false };
+
+            if let (Some(vm), true) = (vm, healthy) {
+                // Re-assert the IP claim only if it's free OR already ours.
+                // If a different sandbox owns it, log loudly — there's no
+                // safe automatic recovery.
+                if let Some(ip) = sandbox.ip_address {
+                    self.reassert_ip_claim(ip, id).await;
+                }
+                // Backfill pid_starttime in Redis if it was missing on an old
+                // record. Future reattaches/deletes can then trust it without
+                // re-reading /proc.
+                if sandbox.pid_starttime != Some(vm.starttime()) {
+                    let mut updated = sandbox.clone();
+                    updated.pid_starttime = Some(vm.starttime());
+                    if let Err(e) = self.redis.sandbox_put(&updated).await {
+                        tracing::warn!("reconcile: failed to backfill pid_starttime for {}: {}", id, e);
+                    }
+                }
+                self.vms.insert(id.clone(), vm);
+                reattached += 1;
+                continue;
+            }
+
+            // Process is gone (or pid reused, or socket dead). Tear down
+            // network slot and mark Error so the owner can delete + recreate.
             if let Some(ref tap) = sandbox.tap_device {
                 if let Err(ce) = self.network.destroy_tap(tap) {
                     tracing::warn!("reconcile: destroy_tap({}) failed: {:#}", tap, ce);
                 }
             }
+            if let Some(ip) = sandbox.ip_address {
+                self.release_ip_if_owner(ip, id).await;
+            }
+            // Stale socket file from a crashed FC.
+            std::fs::remove_file(&socket_path).ok();
             if let Err(e) = self.redis.sandbox_set_state(
                 id,
                 SandboxState::Error,
-                Some("orphaned on sandbox-manager restart; delete to clean up"),
+                Some("Firecracker process gone (crashed or host rebooted)"),
             ).await {
                 tracing::warn!("reconcile: failed to mark {} as Error: {}", id, e);
                 continue;
             }
-            orphaned += 1;
+            dead += 1;
         }
-        tracing::info!("reconciled {} sandbox(es): {} VM marked Error, {} lite preserved", ids.len(), orphaned, preserved);
+        tracing::info!(
+            "reconciled {} sandbox(es): {} VM re-attached, {} VM dead → Error, {} lite preserved",
+            ids.len(), reattached, dead, lite,
+        );
+
+        // Sweep stale Creating records — sandboxes whose boot was interrupted
+        // (manager crash mid-create_sandbox). They sit outside `sandbox:active`
+        // so the loop above didn't see them. Because create_sandbox now
+        // checkpoints after each resource acquisition, the record's fields
+        // tell us exactly what to release: just feed it through the same
+        // teardown path as a normal delete. Then mark Error so the user knows.
+        let stale: Vec<_> = self.redis
+            .sandbox_list(None).await
+            .unwrap_or_default()
+            .into_iter()
+            .filter(|s| s.state == SandboxState::Creating && s.kind == SandboxKind::Vm)
+            .collect();
+        for sandbox in &stale {
+            tracing::warn!("reconcile: cleaning interrupted Creating sandbox {}", sandbox.id);
+            // Best-effort teardown of every resource the record knows about.
+            if let Some(ref tap) = sandbox.tap_device {
+                if let Err(e) = self.network.destroy_tap(tap) {
+                    tracing::warn!("reconcile: destroy_tap({}) failed: {:#}", tap, e);
+                }
+            }
+            if let Some(ip) = sandbox.ip_address {
+                self.release_ip_if_owner(ip, &sandbox.id).await;
+            }
+            if let Some(ref p) = sandbox.rootfs_overlay {
+                if let Some(dir) = p.parent() {
+                    tokio::fs::remove_dir_all(dir).await.ok();
+                }
+            }
+            // FC may or may not have spawned. If pid recorded, identity-check
+            // and SIGKILL via FirecrackerVm::attach (handles pid-reuse).
+            if let Some(pid) = sandbox.pid {
+                let st = sandbox.pid_starttime.or_else(|| read_proc_starttime(pid));
+                let socket = self.launcher.socket_path_for(&sandbox.id);
+                if let Some(vm) = st.and_then(|st| FirecrackerVm::attach(pid, st, socket.clone())) {
+                    vm.shutdown().await.ok();
+                } else {
+                    std::fs::remove_file(socket).ok();
+                }
+            }
+            self.redis.sandbox_set_state(
+                &sandbox.id,
+                SandboxState::Error,
+                Some("interrupted during creation; manager restarted"),
+            ).await.ok();
+        }
+        if !stale.is_empty() {
+            tracing::warn!("reconciled {} stale Creating sandbox(es) → Error", stale.len());
+        }
         Ok(())
+    }
+
+    /// Try to re-claim an IP for a sandbox we're reattaching. Three outcomes:
+    /// claim succeeded (Redis flush case), already ours (idempotent), or
+    /// owned by a different sandbox (data corruption — log loudly, leave the
+    /// reattached VM running but its IP unaccounted for in our pool so we
+    /// don't double-assign it elsewhere).
+    async fn reassert_ip_claim(&self, ip: std::net::Ipv4Addr, id: &str) {
+        match self.redis.ip_claim_owner(ip).await {
+            Ok(Some(owner)) if owner == id => {} // already ours
+            Ok(Some(other)) => tracing::error!(
+                "reconcile: sandbox {} expects IP {} but Redis says owner is {}; leaving as-is",
+                id, ip, other,
+            ),
+            Ok(None) => match self.redis.ip_claim(ip, id).await {
+                Ok(true) => {}
+                Ok(false) => {
+                    let now_owner = self.redis.ip_claim_owner(ip).await.ok().flatten();
+                    tracing::error!(
+                        "reconcile: lost race re-claiming IP {} for sandbox {}; current owner={:?}",
+                        ip, id, now_owner,
+                    );
+                }
+                Err(e) => tracing::warn!("reconcile: ip_claim({}, {}) failed: {:#}", ip, id, e),
+            },
+            Err(e) => tracing::warn!("reconcile: ip_claim_owner({}) failed: {:#}", ip, e),
+        }
+    }
+
+    /// Owner-checked IP release. Refuses to delete a claim that's been
+    /// reassigned to a different sandbox in the meantime.
+    async fn release_ip_if_owner(&self, ip: std::net::Ipv4Addr, id: &str) {
+        if let Err(e) = self.redis.ip_release_if_owner(ip, id).await {
+            tracing::warn!("ip_release_if_owner({}, {}): {:#}", ip, id, e);
+        }
     }
 
     pub async fn create_sandbox(
@@ -185,11 +339,20 @@ impl VmManager {
 
         // From here on, any error must mark the sandbox Error so we don't
         // leak a Creating record.
-        let network = match self.network.allocate(&sandbox.id) {
+        //
+        // Persist after each irreversible resource acquisition. Without
+        // these checkpoints, a manager crash mid-create leaves a Creating
+        // record with no allocated-resource fields → user can't `delete` to
+        // clean up because `delete_sandbox` reads those fields to know what
+        // to release. Cost is 3 extra Redis writes per create — invisible
+        // at our request rate.
+        let network = match self.network.allocate(&sandbox.id).await {
             Ok(n) => n,
             Err(e) => { self.fail_sandbox(&mut sandbox, format!("network allocate: {e:#}")).await; return Ok(sandbox); }
         };
         sandbox.ip_address = Some(network.guest_ip);
+        self.redis.sandbox_put(&sandbox).await.ok(); // checkpoint: ip claimed
+
         if let Err(e) = self.network.create_tap(&network) {
             // create_tap is transactional: it has already rolled back any persistent TAP.
             // Don't set tap_device, so fail_sandbox won't try to destroy it again.
@@ -197,6 +360,7 @@ impl VmManager {
             return Ok(sandbox);
         }
         sandbox.tap_device = Some(network.tap_name.clone());
+        self.redis.sandbox_put(&sandbox).await.ok(); // checkpoint: tap created
 
         let template_boot = self.boot_configs.get(&template_name)
             .map(|c| c.clone()).unwrap_or_default();
@@ -231,6 +395,7 @@ impl VmManager {
             }
         }
         sandbox.rootfs_overlay = Some(overlay_rootfs.clone());
+        self.redis.sandbox_put(&sandbox).await.ok(); // checkpoint: rootfs cloned
 
         let boot_config = BootConfig { rootfs_path: overlay_rootfs, ..template_boot };
         let start = std::time::Instant::now();
@@ -239,8 +404,9 @@ impl VmManager {
             Ok(vm) => {
                 tracing::info!("Booted VM {} in {:?} (size: {:?})", sandbox.id, start.elapsed(), vm_size);
                 sandbox.pid = Some(vm.pid());
+                sandbox.pid_starttime = Some(vm.starttime());
                 sandbox.state = SandboxState::Running;
-                self.vms.insert(sandbox.id.clone(), Arc::new(RwLock::new(vm)));
+                self.vms.insert(sandbox.id.clone(), vm);
             }
             Err(e) => {
                 tracing::error!("Failed to boot VM {}: {}", sandbox.id, e);
@@ -250,6 +416,9 @@ impl VmManager {
                     if let Err(ce) = self.network.destroy_tap(tap) {
                         tracing::warn!("destroy_tap({}) failed: {:#}", tap, ce);
                     }
+                }
+                if let Some(ip) = sandbox.ip_address {
+                    self.network.release_ip(ip, &sandbox.id).await.ok();
                 }
             }
         }
@@ -270,6 +439,9 @@ impl VmManager {
             if let Err(ce) = self.network.destroy_tap(tap) {
                 tracing::warn!("destroy_tap({}) failed: {:#}", tap, ce);
             }
+        }
+        if let Some(ip) = sandbox.ip_address {
+            self.network.release_ip(ip, &sandbox.id).await.ok();
         }
         if let Some(ref p) = sandbox.rootfs_overlay {
             if let Some(dir) = p.parent() {
@@ -298,19 +470,41 @@ impl VmManager {
             return Ok(());
         }
 
-        // Kill VM process if we have its handle
+        // Stop the VM. Prefer the in-memory handle (already pid-starttime
+        // verified). If we don't have one, only SIGKILL if the recorded
+        // (pid, starttime) still matches /proc — otherwise we'd be killing
+        // an unrelated process that inherited the pid.
         if let Some((_, vm)) = self.vms.remove(id) {
-            let mut vm = vm.write().await;
-            vm.kill().ok();
+            if let Err(e) = vm.shutdown().await {
+                tracing::warn!("shutdown({}) failed: {:#}", id, e);
+            }
         } else if let Some(pid) = sandbox.pid {
-            // Orphaned from a previous run — best-effort SIGKILL
-            unsafe { libc::kill(pid as i32, libc::SIGKILL); }
+            // Same backfill rule as reconcile: if the record is pre-starttime,
+            // read it from /proc and use that. PID-reuse risk is bounded —
+            // we'd need a fresh process to (a) inherit this exact pid AND
+            // (b) be running between manager startup and this delete call.
+            let starttime = sandbox.pid_starttime.or_else(|| read_proc_starttime(pid));
+            let socket = self.launcher.socket_path_for(id);
+            match starttime.and_then(|st| FirecrackerVm::attach(pid, st, socket.clone())) {
+                Some(vm) => {
+                    if let Err(e) = vm.shutdown().await {
+                        tracing::warn!("shutdown({}) failed: {:#}", id, e);
+                    }
+                }
+                None => {
+                    tracing::info!("delete: pid {} for sandbox {} no longer alive; nothing to kill", pid, id);
+                    std::fs::remove_file(socket).ok();
+                }
+            }
         }
 
         if let Some(tap) = sandbox.tap_device {
             if let Err(ce) = self.network.destroy_tap(&tap) {
                 tracing::warn!("destroy_tap({}) failed: {:#}", tap, ce);
             }
+        }
+        if let Some(ip) = sandbox.ip_address {
+            self.network.release_ip(ip, &sandbox.id).await.ok();
         }
 
         if let Some(p) = sandbox.rootfs_overlay {
@@ -354,9 +548,9 @@ impl VmManager {
         if sandbox.state != SandboxState::Running {
             anyhow::bail!("Sandbox is not running");
         }
-        let vm_ref = self.vms.get(id)
-            .context("VM process handle lost (orphaned); delete and recreate")?;
-        vm_ref.read().await.pause().await?;
+        let vm = self.vms.get(id)
+            .context("VM process handle lost (process gone); delete and recreate")?;
+        vm.pause().await?;
         self.redis.sandbox_set_state(id, SandboxState::Paused, None).await?;
         tracing::info!("Paused sandbox {}", id);
         Ok(())
@@ -371,9 +565,9 @@ impl VmManager {
         if sandbox.state != SandboxState::Paused {
             anyhow::bail!("Sandbox is not paused");
         }
-        let vm_ref = self.vms.get(id)
-            .context("VM process handle lost (orphaned); delete and recreate")?;
-        vm_ref.read().await.resume().await?;
+        let vm = self.vms.get(id)
+            .context("VM process handle lost (process gone); delete and recreate")?;
+        vm.resume().await?;
         self.redis.sandbox_set_state(id, SandboxState::Running, None).await?;
         tracing::info!("Resumed sandbox {}", id);
         Ok(())
@@ -387,9 +581,9 @@ impl VmManager {
         if sandbox.kind == SandboxKind::Lite {
             anyhow::bail!("balloon is not supported on lite sandboxes");
         }
-        let vm_ref = self.vms.get(id)
-            .context("VM process handle lost (orphaned); delete and recreate")?;
-        vm_ref.read().await.balloon_set(target_mib).await?;
+        let vm = self.vms.get(id)
+            .context("VM process handle lost (process gone); delete and recreate")?;
+        vm.balloon_set(target_mib).await?;
         tracing::info!("Ballooned sandbox {} to {} MiB", id, target_mib);
         Ok(())
     }

@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use crate::service::errors::ErrorCode;
-use crate::service::types::CreateSandboxRequest;
+use crate::service::types::{CreateSandboxRequest, CreateTemplateRequest};
 
 #[derive(Debug, Deserialize)]
 pub struct NoiseRequest {
@@ -42,14 +42,13 @@ pub struct ListPayload {
     pub user_id: Option<String>,
 }
 
+/// Noise variant carries `name` in the body since the wire protocol has no
+/// path component. Delegates everything else to the shared shape.
 #[derive(Debug, Deserialize)]
-pub struct CreateTemplateRequest {
+pub struct CreateTemplatePayload {
     pub name: String,
-    pub kernel_path: String,
-    pub rootfs_path: String,
-    pub boot_args: Option<String>,
-    pub description: Option<String>,
-    pub packages: Option<Vec<String>>,
+    #[serde(flatten)]
+    pub config: CreateTemplateRequest,
 }
 
 pub fn ok<T: Serialize>(id: String, result: T) -> NoiseResponse {

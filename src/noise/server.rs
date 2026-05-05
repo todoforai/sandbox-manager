@@ -6,10 +6,9 @@ use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::{TcpListener, TcpStream};
 
 use crate::auth::{authenticate, AuthIdentity};
-use crate::noise::protocol::{self, CreateSandboxPayload, CreateTemplateRequest, IdPayload, ListPayload, NoiseRequest};
+use crate::noise::protocol::{self, CreateSandboxPayload, CreateTemplatePayload, IdPayload, ListPayload, NoiseRequest};
 use crate::service::errors::ErrorCode;
 use crate::service::SandboxService;
-use crate::vm::config::TemplateConfig;
 
 const MAX_FRAME: usize = 1024 * 1024;
 const NOISE_PATTERN: &str = "Noise_NX_25519_ChaChaPoly_BLAKE2b";
@@ -128,18 +127,11 @@ async fn dispatch(service: &SandboxService, req: NoiseRequest) -> protocol::Nois
             if !identity.is_admin() {
                 return err(req.id, ErrorCode::Forbidden, "admin role required");
             }
-            match parse::<CreateTemplateRequest>(req.payload) {
+            match parse::<CreateTemplatePayload>(req.payload) {
                 Ok(payload) => {
-                    let config = TemplateConfig {
-                        name: payload.name.clone(),
-                        kernel_path: payload.kernel_path.into(),
-                        rootfs_path: payload.rootfs_path.into(),
-                        boot_args: payload.boot_args.unwrap_or_else(|| "console=ttyS0 reboot=k panic=1 pci=off root=/dev/vda rw init=/sbin/init".into()),
-                        description: payload.description.unwrap_or_default(),
-                        packages: payload.packages.unwrap_or_default(),
-                        ..Default::default()
-                    };
-                    match service.load_template(&payload.name, &config).await {
+                    let name = payload.name.clone();
+                    let config = payload.config.into_config(name.clone());
+                    match service.load_template(&name, &config).await {
                         Ok(()) => ok(req.id, json!({ "created": true })),
                         Err(e) => err(req.id, ErrorCode::Internal, e.to_string()),
                     }
@@ -232,13 +224,8 @@ fn decode_hex(s: &str) -> Result<Vec<u8>> {
         .collect()
 }
 
-#[allow(dead_code)]
-fn generate_keypair() -> Result<Keypair> {
-    let params: NoiseParams = NOISE_PATTERN.parse()?;
-    Ok(Builder::new(params).generate_keypair()?)
-}
-
 /// Public entrypoint used by the `keygen` subcommand.
 pub fn generate_static_keypair() -> Result<Keypair> {
-    generate_keypair()
+    let params: NoiseParams = NOISE_PATTERN.parse()?;
+    Ok(Builder::new(params).generate_keypair()?)
 }

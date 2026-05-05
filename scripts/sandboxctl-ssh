@@ -1,0 +1,59 @@
+#!/usr/bin/env bash
+# sandboxctl-ssh — SSH into a sandbox over the vsock recovery channel.
+#
+# Usage:
+#   sandboxctl-ssh <sandbox-id> [-- <ssh args>]
+#
+# Env:
+#   SANDBOX_MANAGER_URL   default http://127.0.0.1:9000
+#   SANDBOX_MANAGER_TOKEN required — Bearer token that owns the sandbox
+#   FC_VSOCK_PROXY        default fc-vsock-proxy (must be in PATH)
+#
+# Flow:
+#   1. Generate an ephemeral ed25519 keypair in $TMPDIR.
+#   2. POST /sandbox/<id>/recovery-cert with the pubkey → get cert + uds path.
+#   3. Run ssh with ProxyCommand=fc-vsock-proxy, the cert, and the ephemeral key.
+#   4. On exit, wipe the tmpdir.
+set -euo pipefail
+
+if [ $# -lt 1 ]; then
+    echo "usage: $0 <sandbox-id> [-- <ssh args>]" >&2
+    exit 2
+fi
+SBX="$1"; shift
+[ "${1:-}" = "--" ] && shift
+
+: "${SANDBOX_MANAGER_URL:=http://127.0.0.1:9000}"
+: "${SANDBOX_MANAGER_TOKEN:?SANDBOX_MANAGER_TOKEN env required}"
+: "${FC_VSOCK_PROXY:=fc-vsock-proxy}"
+
+command -v "$FC_VSOCK_PROXY" >/dev/null || {
+    echo "fc-vsock-proxy not found in PATH (set FC_VSOCK_PROXY)" >&2; exit 1; }
+
+WORK="$(mktemp -d)"
+trap 'rm -rf "$WORK"' EXIT
+ssh-keygen -t ed25519 -N '' -f "$WORK/id" -C "recovery@$SBX" -q
+
+PUB="$(cat "$WORK/id.pub")"
+RESP="$(curl -fsS -X POST \
+    -H "Authorization: Bearer $SANDBOX_MANAGER_TOKEN" \
+    -H 'Content-Type: application/json' \
+    -d "$(jq -n --arg pk "$PUB" '{public_key:$pk}')" \
+    "$SANDBOX_MANAGER_URL/sandbox/$SBX/recovery-cert")"
+
+UDS="$(printf '%s' "$RESP" | jq -r '.vsock_uds_path')"
+PORT="$(printf '%s' "$RESP" | jq -r '.vsock_port')"
+printf '%s' "$RESP" | jq -r '.cert' > "$WORK/id-cert.pub"
+
+# Run ssh. UserKnownHostsFile=/dev/null + StrictHostKeyChecking=accept-new is
+# the pragmatic choice for ephemeral per-VM hostkeys; first connect is TOFU.
+# A future iteration should sign host keys with a host CA and pin via
+# `@cert-authority` in known_hosts. Tracking issue: TODO.
+exec ssh \
+    -i "$WORK/id" \
+    -o "CertificateFile=$WORK/id-cert.pub" \
+    -o "ProxyCommand=$FC_VSOCK_PROXY $UDS $PORT" \
+    -o "UserKnownHostsFile=/dev/null" \
+    -o "StrictHostKeyChecking=accept-new" \
+    -o "LogLevel=ERROR" \
+    recovery@sandbox "$@"

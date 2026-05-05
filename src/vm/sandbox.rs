@@ -67,6 +67,14 @@ pub struct Sandbox {
     /// Process ID of the Firecracker process
     pub pid: Option<u32>,
 
+    /// `/proc/<pid>/stat` start_time captured at spawn. Used together with
+    /// `pid` on manager restart to detect kernel PID reuse — without this,
+    /// we could re-attach to an unrelated process that happens to inherit
+    /// the same pid. Always set when `pid` is set; serde-defaulted to keep
+    /// old records readable.
+    #[serde(default)]
+    pub pid_starttime: Option<u64>,
+
     /// Creation timestamp (unix ms)
     pub created_at: u64,
 
@@ -100,6 +108,7 @@ impl Sandbox {
             ip_address: None,
             tap_device: None,
             pid: None,
+            pid_starttime: None,
             created_at: now,
             last_activity: now,
             error: None,
@@ -134,13 +143,6 @@ pub struct SandboxStats {
     pub total_memory_mb: u32,
     /// Total actual memory used (KB, CoW)
     pub actual_memory_kb: u64,
-}
-
-/// Per-sandbox runtime metrics — pulled on demand from Firecracker, not stored in inventory.
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct SandboxMetrics {
-    pub cpu_time_ms: u64,
-    pub peak_memory_kb: u64,
 }
 
 fn now_ms() -> u64 {

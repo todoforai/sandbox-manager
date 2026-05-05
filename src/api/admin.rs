@@ -20,6 +20,8 @@ use crate::service::types::{SandboxInfo, SandboxStats};
 use crate::service::SandboxService;
 use crate::vm::sandbox::SandboxKind;
 
+use std::process::Command;
+
 const LOG_TAIL_BYTES: u64 = 64 * 1024;
 
 fn root_admin() -> AuthIdentity {
@@ -101,6 +103,99 @@ async fn tail_file(path: &std::path::Path) -> Option<String> {
     let mut buf = Vec::with_capacity((len - start) as usize);
     f.read_to_end(&mut buf).await.ok()?;
     Some(String::from_utf8_lossy(&buf).into_owned())
+}
+
+/// One-shot recovery shell script. Generates an ephemeral keypair locally
+/// (via `ssh-keygen -t ed25519`), mints a sandbox-scoped SSH cert, and bakes
+/// everything into a self-contained bash script. The operator copies it from
+/// the admin UI and runs it on the manager host — no Bearer token needed.
+///
+/// Loopback admin only (mounted under `/admin/api/*`). The returned script
+/// contains a short-lived private key + cert (default 600s); treat the
+/// response like any other operator credential.
+#[derive(Serialize)]
+pub struct RecoveryScriptResponse {
+    pub script: String,
+    pub ttl_secs: u64,
+    pub principal: String,
+}
+
+pub async fn recovery_script(
+    State(service): State<SandboxService>,
+    Path(id): Path<String>,
+) -> Result<Json<RecoveryScriptResponse>, (StatusCode, String)> {
+    // Generate ephemeral ed25519 keypair using the system's ssh-keygen so the
+    // resulting `id` is in OpenSSH format that the host's ssh client expects.
+    // tempfile crate isn't a dep — use a process-unique path under /tmp.
+    let nonce = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_nanos())
+        .unwrap_or(0);
+    let key_path = std::env::temp_dir().join(format!("sm-recovery-{}-{nonce}", std::process::id()));
+    let _ = std::fs::remove_file(&key_path);
+    let _ = std::fs::remove_file(key_path.with_extension("pub"));
+
+    let st = Command::new("ssh-keygen")
+        .args(["-t", "ed25519", "-N", "", "-q", "-C", "recovery@admin", "-f"])
+        .arg(&key_path)
+        .status()
+        .map_err(|e| rest_error(ErrorCode::Internal, format!("ssh-keygen: {e}")))?;
+    if !st.success() {
+        return Err(rest_error(ErrorCode::Internal, "ssh-keygen failed".to_string()));
+    }
+    // Read both halves and immediately remove from disk — the script will
+    // recreate them in the operator's $TMPDIR with mode 0600.
+    let priv_pem = std::fs::read_to_string(&key_path)
+        .map_err(|e| rest_error(ErrorCode::Internal, format!("read priv: {e}")))?;
+    let pub_line = std::fs::read_to_string(key_path.with_extension("pub"))
+        .map_err(|e| rest_error(ErrorCode::Internal, format!("read pub: {e}")))?;
+    let _ = std::fs::remove_file(&key_path);
+    let _ = std::fs::remove_file(key_path.with_extension("pub"));
+
+    let resp = service
+        .issue_recovery_cert(&root_admin(), &id, &pub_line, None)
+        .await
+        .map_err(|e| rest_error(ErrorCode::BadRequest, e.to_string()))?;
+
+    // Heredoc-quoted with 'EOF' so $vars inside the keys aren't expanded.
+    let script = format!(
+        r#"#!/usr/bin/env bash
+# Recovery SSH for sandbox {id}
+# Cert principal: {principal}
+# Cert TTL: {ttl}s — re-generate from the admin panel after expiry.
+set -euo pipefail
+WORK="$(mktemp -d)"
+trap 'rm -rf "$WORK"' EXIT
+umask 077
+cat > "$WORK/id" <<'KEY_EOF'
+{priv}KEY_EOF
+cat > "$WORK/id-cert.pub" <<'CERT_EOF'
+{cert}
+CERT_EOF
+chmod 600 "$WORK/id" "$WORK/id-cert.pub"
+exec ssh \
+    -i "$WORK/id" \
+    -o "CertificateFile=$WORK/id-cert.pub" \
+    -o "ProxyCommand=fc-vsock-proxy {uds} {port}" \
+    -o "UserKnownHostsFile=/dev/null" \
+    -o "StrictHostKeyChecking=accept-new" \
+    -o "LogLevel=ERROR" \
+    recovery@sandbox "$@"
+"#,
+        id = id,
+        principal = resp.principal,
+        ttl = resp.ttl_secs,
+        priv = priv_pem,           // already ends with newline
+        cert = resp.cert.trim_end(),
+        uds = resp.vsock_uds_path,
+        port = resp.vsock_port,
+    );
+
+    Ok(Json(RecoveryScriptResponse {
+        script,
+        ttl_secs: resp.ttl_secs,
+        principal: resp.principal,
+    }))
 }
 
 pub async fn sandbox_logs(

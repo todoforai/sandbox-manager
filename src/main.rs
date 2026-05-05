@@ -2,6 +2,7 @@ mod api;      // REST adapter
 mod auth;     // token → AuthIdentity
 mod backend;  // HTTP client for todofor.ai admin endpoints
 mod noise;    // Noise/TCP adapter
+mod recovery; // SSH CA for recovery channel
 mod redis;    // Redis client (auth + billing)
 mod service;  // transport-agnostic sandbox service
 mod vm;
@@ -52,7 +53,31 @@ async fn main() -> Result<()> {
     let backend = backend::BackendClient::from_env()?;
     tracing::info!("Backend client configured");
 
-    let service = SandboxService::new(manager.clone(), redis, backend);
+    // Load (or generate) the SSH CA used for recovery-channel certs. Path is
+    // RECOVERY_CA_PATH (default $DATA_DIR/recovery_ca). Public key must be
+    // baked into rootfs as /etc/ssh/recovery_ca.pub.
+    let recovery_ca = std::sync::Arc::new(
+        recovery::RecoveryCa::load_or_init(&recovery::default_ca_path())?
+    );
+
+    let service = SandboxService::new(manager.clone(), redis, backend, recovery_ca);
+
+    // Background reaper. Firecracker VMs are spawned with `setsid` and
+    // dropped Child handles; while this manager is still alive, FCs that
+    // exit unexpectedly (crash, OOM, guest poweroff) become zombies because
+    // the kernel still considers us their parent. waitpid(-1, WNOHANG) in
+    // a loop reaps anything ready without blocking.
+    tokio::spawn(async move {
+        loop {
+            tokio::time::sleep(std::time::Duration::from_secs(5)).await;
+            loop {
+                let mut status = 0i32;
+                let pid = unsafe { libc::waitpid(-1, &mut status, libc::WNOHANG) };
+                if pid <= 0 { break; } // 0 = nothing ready, -1 = ECHILD
+                tracing::debug!("reaped child pid={} status={:#x}", pid, status);
+            }
+        }
+    });
 
     // No background idle cleanup. Lifecycle is fully user-driven:
     //   - VMs run until owner/admin explicitly deletes them. Never auto-paused.
@@ -78,6 +103,7 @@ async fn main() -> Result<()> {
         .route("/admin/api/sandbox/:id/pause", post(api::admin::pause_sandbox))
         .route("/admin/api/sandbox/:id/resume", post(api::admin::resume_sandbox))
         .route("/admin/api/sandbox/:id/logs", get(api::admin::sandbox_logs))
+        .route("/admin/api/sandbox/:id/recovery-script", post(api::admin::recovery_script))
         .route("/admin/api/stats", get(api::admin::stats))
 
         // Health & Stats
@@ -92,6 +118,8 @@ async fn main() -> Result<()> {
         .route("/sandbox/:id/resume", post(api::sandbox::resume_sandbox))
         .route("/sandbox/:id/balloon", post(api::sandbox::balloon_sandbox))
         .route("/sandbox/:id/exec", post(api::sandbox::exec_sandbox))
+        .route("/sandbox/:id/recovery-cert", post(api::sandbox::recovery_cert))
+        .route("/recovery-ca.pub", get(api::sandbox::recovery_ca_pub))
         
         // Templates
         .route("/templates", get(api::templates::list_templates))

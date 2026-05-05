@@ -1,9 +1,15 @@
 use serde::{Deserialize, Serialize};
 
+use crate::vm::config::TemplateConfig;
 use crate::vm::sandbox::{Sandbox, SandboxKind, SandboxState};
 use crate::vm::size::VmSize;
 
 pub use crate::vm::sandbox::SandboxStats;
+
+/// Default kernel cmdline for templates created via the API. Mirrors the
+/// auto-discovery default in `vm::manager::discover_templates`.
+pub const DEFAULT_BOOT_ARGS: &str =
+    "console=ttyS0 reboot=k panic=1 pci=off init=/init";
 
 #[derive(Debug, Deserialize)]
 pub struct CreateSandboxRequest {
@@ -15,6 +21,31 @@ pub struct CreateSandboxRequest {
     pub user_id: Option<String>,
 }
 
+/// Shared template-creation payload — used by both the REST and Noise adapters.
+/// `name` is taken from the request path / call args, not the body.
+#[derive(Debug, Deserialize)]
+pub struct CreateTemplateRequest {
+    pub kernel_path: String,
+    pub rootfs_path: String,
+    pub boot_args: Option<String>,
+    pub description: Option<String>,
+    pub packages: Option<Vec<String>>,
+}
+
+impl CreateTemplateRequest {
+    pub fn into_config(self, name: String) -> TemplateConfig {
+        TemplateConfig {
+            name,
+            kernel_path: self.kernel_path.into(),
+            rootfs_path: self.rootfs_path.into(),
+            boot_args: self.boot_args.unwrap_or_else(|| DEFAULT_BOOT_ARGS.into()),
+            description: self.description.unwrap_or_default(),
+            packages: self.packages.unwrap_or_default(),
+            ..Default::default()
+        }
+    }
+}
+
 #[derive(Debug, Serialize)]
 pub struct SandboxInfo {
     pub id: String,
@@ -24,7 +55,6 @@ pub struct SandboxInfo {
     pub size: VmSize,
     pub state: String,
     pub ip_address: Option<String>,
-    pub ws_url: String,
     pub cost_per_minute: f64,
     pub pid: Option<u32>,
     pub error: Option<String>,
@@ -35,7 +65,6 @@ pub struct SandboxInfo {
 impl From<Sandbox> for SandboxInfo {
     fn from(sandbox: Sandbox) -> Self {
         Self {
-            ws_url: format!("/sandbox/{}/tty", sandbox.id),
             cost_per_minute: sandbox.size.cost_per_minute(),
             ip_address: sandbox.ip_address.map(|ip| ip.to_string()),
             state: state_name(sandbox.state).to_string(),
@@ -64,3 +93,19 @@ pub fn state_name(state: SandboxState) -> &'static str {
 }
 
 pub type SandboxList = Vec<SandboxInfo>;
+
+/// Response for `POST /sandbox/:id/recovery-cert`.
+#[derive(Debug, Serialize)]
+pub struct RecoveryCertResponse {
+    /// OpenSSH-format user certificate (single line). Pair with the user's
+    /// private key in `ssh -i <key> -o CertificateFile=<this>`.
+    pub cert: String,
+    /// Host UDS for the VM's vsock device. Use as
+    /// `ProxyCommand="fc-vsock-proxy <uds> <port>"`.
+    pub vsock_uds_path: String,
+    pub vsock_port: u32,
+    /// SSH cert principal (informational). Cert is locked to this; matches
+    /// the guest's `/etc/ssh/auth_principals/recovery`.
+    pub principal: String,
+    pub ttl_secs: u64,
+}
