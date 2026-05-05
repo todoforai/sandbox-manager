@@ -18,7 +18,7 @@
 ## 1. Test Real Backend Connection
 
 ### What's Needed
-The VM boots with the enroll token injected via Firecracker MMDS (169.254.169.254). The guest `/init` fetches it, runs `bridge login --token`, and bridge connects to backend.
+The VM boots with the enroll token injected via Firecracker MMDS (169.254.169.254). The guest `/init` fetches it, runs `todoforai-bridge login --token`, and bridge connects to backend.
 
 ### Test Flow
 ```bash

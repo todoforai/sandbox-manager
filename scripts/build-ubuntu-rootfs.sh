@@ -6,7 +6,7 @@ set -e
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(dirname "$(dirname "$SCRIPT_DIR")")"
-BRIDGE_BIN="${BRIDGE_BIN:-$REPO_ROOT/bridge/build/bridge-static}"
+BRIDGE_BIN="${BRIDGE_BIN:-$REPO_ROOT/bridge/build/todoforai-bridge-static}"
 
 UBUNTU_VERSION="${UBUNTU_VERSION:-24.04}"
 UBUNTU_POINT="${UBUNTU_POINT:-24.04.3}"
@@ -43,7 +43,7 @@ if [ ! -f "$BRIDGE_BIN" ]; then
     echo "Building bridge..."
     cd "$REPO_ROOT/bridge"
     make static
-    BRIDGE_BIN="$REPO_ROOT/bridge/build/bridge-static"
+    BRIDGE_BIN="$REPO_ROOT/bridge/build/todoforai-bridge-static"
 fi
 
 echo "Using bridge: $BRIDGE_BIN ($(ls -lh "$BRIDGE_BIN" | awk '{print $5}'))"
@@ -71,14 +71,14 @@ tar -xzf /tmp/ubuntu-base.tar.gz -C "$ROOTFS_DIR"
 
 # Copy bridge binary
 mkdir -p "$ROOTFS_DIR/usr/local/bin"
-cp "$BRIDGE_BIN" "$ROOTFS_DIR/usr/local/bin/bridge"
-chmod +x "$ROOTFS_DIR/usr/local/bin/bridge"
+cp "$BRIDGE_BIN" "$ROOTFS_DIR/usr/local/bin/todoforai-bridge"
+chmod +x "$ROOTFS_DIR/usr/local/bin/todoforai-bridge"
 
 # Stamp the rootfs with a build version so stale rootfs is detectable.
 mkdir -p "$ROOTFS_DIR/etc"
 printf '%s\n' "$TEMPLATE_VERSION" > "$ROOTFS_DIR/etc/todoforai-template-version"
 
-# /init — fetch enroll token from MMDS, redeem via `bridge login`, then exec bridge.
+# /init — fetch enroll token from MMDS, redeem via `todoforai-bridge login`, then exec bridge.
 cat > "$ROOTFS_DIR/init" << 'INIT_EOF'
 #!/bin/bash
 # Minimal init for Firecracker VM with bridge.
@@ -188,14 +188,14 @@ if [ -n "$NOISE_BACKEND_PUB_OVR" ] && [ "$NOISE_BACKEND_PUB_OVR" != "null" ]; th
 fi
 
 # Redeem the enroll token if present (first boot). On subsequent boots there's
-# no token in MMDS, but `bridge login --token` already saved durable creds to
+# no token in MMDS, but `todoforai-bridge login --token` already saved durable creds to
 # ~/.config/todoforai/credentials.json — so we always fall through to `exec
 # bridge` and let it run with whatever creds are on disk.
 if [ -n "$ENROLL_TOKEN" ] && [ "$ENROLL_TOKEN" != "null" ]; then
     echo "[init] Redeeming enrollment token..."
     # Bridge auto-detects deviceType=SANDBOX from /etc/todoforai-sandbox marker
     # (dropped during rootfs build) — no flag needed.
-    /usr/local/bin/bridge login \
+    /usr/local/bin/todoforai-bridge login \
         --token "$ENROLL_TOKEN" \
         --device-name "$(cat /etc/hostname 2>/dev/null || echo unknown)" \
         || echo "[init] bridge login failed (will try saved creds)" >&2
@@ -222,7 +222,7 @@ mkdir -p /run/sshd /var/run/sshd
 echo "[init] vsock recovery bridge started (pid=$!)"
 
 echo "[init] Starting bridge..."
-exec /usr/local/bin/bridge
+exec /usr/local/bin/todoforai-bridge
 
 # Fallback — no working bridge. Keep VM alive for debug.
 if [ -t 0 ]; then
@@ -422,7 +422,7 @@ VERIFY_MNT=$(mktemp -d)
 mount -o loop,ro "$OUTPUT" "$VERIFY_MNT"
 trap 'umount "$VERIFY_MNT" 2>/dev/null || true; rmdir "$VERIFY_MNT" 2>/dev/null || true' EXIT
 for bin in /usr/bin/bash /usr/bin/curl /usr/bin/wget /usr/bin/jq \
-           /usr/local/bin/bridge /usr/local/bin/sandbox-tools \
+           /usr/local/bin/todoforai-bridge /usr/local/bin/sandbox-tools \
            /usr/local/bin/recovery-vsock-bridge \
            /usr/sbin/sshd /usr/bin/socat /usr/bin/sudo \
            /etc/ssh/recovery_ca.pub /etc/ssh/sshd_config.d/10-recovery.conf \
@@ -444,7 +444,7 @@ echo "Created: $OUTPUT ($(ls -lh "$OUTPUT" | awk '{print $5}'))"
 echo "=========================================="
 echo ""
 echo "Contents:"
-echo "  /usr/local/bin/bridge         - PTY relay agent"
+echo "  /usr/local/bin/todoforai-bridge         - PTY relay agent"
 echo "  /usr/local/bin/sandbox-tools  - lists installed CLIs (run inside VM)"
 echo "  /etc/sandbox-tools.txt        - human-readable tool manifest"
 echo "  /etc/sandbox-manifest.json    - machine-readable tool manifest"

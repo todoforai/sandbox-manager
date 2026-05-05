@@ -200,7 +200,7 @@ set +a
 
 ## Guest Communication (bridge)
 
-VMs run `bridge`, a tiny (~63KB) PTY relay agent that:
+VMs run `todoforai-bridge`, a tiny (~63KB) PTY relay agent that:
 1. Connects to `api.todofor.ai/ws/v2/bridge` with an edge token
 2. Handles multi-session PTY management per `todoId`
 3. Relays terminal I/O between backend and VM shell
