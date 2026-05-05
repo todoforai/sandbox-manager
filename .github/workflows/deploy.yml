@@ -23,11 +23,17 @@ jobs:
           mkdir -p ~/.ssh
           ssh-keyscan -H sandbox.todofor.ai >> ~/.ssh/known_hosts 2>/dev/null
 
+      # GH Actions disallows `secrets.*` in `if:` expressions. Forward the
+      # URL through env and short-circuit in the script. Without this guard
+      # the entire workflow file fails to parse and zero jobs run.
       - name: Annotate Grafana (start)
-        if: ${{ secrets.GRAFANA_URL != '' }}
+        env:
+          GRAFANA_URL: ${{ secrets.GRAFANA_URL }}
+          GRAFANA_API_KEY: ${{ secrets.GRAFANA_API_KEY }}
         run: |
-          curl -s -X POST "${{ secrets.GRAFANA_URL }}/api/annotations" \
-            -H "Authorization: Bearer ${{ secrets.GRAFANA_API_KEY }}" \
+          [ -z "$GRAFANA_URL" ] && exit 0
+          curl -s -X POST "$GRAFANA_URL/api/annotations" \
+            -H "Authorization: Bearer $GRAFANA_API_KEY" \
             -H "Content-Type: application/json" \
             -d '{"text": "🚀 Deploy started: sandbox-manager", "tags": ["deploy", "start", "sandbox-manager"]}'
 
@@ -36,13 +42,16 @@ jobs:
         run: ./deploy.sh
 
       - name: Annotate Grafana (end)
-        if: ${{ always() && secrets.GRAFANA_URL != '' }}
+        if: always()
         env:
+          GRAFANA_URL: ${{ secrets.GRAFANA_URL }}
+          GRAFANA_API_KEY: ${{ secrets.GRAFANA_API_KEY }}
           STATUS: ${{ steps.deploy.outcome }}
         run: |
+          [ -z "$GRAFANA_URL" ] && exit 0
           EMOJI=$([[ "$STATUS" == "success" ]] && echo "✅" || echo "❌")
-          curl -s -X POST "${{ secrets.GRAFANA_URL }}/api/annotations" \
-            -H "Authorization: Bearer ${{ secrets.GRAFANA_API_KEY }}" \
+          curl -s -X POST "$GRAFANA_URL/api/annotations" \
+            -H "Authorization: Bearer $GRAFANA_API_KEY" \
             -H "Content-Type: application/json" \
             -d "{\"text\": \"$EMOJI Deploy $STATUS: sandbox-manager\", \"tags\": [\"deploy\", \"$STATUS\", \"sandbox-manager\"]}"
 
