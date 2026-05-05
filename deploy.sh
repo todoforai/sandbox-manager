@@ -13,7 +13,14 @@
 
 set -e
 
-source "$(dirname "$0")/../scripts/deploy-lib.sh"
+# Load shared deploy helpers from todoforai/packages.
+PACKAGES_DIR="${PACKAGES_DIR:-$HOME/.cache/todoforai-packages}"
+if [ -d "$PACKAGES_DIR/.git" ]; then
+    git -C "$PACKAGES_DIR" fetch -q origin main && git -C "$PACKAGES_DIR" reset -q --hard origin/main
+else
+    git clone --depth 1 -q git@github.com:todoforai/packages.git "$PACKAGES_DIR"
+fi
+source "$PACKAGES_DIR/shared-deploy/deploy-lib.sh"
 
 SERVER="${SERVER:-root@sandbox.todofor.ai}"
 DEPLOY_PATH="/var/www/todoforai/apps/sandbox-manager"
