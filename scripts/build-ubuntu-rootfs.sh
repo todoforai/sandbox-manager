@@ -173,18 +173,15 @@ echo "$HN" > /etc/hostname
 hostname "$HN" 2>/dev/null || echo "$HN" > /proc/sys/kernel/hostname
 
 if [ -n "$NOISE_BACKEND_ADDR_OVR" ] && [ "$NOISE_BACKEND_ADDR_OVR" != "null" ]; then
-    export NOISE_BACKEND_ADDR="$NOISE_BACKEND_ADDR_OVR"
-    echo "[init] Using NOISE_BACKEND_ADDR=$NOISE_BACKEND_ADDR"
-    # Bridge runtime (post-login persistent WS) reads BRIDGE_HOST/BRIDGE_PORT.
-    # Reuse the same dev backend host; default port 4000 (HTTP, Noise-in-WS).
-    bridge_host="${NOISE_BACKEND_ADDR_OVR%:*}"
-    export BRIDGE_HOST="$bridge_host"
-    export BRIDGE_PORT="4000"
-    echo "[init] Using BRIDGE_HOST=$BRIDGE_HOST BRIDGE_PORT=$BRIDGE_PORT"
+    # Split host:port — bridge takes NOISE_BACKEND_HOST/_PORT (one var each
+    # for Noise RPC + bridge daemon WS; daemon HTTP port via BRIDGE_PORT).
+    export NOISE_BACKEND_HOST="${NOISE_BACKEND_ADDR_OVR%:*}"
+    export NOISE_BACKEND_PORT="${NOISE_BACKEND_ADDR_OVR##*:}"
+    export BRIDGE_PORT="4000" # bridge HTTP/WS in dev (no nginx)
+    echo "[init] Using NOISE_BACKEND_HOST=$NOISE_BACKEND_HOST NOISE_BACKEND_PORT=$NOISE_BACKEND_PORT BRIDGE_PORT=$BRIDGE_PORT"
 fi
 if [ -n "$NOISE_BACKEND_PUB_OVR" ] && [ "$NOISE_BACKEND_PUB_OVR" != "null" ]; then
-    export NOISE_BACKEND_PUBLIC_KEY="$NOISE_BACKEND_PUB_OVR"
-    export BRIDGE_SERVER_PUBKEY="$NOISE_BACKEND_PUB_OVR"
+    export NOISE_BACKEND_PUBKEY="$NOISE_BACKEND_PUB_OVR"
 fi
 
 # Redeem the enroll token if present (first boot). On subsequent boots there's

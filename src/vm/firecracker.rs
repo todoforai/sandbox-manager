@@ -507,9 +507,9 @@ impl FirecrackerLauncher {
                 tracing::warn!("MMDS override: noise_backend_addr={}", addr);
                 mmds.insert("noise_backend_addr".into(), serde_json::Value::String(addr));
             }
-            if let Ok(pub_hex) = std::env::var("MMDS_NOISE_BACKEND_PUBLIC_KEY") {
+            if let Ok(pub_hex) = std::env::var("MMDS_NOISE_BACKEND_PUBKEY") {
                 if pub_hex.len() != 64 || !pub_hex.chars().all(|c| c.is_ascii_hexdigit()) {
-                    anyhow::bail!("MMDS_NOISE_BACKEND_PUBLIC_KEY must be 64 hex chars");
+                    anyhow::bail!("MMDS_NOISE_BACKEND_PUBKEY must be 64 hex chars");
                 }
                 mmds.insert("noise_backend_pub".into(), serde_json::Value::String(pub_hex));
             }

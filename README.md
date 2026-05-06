@@ -157,7 +157,7 @@ Environment variables:
 | `BACKEND_URL` | — | Backend base URL (used to mint enroll tokens) |
 | `BACKEND_ADMIN_API_KEY` | — | Admin API key for `/admin/v1/enroll/*` |
 | `MMDS_NOISE_BACKEND_ADDR` | — | Optional. `<host>:<port>` injected into MMDS so VMs talk to a non-prod backend. Without it, bridge dials the compiled prod default. For localhost dev: `10.0.0.1:14100`. Backend must bind Noise on `0.0.0.0`. |
-| `MMDS_NOISE_BACKEND_PUBLIC_KEY` | — | Optional. 32-byte hex matching the backend's `NOISE_LOCAL_PRIVATE_KEY`. Required iff `MMDS_NOISE_BACKEND_ADDR` is set. |
+| `MMDS_NOISE_BACKEND_PUBKEY` | — | Optional. 32-byte hex matching the backend's `NOISE_LOCAL_PRIVATE_KEY`. Required iff `MMDS_NOISE_BACKEND_ADDR` is set. |
 
 ## Noise CLI setup
 
@@ -166,7 +166,7 @@ The CLI talks to `sandbox-manager` over `Noise_NX_25519_ChaChaPoly_BLAKE2b` TCP,
 Meaning of the env vars:
 
 - `NOISE_LOCAL_PRIVATE_KEY` = server private key
-- `NOISE_REMOTE_PUBLIC_KEY` = pinned server public key on the CLI
+- `NOISE_REMOTE_PUBKEY` = pinned server public key on the CLI
 - `NOISE_ADDR` = client destination address
 - `NOISE_BIND_ADDR` = server listen address
 
