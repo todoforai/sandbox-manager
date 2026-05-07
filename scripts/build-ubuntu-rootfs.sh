@@ -132,6 +132,15 @@ if ip link show eth0 >/dev/null 2>&1; then
 fi
 
 # Fetch MMDS session token once, then read optional bootstrap values.
+# MMDS V2 returns leaf strings JSON-encoded (surrounded by quotes) regardless
+# of Accept header in our Firecracker version, so strip outer quotes.
+mmds_get() {
+    local raw
+    raw=$(wget -q -O - --header="X-metadata-token: $MMDS_SESSION" "http://169.254.169.254/$1" 2>/dev/null || true)
+    # Strip surrounding double quotes if present.
+    [ "${raw#\"}" != "$raw" ] && raw="${raw#\"}" && raw="${raw%\"}"
+    printf '%s' "$raw"
+}
 echo "[init] Fetching bootstrap data from MMDS..."
 MMDS_SESSION=$(wget -q -O - --method=PUT \
     --header='X-metadata-token-ttl-seconds: 60' \
@@ -141,19 +150,11 @@ NOISE_BACKEND_ADDR_OVR=""
 NOISE_BACKEND_PUB_OVR=""
 SANDBOX_ID=""
 if [ -n "$MMDS_SESSION" ]; then
-    ENROLL_TOKEN=$(wget -q -O - \
-        --header="X-metadata-token: $MMDS_SESSION" \
-        'http://169.254.169.254/enroll_token' 2>/dev/null || true)
-    SANDBOX_ID=$(wget -q -O - \
-        --header="X-metadata-token: $MMDS_SESSION" \
-        'http://169.254.169.254/sandbox_id' 2>/dev/null || true)
+    ENROLL_TOKEN=$(mmds_get enroll_token)
+    SANDBOX_ID=$(mmds_get sandbox_id)
     # Optional dev/non-prod overrides — point bridge at a different Noise endpoint.
-    NOISE_BACKEND_ADDR_OVR=$(wget -q -O - \
-        --header="X-metadata-token: $MMDS_SESSION" \
-        'http://169.254.169.254/noise_backend_addr' 2>/dev/null || true)
-    NOISE_BACKEND_PUB_OVR=$(wget -q -O - \
-        --header="X-metadata-token: $MMDS_SESSION" \
-        'http://169.254.169.254/noise_backend_pub' 2>/dev/null || true)
+    NOISE_BACKEND_ADDR_OVR=$(mmds_get noise_backend_addr)
+    NOISE_BACKEND_PUB_OVR=$(mmds_get noise_backend_pub)
 fi
 
 # Give every VM a unique, human-readable hostname. The rootfs ships with
@@ -173,12 +174,11 @@ echo "$HN" > /etc/hostname
 hostname "$HN" 2>/dev/null || echo "$HN" > /proc/sys/kernel/hostname
 
 if [ -n "$NOISE_BACKEND_ADDR_OVR" ] && [ "$NOISE_BACKEND_ADDR_OVR" != "null" ]; then
-    # Split host:port — bridge takes NOISE_BACKEND_HOST/_PORT (one var each
-    # for Noise RPC + bridge daemon WS; daemon HTTP port via BRIDGE_PORT).
+    # Bridge auto-selects dev port (14100) when host is local/sandbox-gateway,
+    # so we only export the host. BRIDGE_PORT is the daemon's HTTP/WS port.
     export NOISE_BACKEND_HOST="${NOISE_BACKEND_ADDR_OVR%:*}"
-    export NOISE_BACKEND_PORT="${NOISE_BACKEND_ADDR_OVR##*:}"
     export BRIDGE_PORT="4000" # bridge HTTP/WS in dev (no nginx)
-    echo "[init] Using NOISE_BACKEND_HOST=$NOISE_BACKEND_HOST NOISE_BACKEND_PORT=$NOISE_BACKEND_PORT BRIDGE_PORT=$BRIDGE_PORT"
+    echo "[init] Using NOISE_BACKEND_HOST=$NOISE_BACKEND_HOST BRIDGE_PORT=$BRIDGE_PORT"
 fi
 if [ -n "$NOISE_BACKEND_PUB_OVR" ] && [ "$NOISE_BACKEND_PUB_OVR" != "null" ]; then
     export NOISE_BACKEND_PUBKEY="$NOISE_BACKEND_PUB_OVR"
@@ -189,7 +189,7 @@ fi
 # ~/.config/todoforai/credentials.json — so we always fall through to `exec
 # bridge` and let it run with whatever creds are on disk.
 if [ -n "$ENROLL_TOKEN" ] && [ "$ENROLL_TOKEN" != "null" ]; then
-    echo "[init] Redeeming enrollment token..."
+    echo "[init] Redeeming enrollment token (len=${#ENROLL_TOKEN}, prefix=${ENROLL_TOKEN:0:8})..."
     # Bridge auto-detects deviceType=SANDBOX from /etc/todoforai-sandbox marker
     # (dropped during rootfs build) — no flag needed.
     /usr/local/bin/todoforai-bridge login \
