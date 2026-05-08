@@ -188,12 +188,12 @@ fi
 # `bridge login` redeems and then runs the daemon in the same process — so a
 # single exec covers both first boot (with token) and subsequent boots (saved
 # creds in ~/.config/todoforai/credentials.json). Bridge auto-detects
-# deviceType=SANDBOX from /etc/todoforai-sandbox (dropped at rootfs build) and
-# device name from /etc/hostname (set above as vm-<sandbox-id>).
+# deviceType=SANDBOX from /etc/todoforai-sandbox (dropped at rootfs build);
+# --device-name pins the friendly label set above (vm-<sandbox-id>).
 BRIDGE_ARGS=""
 if [ -n "$ENROLL_TOKEN" ] && [ "$ENROLL_TOKEN" != "null" ]; then
     echo "[init] Will redeem enrollment token (len=${#ENROLL_TOKEN}, prefix=${ENROLL_TOKEN:0:8})..."
-    BRIDGE_ARGS="login --token $ENROLL_TOKEN"
+    BRIDGE_ARGS="login --token $ENROLL_TOKEN --device-name $(cat /etc/hostname 2>/dev/null || echo unknown)"
 fi
 
 # --- Recovery SSH (vsock) bring-up ----------------------------------------
