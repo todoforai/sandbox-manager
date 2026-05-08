@@ -184,18 +184,16 @@ if [ -n "$NOISE_BACKEND_PUB_OVR" ] && [ "$NOISE_BACKEND_PUB_OVR" != "null" ]; th
     export NOISE_BACKEND_PUBKEY="$NOISE_BACKEND_PUB_OVR"
 fi
 
-# Redeem the enroll token if present (first boot). On subsequent boots there's
-# no token in MMDS, but `todoforai-bridge login --token` already saved durable creds to
-# ~/.config/todoforai/credentials.json — so we always fall through to `exec
-# bridge` and let it run with whatever creds are on disk.
+# First-boot bootstrap: if MMDS provided a token, pass it via `login --token`.
+# `bridge login` redeems and then runs the daemon in the same process — so a
+# single exec covers both first boot (with token) and subsequent boots (saved
+# creds in ~/.config/todoforai/credentials.json). Bridge auto-detects
+# deviceType=SANDBOX from /etc/todoforai-sandbox (dropped at rootfs build) and
+# device name from /etc/hostname (set above as vm-<sandbox-id>).
+BRIDGE_ARGS=""
 if [ -n "$ENROLL_TOKEN" ] && [ "$ENROLL_TOKEN" != "null" ]; then
-    echo "[init] Redeeming enrollment token (len=${#ENROLL_TOKEN}, prefix=${ENROLL_TOKEN:0:8})..."
-    # Bridge auto-detects deviceType=SANDBOX from /etc/todoforai-sandbox marker
-    # (dropped during rootfs build) — no flag needed.
-    /usr/local/bin/todoforai-bridge login \
-        --token "$ENROLL_TOKEN" \
-        --device-name "$(cat /etc/hostname 2>/dev/null || echo unknown)" \
-        || echo "[init] bridge login failed (will try saved creds)" >&2
+    echo "[init] Will redeem enrollment token (len=${#ENROLL_TOKEN}, prefix=${ENROLL_TOKEN:0:8})..."
+    BRIDGE_ARGS="login --token $ENROLL_TOKEN"
 fi
 
 # --- Recovery SSH (vsock) bring-up ----------------------------------------
@@ -219,7 +217,8 @@ mkdir -p /run/sshd /var/run/sshd
 echo "[init] vsock recovery bridge started (pid=$!)"
 
 echo "[init] Starting bridge..."
-exec /usr/local/bin/todoforai-bridge
+# shellcheck disable=SC2086 # BRIDGE_ARGS intentionally word-split
+exec /usr/local/bin/todoforai-bridge $BRIDGE_ARGS
 
 # Fallback — no working bridge. Keep VM alive for debug.
 if [ -t 0 ]; then
