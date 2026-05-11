@@ -1,18 +1,25 @@
 #!/bin/bash
-# Setup script for sandbox-manager
-# Installs Firecracker and prepares the environment
+# Setup script for sandbox-manager — dev host one-time bootstrap.
+# Installs Firecracker, creates data dirs, builds templates.
+#
+# Prod uses the equivalent path via ./deploy.sh provision-templates —
+# both call scripts/build-templates.sh with the same $DATA_DIR semantics.
 set -e
 
 FIRECRACKER_VERSION="${FIRECRACKER_VERSION:-v1.6.0}"
 ARCH="x86_64"
 INSTALL_DIR="/usr/local/bin"
-DATA_DIR="/data"
+# DATA_DIR resolution mirrors build-templates.sh / build-cli-lite.sh:
+#   dev default: ~/sandbox-data    (override with DATA_DIR=...)
+#   prod:        /data             (set in shared/.env by deploy.sh)
+DATA_DIR="${DATA_DIR:-$HOME/sandbox-data}"
 
 echo "=== Sandbox Manager Setup ==="
+echo "DATA_DIR=$DATA_DIR"
 
 # Check if running as root
 if [ "$EUID" -ne 0 ]; then
-    echo "Please run as root (sudo ./setup.sh)"
+    echo "Please run as root (sudo -E ./setup.sh) — preserve env so DATA_DIR is kept"
     exit 1
 fi
 
@@ -53,51 +60,22 @@ fi
 echo ""
 echo "=== Creating directories ==="
 
-mkdir -p "${DATA_DIR}/templates/ubuntu-base"
-mkdir -p "${DATA_DIR}/overlays/runtime"
-mkdir -p "${DATA_DIR}/snapshots"
-
+# build-templates.sh creates per-template subdirs itself; we only need the
+# data root + sibling dirs sandbox-manager expects to exist at startup.
+mkdir -p "${DATA_DIR}/overlays/runtime" "${DATA_DIR}/snapshots"
 chown -R "$(logname):$(logname)" "${DATA_DIR}" 2>/dev/null || true
-
-echo "Created:"
-echo "  ${DATA_DIR}/templates/ubuntu-base"
-echo "  ${DATA_DIR}/overlays/runtime"
-echo "  ${DATA_DIR}/snapshots"
 
 # Install + start the bridge systemd unit (owns br-sandbox + NAT + forwarding)
 echo ""
 echo "=== Installing sandbox-bridge systemd unit ==="
 "$(dirname "$0")/../systemd/install.sh"
 
-# Check for kernel and rootfs
+# Build templates (idempotent: build-templates.sh skips vmlinux if it exists)
 echo ""
-echo "=== Checking template files ==="
+echo "=== Building templates (same script prod uses) ==="
+DATA_DIR="$DATA_DIR" "$(dirname "$0")/build-templates.sh" all
 
-TEMPLATE_DIR="${DATA_DIR}/templates/ubuntu-base"
-
-if [ -f "${TEMPLATE_DIR}/vmlinux" ]; then
-    echo "✓ Kernel found: ${TEMPLATE_DIR}/vmlinux"
-else
-    echo "✗ Kernel not found"
-    echo "  Run: ./scripts/build-kernel.sh"
-fi
-
-if [ -f "${TEMPLATE_DIR}/rootfs.ext4" ]; then
-    echo "✓ Rootfs found: ${TEMPLATE_DIR}/rootfs.ext4"
-else
-    echo "✗ Rootfs not found"
-    echo "  Run: ./scripts/build-rootfs.sh"
-fi
-
-# Summary
 echo ""
 echo "=== Setup Complete ==="
-echo ""
-echo "Next steps:"
-echo "  1. Build kernel:  sudo ./scripts/build-kernel.sh"
-echo "  2. Build rootfs:  sudo ./scripts/build-rootfs.sh"
-echo "  3. Run manager:   cargo run --release"
-echo ""
-echo "Or use pre-built images:"
-echo "  curl -sSL https://s3.amazonaws.com/spec.ccfc.min/img/quickstart_guide/x86_64/kernels/vmlinux.bin -o ${TEMPLATE_DIR}/vmlinux"
-echo "  # Then build rootfs with: sudo ./scripts/build-rootfs.sh"
+echo "Templates installed under $DATA_DIR/templates"
+echo "Run manager:   ./run.sh        # dev"

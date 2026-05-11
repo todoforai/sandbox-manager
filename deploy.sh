@@ -5,11 +5,13 @@
 #   git push origin main:prod
 #
 # Manual commands:
-#   ./deploy.sh              Deploy to production
-#   ./deploy.sh rollback     Rollback to previous release
-#   ./deploy.sh status       Check status
-#   ./deploy.sh logs         View logs
-#   ./deploy.sh setup        First-time server setup (installs PM2, .env)
+#   ./deploy.sh                   Deploy to production
+#   ./deploy.sh rollback          Rollback to previous release
+#   ./deploy.sh status            Check status
+#   ./deploy.sh logs              View logs
+#   ./deploy.sh setup             First-time server setup (installs PM2, .env)
+#   ./deploy.sh provision-templates   Build & install ubuntu-base + cli-lite
+#                                     templates into $DATA_DIR/templates
 
 set -e
 
@@ -148,6 +150,14 @@ deploy() {
             exit 1
         fi
 
+        # Non-failing template gate: code can be healthy but if the templates
+        # registry is empty, every createSandbox returns 400. Surface that
+        # immediately rather than letting it look green.
+        TPL=\$(curl -sf http://127.0.0.1:\$NEW_PORT/templates || echo '[]')
+        [ "\$TPL" = "[]" ] \
+            && echo "⚠️  Templates registry empty — run ./deploy.sh provision-templates" \
+            || echo "✅ Templates: \$TPL"
+
         echo "Cleaning old releases..."
         cd $DEPLOY_PATH/releases && ls -t | tail -n +$((KEEP_RELEASES + 1)) | xargs -r rm -rf
 
@@ -219,6 +229,52 @@ status()   { pm2_status 'sandbox-manager-*' "$DEPLOY_PATH"; }
 logs()     { pm2_app_logs 'sandbox-manager-*'; }
 releases() { list_releases "$DEPLOY_PATH"; }
 
+# Build & install templates on the prod host using the same script dev uses
+# (scripts/build-templates.sh). Reads $TEMPLATES_DIR from shared/.env so the
+# layout under /data is honored — no separate prod-only logic.
+#
+# Idempotent: kernel build is skipped if vmlinux already exists.
+# Override target with TPL_TARGET=ubuntu|cli|all (default: all).
+#
+# Bridge binary: build-ubuntu-rootfs.sh requires todoforai-bridge-static. Prod
+# release checkouts only clone sandbox-manager, so we preflight here and bail
+# with a clear message rather than letting the build die on a generic `cd`.
+provision_templates() {
+    local target="${TPL_TARGET:-all}"
+    log "Provisioning templates ($target) on $SERVER..."
+
+    ssh $SERVER 'bash -s' << EOF
+        set -e
+        DEPLOY_PATH="$DEPLOY_PATH"
+        cd \$DEPLOY_PATH/current
+
+        set -a; . \$DEPLOY_PATH/shared/.env; set +a
+        echo "TEMPLATES_DIR=\${TEMPLATES_DIR:-<unset>}"
+
+        # Preflight + build live in scripts/build-templates.sh — no prod-only checks here.
+        ./scripts/build-templates.sh $target
+
+        echo "Restarting sandbox-manager so it rediscovers templates..."
+        pm2 list 2>/dev/null | grep -oE 'sandbox-manager-[0-9]+' | sort -u | while read app; do
+            pm2 restart "\$app"
+        done
+
+        # Verify the live instance sees the new templates.
+        for port in 9000 9002; do
+            pm2 list 2>/dev/null | grep -q "sandbox-manager-\$port" || continue
+            for i in \$(seq 1 15); do
+                TPL=\$(curl -sf http://127.0.0.1:\$port/templates || echo '[]')
+                [ "\$TPL" != "[]" ] && { echo "✅ Templates on port \$port: \$TPL"; exit 0; }
+                sleep 1
+            done
+            echo "⚠️  Templates still empty on port \$port after restart."
+            exit 1
+        done
+EOF
+
+    log "Template provisioning complete!"
+}
+
 setup() {
     log "Setting up server..."
     ssh $SERVER << 'EOF'
@@ -263,11 +319,12 @@ EOF
 }
 
 case "${1:-deploy}" in
-    deploy)   deploy ;;
-    rollback) rollback ;;
-    status)   status ;;
-    logs)     logs ;;
-    releases) releases ;;
-    setup)    setup ;;
-    *)        echo "Usage: $0 {deploy|rollback|status|logs|releases|setup}" ;;
+    deploy)              deploy ;;
+    rollback)            rollback ;;
+    status)              status ;;
+    logs)                logs ;;
+    releases)            releases ;;
+    setup)               setup ;;
+    provision-templates) provision_templates ;;
+    *)                   echo "Usage: $0 {deploy|rollback|status|logs|releases|setup|provision-templates}" ;;
 esac

@@ -100,9 +100,13 @@ echo "Building kernel with $JOBS jobs..."
 make olddefconfig
 make -j"$JOBS" vmlinux
 
-# Copy output
-cp vmlinux "../$OUTPUT"
+# Copy output. Accept absolute OUTPUT (e.g. /data/templates/.../vmlinux);
+# fall back to relative (sibling of the linux/ tree) for legacy callers.
+case "$OUTPUT" in
+    /*) cp vmlinux "$OUTPUT" ;;
+    *)  cp vmlinux "../$OUTPUT" ;;
+esac
 
 echo ""
 echo "Created: $OUTPUT"
-ls -lh "../$OUTPUT"
+ls -lh "$OUTPUT" 2>/dev/null || ls -lh "../$OUTPUT"
