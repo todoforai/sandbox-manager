@@ -320,7 +320,6 @@ chroot "$ROOTFS_DIR" /bin/bash -c "
     set -e
     export DEBIAN_FRONTEND=noninteractive
     export LC_ALL=C
-    echo 'nameserver 8.8.8.8' > /etc/resolv.conf
 
     apt-get update
     apt-get install -y --no-install-recommends $PACKAGES
