@@ -20,6 +20,10 @@ curl
 wget
 jq
 
+# --- node + npm so TOOL_CATALOG npm tools (todoforai-explore/review/...) can be preinstalled ---
+nodejs
+npm
+
 # --- native SSH in guest ---
 openssh-server
 

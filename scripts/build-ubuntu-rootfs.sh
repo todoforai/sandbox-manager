@@ -15,6 +15,8 @@ ROOTFS_DIR="${ROOTFS_DIR:-/tmp/rootfs-ubuntu-build}"
 OUTPUT="${OUTPUT:-rootfs-ubuntu.ext4}"
 SIZE_MB="${SIZE_MB:-1500}"
 PACKAGES_FILE="${PACKAGES_FILE:-$REPO_ROOT/sandbox-manager/templates/ubuntu-base.packages}"
+TOOL_CATALOG_JSON="${TOOL_CATALOG_JSON:-$REPO_ROOT/packages/shared-fbe/src/tool_catalog.json}"
+NPM_PREINSTALL_BINS=""
 
 if [ ! -f "$PACKAGES_FILE" ]; then
     echo "ERROR: package list not found: $PACKAGES_FILE" >&2
@@ -25,6 +27,25 @@ fi
 PACKAGES=$(grep -vE '^\s*(#|$)' "$PACKAGES_FILE" | tr '\n' ' ')
 echo "Using package list: $PACKAGES_FILE"
 echo "Packages: $PACKAGES"
+
+# Read npm packages tagged `preinstall: true` from TOOL_CATALOG (single source
+# of truth shared with edge/frontend). Empty if catalog absent or jq missing.
+NPM_PREINSTALL=""
+if [ -f "$TOOL_CATALOG_JSON" ] && command -v jq >/dev/null 2>&1; then
+    NPM_PREINSTALL=$(jq -r '
+        to_entries
+        | map(select(.value.preinstall == true and .value.installer == "npm"))
+        | map(.value.pkg) | join(" ")
+    ' "$TOOL_CATALOG_JSON")
+    # Catalog key = binary name on PATH (e.g. "todoforai-explore"). Used for
+    # in-chroot verification and the /etc/sandbox-tools.txt manifest.
+    NPM_PREINSTALL_BINS=$(jq -r '
+        to_entries
+        | map(select(.value.preinstall == true and .value.installer == "npm"))
+        | map(.key) | join(" ")
+    ' "$TOOL_CATALOG_JSON")
+    echo "Catalog preinstall (npm): ${NPM_PREINSTALL:-(none)}"
+fi
 
 echo "=========================================="
 echo "Building Ubuntu $UBUNTU_VERSION rootfs with bridge"
@@ -324,6 +345,15 @@ chroot "$ROOTFS_DIR" /bin/bash -c "
     apt-get update
     apt-get install -y --no-install-recommends $PACKAGES
 
+    # Preinstall npm CLI tools tagged \`preinstall: true\` in TOOL_CATALOG.
+    # Driven from packages/shared-fbe/src/tool_catalog.json on the host —
+    # values interpolated by the outer shell before chroot.
+    if [ -n '$NPM_PREINSTALL' ]; then
+        echo '--- preinstalling npm tools from TOOL_CATALOG ---'
+        echo '  packages: $NPM_PREINSTALL'
+        npm install -g --omit=dev --no-audit --no-fund $NPM_PREINSTALL
+    fi
+
     # Recovery user: shell-able, sudo-NOPASSWD, no password, no authorized_keys.
     # Authentication is exclusively via SSH cert signed by the platform CA
     # (TrustedUserCAKeys + AuthorizedPrincipalsFile in 10-recovery.conf).
@@ -341,11 +371,16 @@ chroot "$ROOTFS_DIR" /bin/bash -c "
     # on-demand inside the sandbox per the package list's stated philosophy.
     echo '--- verification ---'
     command -v bash curl wget jq ip ssh socat sudo >/dev/null
+    if [ -n '$NPM_PREINSTALL_BINS' ]; then
+        for b in $NPM_PREINSTALL_BINS; do
+            command -v \"\$b\" >/dev/null || { echo \"ERROR: preinstalled tool missing on PATH: \$b\" >&2; exit 1; }
+        done
+    fi
     echo '--- verification OK ---'
 
     # Generate tool manifest — human-readable list and JSON metadata.
     # Any CLI the user is likely to invoke. Missing tools render as '(missing)'.
-    TOOLS='bash sh curl wget jq tar sed gawk grep find ps uname hostname ip ssh scp'
+    TOOLS='bash sh curl wget jq tar sed gawk grep find ps uname hostname ip ssh scp $NPM_PREINSTALL_BINS'
     mkdir -p /etc
     : > /etc/sandbox-tools.txt
     printf '{\n  \"distro\": \"ubuntu-base-%s\",\n  \"tools\": {\n' \"\$(. /etc/os-release && echo \$VERSION_ID)\" > /etc/sandbox-manifest.json
