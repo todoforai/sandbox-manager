@@ -339,16 +339,16 @@ static void cmd_login(int argc, char **argv) {
     }
 
     // Compose addr from NOISE_BACKEND_HOST / _PORT (or fall back to defaults).
+    // The backend's Noise pubkey is learned during the NX handshake (TOFU)
+    // and persisted with the credentials — no flag/env to set.
     const char *bh = getenv("NOISE_BACKEND_HOST");
     const char *bp = getenv("NOISE_BACKEND_PORT");
     char addr_buf[280];
     snprintf(addr_buf, sizeof(addr_buf), "%s:%s",
              bh ? bh : LOGIN_DEFAULT_BACKEND_HOST,
              bp ? bp : LOGIN_DEFAULT_NOISE_PORT);
-    const char *pub = getenv("NOISE_BACKEND_PUBKEY");
-    if (!pub) pub = LOGIN_DEFAULT_BACKEND_PUBKEY;
 
-    if (login_device_flow(addr_buf, pub, "sandbox", NULL) != 0) exit(1);
+    if (login_device_flow(addr_buf, "sandbox", NULL) != 0) exit(1);
 }
 
 static void cmd_whoami(int argc, char **argv) {
