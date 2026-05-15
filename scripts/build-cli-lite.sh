@@ -47,7 +47,10 @@ echo "==> Compiling todoai (bun --compile) → $TODOAI_BIN_OUT"
 chmod 0755 "$TODOAI_BIN_OUT"
 COMPILED_BINS+=("$TODOAI_BIN_OUT")
 
-# 1a. Bundle each TOOL_CATALOG entry tagged `preinstall: true` + `installer: "npm"`.
+# 1a. Bundle each TOOL_CATALOG entry tagged `preinstall: true` with
+#     installer == "npm" or "bun" (both publish to the npm registry and use
+#     the same api-apps source layout). `todoai` is excluded here because
+#     it lives in cli/ — not api-apps/ — and is already compiled above.
 #     Source convention: api-apps/<catalog-key>/src/cli.ts. Strategy:
 #       - one bun build per tool → $ROOTFS/lib/<key>/cli.js  (~20 KB each)
 #       - tiny shebang script at $ROOTFS/bin/<key> that execs node on the bundle
@@ -62,7 +65,7 @@ COMPILED_BINS+=("$TODOAI_BIN_OUT")
 if [ -f "$TOOL_CATALOG_JSON" ] && command -v jq >/dev/null 2>&1; then
     PREINSTALL_KEYS=$(jq -r '
         to_entries
-        | map(select(.value.preinstall == true and .value.installer == "npm"))
+        | map(select(.value.preinstall == true and (.value.installer == "npm" or .value.installer == "bun")))
         | map(.key) | .[]
     ' "$TOOL_CATALOG_JSON")
     if [ -n "$PREINSTALL_KEYS" ]; then
