@@ -20,9 +20,11 @@ curl
 wget
 jq
 
-# --- node + npm so TOOL_CATALOG npm tools (todoforai-explore/review/...) can be preinstalled ---
-nodejs
-npm
+# --- unzip: required by bun's install script (bun is fetched from bun.sh,
+#     not apt, because Ubuntu repos don't ship it). bun replaces node+npm
+#     as the runtime/package manager for TOOL_CATALOG tools tagged
+#     `preinstall: true` (todoai, todoforai-explore/review/summary/subagent). ---
+unzip
 
 # --- native SSH in guest ---
 openssh-server

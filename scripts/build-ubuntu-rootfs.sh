@@ -16,7 +16,7 @@ OUTPUT="${OUTPUT:-rootfs-ubuntu.ext4}"
 SIZE_MB="${SIZE_MB:-1500}"
 PACKAGES_FILE="${PACKAGES_FILE:-$REPO_ROOT/sandbox-manager/templates/ubuntu-base.packages}"
 TOOL_CATALOG_JSON="${TOOL_CATALOG_JSON:-$REPO_ROOT/packages/shared-fbe/src/tool_catalog.json}"
-NPM_PREINSTALL_BINS=""
+BUN_PREINSTALL_BINS=""
 
 if [ ! -f "$PACKAGES_FILE" ]; then
     echo "ERROR: package list not found: $PACKAGES_FILE" >&2
@@ -28,23 +28,25 @@ PACKAGES=$(grep -vE '^\s*(#|$)' "$PACKAGES_FILE" | tr '\n' ' ')
 echo "Using package list: $PACKAGES_FILE"
 echo "Packages: $PACKAGES"
 
-# Read npm packages tagged `preinstall: true` from TOOL_CATALOG (single source
-# of truth shared with edge/frontend). Empty if catalog absent or jq missing.
-NPM_PREINSTALL=""
+# Read packages tagged `preinstall: true` from TOOL_CATALOG (single source of
+# truth shared with edge/frontend). Accepts installer == "bun" or "npm" —
+# both publish to the npm registry and bun installs either. Empty if catalog
+# absent or jq missing.
+BUN_PREINSTALL=""
 if [ -f "$TOOL_CATALOG_JSON" ] && command -v jq >/dev/null 2>&1; then
-    NPM_PREINSTALL=$(jq -r '
+    BUN_PREINSTALL=$(jq -r '
         to_entries
-        | map(select(.value.preinstall == true and .value.installer == "npm"))
+        | map(select(.value.preinstall == true and (.value.installer == "bun" or .value.installer == "npm")))
         | map(.value.pkg) | join(" ")
     ' "$TOOL_CATALOG_JSON")
     # Catalog key = binary name on PATH (e.g. "todoforai-explore"). Used for
     # in-chroot verification and the /etc/sandbox-tools.txt manifest.
-    NPM_PREINSTALL_BINS=$(jq -r '
+    BUN_PREINSTALL_BINS=$(jq -r '
         to_entries
-        | map(select(.value.preinstall == true and .value.installer == "npm"))
+        | map(select(.value.preinstall == true and (.value.installer == "bun" or .value.installer == "npm")))
         | map(.key) | join(" ")
     ' "$TOOL_CATALOG_JSON")
-    echo "Catalog preinstall (npm): ${NPM_PREINSTALL:-(none)}"
+    echo "Catalog preinstall (bun): ${BUN_PREINSTALL:-(none)}"
 fi
 
 echo "=========================================="
@@ -345,13 +347,29 @@ chroot "$ROOTFS_DIR" /bin/bash -c "
     apt-get update
     apt-get install -y --no-install-recommends $PACKAGES
 
-    # Preinstall npm CLI tools tagged \`preinstall: true\` in TOOL_CATALOG.
+    # Install bun (replaces node+npm as runtime/package manager for catalog
+    # tools). Official installer drops binary at \$BUN_INSTALL/bin/bun.
+    # /usr/local/bin is already on PATH so no shell rc changes needed.
+    if ! command -v bun >/dev/null 2>&1; then
+        echo '--- installing bun ---'
+        export BUN_INSTALL=/usr/local
+        curl -fsSL https://bun.sh/install | bash
+        ln -sf /usr/local/bin/bun /usr/local/bin/bunx
+        # Preinstalled CLIs shebang \`#!/usr/bin/env node\`; alias node→bun
+        # so they run without a separate Node.js runtime in the rootfs.
+        ln -sf /usr/local/bin/bun /usr/local/bin/node
+        bun --version
+    fi
+
+    # Preinstall CLI tools tagged \`preinstall: true\` in TOOL_CATALOG via bun.
     # Driven from packages/shared-fbe/src/tool_catalog.json on the host —
-    # values interpolated by the outer shell before chroot.
-    if [ -n '$NPM_PREINSTALL' ]; then
-        echo '--- preinstalling npm tools from TOOL_CATALOG ---'
-        echo '  packages: $NPM_PREINSTALL'
-        npm install -g --omit=dev --no-audit --no-fund $NPM_PREINSTALL
+    # values interpolated by the outer shell before chroot. BUN_INSTALL forces
+    # global bins into /usr/local/bin instead of \$HOME/.bun/bin.
+    if [ -n '$BUN_PREINSTALL' ]; then
+        echo '--- preinstalling bun tools from TOOL_CATALOG ---'
+        echo '  packages: $BUN_PREINSTALL'
+        export BUN_INSTALL=/usr/local
+        bun add -g $BUN_PREINSTALL
     fi
 
     # Recovery user: shell-able, sudo-NOPASSWD, no password, no authorized_keys.
@@ -370,9 +388,9 @@ chroot "$ROOTFS_DIR" /bin/bash -c "
     # Only check what's in ubuntu-base.packages — anything heavier installs
     # on-demand inside the sandbox per the package list's stated philosophy.
     echo '--- verification ---'
-    command -v bash curl wget jq ip ssh socat sudo >/dev/null
-    if [ -n '$NPM_PREINSTALL_BINS' ]; then
-        for b in $NPM_PREINSTALL_BINS; do
+    command -v bash curl wget jq ip ssh socat sudo bun >/dev/null
+    if [ -n '$BUN_PREINSTALL_BINS' ]; then
+        for b in $BUN_PREINSTALL_BINS; do
             command -v \"\$b\" >/dev/null || { echo \"ERROR: preinstalled tool missing on PATH: \$b\" >&2; exit 1; }
         done
     fi
@@ -380,7 +398,7 @@ chroot "$ROOTFS_DIR" /bin/bash -c "
 
     # Generate tool manifest — human-readable list and JSON metadata.
     # Any CLI the user is likely to invoke. Missing tools render as '(missing)'.
-    TOOLS='bash sh curl wget jq tar sed gawk grep find ps uname hostname ip ssh scp $NPM_PREINSTALL_BINS'
+    TOOLS='bash sh curl wget jq tar sed gawk grep find ps uname hostname ip ssh scp bun $BUN_PREINSTALL_BINS'
     mkdir -p /etc
     : > /etc/sandbox-tools.txt
     printf '{\n  \"distro\": \"ubuntu-base-%s\",\n  \"tools\": {\n' \"\$(. /etc/os-release && echo \$VERSION_ID)\" > /etc/sandbox-manifest.json
