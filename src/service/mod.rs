@@ -6,14 +6,16 @@ use crate::backend::BackendClient;
 use crate::recovery::{RecoveryCa, DEFAULT_CERT_TTL_SECS};
 use crate::redis::RedisClient;
 use crate::vm::config::TemplateConfig;
-use crate::vm::lite::ExecOutput;
+use crate::vm::lite::{ExecBinds, ExecOutput};
 use crate::vm::manager::VmManager;
 use crate::vm::sandbox::{SandboxKind, SandboxState};
 
 use self::types::{CreateSandboxRequest, RecoveryCertResponse, SandboxInfo, SandboxList, SandboxStats};
+use self::user_home::UserHomeStore;
 
 pub mod errors;
 pub mod types;
+pub mod user_home;
 
 /// TTL for sandbox enroll tokens. Must cover cold boot + network up + redeem
 /// round-trip; single-use + short-lived is the security property we want.
@@ -25,6 +27,7 @@ pub struct SandboxService {
     redis: RedisClient,
     backend: BackendClient,
     recovery_ca: Arc<RecoveryCa>,
+    user_homes: UserHomeStore,
 }
 
 impl SandboxService {
@@ -33,8 +36,9 @@ impl SandboxService {
         redis: RedisClient,
         backend: BackendClient,
         recovery_ca: Arc<RecoveryCa>,
+        user_homes: UserHomeStore,
     ) -> Self {
-        Self { manager, redis, backend, recovery_ca }
+        Self { manager, redis, backend, recovery_ca, user_homes }
     }
 
     /// Issue a short-lived SSH recovery cert for a sandbox the caller owns.
@@ -262,14 +266,32 @@ impl SandboxService {
     }
 
     /// Run argv in a lite sandbox. Standard owner check applies.
+    ///
+    /// The sandbox's owner (`sandbox.user_id`) gets their persistent home
+    /// dirs (`~/.config`, `~/.local/share`) bind-mounted into the sandbox
+    /// at `/work/.config` and `/work/.local/share`. CLI tools find their
+    /// credentials there as if they were running on the host. Caller-supplied
+    /// extra `binds` are merged on top (caller wins for any path collision —
+    /// they're appended last so bwrap applies them after).
     pub async fn exec_sandbox(
         &self,
         identity: &AuthIdentity,
         id: &str,
         argv: &[String],
+        binds: &ExecBinds,
     ) -> Result<ExecOutput> {
         self.assert_owner(identity, id).await?;
-        self.manager.exec_lite(id, argv).await
+        let sandbox = self.manager.get_sandbox(id).await?
+            .context("sandbox not found")?;
+        // Skip provisioning for anonymous sandboxes (no user_id) — they're
+        // ephemeral by design and would otherwise dirty the user-home root.
+        if !sandbox.user_id.is_empty() {
+            self.user_homes.provision(&sandbox.user_id).await?;
+        }
+        let mut merged = self.user_homes.binds_for(&sandbox.user_id);
+        merged.ro.extend(binds.ro.iter().cloned());
+        merged.rw.extend(binds.rw.iter().cloned());
+        self.manager.exec_lite(id, argv, &merged).await
     }
 
     pub async fn stats(&self) -> Result<SandboxStats> {

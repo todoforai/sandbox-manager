@@ -61,4 +61,5 @@ name = "fc-vsock-proxy"
 path = "src/bin/fc_vsock_proxy.rs"
 
 [dev-dependencies]
+tempfile = "3.27.0"
 tokio-test = "0.4"

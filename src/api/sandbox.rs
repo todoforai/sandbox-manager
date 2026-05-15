@@ -9,7 +9,7 @@ use crate::api::auth_extractor::Auth;
 use crate::service::errors::{rest_error, ErrorCode};
 use crate::service::types::{CreateSandboxRequest, SandboxInfo, SandboxStats};
 use crate::service::SandboxService;
-use crate::vm::lite::ExecOutput;
+use crate::vm::lite::{ExecBinds, ExecOutput};
 
 /// Create a new sandbox.
 ///
@@ -159,8 +159,12 @@ pub async fn exec_sandbox(
     Path(id): Path<String>,
     Json(req): Json<ExecRequest>,
 ) -> Result<Json<ExecResponse>, (StatusCode, String)> {
+    // Bind selection is policy-driven (catalog + per-user creds), never
+    // controlled by the caller — exposing raw host paths over HTTP would be
+    // a sandbox escape.
+    let binds = ExecBinds::default();
     service
-        .exec_sandbox(&identity, &id, &req.argv)
+        .exec_sandbox(&identity, &id, &req.argv, &binds)
         .await
         .map(|o| Json(o.into()))
         .map_err(|e| rest_error(ErrorCode::BadRequest, e.to_string()))

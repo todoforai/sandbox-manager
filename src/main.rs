@@ -7,7 +7,7 @@ mod redis;    // Redis client (auth + billing)
 mod service;  // transport-agnostic sandbox service
 mod vm;
 
-use anyhow::Result;
+use anyhow::{Context, Result};
 use axum::{routing::{get, post, delete}, Router};
 use std::sync::Arc;
 use tower_http::cors::{AllowOrigin, CorsLayer};
@@ -48,6 +48,11 @@ async fn main() -> Result<()> {
     let redis = redis::connect_from_env().await?;
 
     let config = vm::config::ManagerConfig::from_env();
+    let user_homes_root = service::user_home::default_root(&config.overlays_dir);
+    tokio::fs::create_dir_all(&user_homes_root).await
+        .with_context(|| format!("create user homes root {}", user_homes_root.display()))?;
+    tracing::info!("User homes root: {}", user_homes_root.display());
+    let user_homes = service::user_home::UserHomeStore::new(user_homes_root);
     let manager = Arc::new(VmManager::new(config, redis.clone()).await?);
 
     let backend = backend::BackendClient::from_env()?;
@@ -60,7 +65,7 @@ async fn main() -> Result<()> {
         recovery::RecoveryCa::load_or_init(&recovery::default_ca_path())?
     );
 
-    let service = SandboxService::new(manager.clone(), redis, backend, recovery_ca);
+    let service = SandboxService::new(manager.clone(), redis, backend, recovery_ca, user_homes);
 
     // Background reaper. Firecracker VMs are spawned with `setsid` and
     // dropped Child handles; while this manager is still alive, FCs that
