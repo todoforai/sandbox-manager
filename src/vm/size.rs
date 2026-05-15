@@ -54,15 +54,18 @@ impl VmSize {
     
     /// Cost per minute in USD (VM tier price; Lite sandboxes are billed at
     /// $0 — see `SandboxInfo::from(Sandbox)` in `service/types.rs`).
+    ///
+    /// Named tiers price purely on memory at $0.0025/128MB/min; vCPU count
+    /// happens to scale with memory in our tiers so it doesn't need its own
+    /// term. Custom sizes use the same per-MB rate for continuity.
     pub fn cost_per_minute(&self) -> f64 {
         match self {
             VmSize::Small => 0.0025,
             VmSize::Medium => 0.005,
             VmSize::Large => 0.01,
             VmSize::XLarge => 0.02,
-            VmSize::Custom { memory_mb, vcpu_count } => {
-                // Base cost: $0.00002/MB/min + $0.0025/vCPU/min
-                (*memory_mb as f64 * 0.00002) + (*vcpu_count as f64 * 0.0025)
+            VmSize::Custom { memory_mb, .. } => {
+                *memory_mb as f64 * (0.0025 / 128.0)
             }
         }
     }
@@ -113,7 +116,16 @@ mod tests {
     
     #[test]
     fn test_cost_calculation() {
-        assert!(VmSize::Small.cost_per_minute() < VmSize::Medium.cost_per_minute());
-        assert!(VmSize::Medium.cost_per_minute() < VmSize::Large.cost_per_minute());
+        // Exact rates — guard against accidental pricing drift.
+        assert_eq!(VmSize::Small.cost_per_minute(),  0.0025);
+        assert_eq!(VmSize::Medium.cost_per_minute(), 0.005);
+        assert_eq!(VmSize::Large.cost_per_minute(),  0.01);
+        assert_eq!(VmSize::XLarge.cost_per_minute(), 0.02);
+
+        // Custom matches named tiers at the same memory.
+        let custom_small = VmSize::Custom { memory_mb: 128, vcpu_count: 1 };
+        assert_eq!(custom_small.cost_per_minute(), VmSize::Small.cost_per_minute());
+        let custom_xl = VmSize::Custom { memory_mb: 1024, vcpu_count: 4 };
+        assert_eq!(custom_xl.cost_per_minute(), VmSize::XLarge.cost_per_minute());
     }
 }
