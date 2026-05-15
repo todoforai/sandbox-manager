@@ -119,6 +119,7 @@ async fn main() -> Result<()> {
         .route("/sandbox/:id/balloon", post(api::sandbox::balloon_sandbox))
         .route("/sandbox/:id/exec", post(api::sandbox::exec_sandbox))
         .route("/sandbox/:id/recovery-cert", post(api::sandbox::recovery_cert))
+        .route("/sandbox/:id/attach-device", post(api::sandbox::attach_device))
         .route("/recovery-ca.pub", get(api::sandbox::recovery_ca_pub))
         
         // Templates

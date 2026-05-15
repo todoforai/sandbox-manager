@@ -22,6 +22,8 @@ struct MintRequest<'a> {
     user_id: &'a str,
     #[serde(rename = "ttlSec", skip_serializing_if = "Option::is_none")]
     ttl_sec: Option<u32>,
+    #[serde(rename = "sandboxId", skip_serializing_if = "Option::is_none")]
+    sandbox_id: Option<&'a str>,
 }
 
 #[derive(Deserialize)]
@@ -68,13 +70,16 @@ impl BackendClient {
     }
 
     /// Mint a fresh enrollment token for `user_id`. Short-lived, single-use.
-    pub async fn mint_enroll_token(&self, user_id: &str, ttl_sec: Option<u32>) -> Result<MintResponse> {
+    /// If `sandbox_id` is given the backend records it on the token; on
+    /// successful redeem it calls `attach-device` so we can cascade Device
+    /// cleanup when the sandbox is deleted.
+    pub async fn mint_enroll_token(&self, user_id: &str, ttl_sec: Option<u32>, sandbox_id: Option<&str>) -> Result<MintResponse> {
         let url = format!("{}/admin/v1/enroll/mint", self.base_url);
         let resp = self
             .http
             .post(&url)
             .header("X-API-Key", &self.admin_api_key)
-            .json(&MintRequest { user_id, ttl_sec })
+            .json(&MintRequest { user_id, ttl_sec, sandbox_id })
             .send()
             .await
             .context("mint request failed")?;
@@ -99,7 +104,7 @@ impl BackendClient {
         hostname: &str,
         token_ttl_sec: u32,
     ) -> Result<String> {
-        let token = self.mint_enroll_token(user_id, Some(token_ttl_sec)).await
+        let token = self.mint_enroll_token(user_id, Some(token_ttl_sec), Some(sandbox_id)).await
             .context("mint enroll token for lite sandbox")?
             .token;
 

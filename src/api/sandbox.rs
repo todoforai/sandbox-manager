@@ -194,3 +194,24 @@ pub async fn recovery_cert(
 pub async fn recovery_ca_pub(State(service): State<SandboxService>) -> (StatusCode, String) {
     (StatusCode::OK, format!("{}\n", service.recovery_ca_authorized_key()))
 }
+
+/// Body for `POST /sandbox/:id/attach-device`. Called by backend right after
+/// the bridge inside a VM completes enroll redeem — gives sandbox-manager
+/// the device id so deletion can cascade. Admin / owner only.
+#[derive(Debug, Deserialize)]
+pub struct AttachDeviceRequest {
+    pub device_id: String,
+}
+
+pub async fn attach_device(
+    State(service): State<SandboxService>,
+    Auth(identity): Auth,
+    Path(id): Path<String>,
+    Json(req): Json<AttachDeviceRequest>,
+) -> Result<StatusCode, (StatusCode, String)> {
+    service
+        .attach_device(&identity, &id, &req.device_id)
+        .await
+        .map_err(|e| rest_error(ErrorCode::BadRequest, e.to_string()))?;
+    Ok(StatusCode::NO_CONTENT)
+}

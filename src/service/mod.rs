@@ -114,9 +114,16 @@ impl SandboxService {
             _ => identity.user_id.clone(),
         };
 
+        // Generate the sandbox id up front so we can bind the VM bridge's
+        // enroll token to it. The bridge's redeem identity (defined in C)
+        // doesn't carry the sandbox id; binding via the token lets the
+        // backend call `attach-device` after redeem so sandbox-delete can
+        // cascade Device cleanup.
+        let sandbox_id = crate::vm::sandbox::generate_sandbox_id();
+
         let enroll_token = if kind == SandboxKind::Vm {
             Some(self.backend
-                .mint_enroll_token(&owner_id, Some(ENROLL_TOKEN_TTL_SEC))
+                .mint_enroll_token(&owner_id, Some(ENROLL_TOKEN_TTL_SEC), Some(&sandbox_id))
                 .await
                 .context("failed to mint enroll token")?
                 .token)
@@ -126,7 +133,7 @@ impl SandboxService {
 
         let mut sandbox = self
             .manager
-            .create_sandbox(owner_id.clone(), req.template.clone(), req.size, enroll_token)
+            .create_sandbox_with_id(sandbox_id, owner_id.clone(), req.template.clone(), req.size, enroll_token)
             .await?;
 
         // For Lite sandboxes, materialize a Device row via the standard
@@ -194,19 +201,45 @@ impl SandboxService {
         // Read device_id before tearing down so we can clean up the device row.
         // Order: tear down sandbox first, then delete the device row. Reverse
         // order would briefly hide a still-existing sandbox from the UI.
-        // VM cleanup-by-sandbox is a separate, unresolved problem (manager
-        // never learns the VM's redeemed device id) — tracked elsewhere.
+        // Both kinds: Lite gets a device_id at create-time via mint+redeem;
+        // VM gets one written back from the backend after bridge enroll via
+        // POST /sandbox/:id/attach-device.
         let pre = self.manager.get_sandbox(id).await.ok().flatten();
         let owner_id = pre.as_ref().map(|s| s.user_id.clone());
-        let lite_device_id = pre.as_ref().and_then(|s| s.device_id.clone());
+        let device_id = pre.as_ref().and_then(|s| s.device_id.clone());
 
         self.manager.delete_sandbox(id).await?;
 
-        if let (Some(device_id), Some(owner)) = (lite_device_id, owner_id) {
+        if let (Some(device_id), Some(owner)) = (device_id, owner_id) {
             if let Err(e) = self.backend.delete_device(&owner, &device_id).await {
-                tracing::warn!("failed to delete lite sandbox device {}: {}", device_id, e);
+                tracing::warn!("failed to delete sandbox device {}: {}", device_id, e);
             }
         }
+        Ok(())
+    }
+
+    /// Associate a device row with a sandbox after the bridge inside it has
+    /// enrolled. Backend calls this from the redeem flow once it sees an
+    /// `identity.sandboxId` so `delete_sandbox` can cascade the cleanup.
+    /// Idempotent; ownership-checked (admin or owner).
+    pub async fn attach_device(&self, identity: &AuthIdentity, id: &str, device_id: &str) -> Result<()> {
+        self.assert_owner(identity, id).await?;
+        let mut sandbox = self.manager.get_sandbox(id).await?
+            .context("sandbox not found")?;
+        if sandbox.device_id.as_deref() == Some(device_id) {
+            return Ok(());
+        }
+        if let Some(existing) = sandbox.device_id.as_deref() {
+            // Late re-enroll (kernel reboot, /init re-launch with saved creds
+            // is the normal path — but if creds are lost the bridge mints a
+            // fresh device). Drop the stale row so the device list stays
+            // truthful. Best-effort.
+            if let Err(e) = self.backend.delete_device(&sandbox.user_id, existing).await {
+                tracing::warn!("attach_device: failed to drop stale device {}: {}", existing, e);
+            }
+        }
+        sandbox.device_id = Some(device_id.to_string());
+        self.redis.sandbox_put(&sandbox).await?;
         Ok(())
     }
 

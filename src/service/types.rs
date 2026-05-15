@@ -58,6 +58,9 @@ pub struct SandboxInfo {
     pub cost_per_minute: f64,
     pub pid: Option<u32>,
     pub error: Option<String>,
+    /// Backend Device row this sandbox's bridge enrolled as. Set at create
+    /// time for Lite, after redeem (via `attach-device`) for VM.
+    pub device_id: Option<String>,
     pub created_at: u64,
     pub last_activity: u64,
 }
@@ -75,6 +78,7 @@ impl From<Sandbox> for SandboxInfo {
             size: sandbox.size,
             pid: sandbox.pid,
             error: sandbox.error,
+            device_id: sandbox.device_id,
             created_at: sandbox.created_at,
             last_activity: sandbox.last_activity,
         }
