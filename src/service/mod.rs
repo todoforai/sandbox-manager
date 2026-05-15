@@ -219,8 +219,11 @@ impl SandboxService {
     }
 
     /// Associate a device row with a sandbox after the bridge inside it has
-    /// enrolled. Backend calls this from the redeem flow once it sees an
-    /// `identity.sandboxId` so `delete_sandbox` can cascade the cleanup.
+    /// enrolled. Backend calls this from the redeem flow when the enroll
+    /// token was minted bound to a sandbox (VMs — bound via the third arg
+    /// of `mint_enroll_token`) or the redeemer carries `identity.sandboxId`
+    /// (Lite — registered server-side at create time). Either path ends here
+    /// so `delete_sandbox` can later cascade the Device cleanup.
     /// Idempotent; ownership-checked (admin or owner).
     pub async fn attach_device(&self, identity: &AuthIdentity, id: &str, device_id: &str) -> Result<()> {
         self.assert_owner(identity, id).await?;
