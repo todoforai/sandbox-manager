@@ -9,17 +9,17 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 #[serde(rename_all = "lowercase")]
 pub enum VmSize {
-    /// 128MB RAM, 1 vCPU — simple scripts, quick tasks (~$0.005/min)
+    /// 128MB RAM, 1 vCPU — simple scripts, quick tasks (~$0.0025/min)
     Small,
     
-    /// 256MB RAM, 1 vCPU — most agent tasks, npm install, git (~$0.01/min)
+    /// 256MB RAM, 1 vCPU — most agent tasks, npm install, git (~$0.005/min)
     #[default]
     Medium,
     
-    /// 512MB RAM, 2 vCPU — builds, heavy computation, multiple processes (~$0.02/min)
+    /// 512MB RAM, 2 vCPU — builds, heavy computation, multiple processes (~$0.01/min)
     Large,
     
-    /// 1024MB RAM, 4 vCPU — large builds, ML inference, memory-intensive tasks (~$0.04/min)
+    /// 1024MB RAM, 4 vCPU — large builds, ML inference, memory-intensive tasks (~$0.02/min)
     XLarge,
     
     /// Custom configuration
@@ -52,16 +52,17 @@ impl VmSize {
         }
     }
     
-    /// Cost per minute in USD
+    /// Cost per minute in USD (VM tier price; Lite sandboxes are billed at
+    /// $0 — see `SandboxInfo::from(Sandbox)` in `service/types.rs`).
     pub fn cost_per_minute(&self) -> f64 {
         match self {
-            VmSize::Small => 0.005,
-            VmSize::Medium => 0.01,
-            VmSize::Large => 0.02,
-            VmSize::XLarge => 0.04,
+            VmSize::Small => 0.0025,
+            VmSize::Medium => 0.005,
+            VmSize::Large => 0.01,
+            VmSize::XLarge => 0.02,
             VmSize::Custom { memory_mb, vcpu_count } => {
-                // Base cost: $0.00004/MB/min + $0.005/vCPU/min
-                (*memory_mb as f64 * 0.00004) + (*vcpu_count as f64 * 0.005)
+                // Base cost: $0.00002/MB/min + $0.0025/vCPU/min
+                (*memory_mb as f64 * 0.00002) + (*vcpu_count as f64 * 0.0025)
             }
         }
     }

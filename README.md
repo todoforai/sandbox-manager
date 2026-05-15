@@ -135,7 +135,7 @@ Response:
   "id": "550e8400-e29b-41d4-a716-446655440000",
   "ip_address": "10.0.0.2",
   "size": "medium",
-  "cost_per_minute": 0.01,
+  "cost_per_minute": 0.005,
   "state": "running"
 }
 ```
@@ -160,14 +160,19 @@ curl -X DELETE http://localhost:9000/sandbox/{id}
 curl http://localhost:9000/stats
 ```
 
-## VM Size Tiers
+## Sandbox Pricing
 
-| Tier | Memory | vCPUs | Cost/min |
-|------|--------|-------|----------|
-| small | 128MB | 1 | $0.005 |
-| medium | 256MB | 1 | $0.01 |
-| large | 512MB | 2 | $0.02 |
-| xlarge | 1024MB | 4 | $0.04 |
+**Lite (bwrap):** included in the TODOforAI plan — billed at $0. Shared kernel,
+namespaced process; ideal for most agent tasks. See `SandboxKind::Lite`.
+
+**VM (Firecracker):** per-minute by tier. Source of truth: `src/vm/size.rs`.
+
+| Tier | Memory | vCPUs | Cost/min | Cost/hour | Cost/day (24h) |
+|------|--------|-------|----------|-----------|----------------|
+| small | 128MB | 1 | $0.0025 | $0.15 | $3.60 |
+| medium | 256MB | 1 | $0.005 | $0.30 | $7.20 |
+| large | 512MB | 2 | $0.01 | $0.60 | $14.40 |
+| xlarge | 1024MB | 4 | $0.02 | $1.20 | $28.80 |
 
 ## Configuration
 

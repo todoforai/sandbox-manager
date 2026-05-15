@@ -67,8 +67,14 @@ pub struct SandboxInfo {
 
 impl From<Sandbox> for SandboxInfo {
     fn from(sandbox: Sandbox) -> Self {
+        // Lite sandboxes (bwrap) are included in the TODOforAI plan — billed at $0.
+        // VM sandboxes (Firecracker) are billed at the tier rate from `VmSize`.
+        let cost_per_minute = match sandbox.kind {
+            SandboxKind::Lite => 0.0,
+            SandboxKind::Vm   => sandbox.size.cost_per_minute(),
+        };
         Self {
-            cost_per_minute: sandbox.size.cost_per_minute(),
+            cost_per_minute,
             ip_address: sandbox.ip_address.map(|ip| ip.to_string()),
             state: state_name(sandbox.state).to_string(),
             id: sandbox.id,

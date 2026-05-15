@@ -193,7 +193,8 @@ document.addEventListener('click', async e => {
 });
 
 // ---------- Inline expandable logs ----------
-const openLogIds = new Set();
+// Open by default; only track explicit closes. /logs is fetched only on expand.
+const closedLogIds = new Set();
 
 function logBlock(label, body, path) {
   const head = `<h4>${label}<span class="path">${path || ''}</span>${body ? `<button data-copy="${body.replace(/"/g,'&quot;')}">Copy</button>` : ''}</h4>`;
@@ -250,18 +251,16 @@ function toggleLogs(row) {
   const id = row.dataset.rowId;
   const next = row.nextElementSibling;
   if (next?.classList.contains('logs-row') && next.dataset.rowId === id) {
-    next.remove(); row.classList.remove('expanded'); openLogIds.delete(id); return;
+    next.remove(); row.classList.remove('expanded'); closedLogIds.add(id); return;
   }
-  openLogIds.add(id);
+  closedLogIds.delete(id);
   expandLogs(row);
 }
 
 function reopenLogs() {
-  for (const id of [...openLogIds]) {
-    const row = document.querySelector(`tr.clickable[data-row-id="${id}"]`);
-    if (row) expandLogs(row);
-    else openLogIds.delete(id);
-  }
+  document.querySelectorAll('tr.clickable[data-row-id]').forEach(row => {
+    if (!closedLogIds.has(row.dataset.rowId)) expandLogs(row);
+  });
 }
 
 function showRecoveryModal(id, r) {
