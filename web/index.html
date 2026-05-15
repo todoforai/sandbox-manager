@@ -2,306 +2,1233 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>Sandbox Manager</title>
+<title>Sandboxes · TODO for AI</title>
 <meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
-  :root { color-scheme: dark; }
-  body { font: 14px/1.4 system-ui, sans-serif; margin: 0; background: #111; color: #eee; }
-  header { padding: 12px 16px; background: #1a1a1a; border-bottom: 1px solid #333; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
-  header h1 { font-size: 16px; margin: 0; flex: 1; }
-  header input { background: #222; color: #eee; border: 1px solid #444; padding: 6px 8px; border-radius: 4px; min-width: 320px; font-family: monospace; }
-  header button { background: #2a4; color: white; border: 0; padding: 6px 12px; border-radius: 4px; cursor: pointer; }
-  header button:hover { background: #3b5; }
-  main { padding: 16px; }
-  .stats { display: flex; gap: 16px; margin-bottom: 16px; flex-wrap: wrap; }
-  .stat { background: #1a1a1a; border: 1px solid #333; padding: 10px 14px; border-radius: 6px; min-width: 120px; }
-  .stat .v { font-size: 20px; font-weight: 600; }
-  .stat .l { color: #888; font-size: 12px; }
-  table { width: 100%; border-collapse: collapse; background: #1a1a1a; border-radius: 6px; overflow: hidden; }
-  th, td { padding: 8px 10px; text-align: left; border-bottom: 1px solid #2a2a2a; font-size: 13px; }
-  th { background: #222; color: #aaa; font-weight: 500; }
-  tr:hover { background: #202020; }
-  .id { font-family: monospace; font-size: 12px; color: #8af; }
-  .badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; text-transform: uppercase; }
-  .badge.running { background: #1d4; color: #000; }
-  .badge.paused { background: #fa3; color: #000; }
-  .badge.creating { background: #38f; color: #fff; }
-  .badge.error, .badge.terminated, .badge.terminating { background: #c33; color: #fff; }
-  .badge.vm { background: #338; color: #fff; }
-  .badge.lite { background: #555; color: #fff; }
-  td.actions button { background: #333; color: #eee; border: 1px solid #555; padding: 4px 8px; margin-right: 4px; border-radius: 3px; cursor: pointer; font-size: 12px; }
-  td.actions button:hover { background: #444; }
-  td.actions button.danger:hover { background: #c33; border-color: #c33; }
-  .err { color: #f66; padding: 12px; }
-  .empty { text-align: center; padding: 32px; color: #888; }
-  .userbar { color: #aaa; font-size: 12px; margin-bottom: 8px; }
-  .userblock { background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 6px; margin-bottom: 10px; overflow: hidden; }
-  .userblock > summary { cursor: pointer; padding: 10px 14px; background: #202020; user-select: none; list-style: none; }
-  .userblock > summary::-webkit-details-marker { display: none; }
-  .userblock > summary::before { content: '▸ '; color: #666; }
-  .userblock[open] > summary::before { content: '▾ '; }
-  .userblock > table { border-radius: 0; }
-  .muted { color: #888; font-weight: normal; }
-  tr.clickable { cursor: pointer; }
-  tr.expanded { background: #202020; }
-  tr.logs-row > td { padding: 0; background: #141414; }
-  .logs-box { padding: 10px 14px; border-top: 1px solid #2a2a2a; }
-  .logs-toolbar { display: flex; justify-content: flex-end; margin-bottom: 6px; }
-  .logs-toolbar button { background: #2a4; color: #fff; border: 0; padding: 4px 12px; border-radius: 3px; cursor: pointer; font-size: 12px; }
-  .logs-toolbar button:hover { background: #3b5; }
-  .logs-err { background: #3a1a1a; color: #f99; padding: 8px 10px; border-radius: 4px; font: 12px/1.4 monospace; white-space: pre-wrap; margin-bottom: 8px; }
-  .log-block { margin-bottom: 10px; }
-  .log-block h4 { margin: 0 0 4px; font-size: 12px; color: #aaa; display: flex; align-items: center; gap: 8px; font-weight: 500; }
-  .log-block h4 .path { color: #666; font-family: monospace; font-size: 11px; font-weight: normal; flex: 1; word-break: break-all; }
-  .log-block h4 button { background: #333; color: #eee; border: 1px solid #555; padding: 2px 8px; border-radius: 3px; cursor: pointer; font-size: 11px; }
-  .log-block h4 button:hover { background: #444; }
-  .log-block pre { margin: 0; padding: 8px 10px; background: #0e0e0e; border: 1px solid #222; border-radius: 4px; font: 12px/1.45 ui-monospace, monospace; color: #ddd; white-space: pre-wrap; word-break: break-all; max-height: 400px; overflow: auto; }
-  .log-block .none { color: #777; font-size: 12px; padding: 6px 0; font-style: italic; }
-  .modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; z-index: 100; }
-  .modal { background: #1a1a1a; border: 1px solid #333; border-radius: 8px; padding: 16px 18px; max-width: 720px; width: 92%; max-height: 86vh; overflow: auto; }
-  .modal h3 { margin: 0 0 6px; font-size: 15px; }
-  .modal .warn { color: #fa3; font-size: 12px; margin-bottom: 10px; }
-  .modal .meta { color: #aaa; font-size: 12px; margin-bottom: 10px; font-family: monospace; }
-  .modal pre { background: #0e0e0e; border: 1px solid #222; border-radius: 4px; padding: 8px 10px; max-height: 360px; overflow: auto; font: 12px/1.45 ui-monospace, monospace; color: #ddd; white-space: pre; }
-  .modal .row { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
-  .modal button { background: #2a4; color: white; border: 0; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 13px; }
-  .modal button.secondary { background: #333; border: 1px solid #555; }
-  .modal button:hover { filter: brightness(1.15); }
+  /* Mirrors frontend/src/app/globals.css (dark theme tokens). Values use sRGB
+     hex equivalents of the source oklch() / hsl() tokens so they render
+     consistently in any browser without a colorspace polyfill. */
+  :root {
+    color-scheme: dark;
+    --font-sans: 'Geist', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    --font-mono: 'Geist Mono', ui-monospace, 'SF Mono', Monaco, Consolas, monospace;
+
+    --background: #1c1c1c;             /* oklch(0.145 0 0) */
+    --foreground: #fafafa;             /* oklch(0.985 0 0) */
+    --card: #2d2d2d;                   /* oklch(0.205 0 0) */
+    --card-foreground: #fafafa;
+    --popover: #2d2d2d;
+    --secondary: #3d3d3d;              /* oklch(0.269 0 0) */
+    --muted: #3d3d3d;
+    --muted-foreground: #a3a3a3;       /* oklch(0.7 0 0) */
+    --accent-bg: #3d3d3d;
+    --border: rgba(255, 255, 255, 0.10);
+    --input: rgba(255, 255, 255, 0.15);
+    --ring: rgba(255, 255, 255, 0.32);
+
+    --primary: #f96e2e;                /* brand orange */
+    --primary-hover: #ff8c40;
+    --primary-foreground: #fafafa;
+    --success: #22c55e;
+    --warning: #c08114;
+    --destructive: #ef4444;
+
+    --radius-xs: 4px;
+    --radius-sm: 8px;
+    --radius-md: 10px;
+    --radius-lg: 14px;
+
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.2);
+    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.25);
+    --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.4);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: var(--font-sans);
+    font-size: 14px;
+    line-height: 1.5;
+    background: var(--background);
+    color: var(--foreground);
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+  ::selection { background: var(--primary); color: var(--primary-foreground); }
+  code { font-family: var(--font-mono); }
+
+  /* ---------- Top bar ---------- */
+  header {
+    border-bottom: 1px solid var(--border);
+    background: color-mix(in srgb, var(--background) 80%, transparent);
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+    position: sticky; top: 0; z-index: 50;
+  }
+  .bar {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 24px;
+    align-items: center;
+    padding: 14px 28px;
+    max-width: 1280px;
+    margin: 0 auto;
+  }
+  .brand {
+    font-weight: 700;
+    font-size: 16px;
+    letter-spacing: -0.01em;
+    color: var(--foreground);
+    display: inline-flex; align-items: center; gap: 8px;
+    text-decoration: none;
+  }
+  .brand:hover { color: var(--foreground); }
+  .brand .dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--primary);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 20%, transparent);
+  }
+  .brand b { color: var(--primary); font-weight: 700; }
+  .crumbs {
+    color: var(--muted-foreground);
+    font-size: 13px;
+  }
+  .crumbs .sep { color: var(--border); margin: 0 8px; }
+  .user-chip {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 6px 12px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    font-size: 12px;
+    color: var(--muted-foreground);
+    background: var(--card);
+  }
+  .user-chip .dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--success);
+  }
+
+  /* ---------- Page ---------- */
+  main { max-width: 1280px; margin: 0 auto; padding: 32px 28px; }
+
+  .page-head {
+    display: flex; align-items: flex-start; justify-content: space-between;
+    gap: 24px; margin-bottom: 32px; flex-wrap: wrap;
+  }
+  .page-head h1 {
+    font-size: 32px;
+    font-weight: 700;
+    letter-spacing: -0.025em;
+    margin: 0 0 6px;
+  }
+  .page-head .sub {
+    color: var(--muted-foreground);
+    font-size: 14px;
+    margin: 0;
+  }
+
+  /* ---------- Stats strip ---------- */
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 12px;
+    margin-bottom: 32px;
+  }
+  .stat {
+    padding: 18px 20px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    background: var(--card);
+  }
+  .stat .l {
+    font-size: 12px;
+    color: var(--muted-foreground);
+    margin-bottom: 6px;
+  }
+  .stat .v {
+    font-size: 26px;
+    line-height: 1.1;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.02em;
+  }
+  .stat .v small { font-size: 13px; color: var(--muted-foreground); font-weight: 500; margin-left: 4px; }
+
+  /* ---------- Buttons ---------- */
+  button, .btn {
+    font: 500 14px/1 var(--font-sans);
+    background: transparent;
+    color: var(--foreground);
+    border: 1px solid var(--border);
+    padding: 8px 14px;
+    cursor: pointer;
+    border-radius: var(--radius-sm);
+    transition: background 120ms ease, border-color 120ms ease, color 120ms ease, box-shadow 120ms ease;
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    white-space: nowrap;
+    text-decoration: none;
+  }
+  button:hover:not(:disabled), .btn:hover { background: var(--accent-bg); }
+  button:focus-visible, .btn:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--ring) 40%, transparent);
+    border-color: var(--ring);
+  }
+  button:disabled { opacity: 0.5; cursor: not-allowed; }
+  button.primary, .btn.primary {
+    background: var(--primary);
+    color: var(--primary-foreground);
+    border-color: var(--primary);
+    font-weight: 600;
+  }
+  button.primary:hover:not(:disabled), .btn.primary:hover {
+    background: var(--primary-hover);
+    border-color: var(--primary-hover);
+  }
+  button.danger { color: var(--destructive); border-color: color-mix(in srgb, var(--destructive) 35%, transparent); }
+  button.danger:hover:not(:disabled) {
+    background: var(--destructive);
+    color: white;
+    border-color: var(--destructive);
+  }
+  button.ghost { border-color: transparent; color: var(--muted-foreground); }
+  button.ghost:hover:not(:disabled) { color: var(--foreground); background: var(--accent-bg); }
+
+  /* ---------- VM list ---------- */
+  .vm-list { display: flex; flex-direction: column; gap: 10px; }
+  .vm {
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    background: var(--card);
+    display: grid;
+    grid-template-columns: 4px 1fr auto;
+    gap: 0;
+    overflow: hidden;
+    transition: border-color 120ms ease, box-shadow 120ms ease;
+  }
+  .vm:hover { border-color: color-mix(in srgb, var(--foreground) 18%, transparent); box-shadow: var(--shadow-sm); }
+  .vm-stripe { background: var(--muted-foreground); }
+  .vm[data-state="running"] .vm-stripe { background: var(--success); }
+  .vm[data-state="paused"]  .vm-stripe { background: var(--warning); }
+  .vm[data-state="creating"] .vm-stripe { background: var(--primary); animation: pulse 1.2s ease-in-out infinite; }
+  .vm[data-state="error"] .vm-stripe,
+  .vm[data-state="terminating"] .vm-stripe,
+  .vm[data-state="terminated"] .vm-stripe { background: var(--destructive); }
+  @keyframes pulse { 0%,100% { opacity: 1 } 50% { opacity: 0.35 } }
+
+  .vm-body { padding: 16px 20px; min-width: 0; }
+  .vm-row1 {
+    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+    margin-bottom: 10px;
+  }
+  .vm-template {
+    font-size: 16px;
+    font-weight: 600;
+    letter-spacing: -0.005em;
+  }
+  .vm-id {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--muted-foreground);
+  }
+  .vm-id code { color: var(--foreground); }
+  .vm-state {
+    font-size: 11px;
+    font-weight: 500;
+    padding: 3px 10px;
+    border-radius: 999px;
+    border: 1px solid currentColor;
+    color: var(--muted-foreground);
+    background: color-mix(in srgb, currentColor 8%, transparent);
+    text-transform: capitalize;
+  }
+  .vm[data-state="running"] .vm-state { color: var(--success); }
+  .vm[data-state="paused"]  .vm-state { color: var(--warning); }
+  .vm[data-state="creating"] .vm-state { color: var(--primary); }
+  .vm[data-state="error"] .vm-state,
+  .vm[data-state="terminating"] .vm-state,
+  .vm[data-state="terminated"] .vm-state { color: var(--destructive); }
+  .vm-row2 {
+    display: flex; gap: 18px; flex-wrap: wrap;
+    color: var(--muted-foreground);
+    font-size: 13px;
+  }
+  .vm-row2 .kv { display: inline-flex; gap: 6px; align-items: baseline; }
+  .vm-row2 .kv .k { color: var(--muted-foreground); }
+  .vm-row2 .kv b { color: var(--foreground); font-weight: 500; }
+  .vm-err {
+    margin-top: 10px;
+    color: var(--destructive);
+    font-size: 13px;
+    word-break: break-word;
+  }
+  .vm-actions {
+    display: flex; align-items: center; gap: 6px;
+    padding: 12px 16px;
+    border-left: 1px solid var(--border);
+  }
+  .vm-actions button { padding: 7px 12px; font-size: 13px; }
+
+  /* ---------- Empty / loading / error states ---------- */
+  .placeholder {
+    border: 1px dashed var(--border);
+    border-radius: var(--radius-md);
+    padding: 64px 28px;
+    text-align: center;
+    color: var(--muted-foreground);
+    background: var(--card);
+  }
+  .placeholder h2 {
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--foreground);
+    margin: 0 0 8px;
+    letter-spacing: -0.01em;
+  }
+  .placeholder p { margin: 0 0 20px; font-size: 14px; }
+  .placeholder .actions { display: inline-flex; gap: 12px; }
+
+  /* ---------- Modal ---------- */
+  .modal-bg {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.6);
+    -webkit-backdrop-filter: blur(6px);
+    backdrop-filter: blur(6px);
+    display: grid; place-items: center;
+    z-index: 100;
+    animation: fadein 140ms ease-out;
+    padding: 20px;
+  }
+  @keyframes fadein { from { opacity: 0 } to { opacity: 1 } }
+  .modal {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    width: min(540px, 100%);
+    box-shadow: var(--shadow-lg);
+    animation: slideup 200ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  @keyframes slideup { from { opacity: 0; transform: translateY(8px) } to { opacity: 1; transform: translateY(0) } }
+  .modal-head {
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .modal-head h3 {
+    font-size: 17px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    margin: 0;
+  }
+  .modal-head .close {
+    background: transparent; border: 0; color: var(--muted-foreground);
+    cursor: pointer; padding: 6px; font-size: 20px; line-height: 1;
+    border-radius: var(--radius-sm);
+    width: 32px; height: 32px;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .modal-head .close:hover { background: var(--accent-bg); color: var(--foreground); }
+  .modal-body { padding: 22px 24px; }
+  .modal-body label {
+    display: block;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--muted-foreground);
+    margin-bottom: 10px;
+  }
+  .tpl-grid {
+    display: grid; grid-template-columns: 1fr; gap: 8px;
+    margin-bottom: 18px;
+  }
+  .tpl {
+    padding: 14px 16px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 12px;
+    background: var(--background);
+    transition: border-color 120ms ease, background 120ms ease;
+  }
+  .tpl:hover { border-color: color-mix(in srgb, var(--foreground) 25%, transparent); }
+  .tpl.sel {
+    border-color: var(--primary);
+    background: color-mix(in srgb, var(--primary) 8%, var(--card));
+  }
+  .tpl .name { font-size: 14px; font-weight: 600; margin-bottom: 2px; }
+  .tpl .meta { font-size: 12px; color: var(--muted-foreground); }
+  .tpl .check {
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    border: 1.5px solid var(--border);
+    flex-shrink: 0;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .tpl.sel .check { border-color: var(--primary); background: var(--primary); }
+  .tpl.sel .check::after {
+    content: ''; width: 6px; height: 6px; border-radius: 50%;
+    background: var(--primary-foreground);
+  }
+  .modal-foot {
+    padding: 16px 24px;
+    border-top: 1px solid var(--border);
+    display: flex; gap: 10px; justify-content: flex-end;
+  }
+  .err-msg {
+    color: var(--destructive);
+    font-size: 13px;
+    padding: 12px 16px;
+    border: 1px solid color-mix(in srgb, var(--destructive) 40%, transparent);
+    background: color-mix(in srgb, var(--destructive) 10%, transparent);
+    border-radius: var(--radius-sm);
+    margin-bottom: 20px;
+  }
+
+  /* ---------- Sign-in screen ---------- */
+  .signin {
+    min-height: calc(100vh - 56px);
+    display: grid; place-items: center;
+    padding: 40px 20px;
+  }
+  .signin-card {
+    border: 1px solid var(--border);
+    background: var(--card);
+    border-radius: var(--radius-lg);
+    padding: 48px 40px;
+    max-width: 440px;
+    text-align: center;
+    box-shadow: var(--shadow-md);
+  }
+  .signin-card .icon {
+    width: 56px; height: 56px;
+    margin: 0 auto 20px;
+    border-radius: 50%;
+    background: color-mix(in srgb, var(--primary) 12%, transparent);
+    color: var(--primary);
+    display: grid; place-items: center;
+    font-size: 28px;
+  }
+  .signin-card h2 {
+    font-size: 22px;
+    font-weight: 600;
+    letter-spacing: -0.015em;
+    margin: 0 0 8px;
+  }
+  .signin-card p {
+    color: var(--muted-foreground);
+    margin: 0 0 24px;
+    font-size: 14px;
+    line-height: 1.55;
+  }
+  .signin-card .primary { width: 100%; padding: 11px 22px; font-size: 14px; }
+
+  /* ---------- Footer hint ---------- */
+  footer {
+    margin-top: 60px;
+    padding: 24px 28px;
+    border-top: 1px solid var(--border);
+    color: var(--muted-foreground);
+    font-size: 12px;
+    text-align: center;
+  }
+  footer a { color: var(--muted-foreground); text-decoration: underline; text-underline-offset: 2px; }
+  footer a:hover { color: var(--foreground); }
+
+  /* ---------- Spinner ---------- */
+  .spinner {
+    display: inline-block; width: 12px; height: 12px;
+    border: 2px solid color-mix(in srgb, currentColor 20%, transparent);
+    border-top-color: currentColor;
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg) } }
+
+  /* ---------- Inputs ---------- */
+  input[type="text"], input[type="password"] {
+    font: inherit;
+    background: var(--background);
+    color: var(--foreground);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 8px 12px;
+    outline: none;
+    transition: border-color 120ms ease, box-shadow 120ms ease;
+  }
+  input[type="text"]:focus, input[type="password"]:focus {
+    border-color: var(--ring);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--ring) 30%, transparent);
+  }
+
+  details > summary { list-style: none; }
+  details > summary::-webkit-details-marker { display: none; }
+
+  /* ---------- Agent-native section ---------- */
+  .agent-native {
+    margin-top: 48px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    background: var(--card);
+    overflow: hidden;
+  }
+  .agent-native > header {
+    background: transparent;
+    border-bottom: 1px solid var(--border);
+    padding: 18px 24px;
+    position: static;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    display: flex; align-items: flex-start; justify-content: space-between;
+    gap: 16px; flex-wrap: wrap;
+  }
+  .agent-native h2 {
+    font-size: 18px;
+    font-weight: 600;
+    margin: 0 0 4px;
+    letter-spacing: -0.01em;
+    display: inline-flex; align-items: center; gap: 8px;
+  }
+  .agent-native h2 .pill {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--primary) 18%, transparent);
+    color: var(--primary);
+    text-transform: uppercase;
+  }
+  .agent-native h2 small {
+    font-size: 13px;
+    font-weight: 400;
+    color: var(--muted-foreground);
+    letter-spacing: 0;
+    text-transform: none;
+  }
+  .agent-native .sub {
+    color: var(--muted-foreground);
+    font-size: 13px;
+    margin: 0;
+    max-width: 620px;
+    line-height: 1.55;
+  }
+  .tabs {
+    display: flex;
+    border-bottom: 1px solid var(--border);
+    padding: 0 12px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .tabs::-webkit-scrollbar { display: none; }
+  .tab {
+    background: transparent;
+    border: 0;
+    border-bottom: 2px solid transparent;
+    color: var(--muted-foreground);
+    padding: 14px 16px;
+    font: 500 14px/1 var(--font-sans);
+    cursor: pointer;
+    margin-bottom: -1px;
+    white-space: nowrap;
+    border-radius: 0;
+  }
+  .tab:hover { color: var(--foreground); background: transparent; }
+  .tab[aria-selected="true"] {
+    color: var(--foreground);
+    border-bottom-color: var(--primary);
+  }
+  .tab-panel { padding: 22px 24px 26px; }
+  .tab-panel p { color: var(--muted-foreground); font-size: 13px; line-height: 1.6; margin: 0 0 12px; }
+  .tab-panel p:last-child { margin-bottom: 0; }
+  .tab-panel ol, .tab-panel ul {
+    color: var(--muted-foreground); font-size: 13px; line-height: 1.7;
+    padding-left: 22px; margin: 0 0 14px;
+  }
+  .tab-panel li { margin: 0; }
+  .tab-panel li code { font-size: 12.5px; }
+  .tab-panel h3 {
+    font-size: 13px; font-weight: 600; color: var(--muted-foreground);
+    margin: 18px 0 8px; letter-spacing: 0.02em;
+  }
+  .tab-panel h3:first-child { margin-top: 0; }
+
+  /* Code blocks with copy affordance */
+  .code-block {
+    position: relative;
+    background: var(--background);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 12px 14px;
+    margin: 0 0 12px;
+  }
+  .code-block:last-child { margin-bottom: 0; }
+  .code-block pre {
+    margin: 0;
+    font: 12.5px/1.55 var(--font-mono);
+    color: var(--foreground);
+    white-space: pre;
+    overflow-x: auto;
+    padding-right: 56px; /* room for copy button */
+  }
+  .code-block pre code { background: none; padding: 0; color: inherit; }
+  .code-block pre .c { color: var(--muted-foreground); }                 /* comment */
+  .code-block pre .k { color: #ffb37a; }                                  /* keyword/cmd */
+  .code-block pre .s { color: color-mix(in srgb, var(--success) 90%, white); }  /* string */
+  .code-block .copy-btn {
+    position: absolute;
+    top: 8px; right: 8px;
+    padding: 4px 10px;
+    font: 500 11px/1 var(--font-sans);
+    color: var(--muted-foreground);
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-xs);
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 120ms ease, color 120ms ease, background 120ms ease;
+  }
+  .code-block:hover .copy-btn,
+  .code-block .copy-btn:focus-visible { opacity: 1; }
+  .code-block .copy-btn:hover { color: var(--foreground); background: var(--accent-bg); }
+  .code-block .copy-btn[data-copied="1"] {
+    opacity: 1; color: var(--success); border-color: color-mix(in srgb, var(--success) 35%, var(--border));
+  }
+
+  /* Inline code in prose */
+  .tab-panel code:not(pre code) {
+    font: 12.5px/1.2 var(--font-mono);
+    background: var(--background);
+    border: 1px solid var(--border);
+    padding: 1px 6px;
+    border-radius: var(--radius-xs);
+    color: var(--foreground);
+  }
+
+  @media (max-width: 640px) {
+    .bar { padding: 12px 16px; gap: 12px; }
+    .crumbs { display: none; }
+    main { padding: 20px 16px; }
+    .page-head h1 { font-size: 26px; }
+    .vm { grid-template-columns: 4px 1fr; }
+    .vm-actions {
+      grid-column: 1 / -1;
+      border-left: 0;
+      border-top: 1px solid var(--border);
+      flex-wrap: wrap;
+      padding: 10px 16px;
+    }
+  }
 </style>
 </head>
 <body>
+
 <header>
-  <h1>Sandbox Manager</h1>
-  <button id="refresh">Refresh</button>
+  <div class="bar">
+    <a class="brand" href="/" aria-label="TODO for AI — Sandboxes">
+      <span class="dot"></span>
+      TODO for AI <b>/ Sandboxes</b>
+    </a>
+    <div class="crumbs">Firecracker microVMs</div>
+    <div id="user-chip"></div>
+  </div>
 </header>
-<main>
-  <div class="stats" id="stats"></div>
-  <div id="content"><div class="empty">Loading…</div></div>
+
+<main id="app">
+  <div class="placeholder">
+    <span class="spinner"></span>
+    <p style="margin-top:14px">Loading…</p>
+  </div>
 </main>
 
-<script>
-const $ = s => document.querySelector(s);
+<footer>
+  Powered by Firecracker · <a href="https://todofor.ai" target="_blank" rel="noopener noreferrer">todofor.ai</a>
+</footer>
+
+<script type="module">
+// ────────────────────────────────────────────────────────────────────────────
+// Auth: Better Auth shared the session cookie across *.todofor.ai. The cookie
+// is HttpOnly so we cannot read it from JS — instead we attach credentials on
+// every request and the server's bearer plugin / cookie path will authenticate
+// the call. If a request returns 401 we show the sign-in screen.
+//
+// Cookie auth works because nginx (vm.todofor.ai.conf) forwards Cookie to the
+// Rust service AND the service's auth_extractor accepts the Better Auth
+// session token via Redis (auth/mod.rs::authenticate).
+//
+// For local dev (different origin), we fall back to a token paste field saved
+// to localStorage.
+// ────────────────────────────────────────────────────────────────────────────
+
+// Frontend host for the sign-in redirect. The frontend uses an in-app modal
+// (no /login route), so we just send users to the root and they can sign in
+// from there. Production matches *.todofor.ai (shared session cookie domain);
+// anything else is treated as local dev and points at the Next.js frontend
+// on :3000.
+const FRONTEND_URL = location.hostname.endsWith('.todofor.ai')
+  ? 'https://todofor.ai'
+  : `${location.protocol}//localhost:3000`;
+const LOGIN_URL = FRONTEND_URL + '/';
+const TOKEN_KEY = 'sandbox_panel_token';
+
+function getToken() { try { return localStorage.getItem(TOKEN_KEY) || ''; } catch { return ''; } }
+function setToken(t) { try { t ? localStorage.setItem(TOKEN_KEY, t) : localStorage.removeItem(TOKEN_KEY); } catch {} }
 
 async function api(path, opts = {}) {
-  const r = await fetch(path, {
-    ...opts,
-    headers: { 'Content-Type': 'application/json', ...(opts.headers||{}) },
-  });
-  if (!r.ok) throw new Error(`${r.status} ${await r.text()}`);
-  return r.status === 204 ? null : r.json();
+  const headers = { ...(opts.headers || {}) };
+  // Only set Content-Type when actually sending a body — keeps GETs from
+  // triggering unnecessary CORS preflights.
+  if (opts.body && !headers['Content-Type']) headers['Content-Type'] = 'application/json';
+  const tok = getToken();
+  if (tok) headers['Authorization'] = `Bearer ${tok}`;
+  const r = await fetch(path, { credentials: 'include', ...opts, headers });
+  if (r.status === 401) { state.authed = false; render(); throw new Error('unauthenticated'); }
+  if (!r.ok) throw new Error(`${r.status} ${(await r.text()) || r.statusText}`);
+  // Some endpoints (pause/resume) return 200 OK with no body — don't choke
+  // on the resulting empty string.
+  const text = await r.text();
+  return text ? JSON.parse(text) : null;
 }
+
+// ────────────────────────────────────────────────────────────────────────────
+// State
+// ────────────────────────────────────────────────────────────────────────────
+const state = {
+  authed: null,           // null = unknown, false = signed out, true = signed in
+  sandboxes: [],
+  templates: [],
+  err: null,
+  pendingAction: null,    // sandbox id with action in-flight
+  showCreate: false,
+  selectedTpl: null,
+  agentTab: 'cli',        // 'cli' | 'curl' | 'prompt'
+};
+
+const $ = sel => document.querySelector(sel);
+const el = (tag, attrs = {}, ...kids) => {
+  const e = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) {
+    if (k === 'class') e.className = v;
+    else if (k === 'html') e.innerHTML = v;
+    else if (k.startsWith('on')) e.addEventListener(k.slice(2), v);
+    else if (v !== false && v != null) e.setAttribute(k, v);
+  }
+  for (const kid of kids.flat()) {
+    if (kid == null || kid === false) continue;
+    e.appendChild(typeof kid === 'string' ? document.createTextNode(kid) : kid);
+  }
+  return e;
+};
 
 function fmtAge(ms) {
+  if (!ms) return '—';
   const s = Math.floor((Date.now() - ms) / 1000);
   if (s < 60) return s + 's';
-  if (s < 3600) return Math.floor(s/60) + 'm';
-  if (s < 86400) return Math.floor(s/3600) + 'h';
-  return Math.floor(s/86400) + 'd';
+  if (s < 3600) return Math.floor(s / 60) + 'm';
+  if (s < 86400) return Math.floor(s / 3600) + 'h';
+  return Math.floor(s / 86400) + 'd';
 }
 
-async function refresh() {
-  const content = $('#content');
-  const statsEl = $('#stats');
+// ────────────────────────────────────────────────────────────────────────────
+// Data
+// ────────────────────────────────────────────────────────────────────────────
+async function loadAll() {
   try {
-    const [list, stats] = await Promise.all([
-      api('/admin/api/sandbox'),
-      fetch('/admin/api/stats').then(r => r.json()).catch(() => null),
+    const [list, templates] = await Promise.all([
+      api('/sandbox'),
+      api('/templates').catch(() => []),
     ]);
-    statsEl.innerHTML = stats ? `
-      <div class="stat"><div class="v">${stats.active}</div><div class="l">active</div></div>
-      <div class="stat"><div class="v">${stats.running}</div><div class="l">running</div></div>
-      <div class="stat"><div class="v">${stats.paused}</div><div class="l">paused</div></div>
-      <div class="stat"><div class="v">${stats.total_created}</div><div class="l">total created</div></div>
-      <div class="stat"><div class="v">${stats.total_memory_mb} MB</div><div class="l">allocated</div></div>
-      <div class="stat"><div class="v">${(stats.actual_memory_kb/1024).toFixed(0)} MB</div><div class="l">actual (CoW)</div></div>` : '';
-    if (!list.length) { content.innerHTML = '<div class="empty">No sandboxes.</div>'; return; }
-    const rowFor = s => `
-        <tr class="clickable" data-row-id="${s.id}">
-          <td class="id" title="${s.id}">${s.id.slice(0,8)}…</td>
-          <td>${s.user_id}</td>
-          <td>sandbox-${s.id.slice(0,8)}</td>
-          <td><span class="badge ${s.kind}">${s.kind}</span></td>
-          <td>${s.template}</td>
-          <td>${s.size}</td>
-          <td><span class="badge ${s.state}">${s.state}</span>${s.error ? ' <span title="'+s.error.replace(/"/g,'&quot;')+'">⚠</span>' : ''}</td>
-          <td>${s.ip_address || '—'}</td>
-          <td>${fmtAge(s.created_at)}</td>
-          <td>${fmtAge(s.last_activity)}</td>
-          <td class="actions">
-            ${s.state === 'running' ? `<button data-act="pause" data-id="${s.id}">Pause</button>` : ''}
-            ${s.state === 'paused' ? `<button data-act="resume" data-id="${s.id}">Resume</button>` : ''}
-            ${s.kind === 'vm' && (s.state === 'running' || s.state === 'paused') ? `<button data-act="recovery" data-id="${s.id}">Recovery SSH</button>` : ''}
-            <button class="danger" data-act="delete" data-id="${s.id}">Delete</button>
-          </td>
-        </tr>`;
-    const headRow = `<tr>
-        <th>ID</th><th>User</th><th>Device</th><th>Kind</th><th>Template</th><th>Size</th>
-        <th>State</th><th>IP</th><th>Age</th><th>Idle</th><th>Actions</th>
-      </tr>`;
-    const groups = list.reduce((m, s) => ((m[s.user_id] ||= []).push(s), m), {});
-    const users = Object.keys(groups).sort();
-    content.innerHTML = `<div class="userbar">${users.length} user${users.length===1?'':'s'} · ${list.length} sandbox${list.length===1?'':'es'}</div>` +
-      users.map(u => {
-        const items = groups[u];
-        const vm = items.filter(s => s.kind === 'vm').length;
-        const lite = items.filter(s => s.kind === 'lite').length;
-        const running = items.filter(s => s.state === 'running').length;
-        return `<details open class="userblock">
-          <summary><b>${u}</b> <span class="muted">— ${items.length} total · ${vm} vm · ${lite} lite · ${running} running</span></summary>
-          <table><thead>${headRow}</thead><tbody>${items.map(rowFor).join('')}</tbody></table>
-        </details>`;
-      }).join('');
-    reopenLogs();
+    state.authed = true;
+    state.sandboxes = (list || []).filter(s => s.state !== 'terminated');
+    state.templates = templates || [];
+    state.err = null;
   } catch (e) {
-    content.innerHTML = `<div class="err">Error: ${e.message}</div>`;
-  }
-}
-
-document.addEventListener('click', async e => {
-  const btn = e.target.closest('button[data-act]');
-  if (btn) {
-    const { act, id } = btn.dataset;
-    if (act === 'delete' && !confirm('Delete sandbox ' + id.slice(0,8) + '?')) return;
-    btn.disabled = true;
-    try {
-      if (act === 'pause')    await api(`/admin/api/sandbox/${id}/pause`,  { method: 'POST' });
-      if (act === 'resume')   await api(`/admin/api/sandbox/${id}/resume`, { method: 'POST' });
-      if (act === 'delete')   await api(`/admin/api/sandbox/${id}`,        { method: 'DELETE' });
-      if (act === 'recovery') {
-        const r = await api(`/admin/api/sandbox/${id}/recovery-script`, { method: 'POST' });
-        showRecoveryModal(id, r);
-        btn.disabled = false;
-        return;
-      }
-      await refresh();
-    } catch (err) {
-      alert(err.message);
-      btn.disabled = false;
+    if (e.message === 'unauthenticated') {
+      // render() already invoked via the 401 path
+      return;
     }
-    return;
+    // Any other failure (network, 5xx, etc.) — surface the error but still
+    // show the panel so the user can retry / sign in manually.
+    state.authed = true;
+    state.err = e.message;
   }
-  const copyBtn = e.target.closest('button[data-copy]');
-  if (copyBtn) {
-    navigator.clipboard.writeText(copyBtn.dataset.copy).then(() => {
-      const t = copyBtn.textContent; copyBtn.textContent = 'Copied!';
-      setTimeout(() => copyBtn.textContent = t, 900);
-    });
-    return;
-  }
-  const row = e.target.closest('tr.clickable[data-row-id]');
-  if (row) toggleLogs(row);
-});
-
-// ---------- Inline expandable logs ----------
-const openLogIds = new Set();
-
-function logBlock(label, body, path) {
-  const head = `<h4>${label}<span class="path">${path || ''}</span>${body ? `<button data-copy="${body.replace(/"/g,'&quot;')}">Copy</button>` : ''}</h4>`;
-  if (body == null) return `<div class="log-block">${head}<div class="none">No file on disk.</div></div>`;
-  if (!body.length)  return `<div class="log-block">${head}<div class="none">(empty)</div></div>`;
-  const pre = document.createElement('pre');
-  pre.textContent = body;
-  return `<div class="log-block">${head}${pre.outerHTML}</div>`;
+  render();
 }
 
-function buildCopyAll(id, data) {
-  const parts = [`# sandbox ${id}`, `state: ${data.state}`, `kind: ${data.kind}`];
-  if (data.error) parts.push(`error: ${data.error}`);
-  if (data.note)  parts.push(`note: ${data.note}`);
-  const section = (label, body, path) => {
-    if (body == null) return `\n## ${label} (${path || 'n/a'})\n[no file on disk]`;
-    if (!body.length) return `\n## ${label} (${path})\n[empty]`;
-    return `\n## ${label} (${path})\n${body}`;
-  };
-  if (!data.note) {
-    parts.push(section('Guest console', data.console_log, data.console_log_path));
-    parts.push(section('Firecracker',   data.fc_log,      data.fc_log_path));
-  }
-  return parts.join('\n');
-}
-
-function renderLogs(box, id, data) {
-  const errHtml = data.error ? `<div class="logs-err">sandbox.error: ${data.error}</div>` : '';
-  const copyAll = `<div class="logs-toolbar"><button data-copy="${buildCopyAll(id, data).replace(/"/g,'&quot;')}">Copy all</button></div>`;
-  if (data.note) { box.innerHTML = copyAll + errHtml + `<div class="none">${data.note}</div>`; return; }
-  box.innerHTML = copyAll + errHtml
-    + logBlock('Guest console', data.console_log, data.console_log_path)
-    + logBlock('Firecracker',   data.fc_log,      data.fc_log_path);
-  box.querySelectorAll('pre').forEach(p => p.scrollTop = p.scrollHeight);
-}
-
-async function expandLogs(row) {
-  const id = row.dataset.rowId;
-  row.classList.add('expanded');
-  const colspan = row.children.length;
-  const tr = document.createElement('tr');
-  tr.className = 'logs-row'; tr.dataset.rowId = id;
-  tr.innerHTML = `<td colspan="${colspan}"><div class="logs-box">Loading…</div></td>`;
-  row.after(tr);
+async function act(id, action) {
+  state.pendingAction = `${id}:${action}`;
+  render();
   try {
-    const data = await api(`/admin/api/sandbox/${id}/logs`);
-    renderLogs(tr.querySelector('.logs-box'), id, data);
-  } catch (err) {
-    tr.querySelector('.logs-box').innerHTML = `<div class="logs-err">Error: ${err.message}</div>`;
+    if (action === 'pause')  await api(`/sandbox/${id}/pause`,  { method: 'POST' });
+    if (action === 'resume') await api(`/sandbox/${id}/resume`, { method: 'POST' });
+    if (action === 'delete') await api(`/sandbox/${id}`,         { method: 'DELETE' });
+    await loadAll();
+  } catch (e) {
+    state.err = e.message;
+  } finally {
+    state.pendingAction = null;
+    render();
   }
 }
 
-function toggleLogs(row) {
-  const id = row.dataset.rowId;
-  const next = row.nextElementSibling;
-  if (next?.classList.contains('logs-row') && next.dataset.rowId === id) {
-    next.remove(); row.classList.remove('expanded'); openLogIds.delete(id); return;
-  }
-  openLogIds.add(id);
-  expandLogs(row);
-}
-
-function reopenLogs() {
-  for (const id of [...openLogIds]) {
-    const row = document.querySelector(`tr.clickable[data-row-id="${id}"]`);
-    if (row) expandLogs(row);
-    else openLogIds.delete(id);
+async function createSandbox(template) {
+  state.pendingAction = `create:${template}`;
+  render();
+  try {
+    await api('/sandbox', { method: 'POST', body: JSON.stringify({ template }) });
+    state.showCreate = false;
+    state.selectedTpl = null;
+    await loadAll();
+  } catch (e) {
+    state.err = e.message;
+  } finally {
+    state.pendingAction = null;
+    render();
   }
 }
 
-function showRecoveryModal(id, r) {
-  const bg = document.createElement('div');
-  bg.className = 'modal-bg';
-  bg.innerHTML = `
-    <div class="modal" onclick="event.stopPropagation()">
-      <h3>Recovery SSH — sandbox ${id.slice(0,8)}…</h3>
-      <div class="warn">⚠ This script grants root-equivalent access (passwordless sudo) inside the VM. Cert valid for ${r.ttl_secs}s. Run on the sandbox-manager host.</div>
-      <div class="meta">principal: ${r.principal}</div>
-      <pre id="rec-script"></pre>
-      <div class="row">
-        <button data-rec-copy>Copy script</button>
-        <button data-rec-download class="secondary">Download .sh</button>
-        <button data-rec-close class="secondary">Close</button>
-      </div>
-    </div>`;
-  bg.addEventListener('click', () => bg.remove());
-  bg.querySelector('#rec-script').textContent = r.script;
-  bg.querySelector('[data-rec-copy]').addEventListener('click', e => {
-    navigator.clipboard.writeText(r.script).then(() => {
-      e.target.textContent = 'Copied!';
-      setTimeout(() => e.target.textContent = 'Copy script', 900);
-    });
+// ────────────────────────────────────────────────────────────────────────────
+// Render
+// ────────────────────────────────────────────────────────────────────────────
+function render() {
+  const root = $('#app');
+  root.innerHTML = '';
+  $('#user-chip').innerHTML = '';
+
+  if (state.authed === false) {
+    root.appendChild(renderSignIn());
+    return;
+  }
+  if (state.authed === null) {
+    root.appendChild(el('div', { class: 'placeholder' },
+      el('span', { class: 'spinner' }),
+      el('p', { style: 'margin-top:14px' }, 'Connecting…'),
+    ));
+    return;
+  }
+
+  // User chip
+  const sboxCount = state.sandboxes.length;
+  $('#user-chip').appendChild(
+    el('span', { class: 'user-chip' },
+      el('span', { class: 'dot' }),
+      `${sboxCount} sandbox${sboxCount === 1 ? '' : 'es'}`,
+    ),
+  );
+
+  // Page head
+  root.appendChild(
+    el('div', { class: 'page-head' },
+      el('div', {},
+        el('h1', {}, 'Sandboxes'),
+        el('p', { class: 'sub' }, 'Spin up isolated Firecracker microVMs for your AI agents to work in.'),
+      ),
+      el('div', { style: 'display:flex;gap:8px;flex-wrap:wrap' },
+        el('button', { class: 'ghost', onclick: loadAll, title: 'Refresh' }, '↻ Refresh'),
+        el('button', { class: 'primary', onclick: () => { state.showCreate = true; render(); } },
+          'New sandbox',
+        ),
+      ),
+    ),
+  );
+
+  // Stats
+  const running = state.sandboxes.filter(s => s.state === 'running').length;
+  const paused = state.sandboxes.filter(s => s.state === 'paused').length;
+  const cost = state.sandboxes
+    .filter(s => s.state === 'running')
+    .reduce((a, s) => a + (s.cost_per_minute || 0), 0);
+  root.appendChild(
+    el('div', { class: 'stats' },
+      stat('Total',   sboxCount),
+      stat('Running', running),
+      stat('Paused',  paused),
+      stat('Cost',    `$${(cost * 60).toFixed(3)}`, '/ hour'),
+    ),
+  );
+
+  if (state.err) {
+    root.appendChild(el('div', { class: 'err-msg' }, '⚠ ', state.err));
+  }
+
+  // List or empty
+  if (sboxCount === 0) {
+    root.appendChild(
+      el('div', { class: 'placeholder' },
+        el('h2', {}, 'no sandboxes yet'),
+        el('p', {}, 'spin one up to start running code in an isolated firecracker vm.'),
+        el('div', { class: 'actions' },
+          el('button', { class: 'primary', onclick: () => { state.showCreate = true; render(); } },
+            'Create your first sandbox',
+          ),
+        ),
+      ),
+    );
+  } else {
+    const list = el('div', { class: 'vm-list' });
+    for (const s of state.sandboxes) list.appendChild(renderVm(s));
+    root.appendChild(list);
+  }
+
+  // Agent-native section — guide for using the API/CLI directly. Only shown
+  // when authenticated; the goal is to make it obvious this panel is just a
+  // thin wrapper over a REST API + CLI that an AI agent can drive itself.
+  root.appendChild(renderAgentNative());
+
+  if (state.showCreate) root.appendChild(renderCreateModal());
+}
+
+function stat(label, value, unit) {
+  return el('div', { class: 'stat' },
+    el('div', { class: 'l' }, label),
+    el('div', { class: 'v' }, String(value), unit ? el('small', {}, ' ' + unit) : null),
+  );
+}
+
+function renderVm(s) {
+  const busy = id => state.pendingAction && state.pendingAction.startsWith(s.id + ':') && state.pendingAction.endsWith(id);
+  const anyBusy = !!(state.pendingAction && state.pendingAction.startsWith(s.id + ':'));
+
+  const actions = el('div', { class: 'vm-actions' });
+  if (s.state === 'running') {
+    actions.appendChild(btn('Pause', () => act(s.id, 'pause'), { disabled: anyBusy, busy: busy('pause') }));
+  }
+  if (s.state === 'paused') {
+    actions.appendChild(btn('Resume', () => act(s.id, 'resume'), { disabled: anyBusy, busy: busy('resume') }));
+  }
+  actions.appendChild(
+    btn('Terminate', () => {
+      if (confirm(`Terminate sandbox ${s.id.slice(0, 8)}…?\n\nThis cannot be undone.`)) act(s.id, 'delete');
+    }, { disabled: anyBusy, busy: busy('delete'), cls: 'danger' }),
+  );
+
+  return el('div', { class: 'vm', 'data-state': s.state },
+    el('div', { class: 'vm-stripe' }),
+    el('div', { class: 'vm-body' },
+      el('div', { class: 'vm-row1' },
+        el('div', { class: 'vm-template' }, s.template),
+        el('div', { class: 'vm-state' }, s.state),
+        el('div', { class: 'vm-id' }, 'id ', el('code', {}, s.id.slice(0, 12)), '…'),
+      ),
+      el('div', { class: 'vm-row2' },
+        kv('kind', s.kind),
+        kv('size', s.size),
+        kv('ip',   s.ip_address || '—'),
+        kv('age',  fmtAge(s.created_at)),
+        kv('idle', fmtAge(s.last_activity)),
+        s.cost_per_minute ? kv('rate', '$' + (s.cost_per_minute * 60).toFixed(3) + '/h') : null,
+      ),
+      s.error ? el('div', { class: 'vm-err' }, '⚠ ', s.error) : null,
+    ),
+    actions,
+  );
+}
+
+function kv(k, v) {
+  return el('span', { class: 'kv' },
+    el('span', { class: 'k' }, k + ':'),
+    el('b', {}, String(v)),
+  );
+}
+
+function btn(label, onclick, { disabled, busy, cls } = {}) {
+  return el('button', { class: cls || '', disabled: disabled || busy, onclick },
+    busy ? el('span', { class: 'spinner' }) : null,
+    label,
+  );
+}
+
+function renderCreateModal() {
+  const tpls = state.templates;
+  const sel = state.selectedTpl || tpls[0];
+  const busy = state.pendingAction && state.pendingAction.startsWith('create:');
+
+  const tplGrid = el('div', { class: 'tpl-grid' });
+  for (const t of tpls) {
+    tplGrid.appendChild(
+      el('div', {
+        class: 'tpl' + (t === sel ? ' sel' : ''),
+        onclick: () => { state.selectedTpl = t; render(); },
+      },
+        el('div', {},
+          el('div', { class: 'name' }, t),
+          el('div', { class: 'meta' }, t.includes('lite') ? 'bwrap · cli-only · free tier' : 'firecracker microvm'),
+        ),
+        el('div', { class: 'meta' }, t === sel ? '◉ selected' : '○'),
+      ),
+    );
+  }
+  if (!tpls.length) {
+    tplGrid.appendChild(el('div', { class: 'tpl' }, 'No templates available'));
+  }
+
+  const bg = el('div', { class: 'modal-bg', onclick: e => { if (e.target === bg) { state.showCreate = false; render(); } } },
+    el('div', { class: 'modal' },
+      el('div', { class: 'modal-head' },
+        el('h3', {}, 'new sandbox'),
+        el('button', { class: 'close', onclick: () => { state.showCreate = false; render(); } }, '×'),
+      ),
+      el('div', { class: 'modal-body' },
+        el('label', {}, 'select template'),
+        tplGrid,
+        el('p', { style: 'color:var(--muted-foreground);font-size:13px;margin:0;line-height:1.5' },
+          'Sandbox is allocated immediately. Lite (bwrap) sandboxes are stateless and free; full VMs accrue a per-minute charge while running.',
+        ),
+      ),
+      el('div', { class: 'modal-foot' },
+        el('button', { onclick: () => { state.showCreate = false; render(); } }, 'Cancel'),
+        el('button', {
+          class: 'primary',
+          disabled: !sel || busy,
+          onclick: () => createSandbox(sel),
+        },
+          busy ? el('span', { class: 'spinner' }) : null,
+          busy ? 'Provisioning…' : 'Launch',
+        ),
+      ),
+    ),
+  );
+  return bg;
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Agent-native guide
+// ────────────────────────────────────────────────────────────────────────────
+
+const HOST = location.host;
+const ORIGIN = location.origin;
+// Sample sandbox id from the user's actual list when available, else a fixture.
+function sampleId() {
+  const s = state.sandboxes.find(s => s.state === 'running' || s.state === 'paused')
+        || state.sandboxes[0];
+  return s ? s.id : 'sbx-<id>';
+}
+
+function code(lang, text) {
+  // Lightweight syntax tinting: comments (#…), strings ('…' / "…"), and the
+  // command word (first token of each non-comment line). Keeps the renderer
+  // tiny — no full tokenizer needed.
+  const lines = text.split('\n').map(line => {
+    if (/^\s*#/.test(line)) return `<span class="c">${escapeHtml(line)}</span>`;
+    let out = escapeHtml(line);
+    // strings
+    out = out.replace(/("[^"]*"|'[^']*')/g, '<span class="s">$1</span>');
+    // first non-whitespace word as keyword (the cmd)
+    out = out.replace(/^(\s*)([a-zA-Z][\w-]*)/, (_m, ws, kw) => `${ws}<span class="k">${kw}</span>`);
+    return out;
   });
-  bg.querySelector('[data-rec-download]').addEventListener('click', () => {
-    const blob = new Blob([r.script], { type: 'text/x-shellscript' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = `recovery-${id.slice(0,8)}.sh`;
-    a.click();
-    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
-  });
-  bg.querySelector('[data-rec-close]').addEventListener('click', () => bg.remove());
-  document.body.appendChild(bg);
+  const html = lines.join('\n');
+  const block = el('div', { class: 'code-block' });
+  const pre = document.createElement('pre');
+  pre.innerHTML = `<code data-lang="${lang}">${html}</code>`;
+  const btn = el('button', {
+    class: 'copy-btn',
+    onclick: ev => {
+      const target = ev.currentTarget;
+      navigator.clipboard.writeText(text).then(() => {
+        target.textContent = 'Copied';
+        target.setAttribute('data-copied', '1');
+        setTimeout(() => {
+          target.textContent = 'Copy';
+          target.removeAttribute('data-copied');
+        }, 1400);
+      });
+    },
+  }, 'Copy');
+  block.appendChild(pre);
+  block.appendChild(btn);
+  return block;
 }
 
-$('#refresh').addEventListener('click', refresh);
-refresh();
-setInterval(refresh, 10000);
+function escapeHtml(s) {
+  return s.replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+}
+
+function renderAgentNative() {
+  const tab = state.agentTab;
+  const id = sampleId();
+
+  const tabBtn = (key, label) => el('button', {
+    class: 'tab',
+    'aria-selected': tab === key ? 'true' : 'false',
+    onclick: () => { state.agentTab = key; render(); },
+  }, label);
+
+  const panel = el('div', { class: 'tab-panel' });
+  if (tab === 'cli') {
+    panel.append(
+      el('p', {},
+        'The ',
+        el('code', {}, 'sandbox'),
+        ' CLI is a single static binary (~200 KB) that talks to this service over Noise_NX. ',
+        'Drop it next to your agent and use the same identity you used for this panel.',
+      ),
+      el('h3', {}, 'Install'),
+      code('bash',
+`# Linux / macOS (single static binary, no deps)
+curl -fsSL https://${HOST}/cli/install.sh | sh
+
+# Or pick a specific build from
+# https://github.com/todoforai/sandbox-manager/releases/latest`,
+      ),
+      el('h3', {}, 'Authenticate'),
+      code('bash',
+`# Opens a one-time login flow and stores an API key locally.
+sandbox login
+sandbox whoami`,
+      ),
+      el('h3', {}, 'Drive sandboxes'),
+      code('bash',
+`sandbox list
+sandbox create --template cli-lite
+sandbox pause   ${id}
+sandbox resume  ${id}
+sandbox delete  ${id}`,
+      ),
+      el('p', {},
+        'The CLI talks Noise_NX over TCP. Set ',
+        el('code', {}, 'NOISE_ADDR'),
+        ' (e.g. ',
+        el('code', {}, 'sandbox.todofor.ai:4110'),
+        ') and ',
+        el('code', {}, 'NOISE_REMOTE_PUBKEY'),
+        ' to point at a specific instance — see the release notes for the current production values.',
+      ),
+    );
+  } else if (tab === 'curl') {
+    panel.append(
+      el('p', {},
+        'Every action this panel takes is a plain REST call. Authenticate with ',
+        el('code', {}, 'Authorization: Bearer <api-key>'),
+        ' — generate one at ',
+        el('a', { href: 'https://todofor.ai/account/api-keys', target: '_blank', rel: 'noopener noreferrer', style: 'color:var(--primary)' }, 'todofor.ai/account/api-keys'),
+        '.',
+      ),
+      el('h3', {}, 'List your sandboxes'),
+      code('bash',
+`curl -s ${ORIGIN}/sandbox \\
+  -H "Authorization: Bearer $TODOFORAI_API_KEY" | jq`,
+      ),
+      el('h3', {}, 'Create one'),
+      code('bash',
+`curl -s -X POST ${ORIGIN}/sandbox \\
+  -H "Authorization: Bearer $TODOFORAI_API_KEY" \\
+  -H "Content-Type: application/json" \\
+  -d '{"template":"cli-lite"}' | jq`,
+      ),
+      el('h3', {}, 'Pause / resume / delete'),
+      code('bash',
+`curl -X POST   ${ORIGIN}/sandbox/${id}/pause  -H "Authorization: Bearer $TODOFORAI_API_KEY"
+curl -X POST   ${ORIGIN}/sandbox/${id}/resume -H "Authorization: Bearer $TODOFORAI_API_KEY"
+curl -X DELETE ${ORIGIN}/sandbox/${id}        -H "Authorization: Bearer $TODOFORAI_API_KEY"`,
+      ),
+      el('h3', {}, 'Run a command inside a lite sandbox'),
+      code('bash',
+`curl -s -X POST ${ORIGIN}/sandbox/${id}/exec \\
+  -H "Authorization: Bearer $TODOFORAI_API_KEY" \\
+  -H "Content-Type: application/json" \\
+  -d '{"argv":["python3","-c","print(1+1)"]}' | jq`,
+      ),
+    );
+  } else if (tab === 'prompt') {
+    panel.append(
+      el('p', {},
+        'Hand this paragraph to any tool-using LLM (Claude, GPT, Gemini) and it can manage your sandboxes for you. ',
+        'The API surface is small enough to fit in a single prompt — no MCP server required.',
+      ),
+      el('h3', {}, 'Drop-in system prompt'),
+      code('text',
+`You have access to a sandbox manager at ${ORIGIN}.
+Authenticate every request with the header
+  Authorization: Bearer <TODOFORAI_API_KEY>
+
+Endpoints (all JSON):
+  GET    /sandbox            list the user's sandboxes
+  POST   /sandbox            create one. body: {"template":"cli-lite"} or {"template":"ubuntu-base","size":"medium"}
+  GET    /sandbox/<id>       fetch one
+  POST   /sandbox/<id>/pause
+  POST   /sandbox/<id>/resume
+  DELETE /sandbox/<id>       terminate
+  POST   /sandbox/<id>/exec  body: {"argv":["bin","arg1","arg2"]}  (lite sandboxes only)
+  GET    /templates          list available templates
+
+Conventions:
+  - cli-lite is free and stateless; ubuntu-base is a full microVM.
+  - Reuse an existing running sandbox before creating a new one.
+  - On error, the response body is plain text — surface it verbatim to the user.`,
+      ),
+      el('p', { style: 'margin-top:10px' },
+        'Pair with a ',
+        el('code', {}, 'bash')
+        , ' tool and the LLM can run those curls itself.',
+      ),
+    );
+  }
+
+  return el('section', { class: 'agent-native' },
+    el('header', {},
+      el('div', {},
+        el('h2', {},
+          'Agent-native',
+          el('span', { class: 'pill' }, 'no UI required'),
+        ),
+        el('p', { class: 'sub' },
+          'This panel is a thin client over a small REST API. Your AI agent can drive sandboxes directly — install the CLI, hit the endpoints, or give an LLM the system prompt below.',
+        ),
+      ),
+    ),
+    el('div', { class: 'tabs', role: 'tablist' },
+      tabBtn('cli',    'sandbox CLI'),
+      tabBtn('curl',   'REST · curl'),
+      tabBtn('prompt', 'LLM prompt'),
+    ),
+    panel,
+  );
+}
+
+function renderSignIn() {
+  return el('div', { class: 'signin' },
+    el('div', { class: 'signin-card' },
+      el('div', { class: 'icon' }, '🔒'),
+      el('h2', {}, 'Sign in required'),
+      el('p', {}, 'This panel uses your TODO for AI account. Sign in on the main site, then return here.'),
+      el('a', { class: 'btn primary', href: LOGIN_URL }, 'Sign in at todofor.ai'),
+      el('details', { style: 'margin-top:20px;text-align:left' },
+        el('summary', { style: 'cursor:pointer;color:var(--muted-foreground);font-size:13px;padding:6px 0' }, 'Advanced: use API key instead'),
+        el('div', { style: 'margin-top:10px;display:flex;gap:8px' },
+          el('input', {
+            id: 'token-input',
+            type: 'password',
+            placeholder: 'todofor.ai API key',
+            style: 'flex:1',
+          }),
+          el('button', { onclick: () => {
+            const v = document.getElementById('token-input').value.trim();
+            if (!v) return;
+            setToken(v);
+            state.authed = null;
+            render();
+            loadAll();
+          } }, 'Use'),
+        ),
+      ),
+    ),
+  );
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Boot
+// ────────────────────────────────────────────────────────────────────────────
+loadAll();
+// Poll every 8s while the tab is visible, only if authed.
+setInterval(() => {
+  if (state.authed && !document.hidden) loadAll();
+}, 8000);
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden && state.authed) loadAll();
+});
 </script>
 </body>
 </html>

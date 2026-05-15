@@ -42,6 +42,7 @@ futures = "0.3"
 snow = "0.9"
 async-trait = "0.1"
 reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
+percent-encoding = "2"
 
 # SSH user-cert signing for the recovery channel. `ed25519` keeps cert
 # size small + signing fast; no extra C deps.

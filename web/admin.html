@@ -1,0 +1,307 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Sandbox Manager</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+  :root { color-scheme: dark; }
+  body { font: 14px/1.4 system-ui, sans-serif; margin: 0; background: #111; color: #eee; }
+  header { padding: 12px 16px; background: #1a1a1a; border-bottom: 1px solid #333; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+  header h1 { font-size: 16px; margin: 0; flex: 1; }
+  header input { background: #222; color: #eee; border: 1px solid #444; padding: 6px 8px; border-radius: 4px; min-width: 320px; font-family: monospace; }
+  header button { background: #2a4; color: white; border: 0; padding: 6px 12px; border-radius: 4px; cursor: pointer; }
+  header button:hover { background: #3b5; }
+  main { padding: 16px; }
+  .stats { display: flex; gap: 16px; margin-bottom: 16px; flex-wrap: wrap; }
+  .stat { background: #1a1a1a; border: 1px solid #333; padding: 10px 14px; border-radius: 6px; min-width: 120px; }
+  .stat .v { font-size: 20px; font-weight: 600; }
+  .stat .l { color: #888; font-size: 12px; }
+  table { width: 100%; border-collapse: collapse; background: #1a1a1a; border-radius: 6px; overflow: hidden; }
+  th, td { padding: 8px 10px; text-align: left; border-bottom: 1px solid #2a2a2a; font-size: 13px; }
+  th { background: #222; color: #aaa; font-weight: 500; }
+  tr:hover { background: #202020; }
+  .id { font-family: monospace; font-size: 12px; color: #8af; }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; text-transform: uppercase; }
+  .badge.running { background: #1d4; color: #000; }
+  .badge.paused { background: #fa3; color: #000; }
+  .badge.creating { background: #38f; color: #fff; }
+  .badge.error, .badge.terminated, .badge.terminating { background: #c33; color: #fff; }
+  .badge.vm { background: #338; color: #fff; }
+  .badge.lite { background: #555; color: #fff; }
+  td.actions button { background: #333; color: #eee; border: 1px solid #555; padding: 4px 8px; margin-right: 4px; border-radius: 3px; cursor: pointer; font-size: 12px; }
+  td.actions button:hover { background: #444; }
+  td.actions button.danger:hover { background: #c33; border-color: #c33; }
+  .err { color: #f66; padding: 12px; }
+  .empty { text-align: center; padding: 32px; color: #888; }
+  .userbar { color: #aaa; font-size: 12px; margin-bottom: 8px; }
+  .userblock { background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 6px; margin-bottom: 10px; overflow: hidden; }
+  .userblock > summary { cursor: pointer; padding: 10px 14px; background: #202020; user-select: none; list-style: none; }
+  .userblock > summary::-webkit-details-marker { display: none; }
+  .userblock > summary::before { content: '▸ '; color: #666; }
+  .userblock[open] > summary::before { content: '▾ '; }
+  .userblock > table { border-radius: 0; }
+  .muted { color: #888; font-weight: normal; }
+  tr.clickable { cursor: pointer; }
+  tr.expanded { background: #202020; }
+  tr.logs-row > td { padding: 0; background: #141414; }
+  .logs-box { padding: 10px 14px; border-top: 1px solid #2a2a2a; }
+  .logs-toolbar { display: flex; justify-content: flex-end; margin-bottom: 6px; }
+  .logs-toolbar button { background: #2a4; color: #fff; border: 0; padding: 4px 12px; border-radius: 3px; cursor: pointer; font-size: 12px; }
+  .logs-toolbar button:hover { background: #3b5; }
+  .logs-err { background: #3a1a1a; color: #f99; padding: 8px 10px; border-radius: 4px; font: 12px/1.4 monospace; white-space: pre-wrap; margin-bottom: 8px; }
+  .log-block { margin-bottom: 10px; }
+  .log-block h4 { margin: 0 0 4px; font-size: 12px; color: #aaa; display: flex; align-items: center; gap: 8px; font-weight: 500; }
+  .log-block h4 .path { color: #666; font-family: monospace; font-size: 11px; font-weight: normal; flex: 1; word-break: break-all; }
+  .log-block h4 button { background: #333; color: #eee; border: 1px solid #555; padding: 2px 8px; border-radius: 3px; cursor: pointer; font-size: 11px; }
+  .log-block h4 button:hover { background: #444; }
+  .log-block pre { margin: 0; padding: 8px 10px; background: #0e0e0e; border: 1px solid #222; border-radius: 4px; font: 12px/1.45 ui-monospace, monospace; color: #ddd; white-space: pre-wrap; word-break: break-all; max-height: 400px; overflow: auto; }
+  .log-block .none { color: #777; font-size: 12px; padding: 6px 0; font-style: italic; }
+  .modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; z-index: 100; }
+  .modal { background: #1a1a1a; border: 1px solid #333; border-radius: 8px; padding: 16px 18px; max-width: 720px; width: 92%; max-height: 86vh; overflow: auto; }
+  .modal h3 { margin: 0 0 6px; font-size: 15px; }
+  .modal .warn { color: #fa3; font-size: 12px; margin-bottom: 10px; }
+  .modal .meta { color: #aaa; font-size: 12px; margin-bottom: 10px; font-family: monospace; }
+  .modal pre { background: #0e0e0e; border: 1px solid #222; border-radius: 4px; padding: 8px 10px; max-height: 360px; overflow: auto; font: 12px/1.45 ui-monospace, monospace; color: #ddd; white-space: pre; }
+  .modal .row { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+  .modal button { background: #2a4; color: white; border: 0; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 13px; }
+  .modal button.secondary { background: #333; border: 1px solid #555; }
+  .modal button:hover { filter: brightness(1.15); }
+</style>
+</head>
+<body>
+<header>
+  <h1>Sandbox Manager</h1>
+  <button id="refresh">Refresh</button>
+</header>
+<main>
+  <div class="stats" id="stats"></div>
+  <div id="content"><div class="empty">Loading…</div></div>
+</main>
+
+<script>
+const $ = s => document.querySelector(s);
+
+async function api(path, opts = {}) {
+  const r = await fetch(path, {
+    ...opts,
+    headers: { 'Content-Type': 'application/json', ...(opts.headers||{}) },
+  });
+  if (!r.ok) throw new Error(`${r.status} ${await r.text()}`);
+  return r.status === 204 ? null : r.json();
+}
+
+function fmtAge(ms) {
+  const s = Math.floor((Date.now() - ms) / 1000);
+  if (s < 60) return s + 's';
+  if (s < 3600) return Math.floor(s/60) + 'm';
+  if (s < 86400) return Math.floor(s/3600) + 'h';
+  return Math.floor(s/86400) + 'd';
+}
+
+async function refresh() {
+  const content = $('#content');
+  const statsEl = $('#stats');
+  try {
+    const [list, stats] = await Promise.all([
+      api('/admin/api/sandbox'),
+      fetch('/admin/api/stats').then(r => r.json()).catch(() => null),
+    ]);
+    statsEl.innerHTML = stats ? `
+      <div class="stat"><div class="v">${stats.active}</div><div class="l">active</div></div>
+      <div class="stat"><div class="v">${stats.running}</div><div class="l">running</div></div>
+      <div class="stat"><div class="v">${stats.paused}</div><div class="l">paused</div></div>
+      <div class="stat"><div class="v">${stats.total_created}</div><div class="l">total created</div></div>
+      <div class="stat"><div class="v">${stats.total_memory_mb} MB</div><div class="l">allocated</div></div>
+      <div class="stat"><div class="v">${(stats.actual_memory_kb/1024).toFixed(0)} MB</div><div class="l">actual (CoW)</div></div>` : '';
+    if (!list.length) { content.innerHTML = '<div class="empty">No sandboxes.</div>'; return; }
+    const rowFor = s => `
+        <tr class="clickable" data-row-id="${s.id}">
+          <td class="id" title="${s.id}">${s.id.slice(0,8)}…</td>
+          <td>${s.user_id}</td>
+          <td>sandbox-${s.id.slice(0,8)}</td>
+          <td><span class="badge ${s.kind}">${s.kind}</span></td>
+          <td>${s.template}</td>
+          <td>${s.size}</td>
+          <td><span class="badge ${s.state}">${s.state}</span>${s.error ? ' <span title="'+s.error.replace(/"/g,'&quot;')+'">⚠</span>' : ''}</td>
+          <td>${s.ip_address || '—'}</td>
+          <td>${fmtAge(s.created_at)}</td>
+          <td>${fmtAge(s.last_activity)}</td>
+          <td class="actions">
+            ${s.state === 'running' ? `<button data-act="pause" data-id="${s.id}">Pause</button>` : ''}
+            ${s.state === 'paused' ? `<button data-act="resume" data-id="${s.id}">Resume</button>` : ''}
+            ${s.kind === 'vm' && (s.state === 'running' || s.state === 'paused') ? `<button data-act="recovery" data-id="${s.id}">Recovery SSH</button>` : ''}
+            <button class="danger" data-act="delete" data-id="${s.id}">Delete</button>
+          </td>
+        </tr>`;
+    const headRow = `<tr>
+        <th>ID</th><th>User</th><th>Device</th><th>Kind</th><th>Template</th><th>Size</th>
+        <th>State</th><th>IP</th><th>Age</th><th>Idle</th><th>Actions</th>
+      </tr>`;
+    const groups = list.reduce((m, s) => ((m[s.user_id] ||= []).push(s), m), {});
+    const users = Object.keys(groups).sort();
+    content.innerHTML = `<div class="userbar">${users.length} user${users.length===1?'':'s'} · ${list.length} sandbox${list.length===1?'':'es'}</div>` +
+      users.map(u => {
+        const items = groups[u];
+        const vm = items.filter(s => s.kind === 'vm').length;
+        const lite = items.filter(s => s.kind === 'lite').length;
+        const running = items.filter(s => s.state === 'running').length;
+        return `<details open class="userblock">
+          <summary><b>${u}</b> <span class="muted">— ${items.length} total · ${vm} vm · ${lite} lite · ${running} running</span></summary>
+          <table><thead>${headRow}</thead><tbody>${items.map(rowFor).join('')}</tbody></table>
+        </details>`;
+      }).join('');
+    reopenLogs();
+  } catch (e) {
+    content.innerHTML = `<div class="err">Error: ${e.message}</div>`;
+  }
+}
+
+document.addEventListener('click', async e => {
+  const btn = e.target.closest('button[data-act]');
+  if (btn) {
+    const { act, id } = btn.dataset;
+    if (act === 'delete' && !confirm('Delete sandbox ' + id.slice(0,8) + '?')) return;
+    btn.disabled = true;
+    try {
+      if (act === 'pause')    await api(`/admin/api/sandbox/${id}/pause`,  { method: 'POST' });
+      if (act === 'resume')   await api(`/admin/api/sandbox/${id}/resume`, { method: 'POST' });
+      if (act === 'delete')   await api(`/admin/api/sandbox/${id}`,        { method: 'DELETE' });
+      if (act === 'recovery') {
+        const r = await api(`/admin/api/sandbox/${id}/recovery-script`, { method: 'POST' });
+        showRecoveryModal(id, r);
+        btn.disabled = false;
+        return;
+      }
+      await refresh();
+    } catch (err) {
+      alert(err.message);
+      btn.disabled = false;
+    }
+    return;
+  }
+  const copyBtn = e.target.closest('button[data-copy]');
+  if (copyBtn) {
+    navigator.clipboard.writeText(copyBtn.dataset.copy).then(() => {
+      const t = copyBtn.textContent; copyBtn.textContent = 'Copied!';
+      setTimeout(() => copyBtn.textContent = t, 900);
+    });
+    return;
+  }
+  const row = e.target.closest('tr.clickable[data-row-id]');
+  if (row) toggleLogs(row);
+});
+
+// ---------- Inline expandable logs ----------
+const openLogIds = new Set();
+
+function logBlock(label, body, path) {
+  const head = `<h4>${label}<span class="path">${path || ''}</span>${body ? `<button data-copy="${body.replace(/"/g,'&quot;')}">Copy</button>` : ''}</h4>`;
+  if (body == null) return `<div class="log-block">${head}<div class="none">No file on disk.</div></div>`;
+  if (!body.length)  return `<div class="log-block">${head}<div class="none">(empty)</div></div>`;
+  const pre = document.createElement('pre');
+  pre.textContent = body;
+  return `<div class="log-block">${head}${pre.outerHTML}</div>`;
+}
+
+function buildCopyAll(id, data) {
+  const parts = [`# sandbox ${id}`, `state: ${data.state}`, `kind: ${data.kind}`];
+  if (data.error) parts.push(`error: ${data.error}`);
+  if (data.note)  parts.push(`note: ${data.note}`);
+  const section = (label, body, path) => {
+    if (body == null) return `\n## ${label} (${path || 'n/a'})\n[no file on disk]`;
+    if (!body.length) return `\n## ${label} (${path})\n[empty]`;
+    return `\n## ${label} (${path})\n${body}`;
+  };
+  if (!data.note) {
+    parts.push(section('Guest console', data.console_log, data.console_log_path));
+    parts.push(section('Firecracker',   data.fc_log,      data.fc_log_path));
+  }
+  return parts.join('\n');
+}
+
+function renderLogs(box, id, data) {
+  const errHtml = data.error ? `<div class="logs-err">sandbox.error: ${data.error}</div>` : '';
+  const copyAll = `<div class="logs-toolbar"><button data-copy="${buildCopyAll(id, data).replace(/"/g,'&quot;')}">Copy all</button></div>`;
+  if (data.note) { box.innerHTML = copyAll + errHtml + `<div class="none">${data.note}</div>`; return; }
+  box.innerHTML = copyAll + errHtml
+    + logBlock('Guest console', data.console_log, data.console_log_path)
+    + logBlock('Firecracker',   data.fc_log,      data.fc_log_path);
+  box.querySelectorAll('pre').forEach(p => p.scrollTop = p.scrollHeight);
+}
+
+async function expandLogs(row) {
+  const id = row.dataset.rowId;
+  row.classList.add('expanded');
+  const colspan = row.children.length;
+  const tr = document.createElement('tr');
+  tr.className = 'logs-row'; tr.dataset.rowId = id;
+  tr.innerHTML = `<td colspan="${colspan}"><div class="logs-box">Loading…</div></td>`;
+  row.after(tr);
+  try {
+    const data = await api(`/admin/api/sandbox/${id}/logs`);
+    renderLogs(tr.querySelector('.logs-box'), id, data);
+  } catch (err) {
+    tr.querySelector('.logs-box').innerHTML = `<div class="logs-err">Error: ${err.message}</div>`;
+  }
+}
+
+function toggleLogs(row) {
+  const id = row.dataset.rowId;
+  const next = row.nextElementSibling;
+  if (next?.classList.contains('logs-row') && next.dataset.rowId === id) {
+    next.remove(); row.classList.remove('expanded'); openLogIds.delete(id); return;
+  }
+  openLogIds.add(id);
+  expandLogs(row);
+}
+
+function reopenLogs() {
+  for (const id of [...openLogIds]) {
+    const row = document.querySelector(`tr.clickable[data-row-id="${id}"]`);
+    if (row) expandLogs(row);
+    else openLogIds.delete(id);
+  }
+}
+
+function showRecoveryModal(id, r) {
+  const bg = document.createElement('div');
+  bg.className = 'modal-bg';
+  bg.innerHTML = `
+    <div class="modal" onclick="event.stopPropagation()">
+      <h3>Recovery SSH — sandbox ${id.slice(0,8)}…</h3>
+      <div class="warn">⚠ This script grants root-equivalent access (passwordless sudo) inside the VM. Cert valid for ${r.ttl_secs}s. Run on the sandbox-manager host.</div>
+      <div class="meta">principal: ${r.principal}</div>
+      <pre id="rec-script"></pre>
+      <div class="row">
+        <button data-rec-copy>Copy script</button>
+        <button data-rec-download class="secondary">Download .sh</button>
+        <button data-rec-close class="secondary">Close</button>
+      </div>
+    </div>`;
+  bg.addEventListener('click', () => bg.remove());
+  bg.querySelector('#rec-script').textContent = r.script;
+  bg.querySelector('[data-rec-copy]').addEventListener('click', e => {
+    navigator.clipboard.writeText(r.script).then(() => {
+      e.target.textContent = 'Copied!';
+      setTimeout(() => e.target.textContent = 'Copy script', 900);
+    });
+  });
+  bg.querySelector('[data-rec-download]').addEventListener('click', () => {
+    const blob = new Blob([r.script], { type: 'text/x-shellscript' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `recovery-${id.slice(0,8)}.sh`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  });
+  bg.querySelector('[data-rec-close]').addEventListener('click', () => bg.remove());
+  document.body.appendChild(bg);
+}
+
+$('#refresh').addEventListener('click', refresh);
+refresh();
+setInterval(refresh, 10000);
+</script>
+</body>
+</html>

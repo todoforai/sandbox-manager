@@ -10,7 +10,7 @@ mod vm;
 use anyhow::Result;
 use axum::{routing::{get, post, delete}, Router};
 use std::sync::Arc;
-use tower_http::cors::CorsLayer;
+use tower_http::cors::{AllowOrigin, CorsLayer};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 use crate::service::SandboxService;
@@ -126,7 +126,7 @@ async fn main() -> Result<()> {
         .route("/templates", get(api::templates::list_templates))
         .route("/templates/:name", post(api::templates::create_template))
         
-        .layer(CorsLayer::permissive())
+        .layer(build_cors())
         .with_state(service);
 
     let addr = std::env::var("BIND_ADDR").unwrap_or_else(|_| "0.0.0.0:9000".into());
@@ -140,4 +140,29 @@ async fn main() -> Result<()> {
 
 fn hex_encode(bytes: &[u8]) -> String {
     bytes.iter().map(|b| format!("{:02x}", b)).collect()
+}
+
+/// CORS for browser clients. Restricted to the panel's known origins so that
+/// the cookie-auth path (see api::auth_extractor) is not abusable from other
+/// sites. CLI/API callers send `Authorization: Bearer …` and don't need CORS
+/// (no `Origin` header).
+fn build_cors() -> CorsLayer {
+    use axum::http::{header, HeaderValue, Method};
+
+    let origins: Vec<HeaderValue> = [
+        "https://sandbox.todofor.ai",
+        "https://vm.todofor.ai",
+        "http://localhost:8190",
+        "http://127.0.0.1:8190",
+        "http://localhost:3000", // frontend dev (for diagnostic fetches)
+    ]
+    .iter()
+    .map(|o| HeaderValue::from_static(o))
+    .collect();
+
+    CorsLayer::new()
+        .allow_origin(AllowOrigin::list(origins))
+        .allow_credentials(true)
+        .allow_methods([Method::GET, Method::POST, Method::DELETE, Method::OPTIONS])
+        .allow_headers([header::CONTENT_TYPE, header::AUTHORIZATION])
 }

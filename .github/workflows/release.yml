@@ -1,0 +1,77 @@
+name: Release CLI
+
+# Builds the static `sandbox` CLI for all targets and publishes them as a
+# GitHub release. The installer at cli/install.sh fetches binaries from here.
+#
+# Triggered on tag push (recommended: `v*`) or manually with a tag input.
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to release (e.g. v0.1.0). Must already exist.'
+        required: true
+
+permissions:
+  contents: write   # softprops/action-gh-release needs to create/update releases
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Resolve tag
+        id: tag
+        run: |
+          TAG="${{ github.event.inputs.tag || github.ref_name }}"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          # Strip leading 'v' for SANDBOX_VERSION baked into the binary.
+          echo "version=${TAG#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout sandbox-manager
+        uses: actions/checkout@v4
+        with:
+          path: sandbox-manager
+          ref: ${{ steps.tag.outputs.tag }}
+
+      # CLI Makefile uses relative path ../../todoforai-c-core, so check it
+      # out as a sibling. Pin to a tag/commit if you need reproducible builds.
+      - name: Checkout todoforai-c-core
+        uses: actions/checkout@v4
+        with:
+          repository: todoforai/todoforai-c-core
+          path: todoforai-c-core
+
+      - name: Install zig
+        uses: mlugg/setup-zig@v1
+        with:
+          version: 0.13.0
+
+      - name: Build all targets
+        working-directory: sandbox-manager/cli
+        run: |
+          make all SANDBOX_VERSION=${{ steps.tag.outputs.version }}
+          ls -la build/
+
+      - name: Generate sha256 sidecars
+        working-directory: sandbox-manager/cli/build
+        run: |
+          # Combined manifest first — must list only the binaries, not the
+          # .sha256 sidecars we're about to create.
+          sha256sum sandbox-* > SHA256SUMS
+          for f in sandbox-*; do
+            [ "$f" = SHA256SUMS ] && continue
+            sha256sum "$f" | awk '{print $1}' > "$f.sha256"
+          done
+          cat SHA256SUMS
+
+      - name: Upload release assets
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.tag.outputs.tag }}
+          files: |
+            sandbox-manager/cli/build/sandbox-*
+            sandbox-manager/cli/build/SHA256SUMS
+          fail_on_unmatched_files: true
