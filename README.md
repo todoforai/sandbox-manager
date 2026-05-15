@@ -82,6 +82,36 @@ sudo ./scripts/build-cli-lite.sh
 cargo run --release
 ```
 
+### Dev capability setup (one-time, permanent)
+
+The binary needs `CAP_NET_ADMIN` + `CAP_NET_RAW` to manage TAP devices. File
+capabilities get wiped on every `cargo build`, so `run.sh` auto-re-applies
+them via `sudo -n setcap` — but this requires a passwordless sudoers entry.
+
+Symptom if missing: `sandbox-manager` crash-loops in PM2 with
+`ERROR: target/release/sandbox-manager lacks CAP_NET_ADMIN and not running as root.`,
+and the dev web UI (`http://127.0.0.1:8190/admin/`) returns 500 because
+`/sandbox` proxy to `:9000` fails.
+
+Permanent fix (run once per host/user):
+
+```bash
+BIN_PATH=$(readlink -f target/release/sandbox-manager)
+echo "$(id -un) ALL=(root) NOPASSWD: /usr/sbin/setcap cap_net_admin\\,cap_net_raw=eip $BIN_PATH" \
+  | sudo tee /etc/sudoers.d/sandbox-manager-setcap >/dev/null
+sudo chmod 440 /etc/sudoers.d/sandbox-manager-setcap
+sudo visudo -cf /etc/sudoers.d/sandbox-manager-setcap   # validate
+sudo setcap cap_net_admin,cap_net_raw=eip "$BIN_PATH"   # apply now
+pm2 restart sandbox-manager
+```
+
+After this, future `cargo build`s survive without manual intervention —
+`run.sh:33-36` re-applies caps automatically on every start.
+
+Note: the sudoers entry pins the absolute binary path. If you move the
+build output (different target dir, deploy location), update the path in
+`/etc/sudoers.d/sandbox-manager-setcap`.
+
 ## API Usage
 
 ### Create Sandbox
