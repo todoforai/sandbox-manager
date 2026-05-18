@@ -1,28 +1,23 @@
-//! Per-user persistent HOME for lite sandboxes.
+//! Per-user persistent HOME for sandboxes.
 //!
-//! Each user gets a directory tree at `<root>/<user_id>/` that holds the
-//! parts of `$HOME` we want to share across all of their sandbox executions
-//! — primarily `~/.config/` and `~/.local/share/`, which between them
-//! contain credential files for almost every CLI tool we ship.
+//! Each user gets one directory at `<root>/<user_id>/` that **is** their
+//! `$HOME` for every sandbox they ever run. No subpaths, no filtering, no
+//! schema — the home is the home, bit for bit.
 //!
-//! Lite sandboxes set `HOME=/work`, so we bind-mount these host dirs onto
-//! `/work/.config` and `/work/.local/share`. A tool inside the sandbox sees
-//! a normal home dir and reads/writes its credentials as usual; the data
-//! actually lands in the user's persistent host tree and survives across
-//! sandbox lifecycles.
+//! - Lite sandboxes bind this directory directly as `/work` (their `$HOME`).
+//!   Writes land in the persistent host tree immediately; reads see whatever
+//!   the user's tools have produced anywhere else.
+//! - VM sandboxes (future) will `rsync` this directory in at boot and back
+//!   out at shutdown. Same source of truth, same hands-off policy.
 //!
-//! Anonymous / unauthenticated callers (`user_id` empty) get no binds —
-//! their sandbox is a clean ephemeral scratch.
+//! Anonymous callers (Better Auth `isAnonymous=1`) get no persistent home
+//! — their sandbox is a clean ephemeral scratch (handled by the lite
+//! backend's default). The anonymous decision is made in the service
+//! layer based on `AuthIdentity::is_anonymous`, not on `user_id`.
 
 use std::path::{Path, PathBuf};
 
 use anyhow::{Context, Result};
-
-use crate::vm::lite::ExecBinds;
-
-/// Subpaths under each user's home that we expose to their sandboxes.
-/// Order matters only for readability — they're independent mounts.
-const SHARED_SUBPATHS: &[&str] = &[".config", ".local/share"];
 
 #[derive(Debug, Clone)]
 pub struct UserHomeStore {
@@ -35,7 +30,7 @@ impl UserHomeStore {
         Self { root }
     }
 
-    /// Host path of a user's home tree. Validates `user_id` is a safe single
+    /// Host path of a user's home dir. Validates `user_id` is a safe single
     /// path segment — no `/`, no `..`, no empties, no surprises. Admin-set
     /// IDs from `CreateSandboxRequest.user_id` must not escape `root`.
     pub fn home_dir(&self, user_id: &str) -> Result<PathBuf> {
@@ -43,14 +38,12 @@ impl UserHomeStore {
         Ok(self.root.join(user_id))
     }
 
-    /// Create the user's home tree if missing. Idempotent. Safe to call
-    /// on every sandbox exec. Errors for invalid/empty `user_id`.
+    /// Create the user's home dir if missing. Idempotent. Safe to call on
+    /// every sandbox exec. Errors for invalid/empty `user_id`.
     pub async fn provision(&self, user_id: &str) -> Result<PathBuf> {
         let dir = self.home_dir(user_id)?;
-        for sub in SHARED_SUBPATHS {
-            tokio::fs::create_dir_all(dir.join(sub)).await
-                .with_context(|| format!("create {sub} in {dir:?}"))?;
-        }
+        tokio::fs::create_dir_all(&dir).await
+            .with_context(|| format!("create user home {dir:?}"))?;
         Ok(dir)
     }
 
@@ -60,17 +53,6 @@ impl UserHomeStore {
         if let Ok(dir) = self.home_dir(user_id) {
             let _ = tokio::fs::remove_dir_all(dir).await;
         }
-    }
-
-    /// Build the bind list that exposes this user's persistent home to a
-    /// sandbox. Empty / invalid `user_id` → no binds (anonymous tier).
-    pub fn binds_for(&self, user_id: &str) -> ExecBinds {
-        let mut out = ExecBinds::default();
-        let Ok(home) = self.home_dir(user_id) else { return out };
-        for sub in SHARED_SUBPATHS {
-            out.rw.push((home.join(sub), format!("/work/{sub}")));
-        }
-        out
     }
 }
 
@@ -111,12 +93,12 @@ mod tests {
     use super::*;
 
     #[tokio::test]
-    async fn provision_creates_subpaths() {
+    async fn provision_creates_user_dir() {
         let tmp = tempfile::tempdir().unwrap();
         let store = UserHomeStore::new(tmp.path().to_path_buf());
         let home = store.provision("alice").await.unwrap();
-        assert!(home.join(".config").is_dir());
-        assert!(home.join(".local/share").is_dir());
+        assert!(home.is_dir());
+        assert_eq!(home, tmp.path().join("alice"));
     }
 
     #[tokio::test]
@@ -125,26 +107,7 @@ mod tests {
         let store = UserHomeStore::new(tmp.path().to_path_buf());
         store.provision("bob").await.unwrap();
         store.provision("bob").await.unwrap();
-        assert!(store.home_dir("bob").unwrap().join(".config").is_dir());
-    }
-
-    #[test]
-    fn binds_for_user_maps_subpaths() {
-        let store = UserHomeStore::new(PathBuf::from("/srv/homes"));
-        let b = store.binds_for("alice");
-        assert!(b.ro.is_empty());
-        let rw: Vec<_> = b.rw.iter().map(|(h, s)| (h.to_str().unwrap(), s.as_str())).collect();
-        assert_eq!(rw, vec![
-            ("/srv/homes/alice/.config", "/work/.config"),
-            ("/srv/homes/alice/.local/share", "/work/.local/share"),
-        ]);
-    }
-
-    #[test]
-    fn binds_for_anonymous_is_empty() {
-        let store = UserHomeStore::new(PathBuf::from("/srv/homes"));
-        let b = store.binds_for("");
-        assert!(b.ro.is_empty() && b.rw.is_empty());
+        assert!(store.home_dir("bob").unwrap().is_dir());
     }
 
     #[tokio::test]
@@ -171,21 +134,11 @@ mod tests {
         }
     }
 
-    #[test]
-    fn binds_for_invalid_id_is_empty() {
-        let store = UserHomeStore::new(PathBuf::from("/srv/homes"));
-        for bad in ["..", "a/b", "/etc"] {
-            let b = store.binds_for(bad);
-            assert!(b.ro.is_empty() && b.rw.is_empty(), "should refuse {bad:?}");
-        }
-    }
-
     #[tokio::test]
     async fn provision_rejects_traversal() {
         let tmp = tempfile::tempdir().unwrap();
         let store = UserHomeStore::new(tmp.path().to_path_buf());
         assert!(store.provision("../escape").await.is_err());
-        // Confirm nothing was created at the parent of root.
         let parent = tmp.path().parent().unwrap();
         assert!(!parent.join("escape").exists());
     }

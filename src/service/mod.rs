@@ -6,7 +6,7 @@ use crate::backend::BackendClient;
 use crate::recovery::{RecoveryCa, DEFAULT_CERT_TTL_SECS};
 use crate::redis::RedisClient;
 use crate::vm::config::TemplateConfig;
-use crate::vm::lite::{ExecBinds, ExecOutput};
+use crate::vm::lite::ExecOutput;
 use crate::vm::manager::VmManager;
 use crate::vm::sandbox::{SandboxKind, SandboxState};
 
@@ -267,31 +267,27 @@ impl SandboxService {
 
     /// Run argv in a lite sandbox. Standard owner check applies.
     ///
-    /// The sandbox's owner (`sandbox.user_id`) gets their persistent home
-    /// dirs (`~/.config`, `~/.local/share`) bind-mounted into the sandbox
-    /// at `/work/.config` and `/work/.local/share`. CLI tools find their
-    /// credentials there as if they were running on the host. Caller-supplied
-    /// extra `binds` are merged on top (caller wins for any path collision —
-    /// they're appended last so bwrap applies them after).
+    /// Authenticated callers get their persistent host home directory
+    /// bind-mounted as `/work` (the sandbox `$HOME`). Every CLI tool sees
+    /// a normal home with whatever creds/state the user has accumulated;
+    /// writes land directly in the persistent dir. Anonymous callers
+    /// (`identity.is_anonymous`, i.e. Better Auth `isAnonymous=1`) get an
+    /// ephemeral scratch instead — no persistent state across sandboxes.
     pub async fn exec_sandbox(
         &self,
         identity: &AuthIdentity,
         id: &str,
         argv: &[String],
-        binds: &ExecBinds,
     ) -> Result<ExecOutput> {
         self.assert_owner(identity, id).await?;
         let sandbox = self.manager.get_sandbox(id).await?
             .context("sandbox not found")?;
-        // Skip provisioning for anonymous sandboxes (no user_id) — they're
-        // ephemeral by design and would otherwise dirty the user-home root.
-        if !sandbox.user_id.is_empty() {
-            self.user_homes.provision(&sandbox.user_id).await?;
-        }
-        let mut merged = self.user_homes.binds_for(&sandbox.user_id);
-        merged.ro.extend(binds.ro.iter().cloned());
-        merged.rw.extend(binds.rw.iter().cloned());
-        self.manager.exec_lite(id, argv, &merged).await
+        let home = if identity.is_anonymous {
+            None
+        } else {
+            Some(self.user_homes.provision(&sandbox.user_id).await?)
+        };
+        self.manager.exec_lite(id, argv, home.as_deref()).await
     }
 
     pub async fn stats(&self) -> Result<SandboxStats> {

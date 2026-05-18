@@ -16,7 +16,7 @@ use dashmap::DashMap;
 
 use super::config::{ManagerConfig, TemplateConfig};
 use super::firecracker::{read_proc_starttime, BootConfig, FirecrackerLauncher, FirecrackerVm};
-use super::lite::{ExecBinds, ExecOutput, LiteBackend, LiteTemplate};
+use super::lite::{ExecOutput, LiteBackend, LiteTemplate};
 use super::network::NetworkManager;
 use super::sandbox::{Sandbox, SandboxKind, SandboxState, SandboxStats};
 use super::size::VmSize;
@@ -512,7 +512,9 @@ impl VmManager {
     }
 
     /// Run `argv` in a lite sandbox. Errors if the sandbox is a Vm.
-    pub async fn exec_lite(&self, id: &str, argv: &[String], binds: &ExecBinds) -> Result<ExecOutput> {
+    /// `home_override = Some(dir)` binds that dir as `/work` (the sandbox
+    /// `$HOME`); `None` means anonymous caller, ephemeral scratch.
+    pub async fn exec_lite(&self, id: &str, argv: &[String], home_override: Option<&std::path::Path>) -> Result<ExecOutput> {
         let sandbox = self.redis.sandbox_get(id).await?
             .context("Sandbox not found")?;
         if sandbox.kind != SandboxKind::Lite {
@@ -521,7 +523,7 @@ impl VmManager {
         let template = self.lite_templates.get(&sandbox.template)
             .with_context(|| format!("lite template missing: {}", sandbox.template))?
             .clone();
-        let out = self.lite.exec(id, &template, argv, binds).await?;
+        let out = self.lite.exec(id, &template, argv, home_override).await?;
         // Touch last_activity so cleanup_idle works for lite sandboxes too.
         if let Ok(Some(mut s)) = self.redis.sandbox_get(id).await {
             s.touch();
