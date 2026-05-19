@@ -35,3 +35,11 @@ openssh-server
 # path full SSH semantics (scp, port-forward, exec).
 socat
 sudo
+
+# --- catalog `preinstall: true` tools with installer "binary"/"system".
+#     The bun/npm branch in build-ubuntu-rootfs.sh only handles npm-registry
+#     tools, so binary-installer entries from tool_catalog.json must be
+#     mirrored here or they're silently absent from the rootfs. ---
+ripgrep
+fd-find
+patch

@@ -347,6 +347,12 @@ chroot "$ROOTFS_DIR" /bin/bash -c "
     apt-get update
     apt-get install -y --no-install-recommends $PACKAGES
 
+    # fd-find on Debian/Ubuntu installs the binary as \`fdfind\` (collision
+    # with an old \`fd\` package). Catalog tool name is \`fd\`, so link it.
+    if [ -x /usr/bin/fdfind ] && [ ! -e /usr/local/bin/fd ]; then
+        ln -s /usr/bin/fdfind /usr/local/bin/fd
+    fi
+
     # Install bun (replaces node+npm as runtime/package manager for catalog
     # tools). Official installer drops binary at \$BUN_INSTALL/bin/bun.
     # /usr/local/bin is already on PATH so no shell rc changes needed.
@@ -398,7 +404,7 @@ chroot "$ROOTFS_DIR" /bin/bash -c "
 
     # Generate tool manifest — human-readable list and JSON metadata.
     # Any CLI the user is likely to invoke. Missing tools render as '(missing)'.
-    TOOLS='bash sh curl wget jq tar sed gawk grep find ps uname hostname ip ssh scp bun $BUN_PREINSTALL_BINS'
+    TOOLS='bash sh curl wget jq tar sed gawk grep find ps uname hostname ip ssh scp bun rg fd patch $BUN_PREINSTALL_BINS'
     mkdir -p /etc
     : > /etc/sandbox-tools.txt
     printf '{\n  \"distro\": \"ubuntu-base-%s\",\n  \"tools\": {\n' \"\$(. /etc/os-release && echo \$VERSION_ID)\" > /etc/sandbox-manifest.json
@@ -470,6 +476,8 @@ VERIFY_MNT=$(mktemp -d)
 mount -o loop,ro "$OUTPUT" "$VERIFY_MNT"
 trap 'umount "$VERIFY_MNT" 2>/dev/null || true; rmdir "$VERIFY_MNT" 2>/dev/null || true' EXIT
 for bin in /usr/bin/bash /usr/bin/curl /usr/bin/wget /usr/bin/jq \
+           /usr/bin/rg /usr/local/bin/fd /usr/bin/patch \
+           /usr/local/bin/bun \
            /usr/local/bin/todoforai-bridge /usr/local/bin/sandbox-tools \
            /usr/local/bin/recovery-vsock-bridge \
            /usr/sbin/sshd /usr/bin/socat /usr/bin/sudo \
