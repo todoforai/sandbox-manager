@@ -268,7 +268,7 @@ impl SandboxService {
     /// Run argv in a lite sandbox. Standard owner check applies.
     ///
     /// Authenticated callers get their persistent host home directory
-    /// bind-mounted as `/work` (the sandbox `$HOME`). Every CLI tool sees
+    /// bind-mounted as `/root` (the sandbox `$HOME`). Every CLI tool sees
     /// a normal home with whatever creds/state the user has accumulated;
     /// writes land directly in the persistent dir. Anonymous callers
     /// (`identity.is_anonymous`, i.e. Better Auth `isAnonymous=1`) get an

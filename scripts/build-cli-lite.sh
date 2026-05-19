@@ -180,7 +180,7 @@ for b in curl jq openssl; do copy_bin "$b"; done
 # 2c. Optional language runtimes — only if present on host.
 #     Note: python3/node/bun are dynamically linked and carry their own
 #     stdlib/runtime; we copy the runtime + its libs but NOT site-packages or
-#     global npm/bun caches. Users install deps into /work themselves.
+#     global npm/bun caches. Users install deps into /root themselves.
 #     - node: required by the catalog-bundled CLI launchers above
 #     - bun:  optional, gives users native TS execution + `bun install`
 echo "==> Copying language runtimes"
@@ -201,7 +201,7 @@ if [ -x "$ROOTFS/usr/bin/python3" ] || [ -x "$ROOTFS/bin/python3" ]; then
 fi
 
 # 3. Mount points bwrap needs to exist in the read-only rootfs.
-mkdir -p "$ROOTFS"/{work,proc,dev,tmp,etc/ssl/certs,usr/bin}
+mkdir -p "$ROOTFS"/{root,proc,dev,tmp,etc/ssl/certs,usr/bin}
 
 # 4. CA certs so HTTPS works (todoai + curl consult this path).
 for src in /etc/ssl/certs/ca-certificates.crt /etc/pki/tls/certs/ca-bundle.crt; do
@@ -230,7 +230,7 @@ fi
 
 # 5. Minimal /etc files so getpwuid etc. don't break.
 cat > "$ROOTFS/etc/passwd" <<'EOF'
-root:x:0:0:root:/work:/bin/sh
+root:x:0:0:root:/root:/bin/sh
 EOF
 cat > "$ROOTFS/etc/group" <<'EOF'
 root:x:0:

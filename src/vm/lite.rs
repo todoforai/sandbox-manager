@@ -1,18 +1,19 @@
 //! Lite sandbox backend — process-level isolation via `bwrap` (bubblewrap).
 //!
 //! Designed for unlogged/anonymous users (the FREE tier). No KVM, no
-//! Firecracker — just a read-only rootfs and a writable `/work` dir,
+//! Firecracker — just a read-only rootfs and a writable `/root` dir,
 //! with host-shared networking so HTTPS / git / package installs work.
 //!
 //! A lite sandbox has no long-running process. Each `exec` spawns a fresh
-//! bwrap. `/work` (the sandbox `$HOME`) is either the caller's persistent
-//! per-user host home (authenticated tier — the source of truth, bind-
-//! mounted directly) or a per-sandbox ephemeral scratch at
-//! `overlays_dir/lite/<id>/` (anonymous tier — clean every time).
+//! bwrap. `/root` (the sandbox `$HOME` — bwrap runs as uid 0 inside the
+//! user namespace) is either the caller's persistent per-user host home
+//! (authenticated tier — the source of truth, bind-mounted directly) or
+//! a per-sandbox ephemeral scratch at `overlays_dir/lite/<id>/`
+//! (anonymous tier — clean every time).
 //!
 //! Rootfs layout requirements (built once, shipped read-only):
 //!   /bin/<our-clis>      static binaries on the allow-list
-//!   /work/               empty mount point (we --bind the chosen home here)
+//!   /root/               empty mount point (we --bind the chosen home here)
 //!   /proc/, /dev/, /tmp/ empty mount points (--proc, --dev, --tmpfs)
 
 use anyhow::{bail, Context, Result};
@@ -72,11 +73,11 @@ impl LiteBackend {
     }
 
     /// Run `argv` inside a fresh bwrap jail rooted at `template.rootfs_dir`,
-    /// with `<scratch_root>/<id>/` mounted at `/work` and cwd set to `/work`.
+    /// with `<scratch_root>/<id>/` mounted at `/root` and cwd set to `/root`.
     /// Read-only rootfs. New PID/IPC/UTS/cgroup/user namespaces. Net is
     /// shared with the host (no per-sandbox netns isolation) — outbound
     /// abuse must be limited at the host firewall level.
-    /// Run `argv` inside a fresh bwrap jail. `/work` (the sandbox `$HOME`)
+    /// Run `argv` inside a fresh bwrap jail. `/root` (the sandbox `$HOME`)
     /// is either the caller's persistent per-user dir (`home_override =
     /// Some(...)`) or the per-sandbox scratch dir (`None`, anonymous tier).
     pub async fn exec(
@@ -100,7 +101,7 @@ impl LiteBackend {
         let mut cmd = Command::new("bwrap");
         cmd.args([
             "--ro-bind", path_str(&template.rootfs_dir)?, "/",
-            "--bind", path_str(home)?, "/work",
+            "--bind", path_str(home)?, "/root",
             "--proc", "/proc",
             "--dev", "/dev",
             "--tmpfs", "/tmp",
@@ -108,10 +109,10 @@ impl LiteBackend {
             "--share-net",           // re-share net so HTTPS, DNS, git clone work
             "--die-with-parent",
             "--new-session",
-            "--chdir", "/work",
+            "--chdir", "/root",
             "--clearenv",
             "--setenv", "PATH", "/usr/bin:/bin",
-            "--setenv", "HOME", "/work",
+            "--setenv", "HOME", "/root",
             "--setenv", "SSL_CERT_FILE", "/etc/ssl/certs/ca-certificates.crt",
             "--setenv", "SSL_CERT_DIR", "/etc/ssl/certs",
             "--",

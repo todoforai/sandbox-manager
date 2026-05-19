@@ -310,7 +310,7 @@ impl VmManager {
         if kind == SandboxKind::Lite {
             let mut sandbox = Sandbox::new_with_id(sandbox_id, user_id, template_name, vm_size, SandboxKind::Lite);
             // Lite is "running" in the sense that exec is allowed against it;
-            // there's no actual long-running process. State persists in /work.
+            // there's no actual long-running process. State persists in /root.
             self.redis.sandbox_put(&sandbox).await?;
             if let Err(e) = self.lite.provision(&sandbox.id).await {
                 self.fail_sandbox(&mut sandbox, format!("lite provision: {e}")).await;
@@ -512,7 +512,7 @@ impl VmManager {
     }
 
     /// Run `argv` in a lite sandbox. Errors if the sandbox is a Vm.
-    /// `home_override = Some(dir)` binds that dir as `/work` (the sandbox
+    /// `home_override = Some(dir)` binds that dir as `/root` (the sandbox
     /// `$HOME`); `None` means anonymous caller, ephemeral scratch.
     pub async fn exec_lite(&self, id: &str, argv: &[String], home_override: Option<&std::path::Path>) -> Result<ExecOutput> {
         let sandbox = self.redis.sandbox_get(id).await?

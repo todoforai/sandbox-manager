@@ -4,7 +4,7 @@
 //! `$HOME` for every sandbox they ever run. No subpaths, no filtering, no
 //! schema — the home is the home, bit for bit.
 //!
-//! - Lite sandboxes bind this directory directly as `/work` (their `$HOME`).
+//! - Lite sandboxes bind this directory directly as `/root` (their `$HOME`).
 //!   Writes land in the persistent host tree immediately; reads see whatever
 //!   the user's tools have produced anywhere else.
 //! - VM sandboxes (future) will `rsync` this directory in at boot and back
