@@ -6,7 +6,6 @@ High-performance VM sandbox system using Firecracker microVMs with bridge PTY re
 
 Sandbox Manager is a **VM factory**. Its job is narrow: produce Firecracker microVMs that come up with the bridge already running and connected to the backend. It does **not** manage networking between sandboxes, SSH keys, certs, user capabilities, or language runtimes — all of that is configured by the AI at the user's request via commands through the bridge.
 
-See [`ARCHITECTURE_BRIDGE_MACHINES.md`](../ARCHITECTURE_BRIDGE_MACHINES.md) for the overall model: bridges are islands by default, the AI acts as a sysadmin, capabilities are additive.
 
 ## Architecture
 
