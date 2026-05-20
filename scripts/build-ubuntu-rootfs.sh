@@ -345,6 +345,21 @@ chroot "$ROOTFS_DIR" /bin/bash -c "
     export LC_ALL=C
 
     apt-get update
+
+    # HashiCorp apt repo — required because \`vault\` is not in Ubuntu's
+    # default repos. Add it before the main install so vault resolves in
+    # the same \`apt-get install \$PACKAGES\` call below. Bootstrap deps
+    # (curl + gnupg) come from \$PACKAGES so we install those first.
+    apt-get install -y --no-install-recommends curl gnupg ca-certificates
+    install -d -m 0755 /etc/apt/keyrings
+    curl -fsSL https://apt.releases.hashicorp.com/gpg \
+        | gpg --dearmor -o /etc/apt/keyrings/hashicorp-archive-keyring.gpg
+    chmod 0644 /etc/apt/keyrings/hashicorp-archive-keyring.gpg
+    CODENAME=\$(. /etc/os-release && echo \$VERSION_CODENAME)
+    echo \"deb [arch=amd64 signed-by=/etc/apt/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com \$CODENAME main\" \
+        > /etc/apt/sources.list.d/hashicorp.list
+    apt-get update
+
     apt-get install -y --no-install-recommends $PACKAGES
 
     # fd-find on Debian/Ubuntu installs the binary as \`fdfind\` (collision
@@ -367,7 +382,7 @@ chroot "$ROOTFS_DIR" /bin/bash -c "
         bun --version
     fi
 
-    # Preinstall CLI tools tagged \`preinstall: true\` in TOOL_CATALOG via bun.
+    # Preinstall CLI tools tagged \`preinstallCloud: true\` in TOOL_CATALOG via bun.
     # Driven from packages/shared-fbe/src/tool_catalog.json on the host —
     # values interpolated by the outer shell before chroot. BUN_INSTALL forces
     # global bins into /usr/local/bin instead of \$HOME/.bun/bin.
@@ -404,7 +419,7 @@ chroot "$ROOTFS_DIR" /bin/bash -c "
 
     # Generate tool manifest — human-readable list and JSON metadata.
     # Any CLI the user is likely to invoke. Missing tools render as '(missing)'.
-    TOOLS='bash sh curl wget jq tar sed gawk grep find ps uname hostname ip ssh scp bun rg fd patch $BUN_PREINSTALL_BINS'
+    TOOLS='bash sh curl wget jq tar sed gawk grep find ps uname hostname ip ssh scp bun rg fd patch rclone gh vault $BUN_PREINSTALL_BINS'
     mkdir -p /etc
     : > /etc/sandbox-tools.txt
     printf '{\n  \"distro\": \"ubuntu-base-%s\",\n  \"tools\": {\n' \"\$(. /etc/os-release && echo \$VERSION_ID)\" > /etc/sandbox-manifest.json
@@ -477,6 +492,8 @@ mount -o loop,ro "$OUTPUT" "$VERIFY_MNT"
 trap 'umount "$VERIFY_MNT" 2>/dev/null || true; rmdir "$VERIFY_MNT" 2>/dev/null || true' EXIT
 for bin in /usr/bin/bash /usr/bin/curl /usr/bin/wget /usr/bin/jq \
            /usr/bin/rg /usr/local/bin/fd /usr/bin/patch \
+           /usr/bin/rclone /usr/bin/gh /usr/bin/vault \
+           /usr/bin/ssh \
            /usr/local/bin/bun \
            /usr/local/bin/todoforai-bridge /usr/local/bin/sandbox-tools \
            /usr/local/bin/recovery-vsock-bridge \

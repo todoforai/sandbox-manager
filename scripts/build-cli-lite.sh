@@ -47,7 +47,7 @@ echo "==> Compiling todoai (bun --compile) → $TODOAI_BIN_OUT"
 chmod 0755 "$TODOAI_BIN_OUT"
 COMPILED_BINS+=("$TODOAI_BIN_OUT")
 
-# 1a. Bundle each TOOL_CATALOG entry tagged `preinstall: true` with
+# 1a. Bundle each TOOL_CATALOG entry tagged `preinstallCloud: true` with
 #     installer == "npm" or "bun" (both publish to the npm registry and use
 #     the same api-apps source layout). `todoai` is excluded here because
 #     it lives in cli/ — not api-apps/ — and is already compiled above.

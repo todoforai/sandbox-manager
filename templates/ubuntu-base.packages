@@ -20,10 +20,15 @@ curl
 wget
 jq
 
+# --- gnupg: required to verify the HashiCorp apt repo signing key (vault).
+#     Installed early via a bootstrap step in build-ubuntu-rootfs.sh, but
+#     listing here keeps it on the rootfs after that build phase. ---
+gnupg
+
 # --- unzip: required by bun's install script (bun is fetched from bun.sh,
 #     not apt, because Ubuntu repos don't ship it). bun replaces node+npm
 #     as the runtime/package manager for TOOL_CATALOG tools tagged
-#     `preinstall: true` (todoai, todoforai-explore/review/summary/subagent). ---
+#     `preinstallCloud: true` (tfa-explore/review, agent-browser). ---
 unzip
 
 # --- native SSH in guest ---
@@ -44,3 +49,6 @@ ripgrep
 fd-find
 patch
 rclone
+openssh-client
+gh
+vault
