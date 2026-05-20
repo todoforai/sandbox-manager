@@ -294,13 +294,11 @@ Resource proxy handles:
 RUST_LOG=sandbox_manager=debug cargo run
 ```
 
-## Future: CoW Fork Engine
+## Future: higher VM density
 
-The codebase includes a partially-implemented CoW (Copy-on-Write) fork engine (`src/vm/fork.rs`) for sub-millisecond VM creation. This is based on [Zeroboot](https://github.com/zerobootdev/zeroboot).
+Current density is bounded by Firecracker's ~5MB/VM overhead — roughly
+hundreds of concurrent VMs per host. Getting to thousands requires a
+different VMM with copy-on-write guest memory (e.g. [Zeroboot]). Not
+planned; revisit if/when the workload demands it.
 
-Benefits when completed:
-- ~0.8ms VM creation (vs ~125ms)
-- ~265KB memory per VM (only dirty pages)
-- Thousands of concurrent VMs
-
-Currently using Firecracker process per VM for simplicity and reliability.
+[Zeroboot]: https://github.com/zerobootdev/zeroboot
