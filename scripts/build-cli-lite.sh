@@ -65,7 +65,7 @@ COMPILED_BINS+=("$TODOAI_BIN_OUT")
 if [ -f "$TOOL_CATALOG_JSON" ] && command -v jq >/dev/null 2>&1; then
     PREINSTALL_KEYS=$(jq -r '
         to_entries
-        | map(select(.value.preinstall == true and (.value.installer == "npm" or .value.installer == "bun")))
+        | map(select(.value.preinstallCloud == true and (.value.installer == "npm" or .value.installer == "bun")))
         | map(.key) | .[]
     ' "$TOOL_CATALOG_JSON")
     if [ -n "$PREINSTALL_KEYS" ]; then

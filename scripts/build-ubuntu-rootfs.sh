@@ -28,22 +28,22 @@ PACKAGES=$(grep -vE '^\s*(#|$)' "$PACKAGES_FILE" | tr '\n' ' ')
 echo "Using package list: $PACKAGES_FILE"
 echo "Packages: $PACKAGES"
 
-# Read packages tagged `preinstall: true` from TOOL_CATALOG (single source of
-# truth shared with edge/frontend). Accepts installer == "bun" or "npm" —
+# Read packages tagged `preinstallCloud: true` from TOOL_CATALOG (single source
+# of truth shared with edge/frontend). Accepts installer == "bun" or "npm" —
 # both publish to the npm registry and bun installs either. Empty if catalog
 # absent or jq missing.
 BUN_PREINSTALL=""
 if [ -f "$TOOL_CATALOG_JSON" ] && command -v jq >/dev/null 2>&1; then
     BUN_PREINSTALL=$(jq -r '
         to_entries
-        | map(select(.value.preinstall == true and (.value.installer == "bun" or .value.installer == "npm")))
+        | map(select(.value.preinstallCloud == true and (.value.installer == "bun" or .value.installer == "npm")))
         | map(.value.pkg) | join(" ")
     ' "$TOOL_CATALOG_JSON")
     # Catalog key = binary name on PATH (e.g. "todoforai-explore"). Used for
     # in-chroot verification and the /etc/sandbox-tools.txt manifest.
     BUN_PREINSTALL_BINS=$(jq -r '
         to_entries
-        | map(select(.value.preinstall == true and (.value.installer == "bun" or .value.installer == "npm")))
+        | map(select(.value.preinstallCloud == true and (.value.installer == "bun" or .value.installer == "npm")))
         | map(.key) | join(" ")
     ' "$TOOL_CATALOG_JSON")
     echo "Catalog preinstall (bun): ${BUN_PREINSTALL:-(none)}"
