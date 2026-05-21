@@ -44,6 +44,7 @@ cleanup() {
     # Idempotent: each step swallowed individually so partial setup still tears down.
     ip link del "$VETH_HOST" 2>/dev/null || true
     ip netns del "$NS" 2>/dev/null || true
+    rm -rf "/etc/netns/$NS" 2>/dev/null || true
 }
 trap cleanup EXIT INT TERM
 
@@ -66,6 +67,30 @@ ip -n "$NS" addr add "$IP" dev "$VETH_NS"
 ip -n "$NS" link set "$VETH_NS" up
 ip -n "$NS" link set lo up
 ip -n "$NS" route add default via "$GATEWAY"
+
+# DNS: ip netns exec auto-bind-mounts /etc/netns/<NS>/resolv.conf over
+# /etc/resolv.conf inside the netns. The host's /etc/resolv.conf typically
+# points at 127.0.0.53 (systemd-resolved stub), which is unreachable from
+# the netns — use the *real* upstream list instead.
+#
+# Resolution order:
+#   1. $LITE_DNS_SERVERS env (space-separated IPs) — explicit override
+#   2. /run/systemd/resolve/resolv.conf — systemd-resolved publishes the
+#      actual upstream resolvers here even when /etc/ points at the stub
+#   3. 1.1.1.1 / 8.8.8.8 fallback — works on most hosts but some providers
+#      (e.g. Hetzner) block UDP 53 to public resolvers, so 2 is preferred.
+mkdir -p "/etc/netns/$NS"
+{
+    if [ -n "${LITE_DNS_SERVERS:-}" ]; then
+        for ip in $LITE_DNS_SERVERS; do echo "nameserver $ip"; done
+    elif [ -r /run/systemd/resolve/resolv.conf ]; then
+        grep -E '^nameserver [0-9]' /run/systemd/resolve/resolv.conf | head -3
+    else
+        echo "nameserver 1.1.1.1"
+        echo "nameserver 8.8.8.8"
+    fi
+    echo "options edns0 timeout:2 attempts:2"
+} > "/etc/netns/$NS/resolv.conf"
 
 # Run the command inside the netns. exec replaces this shell so trap fires
 # only on signals, not on normal exit — but cleanup at end handles success.

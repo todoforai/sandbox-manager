@@ -55,9 +55,14 @@ fi
 command -v nft >/dev/null || { echo "ERROR: nftables (nft) not installed"; exit 1; }
 
 log "installing nftables policy"
+# Atomic replace: delete-then-recreate. `nft -f` doesn't replace tables in
+# place — without the explicit delete, rules from previous versions of this
+# script accumulate. Wrapped in an `add table` first so the delete never
+# fails on a fresh host.
 nft -f - <<NFT
+add table inet sandbox-lite
+delete table inet sandbox-lite
 table inet sandbox-lite {
-    # Sets are populated by ensure-bridge-lite.sh; rules below reference them.
     set rfc1918 {
         type ipv4_addr; flags interval;
         elements = { 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16, 100.64.0.0/10 }
@@ -73,51 +78,78 @@ table inet sandbox-lite {
                      8333, 9999, 14444, 137-139, 445, 23 }
     }
 
+    # FORWARD: lite netns → public internet (routed through host).
     chain forward {
         type filter hook forward priority 0; policy accept;
 
-        # Established/related: always allowed (return traffic).
         ct state established,related accept
 
-        # Only police traffic *leaving* the lite bridge.
+        # Only police traffic leaving the lite bridge.
         iifname != "$BRIDGE" return
 
-        # Block reaching the paid-VM bridge / host loopback / metadata.
-        ip daddr @rfc1918 counter drop
+        # Block abuse destinations / ports first.
+        ip daddr @rfc1918   counter drop
         ip daddr @link_local counter drop
-
-        # Block abuse ports outright.
         tcp dport @blocked_ports counter drop
         udp dport @blocked_ports counter drop
 
-        # Allow DNS (53), HTTP (80), HTTPS (443) — that's it.
+        # Per-source-IP rate limit on new connections.
+        ct state new limit rate over 60/second counter drop
+
+        # Allow only DNS / HTTP / HTTPS to anything that survived above.
         udp dport 53 accept
         tcp dport { 53, 80, 443 } accept
 
-        # Simple connection rate limit per source IP to slow scanners.
-        ct state new limit rate over 60/second counter drop
-
-        # Default for this iifname: drop.
+        # Anything else from the lite bridge: drop.
         counter drop
     }
 
-    chain output {
-        type filter hook output priority 0; policy accept;
-        # Stop processes on the host from talking *to* lite sandboxes on
-        # internal ports they might bind (defense in depth — the netns
-        # already prevents inbound from outside the bridge subnet).
+    # INPUT: lite netns → the host itself. Critical: traffic to 10.0.0.1
+    # (paid-VM bridge gateway), 10.2.0.1 (this bridge), 127.0.0.1, or any
+    # other IP the host owns is *input*, not *forward* — FORWARD chain
+    # never sees it. Without this, cli-lite could curl http://10.0.0.1/.
+    chain input {
+        type filter hook input priority 0; policy accept;
+
+        ct state established,related accept
+
+        # Only police traffic arriving on the lite bridge.
+        iifname != "$BRIDGE" accept
+
+        # ICMP echo so users can ping the gateway (handy for debugging).
+        icmp type { echo-request, echo-reply } accept
+
+        # Everything else aimed at the host (incl. sandbox-manager on
+        # :9000/:9002, host services on :22, etc.): drop.
+        counter drop
     }
 }
 NFT
 
 # 5. NAT for outbound (so allowed traffic actually reaches the internet).
-#    Use a separate chain to avoid stepping on the VM bridge's NAT rule.
 if ! iptables -t nat -C POSTROUTING -s "$SUBNET" -j MASQUERADE 2>/dev/null; then
     log "adding NAT rule for $SUBNET"
     iptables -t nat -A POSTROUTING -s "$SUBNET" -j MASQUERADE
 fi
 
-# 6. Inter-sandbox isolation: lite sandboxes must not see each other.
+# 6. UFW bypass: this host runs UFW with `FORWARD policy DROP` and an empty
+#    ufw-user-forward chain — it drops everything that isn't explicitly
+#    allowed. Without these rules, packets from the lite netns die before
+#    our nftables `inet sandbox-lite` table sees them. Insert ACCEPT at
+#    the *top* of FORWARD so UFW chains never run for this bridge.
+#    The actual egress policy still applies via the nftables table.
+for rule in \
+    "FORWARD -i $BRIDGE -j ACCEPT" \
+    "FORWARD -o $BRIDGE -j ACCEPT" ; do
+    if ! iptables -C $rule 2>/dev/null; then
+        log "adding bypass: iptables -I $rule"
+        iptables -I $rule
+    fi
+done
+
+# 7. Inter-sandbox isolation: lite sandboxes must not see each other.
+#    Placed *after* the bypass ACCEPTs in priority — iptables -I inserts at
+#    top so we re-insert here to land above the bypass for matching order.
 if ! iptables -C FORWARD -i "$BRIDGE" -o "$BRIDGE" -j DROP 2>/dev/null; then
     log "adding inter-sandbox DROP rule"
     iptables -I FORWARD -i "$BRIDGE" -o "$BRIDGE" -j DROP
