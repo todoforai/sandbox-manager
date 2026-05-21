@@ -86,10 +86,10 @@ fn validate_user_id(user_id: &str) -> Result<()> {
 ///
 /// Scope: this directory lives on the sandbox-manager host and holds each
 /// user's persistent sandbox HOME (dotfiles, CLI auth state, agent-created
-/// files). It is intentionally separate from `storage-manager`'s
-/// `<DATA_DIR>/userfiles/` which lives on a different host and serves the
-/// web UI's "Files" area. Moving bytes between the two is an explicit
-/// cross-service operation, not a shared mount.
+/// files). It is deliberately separate from `storage-manager`'s
+/// `<DATA_DIR>/userfiles/` on the api host — two disks, two hosts, no
+/// shared mount. The sandbox HOME is reached only via terminal / SSH /
+/// in-sandbox agent. The web UI's "Files" area is a different world.
 pub fn default_root(overlays_dir: &Path) -> PathBuf {
     if let Ok(p) = std::env::var("USER_HOMES_DIR") {
         return PathBuf::from(p);
