@@ -1,0 +1,21 @@
+[Unit]
+Description=Sandbox egress-filtered bridge (br-sandbox-lite) for cli-lite FREE tier
+Documentation=file:/usr/local/lib/sandbox-manager/ensure-bridge-lite.sh
+After=network-pre.target sandbox-bridge.service
+Before=network.target sandbox-manager.service
+Wants=network-pre.target
+# Don't start until VM bridge is up — they share iptables NAT semantics
+# and we want a deterministic install order.
+Requires=sandbox-bridge.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+EnvironmentFile=-/etc/default/sandbox-bridge-lite
+ExecStart=/usr/local/lib/sandbox-manager/ensure-bridge-lite.sh
+# No ExecStop: tearing down the bridge would kill in-flight cli-lite execs.
+Restart=on-failure
+RestartSec=2s
+
+[Install]
+WantedBy=multi-user.target

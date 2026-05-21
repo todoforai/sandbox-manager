@@ -46,6 +46,14 @@ deploy() {
         # on every rebuild, so re-apply here.
         sudo setcap cap_net_admin,cap_net_raw=eip ./sandbox-manager
 
+        # Sync host-level systemd units + bridge/netns scripts. Idempotent.
+        # Owns: br-sandbox (VM tier) + br-sandbox-lite (FREE tier egress
+        # filter, required by cli-lite). Without this, LiteBackend logs a
+        # WARN at startup and falls back to shared host net.
+        echo "Syncing systemd units (sandbox-bridge, sandbox-bridge-lite)..."
+        apt-get install -y nftables >/dev/null 2>&1 || true
+        sudo bash $DEPLOY_PATH/releases/$RELEASE/systemd/install.sh
+
         echo "Linking shared dir for ecosystem.config.js to read..."
         ln -sfn $DEPLOY_PATH/shared $DEPLOY_PATH/releases/$RELEASE/shared
 

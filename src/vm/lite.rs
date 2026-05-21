@@ -1,8 +1,11 @@
 //! Lite sandbox backend — process-level isolation via `bwrap` (bubblewrap).
 //!
 //! Designed for unlogged/anonymous users (the FREE tier). No KVM, no
-//! Firecracker — just a read-only rootfs and a writable `/root` dir,
-//! with host-shared networking so HTTPS / git / package installs work.
+//! Firecracker — just a read-only rootfs and a writable `/root` dir.
+//! Each `exec` runs inside a per-sandbox network namespace attached to
+//! `br-sandbox-lite`, with nftables egress policy applied by
+//! `ensure-bridge-lite.sh` (53/80/443 only, no RFC1918 / loopback /
+//! metadata / SMTP / SSH).
 //!
 //! A lite sandbox has no long-running process. Each `exec` spawns a fresh
 //! bwrap. `/root` (the sandbox `$HOME` — bwrap runs as uid 0 inside the
@@ -51,11 +54,34 @@ pub struct LiteBackend {
     timeout_sec: u64,
     /// Hard cap on combined stdout+stderr bytes returned.
     max_output_bytes: usize,
+    /// Path to `lite-netns.sh` (per-exec netns wrapper). If `None`, bwrap
+    /// runs in the host netns — only safe in dev. Production must point
+    /// this at the installed helper so the nftables egress policy applies.
+    netns_wrapper: Option<PathBuf>,
 }
 
 impl LiteBackend {
     pub fn new(scratch_root: PathBuf) -> Self {
-        Self { scratch_root, timeout_sec: 30, max_output_bytes: 1 << 20 }
+        // Resolve netns wrapper: env override → installed path → none.
+        // Installed path matches systemd/install.sh's LIB_DIR.
+        let netns_wrapper = std::env::var_os("LITE_NETNS_WRAPPER")
+            .map(PathBuf::from)
+            .or_else(|| {
+                let p = PathBuf::from("/usr/local/lib/sandbox-manager/lite-netns.sh");
+                p.exists().then_some(p)
+            });
+        if netns_wrapper.is_none() {
+            tracing::warn!(
+                "lite-netns.sh not found — cli-lite sandboxes will share the host netns. \
+                 Run systemd/install.sh and enable sandbox-bridge-lite.service before opening FREE tier."
+            );
+        }
+        Self {
+            scratch_root,
+            timeout_sec: 30,
+            max_output_bytes: 1 << 20,
+            netns_wrapper,
+        }
     }
 
     /// Allocate the scratch dir. Idempotent.
@@ -74,12 +100,19 @@ impl LiteBackend {
 
     /// Run `argv` inside a fresh bwrap jail rooted at `template.rootfs_dir`,
     /// with `<scratch_root>/<id>/` mounted at `/root` and cwd set to `/root`.
-    /// Read-only rootfs. New PID/IPC/UTS/cgroup/user namespaces. Net is
-    /// shared with the host (no per-sandbox netns isolation) — outbound
-    /// abuse must be limited at the host firewall level.
-    /// Run `argv` inside a fresh bwrap jail. `/root` (the sandbox `$HOME`)
-    /// is either the caller's persistent per-user dir (`home_override =
-    /// Some(...)`) or the per-sandbox scratch dir (`None`, anonymous tier).
+    /// Read-only rootfs. New PID/IPC/UTS/cgroup/user namespaces.
+    ///
+    /// Network: bwrap is launched via `lite-netns.sh <id> --` (when
+    /// configured), which puts the whole jail in a per-exec network
+    /// namespace attached to `br-sandbox-lite`. Egress is filtered by
+    /// `ensure-bridge-lite.sh`'s nftables policy: allow 53/80/443 to public
+    /// destinations only, drop RFC1918 + link-local + loopback + abuse
+    /// ports. `bwrap --share-net` then inherits *that* filtered netns, not
+    /// the host's.
+    ///
+    /// `/root` (the sandbox `$HOME`) is either the caller's persistent
+    /// per-user dir (`home_override = Some(...)`) or the per-sandbox
+    /// scratch dir (`None`, anonymous tier).
     pub async fn exec(
         &self,
         id: &str,
@@ -98,7 +131,17 @@ impl LiteBackend {
         let scratch = self.provision(id).await?;
         let home = home_override.unwrap_or(&scratch);
 
-        let mut cmd = Command::new("bwrap");
+        // If a netns wrapper is configured, the outer command is the
+        // wrapper script and bwrap becomes its child. Otherwise call bwrap
+        // directly (dev / host-shared net — warned at startup).
+        let mut cmd = match &self.netns_wrapper {
+            Some(w) => {
+                let mut c = Command::new(w);
+                c.args([id, "--", "bwrap"]);
+                c
+            }
+            None => Command::new("bwrap"),
+        };
         cmd.args([
             "--ro-bind", path_str(&template.rootfs_dir)?, "/",
             "--bind", path_str(home)?, "/root",
@@ -106,7 +149,7 @@ impl LiteBackend {
             "--dev", "/dev",
             "--tmpfs", "/tmp",
             "--unshare-all",         // user/pid/ipc/uts/cgroup/net
-            "--share-net",           // re-share net so HTTPS, DNS, git clone work
+            "--share-net",           // inherit the (filtered) netns we're already in
             "--die-with-parent",
             "--new-session",
             "--chdir", "/root",
@@ -122,12 +165,12 @@ impl LiteBackend {
         cmd.stderr(std::process::Stdio::piped());
         cmd.kill_on_drop(true);
 
-        let child = cmd.spawn().context("spawn bwrap")?;
+        let child = cmd.spawn().context("spawn lite exec")?;
         let out = match tokio::time::timeout(
             std::time::Duration::from_secs(self.timeout_sec),
             child.wait_with_output(),
         ).await {
-            Ok(r) => r.context("bwrap wait")?,
+            Ok(r) => r.context("lite exec wait")?,
             Err(_) => bail!("exec timed out after {}s", self.timeout_sec),
         };
 

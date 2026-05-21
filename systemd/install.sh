@@ -14,16 +14,21 @@ LIB_DIR="/usr/local/lib/sandbox-manager"
 UNIT_DIR="/etc/systemd/system"
 
 install -d "$LIB_DIR"
-install -m 0755 "$SCRIPTS_DIR/ensure-bridge.sh" "$LIB_DIR/ensure-bridge.sh"
+install -m 0755 "$SCRIPTS_DIR/ensure-bridge.sh"      "$LIB_DIR/ensure-bridge.sh"
+install -m 0755 "$SCRIPTS_DIR/ensure-bridge-lite.sh" "$LIB_DIR/ensure-bridge-lite.sh"
+install -m 0755 "$SCRIPTS_DIR/lite-netns.sh"         "$LIB_DIR/lite-netns.sh"
 
-for unit in sandbox-bridge.service sandbox-bridge-recheck.service sandbox-bridge.timer; do
+for unit in sandbox-bridge.service sandbox-bridge-recheck.service sandbox-bridge.timer \
+            sandbox-bridge-lite.service; do
     install -m 0644 "$SRC_DIR/$unit" "$UNIT_DIR/$unit"
 done
 
 systemctl daemon-reload
-systemctl enable --now sandbox-bridge.service sandbox-bridge.timer
+systemctl enable --now sandbox-bridge.service sandbox-bridge.timer sandbox-bridge-lite.service
 
 echo
 echo "Installed. Status:"
-systemctl --no-pager status sandbox-bridge.service | head -n 5
+systemctl --no-pager status sandbox-bridge.service      | head -n 5
+systemctl --no-pager status sandbox-bridge-lite.service | head -n 5
 ip -br link show br-sandbox
+ip -br link show br-sandbox-lite

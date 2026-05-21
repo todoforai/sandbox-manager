@@ -16,8 +16,10 @@
 #     (no allowed-bins.txt — anything in the rootfs may be invoked)
 #
 # This is the FREE / unlogged-tier sandbox: process-level isolation via
-# bubblewrap, no kernel. Network is shared with the host so HTTPS / git /
-# package installs work — outbound abuse must be limited at the host firewall.
+# bubblewrap, no kernel. Each exec runs in a per-sandbox network namespace
+# attached to br-sandbox-lite; egress is filtered by nftables — see
+# scripts/ensure-bridge-lite.sh (allow 53/80/443, drop RFC1918, loopback,
+# link-local, SMTP, SSH). Install via systemd/install.sh.
 
 set -euo pipefail
 
