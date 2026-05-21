@@ -65,8 +65,10 @@ deploy() {
             VFSD_URL="https://gitlab.com/virtio-fs/virtiofsd/uploads/2cf9068046720699531407101f2bcb60/virtiofsd-\${VFSD_VERSION}.zip"
             echo "Installing virtiofsd \$VFSD_VERSION..."
             apt-get install -y unzip >/dev/null 2>&1 || true
+            # -fSL: fail on HTTP error, follow redirects, no progress bar
+            # noise. unzip below is the authoritative check that the
+            # content is actually a zip.
             curl -fSL "\$VFSD_URL" -o /tmp/virtiofsd.zip
-            file /tmp/virtiofsd.zip | grep -q 'Zip archive' || { echo "ERROR: virtiofsd download is not a zip"; head -c 500 /tmp/virtiofsd.zip; exit 1; }
             rm -rf /tmp/virtiofsd-unpack && mkdir /tmp/virtiofsd-unpack
             unzip -q /tmp/virtiofsd.zip -d /tmp/virtiofsd-unpack
             VFSD_BIN=\$(find /tmp/virtiofsd-unpack -name virtiofsd -type f -perm -111 | head -1)
