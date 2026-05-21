@@ -43,7 +43,9 @@ else
     # version. See deploy.sh for the same pattern.
     VFSD_URL="https://gitlab.com/virtio-fs/virtiofsd/uploads/2cf9068046720699531407101f2bcb60/virtiofsd-${VIRTIOFSD_VERSION}.zip"
     echo "Downloading ${VFSD_URL}..."
-    curl -sSL "${VFSD_URL}" -o /tmp/virtiofsd.zip
+    # -fSL: fail loudly on HTTP errors instead of silently writing the
+    # 404 HTML to virtiofsd.zip and confusing unzip downstream.
+    curl -fSL "${VFSD_URL}" -o /tmp/virtiofsd.zip
     rm -rf /tmp/virtiofsd-unpack && mkdir /tmp/virtiofsd-unpack
     unzip -q /tmp/virtiofsd.zip -d /tmp/virtiofsd-unpack
     VFSD_BIN=$(find /tmp/virtiofsd-unpack -name virtiofsd -type f -perm -111 | head -1)
