@@ -37,9 +37,11 @@ VIRTIOFSD_VERSION="${VIRTIOFSD_VERSION:-v1.10.1}"
 if command -v virtiofsd &>/dev/null; then
     echo "virtiofsd already installed: $(virtiofsd --version 2>&1 | head -1)"
 else
-    # Asset name on the gitlab Rust virtiofsd release: virtiofsd-<version>.zip
-    # containing target/x86_64-unknown-linux-musl/release/virtiofsd.
-    VFSD_URL="https://gitlab.com/virtio-fs/virtiofsd/-/releases/${VIRTIOFSD_VERSION}/downloads/virtiofsd-${VIRTIOFSD_VERSION}.zip"
+    # The virtiofsd 'release' on gitlab has no asset links — only source
+    # archives. The actual binary zip is a /uploads/ attachment (URL
+    # discovered via release API). Pin the path; bump alongside the
+    # version. See deploy.sh for the same pattern.
+    VFSD_URL="https://gitlab.com/virtio-fs/virtiofsd/uploads/2cf9068046720699531407101f2bcb60/virtiofsd-${VIRTIOFSD_VERSION}.zip"
     echo "Downloading ${VFSD_URL}..."
     curl -sSL "${VFSD_URL}" -o /tmp/virtiofsd.zip
     rm -rf /tmp/virtiofsd-unpack && mkdir /tmp/virtiofsd-unpack

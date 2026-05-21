@@ -56,19 +56,21 @@ deploy() {
 
         # Ensure virtiofsd is on PATH — sandbox-manager refuses to start
         # without it (vm::virtiofs::which_virtiofsd bails). Idempotent.
-        # Replicates just the binary install from scripts/setup.sh; the
-        # full setup also rebuilds templates (too heavy for every deploy).
+        # Note: virtiofsd 'releases' on gitlab don't have asset links, only
+        # source-code archives. The binary zip is hosted as a /uploads/
+        # attachment (URL discovered via the release API). Pin the exact
+        # asset path; bump alongside VFSD_VERSION.
         if ! command -v virtiofsd >/dev/null 2>&1; then
             VFSD_VERSION=v1.10.1
+            VFSD_URL="https://gitlab.com/virtio-fs/virtiofsd/uploads/2cf9068046720699531407101f2bcb60/virtiofsd-\${VFSD_VERSION}.zip"
             echo "Installing virtiofsd \$VFSD_VERSION..."
             apt-get install -y unzip >/dev/null 2>&1 || true
-            curl -sSL "https://gitlab.com/virtio-fs/virtiofsd/-/releases/\$VFSD_VERSION/downloads/virtiofsd-\$VFSD_VERSION.zip" -o /tmp/virtiofsd.zip
+            curl -fSL "\$VFSD_URL" -o /tmp/virtiofsd.zip
+            file /tmp/virtiofsd.zip | grep -q 'Zip archive' || { echo "ERROR: virtiofsd download is not a zip"; head -c 500 /tmp/virtiofsd.zip; exit 1; }
             rm -rf /tmp/virtiofsd-unpack && mkdir /tmp/virtiofsd-unpack
             unzip -q /tmp/virtiofsd.zip -d /tmp/virtiofsd-unpack
             VFSD_BIN=\$(find /tmp/virtiofsd-unpack -name virtiofsd -type f -perm -111 | head -1)
-            if [ -z "\$VFSD_BIN" ]; then
-                echo "ERROR: virtiofsd binary not in release zip"; exit 1
-            fi
+            [ -n "\$VFSD_BIN" ] || { echo "ERROR: virtiofsd binary not in release zip"; exit 1; }
             sudo install -m 0755 "\$VFSD_BIN" /usr/local/bin/virtiofsd
             rm -rf /tmp/virtiofsd.zip /tmp/virtiofsd-unpack
             virtiofsd --version
