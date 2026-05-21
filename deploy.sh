@@ -54,6 +54,26 @@ deploy() {
         apt-get install -y nftables >/dev/null 2>&1 || true
         sudo bash $DEPLOY_PATH/releases/$RELEASE/systemd/install.sh
 
+        # Ensure virtiofsd is on PATH — sandbox-manager refuses to start
+        # without it (vm::virtiofs::which_virtiofsd bails). Idempotent.
+        # Replicates just the binary install from scripts/setup.sh; the
+        # full setup also rebuilds templates (too heavy for every deploy).
+        if ! command -v virtiofsd >/dev/null 2>&1; then
+            VFSD_VERSION=v1.10.1
+            echo "Installing virtiofsd \$VFSD_VERSION..."
+            apt-get install -y unzip >/dev/null 2>&1 || true
+            curl -sSL "https://gitlab.com/virtio-fs/virtiofsd/-/releases/\$VFSD_VERSION/downloads/virtiofsd-\$VFSD_VERSION.zip" -o /tmp/virtiofsd.zip
+            rm -rf /tmp/virtiofsd-unpack && mkdir /tmp/virtiofsd-unpack
+            unzip -q /tmp/virtiofsd.zip -d /tmp/virtiofsd-unpack
+            VFSD_BIN=\$(find /tmp/virtiofsd-unpack -name virtiofsd -type f -perm -111 | head -1)
+            if [ -z "\$VFSD_BIN" ]; then
+                echo "ERROR: virtiofsd binary not in release zip"; exit 1
+            fi
+            sudo install -m 0755 "\$VFSD_BIN" /usr/local/bin/virtiofsd
+            rm -rf /tmp/virtiofsd.zip /tmp/virtiofsd-unpack
+            virtiofsd --version
+        fi
+
         echo "Linking shared dir for ecosystem.config.js to read..."
         ln -sfn $DEPLOY_PATH/shared $DEPLOY_PATH/releases/$RELEASE/shared
 
