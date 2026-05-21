@@ -5,3 +5,4 @@ pub mod manager;
 pub mod network;
 pub mod sandbox;
 pub mod size;
+pub mod virtiofs;

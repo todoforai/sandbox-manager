@@ -125,6 +125,14 @@ mount -t devtmpfs devtmpfs /dev 2>/dev/null || true
 mkdir -p /dev/pts
 mount -t devpts devpts /dev/pts
 
+# virtio-fs: mount shared $HOME if the host attached it (tag must match
+# the FC /vhost-user-fs PUT). Non-fatal: missing device → ephemeral /root.
+if mount -t virtiofs userhome /root 2>/dev/null; then
+    echo "[init] virtio-fs: shared /root mounted"
+else
+    echo "[init] virtio-fs: no shared /root (ephemeral mode)"
+fi
+
 # Setup networking
 ip link set lo up
 if ip link show eth0 >/dev/null 2>&1; then

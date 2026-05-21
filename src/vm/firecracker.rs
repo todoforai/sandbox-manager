@@ -299,6 +299,7 @@ impl FirecrackerLauncher {
         size: &VmSize,
         network: &VmNetwork,
         enroll_token: Option<&str>,
+        virtiofs_socket: Option<&std::path::Path>,
     ) -> Result<FirecrackerVm> {
         let socket_path = self.socket_path_for(vm_id);
         let console_log = self.runtime_dir.join(format!("{}.console.log", vm_id));
@@ -370,7 +371,7 @@ impl FirecrackerLauncher {
         // must tear it down before returning Err — otherwise we leak a
         // detached firecracker into PID 1's lap.
         let setup = async {
-            self.configure_vm(&vm, boot_config, size, network, enroll_token, vm_id).await?;
+            self.configure_vm(&vm, boot_config, size, network, enroll_token, vm_id, virtiofs_socket).await?;
             vm.api_request("PUT", "/actions", Some(r#"{"action_type":"InstanceStart"}"#))
                 .await
                 .context("Failed to start VM")?;
@@ -399,6 +400,7 @@ impl FirecrackerLauncher {
         network: &VmNetwork,
         enroll_token: Option<&str>,
         sandbox_id: &str,
+        virtiofs_socket: Option<&std::path::Path>,
     ) -> Result<()> {
         // Boot args — network only, no secret material. Netmask is derived
         // from the configured subnet prefix so non-/16 deployments still work.
@@ -435,6 +437,19 @@ impl FirecrackerLauncher {
         vm.api_request("PUT", "/drives/rootfs", Some(&drive.to_string()))
             .await
             .context("Failed to configure drive")?;
+
+        // virtio-fs: attach the host-spawned virtiofsd. `tag` must match the
+        // guest `mount -t virtiofs <tag> /root` in build-ubuntu-rootfs.sh.
+        if let Some(vfs_uds) = virtiofs_socket {
+            let fs = serde_json::json!({
+                "fs_id":       "userhome",
+                "tag":         "userhome",
+                "socket_path": vfs_uds,
+            });
+            vm.api_request("PUT", "/vhost-user-fs/userhome", Some(&fs.to_string()))
+                .await
+                .context("attach vhost-user-fs (firecracker built without the feature?)")?;
+        }
 
         // Network interface. MMDS reachability is granted later by listing
         // this iface in `/mmds/config.network_interfaces` — Firecracker ≥1.0

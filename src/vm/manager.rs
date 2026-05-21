@@ -20,6 +20,7 @@ use super::lite::{ExecOutput, LiteBackend, LiteTemplate};
 use super::network::NetworkManager;
 use super::sandbox::{Sandbox, SandboxKind, SandboxState, SandboxStats};
 use super::size::VmSize;
+use super::virtiofs::{VirtiofsdLauncher, VirtiofsdProcess};
 use crate::redis::RedisClient;
 
 /// Per-user quota on concurrent sandboxes. TODO: read from appuser:<id>.sandboxLimit.
@@ -28,11 +29,15 @@ const DEFAULT_USER_LIMIT: usize = 10;
 pub struct VmManager {
     config: ManagerConfig,
     launcher: FirecrackerLauncher,
+    virtiofs: VirtiofsdLauncher,
     network: NetworkManager,
     redis: RedisClient,
     /// Live VM handles. Each is just `{pid, socket_path}` — cheap to construct,
     /// no kernel resources. Rebuilt from Redis on startup via re-attach.
     vms: DashMap<String, FirecrackerVm>,
+    /// Live virtiofsd handles, one per VM that has a shared $HOME. Keyed
+    /// by sandbox id (same as `vms`). Rebuilt on startup from Redis.
+    virtiofsds: DashMap<String, VirtiofsdProcess>,
     /// Static Firecracker template registry
     boot_configs: DashMap<String, BootConfig>,
     /// Lite (bwrap) backend + its templates
@@ -53,9 +58,15 @@ impl VmManager {
 
     pub async fn new(config: ManagerConfig, redis: RedisClient) -> Result<Self> {
         let runtime_dir = config.overlays_dir.join("runtime");
-        let launcher = FirecrackerLauncher::new(runtime_dir)
+        let launcher = FirecrackerLauncher::new(runtime_dir.clone())
             .context("Firecracker launcher init failed (need /dev/kvm + firecracker binary)")?;
         tracing::info!("Firecracker launcher initialized");
+        // virtiofsd is optional — without it, VMs boot without a shared
+        // $HOME (same UX as anonymous). We hard-fail here only if the
+        // binary is missing; the per-VM spawn path is still tolerant.
+        let virtiofs = VirtiofsdLauncher::new(runtime_dir)
+            .context("virtiofsd launcher init failed (run scripts/setup.sh)")?;
+        tracing::info!("virtiofsd launcher initialized");
 
         let network = NetworkManager::new(&config.bridge_name, &config.network_subnet, redis.clone())?;
         network.init_bridge()
@@ -77,9 +88,11 @@ impl VmManager {
         let manager = Self {
             config,
             launcher,
+            virtiofs,
             network,
             redis,
             vms: DashMap::new(),
+            virtiofsds: DashMap::new(),
             boot_configs: DashMap::new(),
             lite: LiteBackend::new(lite_scratch),
             lite_templates: DashMap::new(),
@@ -168,6 +181,22 @@ impl VmManager {
                     }
                 }
                 self.vms.insert(id.clone(), vm);
+                // Re-attach virtiofsd if this sandbox has one. A live FC
+                // implies a live virtiofsd (FC would have died on lost
+                // vhost-user connection); if /proc disagrees we just drop
+                // the handle — FC's behaviour is the source of truth.
+                if let (Some(pid), Some(home)) = (sandbox.virtiofsd_pid, sandbox.user_home_host_path.as_ref()) {
+                    let socket = self.virtiofs.socket_path_for(id);
+                    if let Some(p) = sandbox.virtiofsd_pid_starttime
+                        .and_then(|st| VirtiofsdProcess::attach(pid, st, socket, home.clone())) {
+                        self.virtiofsds.insert(id.clone(), p);
+                    } else {
+                        tracing::warn!(
+                            "reconcile: virtiofsd for sandbox {} gone (pid {}); shared $HOME may be inaccessible inside VM",
+                            id, pid,
+                        );
+                    }
+                }
                 reattached += 1;
                 continue;
             }
@@ -184,6 +213,8 @@ impl VmManager {
             }
             // Stale socket file from a crashed FC.
             std::fs::remove_file(&socket_path).ok();
+            // Same for orphaned virtiofsd (no-op if record has no pid).
+            self.shutdown_virtiofsd(&sandbox).await;
             if let Err(e) = self.redis.sandbox_set_state(
                 id,
                 SandboxState::Error,
@@ -238,6 +269,8 @@ impl VmManager {
                     std::fs::remove_file(socket).ok();
                 }
             }
+            // Same for virtiofsd if it got far enough to record a pid.
+            self.shutdown_virtiofsd(sandbox).await;
             self.redis.sandbox_set_state(
                 &sandbox.id,
                 SandboxState::Error,
@@ -289,6 +322,9 @@ impl VmManager {
     /// `SandboxService` up front so it can be stamped onto the bridge enroll
     /// token before VM boot — that's what lets the backend cascade-delete the
     /// redeemed Device row when the sandbox is destroyed.
+    /// `user_home`: host dir shared into the VM as `/root` via virtio-fs
+    /// (VM kind) or ignored (Lite kind — Lite bind-mounts at exec time).
+    /// `None` = anonymous → no shared home. Caller must have created the dir.
     pub async fn create_sandbox_with_id(
         &self,
         sandbox_id: String,
@@ -296,6 +332,7 @@ impl VmManager {
         template_name: String,
         size: Option<VmSize>,
         enroll_token: Option<String>,
+        user_home: Option<std::path::PathBuf>,
     ) -> Result<Sandbox> {
         let kind = self.template_kind(&template_name)
             .with_context(|| format!("unknown template: {template_name}"))?;
@@ -388,16 +425,37 @@ impl VmManager {
         sandbox.rootfs_overlay = Some(overlay_rootfs.clone());
         self.redis.sandbox_put(&sandbox).await.ok(); // checkpoint: rootfs cloned
 
+        // virtio-fs: spawn virtiofsd before FC so the /vhost-user-fs PUT
+        // can connect. None = anonymous → guest /root stays on rootfs.
+        let (virtiofs_socket, virtiofs_proc) = match user_home.as_deref() {
+            Some(home) => match self.virtiofs.spawn(&sandbox.id, home).await {
+                Ok(p) => {
+                    sandbox.user_home_host_path = Some(home.to_path_buf());
+                    sandbox.virtiofsd_pid = Some(p.pid());
+                    sandbox.virtiofsd_pid_starttime = Some(p.starttime());
+                    (Some(p.socket_path().to_path_buf()), Some(p))
+                }
+                Err(e) => {
+                    self.fail_sandbox(&mut sandbox, format!("virtiofsd spawn: {e:#}")).await;
+                    return Ok(sandbox);
+                }
+            },
+            None => (None, None),
+        };
+
         let boot_config = BootConfig { rootfs_path: overlay_rootfs, ..template_boot };
         let start = std::time::Instant::now();
 
-        match self.launcher.boot(&sandbox.id, &boot_config, &vm_size, &network, enroll_token.as_deref()).await {
+        match self.launcher.boot(&sandbox.id, &boot_config, &vm_size, &network, enroll_token.as_deref(), virtiofs_socket.as_deref()).await {
             Ok(vm) => {
                 tracing::info!("Booted VM {} in {:?} (size: {:?})", sandbox.id, start.elapsed(), vm_size);
                 sandbox.pid = Some(vm.pid());
                 sandbox.pid_starttime = Some(vm.starttime());
                 sandbox.state = SandboxState::Running;
                 self.vms.insert(sandbox.id.clone(), vm);
+                if let Some(p) = virtiofs_proc {
+                    self.virtiofsds.insert(sandbox.id.clone(), p);
+                }
             }
             Err(e) => {
                 tracing::error!("Failed to boot VM {}: {}", sandbox.id, e);
@@ -411,6 +469,8 @@ impl VmManager {
                 if let Some(ip) = sandbox.ip_address {
                     self.network.release_ip(ip, &sandbox.id).await.ok();
                 }
+                // FC failed to come up — drop the virtiofsd we just spawned.
+                if let Some(p) = virtiofs_proc { p.shutdown().await; }
             }
         }
 
@@ -419,6 +479,28 @@ impl VmManager {
             self.redis.sandbox_inc_created().await.ok();
         }
         Ok(sandbox)
+    }
+
+    /// Shut down the virtiofsd paired with `id`. Prefers the in-memory
+    /// handle; falls back to attach-by-identity from the Redis record so
+    /// PID reuse can't trick us into killing an unrelated process. Used by
+    /// every cleanup path (delete, fail, reconcile-dead, reconcile-stale).
+    async fn shutdown_virtiofsd(&self, sandbox: &Sandbox) {
+        let id = &sandbox.id;
+        if let Some((_, vfsd)) = self.virtiofsds.remove(id) {
+            vfsd.shutdown().await;
+            return;
+        }
+        let (Some(pid), Some(home), Some(st)) = (
+            sandbox.virtiofsd_pid,
+            sandbox.user_home_host_path.as_ref(),
+            sandbox.virtiofsd_pid_starttime,
+        ) else { return };
+        let socket = self.virtiofs.socket_path_for(id);
+        match VirtiofsdProcess::attach(pid, st, socket.clone(), home.clone()) {
+            Some(p) => p.shutdown().await,
+            None => { std::fs::remove_file(socket).ok(); }
+        }
     }
 
     /// Mark a sandbox Error and persist. Used on mid-boot failures.
@@ -439,6 +521,7 @@ impl VmManager {
                 tokio::fs::remove_dir_all(dir).await.ok();
             }
         }
+        self.shutdown_virtiofsd(sandbox).await;
         self.redis.sandbox_put(sandbox).await.ok();
     }
 
@@ -488,6 +571,11 @@ impl VmManager {
                 }
             }
         }
+
+        // virtiofsd: order matters — shut down AFTER firecracker so FC
+        // doesn't log a spurious vhost-user disconnect on its way out. The
+        // user's $HOME on disk is untouched.
+        self.shutdown_virtiofsd(&sandbox).await;
 
         if let Some(tap) = sandbox.tap_device {
             if let Err(ce) = self.network.destroy_tap(&tap) {

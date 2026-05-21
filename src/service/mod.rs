@@ -135,9 +135,21 @@ impl SandboxService {
             None
         };
 
+        // Provision persistent $HOME for any authenticated caller, both
+        // kinds. Lite bind-mounts it as `/root` in exec; VM shares it live
+        // via virtio-fs. Same dir on disk → Lite↔VM rotation needs no
+        // transition. Idempotent, so safe on every create. Anonymous
+        // callers get an ephemeral scratch instead (handled lite-side).
+        let user_home = if identity.is_anonymous {
+            None
+        } else {
+            Some(self.user_homes.provision(&owner_id).await
+                .context("failed to provision user home")?)
+        };
+
         let mut sandbox = self
             .manager
-            .create_sandbox_with_id(sandbox_id, owner_id.clone(), req.template.clone(), req.size, enroll_token)
+            .create_sandbox_with_id(sandbox_id, owner_id.clone(), req.template.clone(), req.size, enroll_token, user_home)
             .await?;
 
         // For Lite sandboxes, materialize a Device row via the standard
