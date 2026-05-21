@@ -7,8 +7,10 @@
 //! - Lite sandboxes bind this directory directly as `/root` (their `$HOME`).
 //!   Writes land in the persistent host tree immediately; reads see whatever
 //!   the user's tools have produced anywhere else.
-//! - VM sandboxes (future) will `rsync` this directory in at boot and back
-//!   out at shutdown. Same source of truth, same hands-off policy.
+//! - VM sandboxes share the SAME directory live via virtio-fs (no copy,
+//!   no boot drain). `virtiofsd` exports `<root>/<user_id>/`, the guest
+//!   mounts it as `/root`. Bit for bit identical to what Lite sees; rotate
+//!   Lite↔VM with no transition step. See `vm::virtiofs`.
 //!
 //! Anonymous callers (Better Auth `isAnonymous=1`) get no persistent home
 //! — their sandbox is a clean ephemeral scratch (handled by the lite
@@ -81,6 +83,13 @@ fn validate_user_id(user_id: &str) -> Result<()> {
 
 /// Default root when `USER_HOMES_DIR` env is unset: alongside the existing
 /// overlays / scratch tree. Caller is the manager init code.
+///
+/// Scope: this directory lives on the sandbox-manager host and holds each
+/// user's persistent sandbox HOME (dotfiles, CLI auth state, agent-created
+/// files). It is intentionally separate from `storage-manager`'s
+/// `<DATA_DIR>/userfiles/` which lives on a different host and serves the
+/// web UI's "Files" area. Moving bytes between the two is an explicit
+/// cross-service operation, not a shared mount.
 pub fn default_root(overlays_dir: &Path) -> PathBuf {
     if let Ok(p) = std::env::var("USER_HOMES_DIR") {
         return PathBuf::from(p);
