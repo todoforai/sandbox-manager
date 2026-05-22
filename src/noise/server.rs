@@ -14,7 +14,7 @@ const MAX_FRAME: usize = 1024 * 1024;
 const NOISE_PATTERN: &str = "Noise_NX_25519_ChaChaPoly_BLAKE2b";
 
 pub async fn serve(service: SandboxService) -> Result<()> {
-    let addr = std::env::var("NOISE_BIND_ADDR").unwrap_or_else(|_| "0.0.0.0:9010".into());
+    let addr = std::env::var("NOISE_BIND_ADDR").unwrap_or_else(|_| "0.0.0.0:8220".into());
     let listener = TcpListener::bind(&addr).await?;
     tracing::info!("Sandbox manager Noise listening on {}", addr);
 

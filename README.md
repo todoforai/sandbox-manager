@@ -89,8 +89,8 @@ them via `sudo -n setcap` — but this requires a passwordless sudoers entry.
 
 Symptom if missing: `sandbox-manager` crash-loops in PM2 with
 `ERROR: target/release/sandbox-manager lacks CAP_NET_ADMIN and not running as root.`,
-and the dev web UI (`http://127.0.0.1:8190/admin/`) returns 500 because
-`/sandbox` proxy to `:9000` fails.
+and the dev web UI (`http://127.0.0.1:8250/admin/`) returns 500 because
+`/sandbox` proxy to `:8200` fails.
 
 Permanent fix (run once per host/user):
 
@@ -117,13 +117,13 @@ build output (different target dir, deploy location), update the path in
 
 ```bash
 # Authenticated full VM
-curl -X POST http://localhost:9000/sandbox \
+curl -X POST http://localhost:8200/sandbox \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"template":"ubuntu-base","size":"medium"}'
 
 # Anonymous lite (FREE tier — only allow-listed templates)
-curl -X POST http://localhost:9000/sandbox \
+curl -X POST http://localhost:8200/sandbox \
   -H "Content-Type: application/json" \
   -d '{"template":"cli-lite"}'
 ```
@@ -142,7 +142,7 @@ Response:
 ### Execute Command
 
 ```bash
-curl -X POST http://localhost:9000/sandbox/{id}/exec \
+curl -X POST http://localhost:8200/sandbox/{id}/exec \
   -H "Content-Type: application/json" \
   -d '{"command": "ls -la"}'
 ```
@@ -150,13 +150,13 @@ curl -X POST http://localhost:9000/sandbox/{id}/exec \
 ### Delete Sandbox
 
 ```bash
-curl -X DELETE http://localhost:9000/sandbox/{id}
+curl -X DELETE http://localhost:8200/sandbox/{id}
 ```
 
 ### Get Statistics
 
 ```bash
-curl http://localhost:9000/stats
+curl http://localhost:8200/stats
 ```
 
 ## Sandbox Pricing
@@ -179,8 +179,8 @@ Environment variables:
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `BIND_ADDR` | `0.0.0.0:9000` | REST server bind address |
-| `NOISE_BIND_ADDR` | `0.0.0.0:9010` | Noise TCP bind address |
+| `BIND_ADDR` | `0.0.0.0:8200` | REST server bind address |
+| `NOISE_BIND_ADDR` | `0.0.0.0:8220` | Noise TCP bind address |
 | `NOISE_LOCAL_PRIVATE_KEY` | — | 32-byte hex server private key |
 | `TEMPLATES_DIR` | `/data/templates` | Template storage |
 | `OVERLAYS_DIR` | `/data/overlays` | Runtime files |
@@ -267,7 +267,7 @@ The caller's API key is the Bearer token. The sandbox-manager:
 - mints a short-lived enroll token from the backend and injects it into the VM via Firecracker MMDS; bridge inside the VM redeems it on boot and registers as a device.
 
 ```bash
-curl -X POST http://localhost:9000/sandbox \
+curl -X POST http://localhost:8200/sandbox \
   -H "Authorization: Bearer your-api-key" \
   -H "Content-Type: application/json" \
   -d '{"template":"ubuntu-base"}'
@@ -335,5 +335,5 @@ Weighted unit costs (CPU 33%, RAM 50%, SSD 17%):
 
 ### Web UI
 
-- User panel: `https://sandbox.todofor.ai/` (`web/index.html`)
-- Admin panel: `web/admin.html` — not exposed publicly via nginx (`location ^~ /admin/ { return 404; }`); reachable on `127.0.0.1` only.
+- **User panel** — `https://sandbox.todofor.ai/` (`web/index.html`). Sandbox-specific UI lives inline; shared scaffolding (auth, theme, dev-server) is in [`@shared/web`](../packages/shared-web/) and reused by the other `*-manager` panels.
+- **Admin panel** — `web/admin.html`. Not exposed publicly via nginx (`location ^~ /admin/ { return 404; }`); reachable on `127.0.0.1` only.

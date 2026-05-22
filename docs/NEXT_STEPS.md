@@ -31,7 +31,7 @@ TOKEN="your-api-key"
 
 # 2. Boot sandbox (user derived from Bearer token; enroll token is the same bearer,
 #    injected into the VM's kernel cmdline automatically)
-curl -X POST http://localhost:9000/sandbox \
+curl -X POST http://localhost:8200/sandbox \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"template":"ubuntu-base"}'
@@ -143,7 +143,7 @@ cd backend && bun run dev
 sudo RUST_LOG=debug ./target/release/sandbox-manager
 
 # Terminal 3: Test
-curl -X POST http://localhost:9000/sandbox \
+curl -X POST http://localhost:8200/sandbox \
   -H "Authorization: Bearer YOUR_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"template":"ubuntu-base"}'

@@ -39,8 +39,8 @@ const SESSION_COOKIE_NAMES: &[&str] = &[
 const ALLOWED_COOKIE_ORIGINS: &[&str] = &[
     "https://sandbox.todofor.ai",
     "https://vm.todofor.ai",
-    "http://localhost:8190",
-    "http://127.0.0.1:8190",
+    "http://localhost:8250",
+    "http://127.0.0.1:8250",
     "http://localhost:3000",
 ];
 

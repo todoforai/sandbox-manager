@@ -5,7 +5,7 @@
 #   sandboxctl-ssh <sandbox-id> [-- <ssh args>]
 #
 # Env:
-#   SANDBOX_MANAGER_URL   default http://127.0.0.1:9000
+#   SANDBOX_MANAGER_URL   default http://127.0.0.1:8200
 #   SANDBOX_MANAGER_TOKEN required — Bearer token that owns the sandbox
 #   FC_VSOCK_PROXY        default fc-vsock-proxy (must be in PATH)
 #
@@ -23,7 +23,7 @@ fi
 SBX="$1"; shift
 [ "${1:-}" = "--" ] && shift
 
-: "${SANDBOX_MANAGER_URL:=http://127.0.0.1:9000}"
+: "${SANDBOX_MANAGER_URL:=http://127.0.0.1:8200}"
 : "${SANDBOX_MANAGER_TOKEN:?SANDBOX_MANAGER_TOKEN env required}"
 : "${FC_VSOCK_PROXY:=fc-vsock-proxy}"
 

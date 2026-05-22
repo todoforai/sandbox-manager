@@ -88,26 +88,40 @@ deploy() {
         cd $DEPLOY_PATH/current
 
         # One-shot migration: retire systemd-managed instances (sandbox-manager@,
-        # tfa-sandbox-manager@) before PM2 takes over. Safe to leave in place —
-        # does nothing once the units are gone.
+        # tfa-sandbox-manager@) before PM2 takes over. Historical units were
+        # parameterized by the old REST ports 9000/9002 (now 8200/8202). Safe
+        # to leave in place — does nothing once the units are gone.
         for unit in sandbox-manager@.service tfa-sandbox-manager@.service; do
             if [ -f /etc/systemd/system/\$unit ]; then
                 echo "Migrating off systemd: \$unit..."
-                systemctl disable --now "\${unit%.service}9000" "\${unit%.service}9002" 2>/dev/null || true
+                systemctl disable --now \\
+                    "\${unit%.service}9000" "\${unit%.service}9002" \\
+                    "\${unit%.service}8200" "\${unit%.service}8202" 2>/dev/null || true
                 rm -f /etc/systemd/system/\$unit
             fi
         done
         systemctl daemon-reload
 
+        # One-shot port migration cleanup: remove pre-migration PM2 names from
+        # the 9000/9002 era. They no longer match the new $PORT_A/$PORT_B so
+        # detection below would leave them orphaned. Safe on every deploy —
+        # does nothing once gone.
+        for legacy in sandbox-manager-9000 sandbox-manager-9002; do
+            if pm2 list 2>/dev/null | grep -q "\$legacy"; then
+                echo "Stopping legacy PM2 process: \$legacy"
+                pm2 delete "\$legacy" 2>/dev/null || true
+            fi
+        done
+
         # Determine which port is currently active under PM2
         OLD_PORT=""
         NEW_PORT=""
-        if pm2 list 2>/dev/null | grep -q "sandbox-manager-9000"; then
-            OLD_PORT=9000; NEW_PORT=9002
-        elif pm2 list 2>/dev/null | grep -q "sandbox-manager-9002"; then
-            OLD_PORT=9002; NEW_PORT=9000
+        if pm2 list 2>/dev/null | grep -q "sandbox-manager-8200"; then
+            OLD_PORT=8200; NEW_PORT=8202
+        elif pm2 list 2>/dev/null | grep -q "sandbox-manager-8202"; then
+            OLD_PORT=8202; NEW_PORT=8200
         else
-            NEW_PORT=9000
+            NEW_PORT=8200
         fi
 
         NGINX_CONF=/etc/nginx/sites-available/vm.todofor.ai
@@ -153,13 +167,13 @@ deploy() {
         fi
 
         # Flip upstreams: mark all down, bring the new one up
-        sed -i "s|server 127.0.0.1:9000[^;]*;|server 127.0.0.1:9000 down;|g" \$NGINX_CONF
-        sed -i "s|server 127.0.0.1:9002[^;]*;|server 127.0.0.1:9002 down;|g" \$NGINX_CONF
+        sed -i "s|server 127.0.0.1:8200[^;]*;|server 127.0.0.1:8200 down;|g" \$NGINX_CONF
+        sed -i "s|server 127.0.0.1:8202[^;]*;|server 127.0.0.1:8202 down;|g" \$NGINX_CONF
         sed -i "s|server 127.0.0.1:\$NEW_PORT down;|server 127.0.0.1:\$NEW_PORT max_fails=2 fail_timeout=5s;|" \$NGINX_CONF
 
-        NEW_NOISE=\$((NEW_PORT + 10))
-        sed -i "s|server 127.0.0.1:9010[^;]*;|server 127.0.0.1:9010 down;|g" \$STREAM_CONF
-        sed -i "s|server 127.0.0.1:9012[^;]*;|server 127.0.0.1:9012 down;|g" \$STREAM_CONF
+        NEW_NOISE=\$((NEW_PORT + 20))
+        sed -i "s|server 127.0.0.1:8220[^;]*;|server 127.0.0.1:8220 down;|g" \$STREAM_CONF
+        sed -i "s|server 127.0.0.1:8222[^;]*;|server 127.0.0.1:8222 down;|g" \$STREAM_CONF
         sed -i "s|server 127.0.0.1:\$NEW_NOISE down;|server 127.0.0.1:\$NEW_NOISE max_fails=2 fail_timeout=5s;|" \$STREAM_CONF
 
         nginx -t && systemctl reload nginx
@@ -216,10 +230,10 @@ rollback() {
 
         # Determine which port is currently live
         LIVE_PORT=""
-        pm2 list 2>/dev/null | grep -q "sandbox-manager-9000" && LIVE_PORT=9000
-        pm2 list 2>/dev/null | grep -q "sandbox-manager-9002" && LIVE_PORT=9002
-        ROLLBACK_PORT=9000
-        [ "$LIVE_PORT" = "9000" ] && ROLLBACK_PORT=9002
+        pm2 list 2>/dev/null | grep -q "sandbox-manager-8200" && LIVE_PORT=8200
+        pm2 list 2>/dev/null | grep -q "sandbox-manager-8202" && LIVE_PORT=8202
+        ROLLBACK_PORT=8200
+        [ "$LIVE_PORT" = "8200" ] && ROLLBACK_PORT=8202
 
         # Start rollback on the inactive port first
         cd $DEPLOY_PATH/current
@@ -235,13 +249,13 @@ rollback() {
             sleep 2
         done
 
-        ROLLBACK_NOISE=$((ROLLBACK_PORT + 10))
-        sed -i "s|server 127.0.0.1:9000[^;]*;|server 127.0.0.1:9000 down;|g" $NGINX_CONF
-        sed -i "s|server 127.0.0.1:9002[^;]*;|server 127.0.0.1:9002 down;|g" $NGINX_CONF
+        ROLLBACK_NOISE=$((ROLLBACK_PORT + 20))
+        sed -i "s|server 127.0.0.1:8200[^;]*;|server 127.0.0.1:8200 down;|g" $NGINX_CONF
+        sed -i "s|server 127.0.0.1:8202[^;]*;|server 127.0.0.1:8202 down;|g" $NGINX_CONF
         sed -i "s|server 127.0.0.1:${ROLLBACK_PORT} down;|server 127.0.0.1:${ROLLBACK_PORT} max_fails=2 fail_timeout=5s;|" $NGINX_CONF
 
-        sed -i "s|server 127.0.0.1:9010[^;]*;|server 127.0.0.1:9010 down;|g" $STREAM_CONF
-        sed -i "s|server 127.0.0.1:9012[^;]*;|server 127.0.0.1:9012 down;|g" $STREAM_CONF
+        sed -i "s|server 127.0.0.1:8220[^;]*;|server 127.0.0.1:8220 down;|g" $STREAM_CONF
+        sed -i "s|server 127.0.0.1:8222[^;]*;|server 127.0.0.1:8222 down;|g" $STREAM_CONF
         sed -i "s|server 127.0.0.1:${ROLLBACK_NOISE} down;|server 127.0.0.1:${ROLLBACK_NOISE} max_fails=2 fail_timeout=5s;|" $STREAM_CONF
 
         nginx -t && systemctl reload nginx
@@ -292,7 +306,7 @@ provision_templates() {
         done
 
         # Verify the live instance sees the new templates.
-        for port in 9000 9002; do
+        for port in 8200 8202; do
             pm2 list 2>/dev/null | grep -q "sandbox-manager-\$port" || continue
             for i in \$(seq 1 15); do
                 TPL=\$(curl -sf http://127.0.0.1:\$port/templates || echo '[]')

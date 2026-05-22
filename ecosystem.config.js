@@ -15,10 +15,13 @@ function loadEnvFile(p) {
   return out;
 }
 
-// REST port; deploy.sh sets DEPLOY_PORT for blue-green flips. Default 9000.
-// Noise port is paired: REST + 10 (so 9000→9010, 9002→9012).
-const port = process.env.DEPLOY_PORT || '9000';
-const noisePort = String(parseInt(port, 10) + 10);
+// REST port; deploy.sh sets DEPLOY_PORT for blue-green flips. Default 8200.
+// Slot A: REST 8200 / Admin 8210 / Noise 8220.
+// Slot B: REST 8202 / Admin 8212 / Noise 8222.
+const port = process.env.DEPLOY_PORT || '8200';
+const portN = parseInt(port, 10);
+const adminPort = String(portN + 10);
+const noisePort = String(portN + 20);
 
 // Log dir: prod = /var/log/todoforai (created by deploy.sh setup running as root).
 // Dev = ~/.pm2/logs default (PM2 fallback). Override with PM2_LOG_DIR.
@@ -63,6 +66,7 @@ module.exports = {
       env: {
         ...envFromDisk,
         BIND_ADDR: `127.0.0.1:${port}`,
+        ADMIN_BIND_ADDR: `127.0.0.1:${adminPort}`,
         NOISE_BIND_ADDR: `127.0.0.1:${noisePort}`,
       },
     },

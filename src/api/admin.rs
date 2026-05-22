@@ -1,8 +1,9 @@
 //! Local admin routes — no auth required.
 //!
-//! These are mounted under `/admin/api/*` and intended to be reachable only
-//! from the loopback interface (BIND_ADDR=127.0.0.1:9000 in our pm2 config,
-//! and nginx never proxies `/admin/api/*` from the public side).
+//! These are mounted under `/admin/api/*` on a separate loopback socket
+//! (ADMIN_BIND_ADDR=127.0.0.1:8210 by default). Physically unreachable from
+//! the public REST port; nginx's `location ^~ /admin/ { return 404; }`
+//! remains as defense-in-depth.
 //!
 //! All requests here run as a synthetic admin identity, so the same service
 //! methods used by Bearer-authenticated admins handle them unchanged.

@@ -92,7 +92,7 @@ async fn main() -> Result<()> {
     //     separate startup sweep — not in a periodic loop here.
 
     // Spawn Noise/TCP adapter on a separate port.
-    // Env: NOISE_BIND_ADDR=0.0.0.0:9010
+    // Env: NOISE_BIND_ADDR=0.0.0.0:8220
     //      NOISE_LOCAL_PRIVATE_KEY=<32-byte hex>
     let noise_service = service.clone();
     tokio::spawn(async move {
@@ -101,8 +101,11 @@ async fn main() -> Result<()> {
         }
     });
 
-    let app = Router::new()
-        // Admin UI is served by nginx from sandbox-manager/web/ (see nginx/vm.todofor.ai.conf).
+    // Admin routes — bind on their own socket (default 127.0.0.1:8210) so
+    // they're physically unreachable from the public port even if nginx is
+    // misconfigured. nginx's `location ^~ /admin/ { return 404; }` remains
+    // as defense-in-depth.
+    let admin_app = Router::new()
         .route("/admin/api/sandbox", get(api::admin::list_sandboxes))
         .route("/admin/api/sandbox/:id", delete(api::admin::delete_sandbox))
         .route("/admin/api/sandbox/:id/pause", post(api::admin::pause_sandbox))
@@ -110,11 +113,15 @@ async fn main() -> Result<()> {
         .route("/admin/api/sandbox/:id/logs", get(api::admin::sandbox_logs))
         .route("/admin/api/sandbox/:id/recovery-script", post(api::admin::recovery_script))
         .route("/admin/api/stats", get(api::admin::stats))
+        .layer(build_cors())
+        .with_state(service.clone());
 
+    // Public REST routes.
+    let app = Router::new()
         // Health & Stats
         .route("/health", get(api::health::health))
         .route("/stats", get(api::sandbox::get_stats))
-        
+
         // Sandbox lifecycle
         .route("/sandbox", get(api::sandbox::list_sandboxes).post(api::sandbox::create_sandbox))
         .route("/sandbox/:id", get(api::sandbox::get_sandbox))
@@ -126,17 +133,26 @@ async fn main() -> Result<()> {
         .route("/sandbox/:id/recovery-cert", post(api::sandbox::recovery_cert))
         .route("/sandbox/:id/attach-device", post(api::sandbox::attach_device))
         .route("/recovery-ca.pub", get(api::sandbox::recovery_ca_pub))
-        
+
         // Templates
         .route("/templates", get(api::templates::list_templates))
         .route("/templates/:name", post(api::templates::create_template))
-        
+
         .layer(build_cors())
         .with_state(service);
 
-    let addr = std::env::var("BIND_ADDR").unwrap_or_else(|_| "0.0.0.0:9000".into());
+    let admin_addr = std::env::var("ADMIN_BIND_ADDR").unwrap_or_else(|_| "127.0.0.1:8210".into());
+    let admin_listener = tokio::net::TcpListener::bind(&admin_addr).await?;
+    tracing::info!("Sandbox manager admin REST listening on {}", admin_addr);
+    tokio::spawn(async move {
+        if let Err(err) = axum::serve(admin_listener, admin_app).await {
+            tracing::error!("Admin REST server failed: {}", err);
+        }
+    });
+
+    let addr = std::env::var("BIND_ADDR").unwrap_or_else(|_| "0.0.0.0:8200".into());
     tracing::info!("Sandbox manager listening on {}", addr);
-    
+
     let listener = tokio::net::TcpListener::bind(&addr).await?;
     axum::serve(listener, app).await?;
 
@@ -157,9 +173,9 @@ fn build_cors() -> CorsLayer {
     let origins: Vec<HeaderValue> = [
         "https://sandbox.todofor.ai",
         "https://vm.todofor.ai",
-        "http://localhost:8190",
-        "http://127.0.0.1:8190",
-        "http://localhost:3000", // frontend dev (for diagnostic fetches)
+        "http://localhost:8250",         // dev UI (user + admin via /admin)
+        "http://127.0.0.1:8250",
+        "http://localhost:3000",         // frontend dev (for diagnostic fetches)
     ]
     .iter()
     .map(|o| HeaderValue::from_static(o))

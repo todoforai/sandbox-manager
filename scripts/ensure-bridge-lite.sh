@@ -120,7 +120,7 @@ table inet sandbox-lite {
         icmp type { echo-request, echo-reply } accept
 
         # Everything else aimed at the host (incl. sandbox-manager on
-        # :9000/:9002, host services on :22, etc.): drop.
+        # :8200/:8202, host services on :22, etc.): drop.
         counter drop
     }
 }
