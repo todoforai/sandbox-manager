@@ -302,3 +302,38 @@ different VMM with copy-on-write guest memory (e.g. [Zeroboot]). Not
 planned; revisit if/when the workload demands it.
 
 [Zeroboot]: https://github.com/zerobootdev/zeroboot
+
+## Pricing
+
+**Cost basis:** 1× VM at $150/mo = 16 cores / 128 GB RAM / 2 TB SSD.
+Weighted unit costs (CPU 33%, RAM 50%, SSD 17%):
+
+- CPU: **$3.09 / core / mo**
+- RAM: **$0.586 / GB / mo**
+- SSD: **$0.0125 / GB / mo**
+
+### Per-sandbox cost (2 cores, 4 GB RAM, 20 GB SSD)
+
+| Component | Qty | $/mo |
+|---|---|---|
+| CPU | 2 | 6.18 |
+| RAM | 4 GB | 2.34 |
+| SSD | 20 GB | 0.25 |
+| **Raw** |   | **$8.77 /mo** ≈ **$0.012 /h** |
+
+### Billable price
+
+| Layer | Factor | Result |
+|---|---|---|
+| Raw | 1.0× | $0.012 /h |
+| + Overhead (orchestration, idle headroom) | 1.4× | $0.017 /h |
+| + Margin | 3× | **$0.05 /h active** |
+
+**Suggested billing:** `$0.05/hour active` or `$0.001/minute` (round up). Flat alternative: **$36/mo per always-on sandbox**.
+
+**Break-even:** 1 VM must serve ≥ ~3,000 sandbox-hours/mo (well within 11,680 core-hours capacity).
+
+### Web UI
+
+- User panel: `https://sandbox.todofor.ai/` (`web/index.html`)
+- Admin panel: `web/admin.html` — not exposed publicly via nginx (`location ^~ /admin/ { return 404; }`); reachable on `127.0.0.1` only.
