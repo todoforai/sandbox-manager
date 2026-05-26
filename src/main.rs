@@ -8,9 +8,17 @@ mod service;  // transport-agnostic sandbox service
 mod vm;
 
 use anyhow::{Context, Result};
-use axum::{routing::{get, post, delete}, Router};
+use axum::{
+    extract::{Request, State},
+    http::StatusCode,
+    middleware::{self, Next},
+    response::{IntoResponse, Response},
+    routing::{get, post, delete},
+    Json, Router,
+};
 use std::sync::Arc;
 use tower_http::cors::{AllowOrigin, CorsLayer};
+use tower_http::services::ServeDir;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 use crate::service::SandboxService;
@@ -105,7 +113,14 @@ async fn main() -> Result<()> {
     // they're physically unreachable from the public port even if nginx is
     // misconfigured. nginx's `location ^~ /admin/ { return 404; }` remains
     // as defense-in-depth.
-    let admin_app = Router::new()
+    //
+    // On top of that, every /admin/api/* request must carry
+    // `Authorization: Bearer <SANDBOX_MANAGER_ADMIN_KEY>` (defense-in-depth on
+    // top of the loopback bind — matches vault-manager / browser-manager).
+    let admin_key = std::env::var("SANDBOX_MANAGER_ADMIN_KEY").ok()
+        .map(|s| s.trim().to_string())
+        .filter(|s| !s.is_empty());
+    let admin_api = Router::new()
         .route("/admin/api/sandbox", get(api::admin::list_sandboxes))
         .route("/admin/api/sandbox/:id", delete(api::admin::delete_sandbox))
         .route("/admin/api/sandbox/:id/pause", post(api::admin::pause_sandbox))
@@ -113,8 +128,18 @@ async fn main() -> Result<()> {
         .route("/admin/api/sandbox/:id/logs", get(api::admin::sandbox_logs))
         .route("/admin/api/sandbox/:id/recovery-script", post(api::admin::recovery_script))
         .route("/admin/api/stats", get(api::admin::stats))
-        .layer(build_cors())
-        .with_state(service.clone());
+        .with_state(service.clone())
+        .layer(middleware::from_fn_with_state(admin_key.clone(), admin_bearer_gate));
+
+    // Static admin UI on the same loopback socket so an SSH tunnel against
+    // :8210 gets both the admin REST + the dashboard. The UI is unauthenticated
+    // (it prompts for the key on first load and stores it in localStorage).
+    let web_root = std::env::var("SANDBOX_MANAGER_WEB_DIR")
+        .unwrap_or_else(|_| "web".into());
+    let admin_app = admin_api
+        .nest_service("/admin", ServeDir::new(format!("{web_root}/admin")))
+        .nest_service("/shared", ServeDir::new(format!("{web_root}/shared")))
+        .layer(build_cors());
 
     // Public REST routes.
     let app = Router::new()
@@ -186,4 +211,39 @@ fn build_cors() -> CorsLayer {
         .allow_credentials(true)
         .allow_methods([Method::GET, Method::POST, Method::PUT, Method::PATCH, Method::DELETE, Method::OPTIONS])
         .allow_headers([header::CONTENT_TYPE, header::AUTHORIZATION])
+}
+
+/// Bearer-key gate for /admin/api/* on the loopback admin socket.
+/// Mirrors vault-manager's pattern: 503 if unset (admin disabled),
+/// 401 on missing/wrong bearer, constant-time compare on success.
+async fn admin_bearer_gate(
+    State(admin_key): State<Option<String>>,
+    req: Request,
+    next: Next,
+) -> Response {
+    let Some(key) = admin_key.as_deref() else {
+        return (
+            StatusCode::SERVICE_UNAVAILABLE,
+            Json(serde_json::json!({ "error": "admin API disabled: SANDBOX_MANAGER_ADMIN_KEY not configured" })),
+        ).into_response();
+    };
+    let bearer = req.headers()
+        .get(axum::http::header::AUTHORIZATION)
+        .and_then(|h| h.to_str().ok())
+        .and_then(|s| s.strip_prefix("Bearer ").or_else(|| s.strip_prefix("bearer ")));
+    let ok = bearer.map(|b| constant_time_eq(b.as_bytes(), key.as_bytes())).unwrap_or(false);
+    if !ok {
+        return (
+            StatusCode::UNAUTHORIZED,
+            Json(serde_json::json!({ "error": "admin: invalid token" })),
+        ).into_response();
+    }
+    next.run(req).await
+}
+
+fn constant_time_eq(a: &[u8], b: &[u8]) -> bool {
+    if a.len() != b.len() { return false; }
+    let mut diff = 0u8;
+    for (x, y) in a.iter().zip(b.iter()) { diff |= x ^ y; }
+    diff == 0
 }

@@ -1,0 +1,234 @@
+/* shared-web/theme.css — dark theme tokens + base resets/components.
+   Mirrors frontend/src/app/globals.css. Hex values are sRGB equivalents of the
+   source oklch()/hsl() tokens so they render consistently in any browser. */
+
+:root {
+  color-scheme: dark;
+  --font-sans: 'Geist', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'Geist Mono', ui-monospace, 'SF Mono', Monaco, Consolas, monospace;
+
+  --background: #1c1c1c;
+  --foreground: #fafafa;
+  --card: #2d2d2d;
+  --card-foreground: #fafafa;
+  --popover: #2d2d2d;
+  --secondary: #3d3d3d;
+  --muted: #3d3d3d;
+  --muted-foreground: #a3a3a3;
+  --accent-bg: #3d3d3d;
+  --border: rgba(255, 255, 255, 0.10);
+  --input: rgba(255, 255, 255, 0.15);
+  --ring: rgba(255, 255, 255, 0.32);
+
+  --primary: #f96e2e;
+  --primary-hover: #ff8c40;
+  --primary-foreground: #fafafa;
+  --success: #22c55e;
+  --warning: #c08114;
+  --destructive: #ef4444;
+
+  --radius-xs: 4px;
+  --radius-sm: 8px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.2);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.25);
+  --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.4);
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.5;
+  background: var(--background);
+  color: var(--foreground);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+::selection { background: var(--primary); color: var(--primary-foreground); }
+code { font-family: var(--font-mono); }
+
+/* ---------- Top bar ---------- */
+header.app-bar {
+  border-bottom: 1px solid var(--border);
+  background: color-mix(in srgb, var(--background) 80%, transparent);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  position: sticky; top: 0; z-index: 50;
+}
+.bar {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 24px;
+  align-items: center;
+  padding: 14px 28px;
+  max-width: 1280px;
+  margin: 0 auto;
+}
+.brand {
+  font-weight: 700;
+  font-size: 16px;
+  letter-spacing: -0.01em;
+  color: var(--foreground);
+  display: inline-flex; align-items: center; gap: 8px;
+  text-decoration: none;
+}
+.brand:hover { color: var(--foreground); }
+.brand .dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--primary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 20%, transparent);
+}
+.brand b { color: var(--primary); font-weight: 700; }
+.crumbs { color: var(--muted-foreground); font-size: 13px; }
+.crumbs .sep { color: var(--border); margin: 0 8px; }
+.user-chip {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 6px 12px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-size: 12px;
+  color: var(--muted-foreground);
+  background: var(--card);
+}
+.user-chip .dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--success);
+}
+
+/* ---------- Page ---------- */
+main.app-main { max-width: 1280px; margin: 0 auto; padding: 32px 28px; }
+.page-head {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  gap: 24px; margin-bottom: 32px; flex-wrap: wrap;
+}
+.page-head h1 { font-size: 26px; font-weight: 700; margin: 0 0 6px; letter-spacing: -0.02em; }
+.page-head .sub { color: var(--muted-foreground); margin: 0; max-width: 640px; }
+
+/* ---------- Buttons ---------- */
+button, .btn {
+  font: inherit;
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 14px;
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--foreground);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background .12s, border-color .12s, transform .06s;
+  text-decoration: none;
+}
+button:hover, .btn:hover { background: var(--accent-bg); }
+button:active, .btn:active { transform: translateY(1px); }
+button:disabled { opacity: 0.5; cursor: not-allowed; }
+button.primary, .btn.primary {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: var(--primary-foreground);
+}
+button.primary:hover, .btn.primary:hover { background: var(--primary-hover); border-color: var(--primary-hover); }
+button.ghost, .btn.ghost { background: transparent; }
+button.danger, .btn.danger { color: var(--destructive); border-color: color-mix(in srgb, var(--destructive) 35%, var(--border)); }
+button.danger:hover, .btn.danger:hover { background: color-mix(in srgb, var(--destructive) 15%, var(--card)); }
+
+/* ---------- Inputs ---------- */
+input, select, textarea {
+  font: inherit;
+  padding: 8px 12px;
+  background: var(--card);
+  color: var(--foreground);
+  border: 1px solid var(--input);
+  border-radius: var(--radius-sm);
+  outline: none;
+}
+input:focus, select:focus, textarea:focus { border-color: var(--ring); }
+
+/* ---------- Stats ---------- */
+.stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+  margin-bottom: 28px;
+}
+.stat {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 14px 16px;
+}
+.stat .l { color: var(--muted-foreground); font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; }
+.stat .v { font-size: 22px; font-weight: 600; margin-top: 4px; }
+.stat .v small { color: var(--muted-foreground); font-size: 12px; font-weight: 400; }
+
+/* ---------- Misc ---------- */
+.placeholder { text-align: center; padding: 64px 24px; color: var(--muted-foreground); }
+.placeholder h2 { color: var(--foreground); font-weight: 600; margin: 0 0 8px; }
+.spinner {
+  display: inline-block; width: 12px; height: 12px;
+  border: 2px solid currentColor; border-right-color: transparent;
+  border-radius: 50%;
+  animation: spin .7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.err-msg {
+  background: color-mix(in srgb, var(--destructive) 12%, var(--card));
+  border: 1px solid color-mix(in srgb, var(--destructive) 40%, var(--border));
+  color: var(--foreground);
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  margin-bottom: 16px;
+}
+
+footer.app-footer {
+  text-align: center;
+  padding: 28px 16px;
+  color: var(--muted-foreground);
+  font-size: 12px;
+  border-top: 1px solid var(--border);
+  margin-top: 48px;
+}
+footer.app-footer a { color: var(--muted-foreground); }
+
+/* ---------- Sign-in ---------- */
+.signin { min-height: calc(100vh - 200px); display: flex; align-items: center; justify-content: center; padding: 32px 16px; }
+.signin-card {
+  max-width: 440px; width: 100%; padding: 32px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  text-align: center;
+  box-shadow: var(--shadow-lg);
+}
+.signin-card .icon { font-size: 32px; margin-bottom: 12px; }
+.signin-card h2 { margin: 0 0 8px; font-weight: 600; }
+.signin-card p { color: var(--muted-foreground); margin: 0 0 20px; }
+.signin-card .btn.primary { display: inline-flex; padding: 10px 20px; }
+
+/* ---------- Tables ---------- */
+table.app-table {
+  width: 100%; border-collapse: collapse;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  font-size: 13px;
+}
+.app-table th, .app-table td { padding: 9px 12px; text-align: left; border-bottom: 1px solid var(--border); }
+.app-table th { background: var(--secondary); color: var(--muted-foreground); font-weight: 500; font-size: 12px; text-transform: uppercase; letter-spacing: 0.03em; }
+.app-table tr:last-child td { border-bottom: 0; }
+.app-table tr:hover td { background: color-mix(in srgb, var(--accent-bg) 50%, transparent); }
+.app-table .muted { color: var(--muted-foreground); }
+.app-table .id { font-family: var(--font-mono); font-size: 12px; color: color-mix(in srgb, var(--primary) 60%, var(--foreground)); }
+
+.pill {
+  display: inline-block; padding: 2px 8px; border-radius: 999px;
+  font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em;
+  background: var(--secondary); color: var(--muted-foreground);
+  border: 1px solid var(--border);
+}
+.pill.running { background: color-mix(in srgb, var(--success) 25%, var(--card)); color: var(--success); border-color: color-mix(in srgb, var(--success) 40%, var(--border)); }
+.pill.paused  { background: color-mix(in srgb, var(--warning) 25%, var(--card)); color: var(--warning); border-color: color-mix(in srgb, var(--warning) 40%, var(--border)); }
+.pill.error, .pill.terminated { background: color-mix(in srgb, var(--destructive) 25%, var(--card)); color: var(--destructive); border-color: color-mix(in srgb, var(--destructive) 40%, var(--border)); }
