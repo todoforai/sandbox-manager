@@ -89,7 +89,7 @@ them via `sudo -n setcap` — but this requires a passwordless sudoers entry.
 
 Symptom if missing: `sandbox-manager` crash-loops in PM2 with
 `ERROR: target/release/sandbox-manager lacks CAP_NET_ADMIN and not running as root.`,
-and the dev web UI (`http://127.0.0.1:8250/admin/`) returns 500 because
+and the dev web UI (`http://127.0.0.1:8250/`) returns 500 because
 `/sandbox` proxy to `:8200` fails.
 
 Permanent fix (run once per host/user):
@@ -335,5 +335,7 @@ Weighted unit costs (CPU 33%, RAM 50%, SSD 17%):
 
 ### Web UI
 
-- **User panel** — `https://sandbox.todofor.ai/` (`web/index.html`). Sandbox-specific UI lives inline; shared scaffolding (auth, theme, dev-server) is in [`@shared/web`](../packages/shared-web/) and reused by the other `*-manager` panels.
-- **Admin panel** — `web/admin.html`. Not exposed publicly via nginx (`location ^~ /admin/ { return 404; }`); reachable on `127.0.0.1` only.
+Two dev servers (mirroring prod's two-socket pattern — see [`@shared/web`](../packages/shared-web/)):
+
+- **User panel** — `https://sandbox.todofor.ai/` (`web/index.html`). In dev: `bun run web/dev-server.js` → http://localhost:8250 (proxies to public REST `:8200`). Sandbox-specific UI lives inline; shared scaffolding (auth, theme, dev-server) is in [`@shared/web`](../packages/shared-web/) and reused by the other `*-manager` panels.
+- **Admin panel** — `web/admin.html` (http://localhost:8280 in dev → proxies to admin REST `:8210`). Not exposed publicly via nginx (`location ^~ /admin/ { return 404; }`); the admin socket is bound to `127.0.0.1` in prod — reach it via SSH tunnel.
