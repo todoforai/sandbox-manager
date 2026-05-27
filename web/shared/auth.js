@@ -85,7 +85,8 @@ export function makeAuth(appKey) {
     const tok = getToken();
     if (tok) headers['Authorization'] = `Bearer ${tok}`;
     const r = await fetch(path, { credentials: 'include', ...opts, headers });
-    if (r.status === 401) { const err = new Error('unauthenticated'); err.unauth = true; throw err; }
+    // 401 everywhere; Vault uses 403 with {"errors":["missing token"|"permission denied"]}.
+    if (r.status === 401 || r.status === 403) { const err = new Error('unauthenticated'); err.unauth = true; throw err; }
     if (!r.ok) throw new Error(`${r.status} ${(await r.text()) || r.statusText}`);
     const ct = r.headers.get('content-type') || '';
     if (ct.includes('application/json')) return r.json();
@@ -186,5 +187,68 @@ export function renderTopBar({ title, chip }) {
 export function renderFooter(label = 'todofor.ai') {
   return el('footer', { class: 'app-footer' },
     'Powered by ', el('a', { href: 'https://todofor.ai', target: '_blank', rel: 'noopener noreferrer' }, label),
+  );
+}
+
+const _escHtml = s => s.replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+
+/** Syntax-tinted code block with a hover-revealed "Copy" button.
+ *  Lightweight: comments (#…), strings ('…'/"…"), first token per line as keyword. */
+export function code(lang, text) {
+  const html = text.split('\n').map(line => {
+    if (/^\s*#/.test(line)) return `<span class="c">${_escHtml(line)}</span>`;
+    let out = _escHtml(line)
+      .replace(/("[^"]*"|'[^']*')/g, '<span class="s">$1</span>')
+      .replace(/^(\s*)([a-zA-Z][\w-]*)/, (_m, ws, kw) => `${ws}<span class="k">${kw}</span>`);
+    return out;
+  }).join('\n');
+  const block = el('div', { class: 'code-block' });
+  const pre = document.createElement('pre');
+  pre.innerHTML = `<code data-lang="${lang}">${html}</code>`;
+  block.appendChild(pre);
+  block.appendChild(el('button', {
+    class: 'copy-btn',
+    onclick: ev => {
+      const t = ev.currentTarget;
+      navigator.clipboard.writeText(text).then(() => {
+        t.textContent = 'Copied'; t.setAttribute('data-copied', '1');
+        setTimeout(() => { t.textContent = 'Copy'; t.removeAttribute('data-copied'); }, 1400);
+      });
+    },
+  }, 'Copy'));
+  return block;
+}
+
+/** "Agent-native" guide section: tabbed reference for CLI / REST / LLM-prompt usage.
+ *  Re-renders on tab click via the caller-supplied `rerender` (typically the page's render()).
+ *
+ *  opts:
+ *    title?:    string  (default 'Agent-native')
+ *    pill?:     string  (default 'no UI required')
+ *    subtitle:  string  one-liner under the title
+ *    tabs:      [{ key, label, render: () => Node|Node[] }]
+ *    state:     { agentTab?: string }   mutable; helper reads/writes state.agentTab
+ *    rerender:  () => void              called when the user picks a different tab
+ */
+export function renderAgentGuide({ title = 'Agent-native', pill = 'no UI required', subtitle, tabs, state, rerender }) {
+  if (!state.agentTab || !tabs.find(t => t.key === state.agentTab)) state.agentTab = tabs[0].key;
+  const active = tabs.find(t => t.key === state.agentTab);
+  const tabBtn = ({ key, label }) => el('button', {
+    class: 'tab',
+    'aria-selected': state.agentTab === key ? 'true' : 'false',
+    onclick: () => { state.agentTab = key; rerender(); },
+  }, label);
+  const panel = el('div', { class: 'tab-panel' });
+  const kids = active.render();
+  for (const k of (Array.isArray(kids) ? kids : [kids])) if (k) panel.appendChild(k);
+  return el('section', { class: 'agent-native' },
+    el('header', {},
+      el('div', {},
+        el('h2', {}, title, pill ? el('span', { class: 'pill' }, pill) : null),
+        el('p', { class: 'sub' }, subtitle),
+      ),
+    ),
+    el('div', { class: 'tabs', role: 'tablist' }, ...tabs.map(tabBtn)),
+    panel,
   );
 }

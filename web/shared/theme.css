@@ -232,3 +232,96 @@ table.app-table {
 .pill.running { background: color-mix(in srgb, var(--success) 25%, var(--card)); color: var(--success); border-color: color-mix(in srgb, var(--success) 40%, var(--border)); }
 .pill.paused  { background: color-mix(in srgb, var(--warning) 25%, var(--card)); color: var(--warning); border-color: color-mix(in srgb, var(--warning) 40%, var(--border)); }
 .pill.error, .pill.terminated { background: color-mix(in srgb, var(--destructive) 25%, var(--card)); color: var(--destructive); border-color: color-mix(in srgb, var(--destructive) 40%, var(--border)); }
+
+/* ── Agent-native guide (sandbox/storage/browser/vault panels) ─────────── */
+.agent-native {
+  margin-top: 48px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--card);
+  overflow: hidden;
+}
+.agent-native > header {
+  background: transparent;
+  border-bottom: 1px solid var(--border);
+  padding: 18px 24px;
+  display: flex; align-items: flex-start; justify-content: space-between;
+  gap: 16px; flex-wrap: wrap;
+}
+.agent-native h2 {
+  font-size: 18px; font-weight: 600; margin: 0 0 4px;
+  letter-spacing: -0.01em;
+  display: inline-flex; align-items: center; gap: 8px;
+}
+.agent-native h2 .pill {
+  font-size: 10px; font-weight: 600; letter-spacing: 0.06em;
+  padding: 2px 8px; border-radius: 999px;
+  background: color-mix(in srgb, var(--primary) 18%, transparent);
+  color: var(--primary); text-transform: uppercase;
+}
+.agent-native .sub {
+  color: var(--muted-foreground); font-size: 13px; margin: 0;
+  max-width: 620px; line-height: 1.55;
+}
+.tabs {
+  display: flex; border-bottom: 1px solid var(--border);
+  padding: 0 12px; overflow-x: auto; scrollbar-width: none;
+}
+.tabs::-webkit-scrollbar { display: none; }
+.tab {
+  background: transparent; border: 0; border-bottom: 2px solid transparent;
+  color: var(--muted-foreground); padding: 14px 16px;
+  font: 500 14px/1 var(--font-sans); cursor: pointer;
+  margin-bottom: -1px; white-space: nowrap; border-radius: 0;
+}
+.tab:hover { color: var(--foreground); background: transparent; }
+.tab[aria-selected="true"] { color: var(--foreground); border-bottom-color: var(--primary); }
+.tab-panel { padding: 22px 24px 26px; }
+.tab-panel p { color: var(--muted-foreground); font-size: 13px; line-height: 1.6; margin: 0 0 12px; }
+.tab-panel p:last-child { margin-bottom: 0; }
+.tab-panel ol, .tab-panel ul {
+  color: var(--muted-foreground); font-size: 13px; line-height: 1.7;
+  padding-left: 22px; margin: 0 0 14px;
+}
+.tab-panel li { margin: 0; }
+.tab-panel li code { font-size: 12.5px; }
+.tab-panel h3 {
+  font-size: 13px; font-weight: 600; color: var(--muted-foreground);
+  margin: 18px 0 8px; letter-spacing: 0.02em;
+}
+.tab-panel h3:first-child { margin-top: 0; }
+
+.code-block {
+  position: relative; background: var(--background);
+  border: 1px solid var(--border); border-radius: var(--radius-sm);
+  padding: 12px 14px; margin: 0 0 12px;
+}
+.code-block:last-child { margin-bottom: 0; }
+.code-block pre {
+  margin: 0; font: 12.5px/1.55 var(--font-mono); color: var(--foreground);
+  white-space: pre; overflow-x: auto; padding-right: 56px;
+}
+.code-block pre code { background: none; padding: 0; color: inherit; }
+.code-block pre .c { color: var(--muted-foreground); }
+.code-block pre .k { color: #ffb37a; }
+.code-block pre .s { color: color-mix(in srgb, var(--success) 90%, white); }
+.code-block .copy-btn {
+  position: absolute; top: 8px; right: 8px;
+  padding: 4px 10px; font: 500 11px/1 var(--font-sans);
+  color: var(--muted-foreground); background: var(--card);
+  border: 1px solid var(--border); border-radius: var(--radius-xs);
+  cursor: pointer; opacity: 0;
+  transition: opacity 120ms ease, color 120ms ease, background 120ms ease;
+}
+.code-block:hover .copy-btn,
+.code-block .copy-btn:focus-visible { opacity: 1; }
+.code-block .copy-btn:hover { color: var(--foreground); background: var(--accent-bg); }
+.code-block .copy-btn[data-copied="1"] {
+  opacity: 1; color: var(--success);
+  border-color: color-mix(in srgb, var(--success) 35%, var(--border));
+}
+.tab-panel code:not(pre code) {
+  font: 12.5px/1.2 var(--font-mono);
+  background: var(--background); border: 1px solid var(--border);
+  padding: 1px 6px; border-radius: var(--radius-xs); color: var(--foreground);
+}

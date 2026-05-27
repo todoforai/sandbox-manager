@@ -467,145 +467,7 @@
   details > summary::-webkit-details-marker { display: none; }
 
   /* ---------- Agent-native section ---------- */
-  .agent-native {
-    margin-top: 48px;
-    border: 1px solid var(--border);
-    border-radius: var(--radius-md);
-    background: var(--card);
-    overflow: hidden;
-  }
-  .agent-native > header {
-    background: transparent;
-    border-bottom: 1px solid var(--border);
-    padding: 18px 24px;
-    position: static;
-    backdrop-filter: none;
-    -webkit-backdrop-filter: none;
-    display: flex; align-items: flex-start; justify-content: space-between;
-    gap: 16px; flex-wrap: wrap;
-  }
-  .agent-native h2 {
-    font-size: 18px;
-    font-weight: 600;
-    margin: 0 0 4px;
-    letter-spacing: -0.01em;
-    display: inline-flex; align-items: center; gap: 8px;
-  }
-  .agent-native h2 .pill {
-    font-size: 10px;
-    font-weight: 600;
-    letter-spacing: 0.06em;
-    padding: 2px 8px;
-    border-radius: 999px;
-    background: color-mix(in srgb, var(--primary) 18%, transparent);
-    color: var(--primary);
-    text-transform: uppercase;
-  }
-  .agent-native h2 small {
-    font-size: 13px;
-    font-weight: 400;
-    color: var(--muted-foreground);
-    letter-spacing: 0;
-    text-transform: none;
-  }
-  .agent-native .sub {
-    color: var(--muted-foreground);
-    font-size: 13px;
-    margin: 0;
-    max-width: 620px;
-    line-height: 1.55;
-  }
-  .tabs {
-    display: flex;
-    border-bottom: 1px solid var(--border);
-    padding: 0 12px;
-    overflow-x: auto;
-    scrollbar-width: none;
-  }
-  .tabs::-webkit-scrollbar { display: none; }
-  .tab {
-    background: transparent;
-    border: 0;
-    border-bottom: 2px solid transparent;
-    color: var(--muted-foreground);
-    padding: 14px 16px;
-    font: 500 14px/1 var(--font-sans);
-    cursor: pointer;
-    margin-bottom: -1px;
-    white-space: nowrap;
-    border-radius: 0;
-  }
-  .tab:hover { color: var(--foreground); background: transparent; }
-  .tab[aria-selected="true"] {
-    color: var(--foreground);
-    border-bottom-color: var(--primary);
-  }
-  .tab-panel { padding: 22px 24px 26px; }
-  .tab-panel p { color: var(--muted-foreground); font-size: 13px; line-height: 1.6; margin: 0 0 12px; }
-  .tab-panel p:last-child { margin-bottom: 0; }
-  .tab-panel ol, .tab-panel ul {
-    color: var(--muted-foreground); font-size: 13px; line-height: 1.7;
-    padding-left: 22px; margin: 0 0 14px;
-  }
-  .tab-panel li { margin: 0; }
-  .tab-panel li code { font-size: 12.5px; }
-  .tab-panel h3 {
-    font-size: 13px; font-weight: 600; color: var(--muted-foreground);
-    margin: 18px 0 8px; letter-spacing: 0.02em;
-  }
-  .tab-panel h3:first-child { margin-top: 0; }
-
-  /* Code blocks with copy affordance */
-  .code-block {
-    position: relative;
-    background: var(--background);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-sm);
-    padding: 12px 14px;
-    margin: 0 0 12px;
-  }
-  .code-block:last-child { margin-bottom: 0; }
-  .code-block pre {
-    margin: 0;
-    font: 12.5px/1.55 var(--font-mono);
-    color: var(--foreground);
-    white-space: pre;
-    overflow-x: auto;
-    padding-right: 56px; /* room for copy button */
-  }
-  .code-block pre code { background: none; padding: 0; color: inherit; }
-  .code-block pre .c { color: var(--muted-foreground); }                 /* comment */
-  .code-block pre .k { color: #ffb37a; }                                  /* keyword/cmd */
-  .code-block pre .s { color: color-mix(in srgb, var(--success) 90%, white); }  /* string */
-  .code-block .copy-btn {
-    position: absolute;
-    top: 8px; right: 8px;
-    padding: 4px 10px;
-    font: 500 11px/1 var(--font-sans);
-    color: var(--muted-foreground);
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-xs);
-    cursor: pointer;
-    opacity: 0;
-    transition: opacity 120ms ease, color 120ms ease, background 120ms ease;
-  }
-  .code-block:hover .copy-btn,
-  .code-block .copy-btn:focus-visible { opacity: 1; }
-  .code-block .copy-btn:hover { color: var(--foreground); background: var(--accent-bg); }
-  .code-block .copy-btn[data-copied="1"] {
-    opacity: 1; color: var(--success); border-color: color-mix(in srgb, var(--success) 35%, var(--border));
-  }
-
-  /* Inline code in prose */
-  .tab-panel code:not(pre code) {
-    font: 12.5px/1.2 var(--font-mono);
-    background: var(--background);
-    border: 1px solid var(--border);
-    padding: 1px 6px;
-    border-radius: var(--radius-xs);
-    color: var(--foreground);
-  }
+  /* .agent-native / .tabs / .tab-panel / .code-block live in shared/theme.css */
 
   @media (max-width: 640px) {
     .bar { padding: 12px 16px; gap: 12px; }
@@ -648,7 +510,7 @@
 </footer>
 
 <script type="module">
-import { makeAuth, el, $, fmtAge, renderSignIn, renderUserChip } from './shared/auth.js';
+import { makeAuth, el, $, fmtAge, renderSignIn, renderUserChip, code, renderAgentGuide } from './shared/auth.js';
 
 const { api: baseApi, signOut } = makeAuth('sandbox');
 async function api(path, opts) {
@@ -946,141 +808,66 @@ function sampleId() {
   return s ? s.id : 'sbx-<id>';
 }
 
-function code(lang, text) {
-  // Lightweight syntax tinting: comments (#…), strings ('…' / "…"), and the
-  // command word (first token of each non-comment line). Keeps the renderer
-  // tiny — no full tokenizer needed.
-  const lines = text.split('\n').map(line => {
-    if (/^\s*#/.test(line)) return `<span class="c">${escapeHtml(line)}</span>`;
-    let out = escapeHtml(line);
-    // strings
-    out = out.replace(/("[^"]*"|'[^']*')/g, '<span class="s">$1</span>');
-    // first non-whitespace word as keyword (the cmd)
-    out = out.replace(/^(\s*)([a-zA-Z][\w-]*)/, (_m, ws, kw) => `${ws}<span class="k">${kw}</span>`);
-    return out;
-  });
-  const html = lines.join('\n');
-  const block = el('div', { class: 'code-block' });
-  const pre = document.createElement('pre');
-  pre.innerHTML = `<code data-lang="${lang}">${html}</code>`;
-  const btn = el('button', {
-    class: 'copy-btn',
-    onclick: ev => {
-      const target = ev.currentTarget;
-      navigator.clipboard.writeText(text).then(() => {
-        target.textContent = 'Copied';
-        target.setAttribute('data-copied', '1');
-        setTimeout(() => {
-          target.textContent = 'Copy';
-          target.removeAttribute('data-copied');
-        }, 1400);
-      });
-    },
-  }, 'Copy');
-  block.appendChild(pre);
-  block.appendChild(btn);
-  return block;
-}
-
-function escapeHtml(s) {
-  return s.replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
-}
-
 function renderAgentNative() {
-  const tab = state.agentTab;
   const id = sampleId();
-
-  const tabBtn = (key, label) => el('button', {
-    class: 'tab',
-    'aria-selected': tab === key ? 'true' : 'false',
-    onclick: () => { state.agentTab = key; render(); },
-  }, label);
-
-  const panel = el('div', { class: 'tab-panel' });
-  if (tab === 'cli') {
-    panel.append(
-      el('p', {},
-        'The ',
-        el('code', {}, 'sandbox'),
-        ' CLI is a single static binary (~200 KB) that talks to this service over Noise_NX. ',
-        'Drop it next to your agent and use the same identity you used for this panel.',
-      ),
-      el('h3', {}, 'Install'),
-      code('bash',
-`# Linux / macOS (single static binary, no deps)
+  return renderAgentGuide({
+    subtitle: 'This panel is a thin client over a small REST API. Your AI agent can drive sandboxes directly — install the CLI, hit the endpoints, or give an LLM the system prompt below.',
+    state, rerender: render,
+    tabs: [
+      { key: 'cli', label: 'sandbox CLI', render: () => [
+        el('p', {}, 'The ', el('code', {}, 'sandbox'),
+          ' CLI is a single static binary (~200 KB) that talks to this service over Noise_NX. ',
+          'Drop it next to your agent and use the same identity you used for this panel.'),
+        el('h3', {}, 'Install'),
+        code('bash', `# Linux / macOS (single static binary, no deps)
 curl -fsSL https://${HOST}/cli/install.sh | sh
 
 # Or pick a specific build from
-# https://github.com/todoforai/sandbox-manager/releases/latest`,
-      ),
-      el('h3', {}, 'Authenticate'),
-      code('bash',
-`# Opens a one-time login flow and stores an API key locally.
+# https://github.com/todoforai/sandbox-manager/releases/latest`),
+        el('h3', {}, 'Authenticate'),
+        code('bash', `# Opens a one-time login flow and stores an API key locally.
 sandbox login
-sandbox whoami`,
-      ),
-      el('h3', {}, 'Drive sandboxes'),
-      code('bash',
-`sandbox list
+sandbox whoami`),
+        el('h3', {}, 'Drive sandboxes'),
+        code('bash', `sandbox list
 sandbox create --template cli-lite
 sandbox pause   ${id}
 sandbox resume  ${id}
-sandbox delete  ${id}`,
-      ),
-      el('p', {},
-        'The CLI talks Noise_NX over TCP. Set ',
-        el('code', {}, 'NOISE_ADDR'),
-        ' (e.g. ',
-        el('code', {}, 'sandbox.todofor.ai:4110'),
-        ') and ',
-        el('code', {}, 'NOISE_REMOTE_PUBKEY'),
-        ' to point at a specific instance — see the release notes for the current production values.',
-      ),
-    );
-  } else if (tab === 'curl') {
-    panel.append(
-      el('p', {},
-        'Every action this panel takes is a plain REST call. Authenticate with ',
-        el('code', {}, 'Authorization: Bearer <api-key>'),
-        ' — generate one at ',
-        el('a', { href: 'https://todofor.ai/account/api-keys', target: '_blank', rel: 'noopener noreferrer', style: 'color:var(--primary)' }, 'todofor.ai/account/api-keys'),
-        '.',
-      ),
-      el('h3', {}, 'List your sandboxes'),
-      code('bash',
-`curl -s ${ORIGIN}/sandbox \\
-  -H "Authorization: Bearer $TODOFORAI_API_KEY" | jq`,
-      ),
-      el('h3', {}, 'Create one'),
-      code('bash',
-`curl -s -X POST ${ORIGIN}/sandbox \\
+sandbox delete  ${id}`),
+        el('p', {}, 'The CLI talks Noise_NX over TCP. Set ',
+          el('code', {}, 'NOISE_ADDR'), ' (e.g. ',
+          el('code', {}, 'sandbox.todofor.ai:4110'), ') and ',
+          el('code', {}, 'NOISE_REMOTE_PUBKEY'),
+          ' to point at a specific instance — see the release notes for the current production values.'),
+      ]},
+      { key: 'curl', label: 'REST · curl', render: () => [
+        el('p', {}, 'Every action this panel takes is a plain REST call. Authenticate with ',
+          el('code', {}, 'Authorization: Bearer <api-key>'), ' — generate one at ',
+          el('a', { href: 'https://todofor.ai/account/api-keys', target: '_blank', rel: 'noopener noreferrer', style: 'color:var(--primary)' }, 'todofor.ai/account/api-keys'),
+          '.'),
+        el('h3', {}, 'List your sandboxes'),
+        code('bash', `curl -s ${ORIGIN}/sandbox \\
+  -H "Authorization: Bearer $TODOFORAI_API_KEY" | jq`),
+        el('h3', {}, 'Create one'),
+        code('bash', `curl -s -X POST ${ORIGIN}/sandbox \\
   -H "Authorization: Bearer $TODOFORAI_API_KEY" \\
   -H "Content-Type: application/json" \\
-  -d '{"template":"cli-lite"}' | jq`,
-      ),
-      el('h3', {}, 'Pause / resume / delete'),
-      code('bash',
-`curl -X POST   ${ORIGIN}/sandbox/${id}/pause  -H "Authorization: Bearer $TODOFORAI_API_KEY"
+  -d '{"template":"cli-lite"}' | jq`),
+        el('h3', {}, 'Pause / resume / delete'),
+        code('bash', `curl -X POST   ${ORIGIN}/sandbox/${id}/pause  -H "Authorization: Bearer $TODOFORAI_API_KEY"
 curl -X POST   ${ORIGIN}/sandbox/${id}/resume -H "Authorization: Bearer $TODOFORAI_API_KEY"
-curl -X DELETE ${ORIGIN}/sandbox/${id}        -H "Authorization: Bearer $TODOFORAI_API_KEY"`,
-      ),
-      el('h3', {}, 'Run a command inside a lite sandbox'),
-      code('bash',
-`curl -s -X POST ${ORIGIN}/sandbox/${id}/exec \\
+curl -X DELETE ${ORIGIN}/sandbox/${id}        -H "Authorization: Bearer $TODOFORAI_API_KEY"`),
+        el('h3', {}, 'Run a command inside a lite sandbox'),
+        code('bash', `curl -s -X POST ${ORIGIN}/sandbox/${id}/exec \\
   -H "Authorization: Bearer $TODOFORAI_API_KEY" \\
   -H "Content-Type: application/json" \\
-  -d '{"argv":["python3","-c","print(1+1)"]}' | jq`,
-      ),
-    );
-  } else if (tab === 'prompt') {
-    panel.append(
-      el('p', {},
-        'Hand this paragraph to any tool-using LLM (Claude, GPT, Gemini) and it can manage your sandboxes for you. ',
-        'The API surface is small enough to fit in a single prompt — no MCP server required.',
-      ),
-      el('h3', {}, 'Drop-in system prompt'),
-      code('text',
-`You have access to a sandbox manager at ${ORIGIN}.
+  -d '{"argv":["python3","-c","print(1+1)"]}' | jq`),
+      ]},
+      { key: 'prompt', label: 'LLM prompt', render: () => [
+        el('p', {}, 'Hand this paragraph to any tool-using LLM (Claude, GPT, Gemini) and it can manage your sandboxes for you. ',
+          'The API surface is small enough to fit in a single prompt — no MCP server required.'),
+        el('h3', {}, 'Drop-in system prompt'),
+        code('text', `You have access to a sandbox manager at ${ORIGIN}.
 Authenticate every request with the header
   Authorization: Bearer <TODOFORAI_API_KEY>
 
@@ -1097,35 +884,12 @@ Endpoints (all JSON):
 Conventions:
   - cli-lite is free and stateless; ubuntu-base is a full microVM.
   - Reuse an existing running sandbox before creating a new one.
-  - On error, the response body is plain text — surface it verbatim to the user.`,
-      ),
-      el('p', { style: 'margin-top:10px' },
-        'Pair with a ',
-        el('code', {}, 'bash')
-        , ' tool and the LLM can run those curls itself.',
-      ),
-    );
-  }
-
-  return el('section', { class: 'agent-native' },
-    el('header', {},
-      el('div', {},
-        el('h2', {},
-          'Agent-native',
-          el('span', { class: 'pill' }, 'no UI required'),
-        ),
-        el('p', { class: 'sub' },
-          'This panel is a thin client over a small REST API. Your AI agent can drive sandboxes directly — install the CLI, hit the endpoints, or give an LLM the system prompt below.',
-        ),
-      ),
-    ),
-    el('div', { class: 'tabs', role: 'tablist' },
-      tabBtn('cli',    'sandbox CLI'),
-      tabBtn('curl',   'REST · curl'),
-      tabBtn('prompt', 'LLM prompt'),
-    ),
-    panel,
-  );
+  - On error, the response body is plain text — surface it verbatim to the user.`),
+        el('p', { style: 'margin-top:10px' }, 'Pair with a ', el('code', {}, 'bash'),
+          ' tool and the LLM can run those curls itself.'),
+      ]},
+    ],
+  });
 }
 
 // ────────────────────────────────────────────────────────────────────────────
