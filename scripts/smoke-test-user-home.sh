@@ -64,7 +64,7 @@ RUN=("$TEST_BIN" vm::lite::tests:: --ignored --test-threads=1)
 [[ $EUID -eq 0 ]] || RUN=(sudo "${RUN[@]}")
 "${RUN[@]}" 2>&1 | tee "$LOG_DIR/mount.log"
 grep -q "test result: ok" "$LOG_DIR/mount.log" || die "mount tests failed"
-ok "loop-mount provision/destroy/double-mount-guard all green"
+ok "loop-mount provision/destroy round-trip + anonymous plain-dir branch green"
 
 # Leftover loop devices = destroy leak. Tempdirs live under TMPDIR (usually /tmp).
 LEAKS=$(losetup -a 2>/dev/null | grep -c "${TMPDIR:-/tmp}/\.tmp" || true)
@@ -75,4 +75,3 @@ fi
 ok "no leftover /dev/loopN devices"
 
 say "ALL GREEN"
-echo "Logs: /tmp/smoke-unit.log /tmp/smoke-mkfs.log /tmp/smoke-mount.log"
