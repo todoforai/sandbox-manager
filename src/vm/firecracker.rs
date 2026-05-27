@@ -440,6 +440,9 @@ impl FirecrackerLauncher {
 
         // virtio-fs: attach the host-spawned virtiofsd. `tag` must match the
         // guest `mount -t virtiofs <tag> /root` in build-ubuntu-rootfs.sh.
+        // FATAL on failure: shared $HOME is a product requirement (Lite↔VM
+        // see the same bytes). Stock upstream Firecracker has no
+        // /vhost-user-fs endpoint — you need our custom build.
         if let Some(vfs_uds) = virtiofs_socket {
             let fs = serde_json::json!({
                 "fs_id":       "userhome",

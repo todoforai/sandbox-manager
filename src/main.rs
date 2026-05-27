@@ -132,13 +132,12 @@ async fn main() -> Result<()> {
         .layer(middleware::from_fn_with_state(admin_key.clone(), admin_bearer_gate));
 
     // Static admin UI on the same loopback socket so an SSH tunnel against
-    // :8210 gets both the admin REST + the dashboard. The UI is unauthenticated
-    // (it prompts for the key on first load and stores it in localStorage).
-    let web_root = std::env::var("SANDBOX_MANAGER_WEB_DIR")
-        .unwrap_or_else(|_| "web".into());
+    // :8210 gets both the admin REST + the dashboard. Static assets are not
+    // gated — the UI prompts for the key on first load and sends it as Bearer
+    // on every /admin/api/* call.
     let admin_app = admin_api
-        .nest_service("/admin", ServeDir::new(format!("{web_root}/admin")))
-        .nest_service("/shared", ServeDir::new(format!("{web_root}/shared")))
+        .nest_service("/admin", ServeDir::new("web/admin"))
+        .nest_service("/shared", ServeDir::new("web/shared"))
         .layer(build_cors());
 
     // Public REST routes.
@@ -198,8 +197,10 @@ fn build_cors() -> CorsLayer {
     let origins: Vec<HeaderValue> = [
         "https://sandbox.todofor.ai",
         "https://vm.todofor.ai",
-        "http://localhost:8250",         // dev UI (user + admin via /admin)
+        "http://localhost:8250",         // dev UI — user      (web/dev-server.js)
         "http://127.0.0.1:8250",
+        "http://localhost:8280",         // dev UI — admin     (web/dev-server.js)
+        "http://127.0.0.1:8280",
         "http://localhost:3000",         // frontend dev (for diagnostic fetches)
     ]
     .iter()
@@ -227,10 +228,16 @@ async fn admin_bearer_gate(
             Json(serde_json::json!({ "error": "admin API disabled: SANDBOX_MANAGER_ADMIN_KEY not configured" })),
         ).into_response();
     };
+    // Match Express/vault: case-insensitive `Bearer` + any whitespace before the token.
     let bearer = req.headers()
         .get(axum::http::header::AUTHORIZATION)
         .and_then(|h| h.to_str().ok())
-        .and_then(|s| s.strip_prefix("Bearer ").or_else(|| s.strip_prefix("bearer ")));
+        .and_then(|s| {
+            let s = s.trim_start();
+            let ws = s.find(char::is_whitespace)?;
+            let (scheme, rest) = s.split_at(ws);
+            scheme.eq_ignore_ascii_case("Bearer").then(|| rest.trim_start())
+        });
     let ok = bearer.map(|b| constant_time_eq(b.as_bytes(), key.as_bytes())).unwrap_or(false);
     if !ok {
         return (

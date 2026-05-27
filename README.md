@@ -338,4 +338,4 @@ Weighted unit costs (CPU 33%, RAM 50%, SSD 17%):
 Two dev servers (mirroring prod's two-socket pattern — see [`@shared/web`](../packages/shared-web/)):
 
 - **User panel** — `https://sandbox.todofor.ai/` (`web/index.html`). In dev: `bun run web/dev-server.js` → http://localhost:8250 (proxies to public REST `:8200`). Sandbox-specific UI lives inline; shared scaffolding (auth, theme, dev-server) is in [`@shared/web`](../packages/shared-web/) and reused by the other `*-manager` panels.
-- **Admin panel** — `web/admin.html` (http://localhost:8280 in dev → proxies to admin REST `:8210`). Not exposed publicly via nginx (`location ^~ /admin/ { return 404; }`); the admin socket is bound to `127.0.0.1` in prod — reach it via SSH tunnel.
+- **Admin panel** — `web/admin/index.html` (http://localhost:8280 in dev → proxies to admin REST `:8210`). Not exposed publicly via nginx (`location ^~ /admin/ { return 404; }`); the admin socket is bound to `127.0.0.1` in prod and the UI prompts for `SANDBOX_MANAGER_ADMIN_KEY` (sent as `Authorization: Bearer …`) — reach it via SSH tunnel.

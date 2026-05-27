@@ -40,35 +40,43 @@ const envFromDisk = {
   ...loadEnvFile(path.join(sharedDir, 'noise.env')),
 };
 
-module.exports = {
-  apps: [
-    {
-      name: `sandbox-manager-${port}`,
-      // run.sh re-applies CAP_NET_ADMIN+CAP_NET_RAW on the binary if missing
-      // (file caps get wiped on every rebuild) before exec'ing it, then picks
-      // prod (./sandbox-manager from deploy.sh) or dev (target/release).
-      script: './run.sh',
-      args: isProd ? 'prod' : 'dev',
-      cwd: __dirname,
-      instances: 1,
-      exec_mode: 'fork',
-      max_memory_restart: '1G',
-      exp_backoff_restart_delay: 100,
-      kill_timeout: 10000,
-      watch: false,
-      time: true,
-      merge_logs: true,
-      ...(logDir && {
-        error_file: `${logDir}/sandbox-manager-err.log`,
-        out_file: `${logDir}/sandbox-manager-out.log`,
-      }),
-      log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
-      env: {
-        ...envFromDisk,
-        BIND_ADDR: `127.0.0.1:${port}`,
-        ADMIN_BIND_ADDR: `127.0.0.1:${adminPort}`,
-        NOISE_BIND_ADDR: `127.0.0.1:${noisePort}`,
-      },
-    },
-  ],
+// REST app — Rust binary (Firecracker VM factory). run.sh re-applies
+// CAP_NET_ADMIN+CAP_NET_RAW on the binary if missing (file caps get wiped
+// on every rebuild) before exec'ing it, then picks prod or dev mode.
+const restApp = {
+  name: `sandbox-manager-${port}`,
+  script: './run.sh',
+  args: isProd ? 'prod' : 'dev',
+  cwd: __dirname,
+  instances: 1,
+  exec_mode: 'fork',
+  max_memory_restart: '1G',
+  exp_backoff_restart_delay: 100,
+  kill_timeout: 10000,
+  watch: false,
+  time: true,
+  merge_logs: true,
+  ...(logDir && {
+    error_file: `${logDir}/sandbox-manager-err.log`,
+    out_file: `${logDir}/sandbox-manager-out.log`,
+  }),
+  log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
+  env: {
+    ...envFromDisk,
+    BIND_ADDR: `127.0.0.1:${port}`,
+    ADMIN_BIND_ADDR: `127.0.0.1:${adminPort}`,
+    NOISE_BIND_ADDR: `127.0.0.1:${noisePort}`,
+  },
 };
+
+// Dev-only web sidecar: serves web/ on 8250 (user) + 8280 (admin).
+// In prod, nginx serves dist/ directly — no PM2 entry needed.
+const webApp = !isProd && {
+  name: 'sandbox-manager-web',
+  script: 'web/dev-server.js',
+  interpreter: 'bun',
+  cwd: __dirname,
+  max_memory_restart: '256M',
+};
+
+module.exports = { apps: [restApp, webApp].filter(Boolean) };
