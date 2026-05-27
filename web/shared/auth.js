@@ -13,16 +13,46 @@
 export const FRONTEND_URL = location.hostname.endsWith('.todofor.ai')
   ? 'https://todofor.ai'
   : `${location.protocol}//localhost:3000`;
-export const LOGIN_URL = FRONTEND_URL + '/';
+// Bounce through the home page with `?signin=1` so AuthProvider opens the
+// modal (instead of auto-signing in as anonymous), and `?next=<here>` so it
+// hands us a session back via a one-time token after sign-in. Drop any
+// fragment from the current URL — single-use OTTs from prior round-trips
+// must not be carried into the next handoff.
+export const LOGIN_URL = `${FRONTEND_URL}/?signin=1&next=${encodeURIComponent(location.origin + location.pathname + location.search)}`;
+
+/** Exchange an OTT (from #ott=… in the URL) for a real bearer session token.
+ *  Done eagerly on module load so panel code never has to know about it. */
+async function consumeOttFromUrl(setToken) {
+  const m = location.hash.match(/[#&]ott=([^&]+)/);
+  if (!m) return;
+  const ott = decodeURIComponent(m[1]);
+  // Strip the fragment immediately — single-use token, must not linger in
+  // history/bookmarks/Referer.
+  history.replaceState(null, '', location.pathname + location.search);
+  try {
+    const r = await fetch(`${FRONTEND_URL}/api/auth/one-time-token/verify`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token: ott }),
+    });
+    if (!r.ok) return;
+    const bearer = r.headers.get('set-auth-token');
+    if (bearer) setToken(bearer);
+  } catch {}
+}
 
 /** Per-app token storage namespace, e.g. 'sandbox', 'storage', 'browser'. */
 export function makeAuth(appKey) {
   const TOKEN_KEY = `${appKey}_panel_token`;
   const getToken = () => { try { return localStorage.getItem(TOKEN_KEY) || ''; } catch { return ''; } };
   const setToken = (t) => { try { t ? localStorage.setItem(TOKEN_KEY, t) : localStorage.removeItem(TOKEN_KEY); } catch {} };
+  // Eager OTT exchange (returns a Promise; we await it on the first api() call).
+  const ottReady = consumeOttFromUrl(setToken);
 
   /** fetch wrapper: cookie-first, Bearer-fallback, JSON-aware, 401-aware. */
   async function api(path, opts = {}) {
+    await ottReady; // first call may briefly wait for OTT exchange
     const headers = { ...(opts.headers || {}) };
     if (opts.body && !(opts.body instanceof FormData) && !(opts.body instanceof Blob)
         && typeof opts.body !== 'string' && !headers['Content-Type']) {
