@@ -266,4 +266,54 @@ mod tests {
         // Different user's lock is independent.
         assert!(matches!(store.acquire_lock("frank").unwrap(), LockOutcome::Acquired(_)));
     }
+
+    /// Requires `mkfs.ext4` on PATH; not run by default to keep `cargo test`
+    /// hermetic. Invoke with `cargo test -- --ignored ensure_disk`.
+    #[tokio::test]
+    #[ignore]
+    async fn ensure_disk_creates_sparse_image() {
+        let tmp = tempfile::tempdir().unwrap();
+        let store = UserHomeStore::new(tmp.path().to_path_buf());
+        store.provision("gina").await.unwrap();
+        let path = store.ensure_disk("gina", 4).await.unwrap();
+        assert!(path.is_file(), "home.img must exist");
+
+        let meta = std::fs::metadata(&path).unwrap();
+        assert_eq!(meta.len(), 4 * 1024 * 1024 * 1024, "logical size = 4 GiB");
+        // Sparse: physical blocks (512-byte units) should be far smaller
+        // than logical length. A fresh lazy-init ext4 in 4G is <50 MiB on
+        // disk; pick a generous ceiling to keep the test stable.
+        use std::os::unix::fs::MetadataExt;
+        let physical_bytes = meta.blocks() * 512;
+        assert!(
+            physical_bytes < 200 * 1024 * 1024,
+            "expected sparse <200MiB, got {physical_bytes} bytes",
+        );
+    }
+
+    #[tokio::test]
+    #[ignore]
+    async fn ensure_disk_is_idempotent_and_preserves_bytes() {
+        let tmp = tempfile::tempdir().unwrap();
+        let store = UserHomeStore::new(tmp.path().to_path_buf());
+        store.provision("hank").await.unwrap();
+        let p1 = store.ensure_disk("hank", 4).await.unwrap();
+        // Mutate one byte inside the image — second call must NOT reformat
+        // (would destroy user data). We poke a byte well past the ext4
+        // superblock so any reformat is guaranteed to overwrite it.
+        use std::io::{Seek, SeekFrom, Write};
+        {
+            let mut f = std::fs::OpenOptions::new().write(true).open(&p1).unwrap();
+            f.seek(SeekFrom::Start(2 * 1024 * 1024)).unwrap(); // 2 MiB in
+            f.write_all(b"DO-NOT-WIPE").unwrap();
+        }
+        let p2 = store.ensure_disk("hank", 4).await.unwrap();
+        assert_eq!(p1, p2);
+        let mut f = std::fs::File::open(&p2).unwrap();
+        f.seek(SeekFrom::Start(2 * 1024 * 1024)).unwrap();
+        let mut buf = [0u8; 11];
+        use std::io::Read;
+        f.read_exact(&mut buf).unwrap();
+        assert_eq!(&buf, b"DO-NOT-WIPE", "ensure_disk reformatted an existing image");
+    }
 }

@@ -267,3 +267,62 @@ fn truncate_utf8(mut bytes: Vec<u8>, max: usize) -> (String, bool) {
     if truncated { bytes.truncate(max); }
     (String::from_utf8_lossy(&bytes).into_owned(), truncated)
 }
+
+/// Loop-mount round-trip tests. Require root (`CAP_SYS_ADMIN` for
+/// `mount -o loop`), `mkfs.ext4`, `mount`, `umount`, `mountpoint` on PATH.
+/// Skipped by default; run with `sudo -E cargo test -- --ignored lite_`.
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::service::user_home::UserHomeStore;
+
+    async fn check_mounted(path: &Path) -> bool {
+        Command::new("mountpoint").arg("-q").arg(path)
+            .status().await.map(|s| s.success()).unwrap_or(false)
+    }
+
+    #[tokio::test]
+    #[ignore]
+    async fn lite_provision_destroy_round_trip() {
+        let tmp = tempfile::tempdir().unwrap();
+        let homes = UserHomeStore::new(tmp.path().join("homes"));
+        homes.provision("u").await.unwrap();
+        let disk = homes.ensure_disk("u", 1).await.unwrap();
+
+        let backend = LiteBackend::new(tmp.path().join("scratch"));
+        let id = "sb-test-1";
+        backend.provision(id, Some(&disk)).await.unwrap();
+        let mnt = backend.home_mountpoint(id);
+        assert!(check_mounted(&mnt).await, "provision must leave home mounted");
+
+        // Write a file through the mount; survives across destroy → re-provision.
+        let canary = mnt.join("canary.txt");
+        tokio::fs::write(&canary, b"hello").await.unwrap();
+
+        backend.destroy(id).await;
+        assert!(!check_mounted(&mnt).await, "destroy must umount");
+        assert!(!mnt.exists(), "destroy must remove scratch dir");
+
+        // Re-provision a different sandbox id with the same disk: canary survives.
+        let id2 = "sb-test-2";
+        backend.provision(id2, Some(&disk)).await.unwrap();
+        let mnt2 = backend.home_mountpoint(id2);
+        let got = tokio::fs::read_to_string(mnt2.join("canary.txt")).await.unwrap();
+        assert_eq!(got, "hello", "ext4 contents must persist across mount cycles");
+        backend.destroy(id2).await;
+    }
+
+    #[tokio::test]
+    #[ignore]
+    async fn lite_provision_without_disk_is_plain_dir() {
+        let tmp = tempfile::tempdir().unwrap();
+        let backend = LiteBackend::new(tmp.path().to_path_buf());
+        let id = "sb-anon";
+        backend.provision(id, None).await.unwrap();
+        let mnt = backend.home_mountpoint(id);
+        assert!(mnt.is_dir(), "anonymous tier: home is a plain dir");
+        assert!(!check_mounted(&mnt).await, "anonymous tier: nothing mounted");
+        backend.destroy(id).await;
+    }
+
+}
