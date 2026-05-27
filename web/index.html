@@ -648,48 +648,15 @@
 </footer>
 
 <script type="module">
-// ────────────────────────────────────────────────────────────────────────────
-// Auth: Better Auth shared the session cookie across *.todofor.ai. The cookie
-// is HttpOnly so we cannot read it from JS — instead we attach credentials on
-// every request and the server's bearer plugin / cookie path will authenticate
-// the call. If a request returns 401 we show the sign-in screen.
-//
-// Cookie auth works because nginx (vm.todofor.ai.conf) forwards Cookie to the
-// Rust service AND the service's auth_extractor accepts the Better Auth
-// session token via Redis (auth/mod.rs::authenticate).
-//
-// For local dev (different origin), we fall back to a token paste field saved
-// to localStorage.
-// ────────────────────────────────────────────────────────────────────────────
+import { makeAuth, el, $, fmtAge, renderSignIn, renderUserChip } from './shared/auth.js';
 
-// Frontend host for the sign-in redirect. The frontend uses an in-app modal
-// (no /login route), so we just send users to the root and they can sign in
-// from there. Production matches *.todofor.ai (shared session cookie domain);
-// anything else is treated as local dev and points at the Next.js frontend
-// on :3000.
-const FRONTEND_URL = location.hostname.endsWith('.todofor.ai')
-  ? 'https://todofor.ai'
-  : `${location.protocol}//localhost:3000`;
-const LOGIN_URL = FRONTEND_URL + '/';
-const TOKEN_KEY = 'sandbox_panel_token';
-
-function getToken() { try { return localStorage.getItem(TOKEN_KEY) || ''; } catch { return ''; } }
-function setToken(t) { try { t ? localStorage.setItem(TOKEN_KEY, t) : localStorage.removeItem(TOKEN_KEY); } catch {} }
-
-async function api(path, opts = {}) {
-  const headers = { ...(opts.headers || {}) };
-  // Only set Content-Type when actually sending a body — keeps GETs from
-  // triggering unnecessary CORS preflights.
-  if (opts.body && !headers['Content-Type']) headers['Content-Type'] = 'application/json';
-  const tok = getToken();
-  if (tok) headers['Authorization'] = `Bearer ${tok}`;
-  const r = await fetch(path, { credentials: 'include', ...opts, headers });
-  if (r.status === 401) { state.authed = false; render(); throw new Error('unauthenticated'); }
-  if (!r.ok) throw new Error(`${r.status} ${(await r.text()) || r.statusText}`);
-  // Some endpoints (pause/resume) return 200 OK with no body — don't choke
-  // on the resulting empty string.
-  const text = await r.text();
-  return text ? JSON.parse(text) : null;
+const { api: baseApi, signOut } = makeAuth('sandbox');
+async function api(path, opts) {
+  try { return await baseApi(path, opts); }
+  catch (e) {
+    if (e.unauth) { state.authed = false; render(); }
+    throw e;
+  }
 }
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -705,31 +672,6 @@ const state = {
   selectedTpl: null,
   agentTab: 'cli',        // 'cli' | 'curl' | 'prompt'
 };
-
-const $ = sel => document.querySelector(sel);
-const el = (tag, attrs = {}, ...kids) => {
-  const e = document.createElement(tag);
-  for (const [k, v] of Object.entries(attrs)) {
-    if (k === 'class') e.className = v;
-    else if (k === 'html') e.innerHTML = v;
-    else if (k.startsWith('on')) e.addEventListener(k.slice(2), v);
-    else if (v !== false && v != null) e.setAttribute(k, v);
-  }
-  for (const kid of kids.flat()) {
-    if (kid == null || kid === false) continue;
-    e.appendChild(typeof kid === 'string' ? document.createTextNode(kid) : kid);
-  }
-  return e;
-};
-
-function fmtAge(ms) {
-  if (!ms) return '—';
-  const s = Math.floor((Date.now() - ms) / 1000);
-  if (s < 60) return s + 's';
-  if (s < 3600) return Math.floor(s / 60) + 'm';
-  if (s < 86400) return Math.floor(s / 3600) + 'h';
-  return Math.floor(s / 86400) + 'd';
-}
 
 // ────────────────────────────────────────────────────────────────────────────
 // Data
@@ -811,12 +753,10 @@ function render() {
 
   // User chip
   const sboxCount = state.sandboxes.length;
-  $('#user-chip').appendChild(
-    el('span', { class: 'user-chip' },
-      el('span', { class: 'dot' }),
-      `${sboxCount} sandbox${sboxCount === 1 ? '' : 'es'}`,
-    ),
-  );
+  $('#user-chip').appendChild(renderUserChip({
+    label: `${sboxCount} sandbox${sboxCount === 1 ? '' : 'es'}`,
+    signOut,
+  }));
 
   // Page head
   root.appendChild(
@@ -1185,36 +1125,6 @@ Conventions:
       tabBtn('prompt', 'LLM prompt'),
     ),
     panel,
-  );
-}
-
-function renderSignIn() {
-  return el('div', { class: 'signin' },
-    el('div', { class: 'signin-card' },
-      el('div', { class: 'icon' }, '🔒'),
-      el('h2', {}, 'Sign in required'),
-      el('p', {}, 'This panel uses your TODO for AI account. Sign in on the main site, then return here.'),
-      el('a', { class: 'btn primary', href: LOGIN_URL }, 'Sign in at todofor.ai'),
-      el('details', { style: 'margin-top:20px;text-align:left' },
-        el('summary', { style: 'cursor:pointer;color:var(--muted-foreground);font-size:13px;padding:6px 0' }, 'Advanced: use API key instead'),
-        el('div', { style: 'margin-top:10px;display:flex;gap:8px' },
-          el('input', {
-            id: 'token-input',
-            type: 'password',
-            placeholder: 'todofor.ai API key',
-            style: 'flex:1',
-          }),
-          el('button', { onclick: () => {
-            const v = document.getElementById('token-input').value.trim();
-            if (!v) return;
-            setToken(v);
-            state.authed = null;
-            render();
-            loadAll();
-          } }, 'Use'),
-        ),
-      ),
-    ),
   );
 }
 

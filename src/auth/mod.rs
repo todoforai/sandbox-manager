@@ -35,9 +35,14 @@ impl Role {
 }
 
 /// Resolve a bearer token to an identity. Returns error if the token is invalid.
+///
+/// Better Auth's bearer plugin returns the *signed* session cookie value
+/// (`<token>.<signature>`). The Redis index is keyed by the unsigned token,
+/// so strip the signature suffix before lookup.
 pub async fn authenticate(redis: &RedisClient, token: &str) -> Result<AuthIdentity> {
+    let unsigned = token.split_once('.').map(|(t, _)| t).unwrap_or(token);
     let (user_id, role, is_anonymous) = redis
-        .resolve_identity(token)
+        .resolve_identity(unsigned)
         .await?
         .ok_or_else(|| anyhow::anyhow!("invalid token"))?;
 

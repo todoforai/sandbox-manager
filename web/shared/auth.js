@@ -1,11 +1,14 @@
 // shared-web/auth.js — auth + tiny DOM helpers shared by all *-manager web UIs.
 //
 // Auth model:
-// - Production: Better Auth shared a session cookie across *.todofor.ai. The
-//   cookie is HttpOnly so we attach `credentials: 'include'` on every fetch
-//   and let the service's auth_extractor authenticate via the cookie.
-// - Dev / cross-origin: paste an API key into the sign-in panel; it's saved
-//   to localStorage and sent as `Authorization: Bearer <token>`.
+// - Production: Better Auth's session cookie is shared across *.todofor.ai
+//   (HttpOnly), so panels just send `credentials: 'include'` and the service's
+//   auth_extractor authenticates via the cookie.
+// - Dev / cross-origin: the panel lives on a different localhost port from the
+//   backend, so we use Better Auth's one-time-token plugin: the frontend mints
+//   a short-lived OTT, redirects the panel to `<panel>#ott=<token>`, and the
+//   panel exchanges it (POST /api/auth/one-time-token/verify) for a bearer
+//   stored in localStorage. See consumeOttFromUrl below.
 //
 // On 401 we mark the app unauthenticated and the host page should render its
 // sign-in view (helper: renderSignIn).
@@ -13,6 +16,10 @@
 export const FRONTEND_URL = location.hostname.endsWith('.todofor.ai')
   ? 'https://todofor.ai'
   : `${location.protocol}//localhost:3000`;
+// Better Auth lives on the backend (api.todofor.ai in prod, localhost:4000 in dev).
+export const BACKEND_URL = location.hostname.endsWith('.todofor.ai')
+  ? 'https://api.todofor.ai'
+  : `${location.protocol}//localhost:4000`;
 // Bounce through the home page with `?signin=1` so AuthProvider opens the
 // modal (instead of auto-signing in as anonymous), and `?next=<here>` so it
 // hands us a session back via a one-time token after sign-in. Drop any
@@ -30,7 +37,7 @@ async function consumeOttFromUrl(setToken) {
   // history/bookmarks/Referer.
   history.replaceState(null, '', location.pathname + location.search);
   try {
-    const r = await fetch(`${FRONTEND_URL}/api/auth/one-time-token/verify`, {
+    const r = await fetch(`${BACKEND_URL}/api/auth/one-time-token/verify`, {
       method: 'POST',
       credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
@@ -49,6 +56,20 @@ export function makeAuth(appKey) {
   const setToken = (t) => { try { t ? localStorage.setItem(TOKEN_KEY, t) : localStorage.removeItem(TOKEN_KEY); } catch {} };
   // Eager OTT exchange (returns a Promise; we await it on the first api() call).
   const ottReady = consumeOttFromUrl(setToken);
+
+  /** Invalidate the Better Auth session on the backend (best-effort) and
+   *  drop our local bearer. After this, the next protected request will 401. */
+  async function signOut() {
+    const tok = getToken();
+    try {
+      await fetch(`${BACKEND_URL}/api/auth/sign-out`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: tok ? { Authorization: `Bearer ${tok}` } : {},
+      });
+    } catch {}
+    setToken('');
+  }
 
   /** fetch wrapper: cookie-first, Bearer-fallback, JSON-aware, 401-aware. */
   async function api(path, opts = {}) {
@@ -72,7 +93,7 @@ export function makeAuth(appKey) {
     return text ? text : null;
   }
 
-  return { TOKEN_KEY, getToken, setToken, api };
+  return { TOKEN_KEY, getToken, setToken, signOut, api };
 }
 
 /** Tiny hyperscript-like DOM builder. */
@@ -114,26 +135,32 @@ export function fmtDate(ms) {
   return ms ? new Date(ms).toISOString().slice(0, 16).replace('T', ' ') : '';
 }
 
-/** Standard sign-in card.
- *  onUseToken: (tokenString) => void — called when user pastes an API key. */
-export function renderSignIn({ onUseToken, message } = {}) {
+/** Standard sign-in card. Single CTA: sign in via the main site, which then
+ *  hands back a one-time token (see consumeOttFromUrl above). */
+export function renderSignIn({ message } = {}) {
   return el('div', { class: 'signin' },
     el('div', { class: 'signin-card' },
       el('div', { class: 'icon' }, '🔒'),
       el('h2', {}, 'Sign in required'),
       el('p', {}, message || 'This panel uses your TODO for AI account. Sign in on the main site, then return here.'),
       el('a', { class: 'btn primary', href: LOGIN_URL }, 'Sign in at todofor.ai'),
-      el('details', { style: 'margin-top:20px;text-align:left' },
-        el('summary', { style: 'cursor:pointer;color:var(--muted-foreground);font-size:13px;padding:6px 0' }, 'Advanced: use API key instead'),
-        el('div', { style: 'margin-top:10px;display:flex;gap:8px' },
-          el('input', { id: '__token_input', type: 'password', placeholder: 'todofor.ai API key', style: 'flex:1' }),
-          el('button', { onclick: () => {
-            const v = document.getElementById('__token_input').value.trim();
-            if (v && onUseToken) onUseToken(v);
-          } }, 'Use'),
-        ),
-      ),
     ),
+  );
+}
+
+/** Right-hand user chip: status label + a "Sign out" button that clears the
+ *  bearer, invalidates the backend session, and reloads. Use in the
+ *  `#user-chip` slot. */
+export function renderUserChip({ label, signOut }) {
+  return el('span', { class: 'user-chip' },
+    el('span', { class: 'dot' }),
+    label || '',
+    el('button', {
+      class: 'ghost',
+      style: 'margin-left:10px;padding:2px 8px;font-size:12px;border-radius:4px',
+      title: 'Sign out',
+      onclick: async () => { await signOut(); location.reload(); },
+    }, 'Sign out'),
   );
 }
 
