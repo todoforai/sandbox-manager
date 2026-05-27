@@ -143,6 +143,16 @@ impl VmManager {
                 // mount. The flock fd died with us so the lock is free.
                 // The kernel mount, however, lives in the host namespace
                 // and may have survived — drop it before re-mounting.
+                //
+                // First boot of the new code on legacy data: the user dir
+                // might not exist (it was created by the old `provision`
+                // path only on first exec, and old Lite sandboxes may
+                // never have hit that path). Ensure it before locking.
+                if let Err(e) = self.user_homes.provision(&sandbox.user_id).await {
+                    tracing::error!("reconcile: provision({}) for lite {}: {:#}", sandbox.user_id, id, e);
+                    lite += 1;
+                    continue;
+                }
                 match self.user_homes.acquire_lock(&sandbox.user_id) {
                     Ok(LockOutcome::Acquired(fd)) => { self.home_locks.insert(id.clone(), fd); }
                     Ok(LockOutcome::Busy) => tracing::error!(
