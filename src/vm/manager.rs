@@ -27,6 +27,11 @@ use std::os::fd::OwnedFd;
 /// Per-user quota on concurrent sandboxes. TODO: read from appuser:<id>.sandboxLimit.
 const DEFAULT_USER_LIMIT: usize = 10;
 
+/// Logical size of each user's `$HOME` disk image (GiB). Sparse — on-disk
+/// usage is only what the user actually writes. Acts as a hard ceiling per
+/// user; ext4 inside the image will refuse writes past this.
+const USER_DISK_SIZE_GIB: u64 = 50;
+
 pub struct VmManager {
     config: ManagerConfig,
     launcher: FirecrackerLauncher,
@@ -133,7 +138,36 @@ impl VmManager {
                 Ok(None) => continue,
                 Err(e) => { tracing::warn!("reconcile: get {} failed: {}", id, e); continue; }
             };
-            if sandbox.kind == SandboxKind::Lite { lite += 1; continue; }
+            if sandbox.kind == SandboxKind::Lite {
+                // Re-acquire the per-user flock + re-mount the user's disk.
+                // Lite has no long-running process to attach to; its only
+                // persistent state is the loop mount, which is gone after
+                // manager death. The lock is also gone (fd closed with us)
+                // so it must be free now.
+                match self.user_homes.acquire_lock(&sandbox.user_id) {
+                    Ok(LockOutcome::Acquired(fd)) => { self.home_locks.insert(id.clone(), fd); }
+                    Ok(LockOutcome::Busy) => {
+                        tracing::error!("reconcile: home lock for user {} busy; lite {} unprotected",
+                            sandbox.user_id, id);
+                    }
+                    Err(e) => tracing::warn!("reconcile: acquire_lock({}): {:#}", sandbox.user_id, e),
+                }
+                // Defensive: if a stale loop mount somehow survived, drop it
+                // before re-mounting (would otherwise EBUSY).
+                self.lite.force_unmount_leftover(id).await;
+                let disk = match self.user_homes.ensure_disk(&sandbox.user_id, USER_DISK_SIZE_GIB).await {
+                    Ok(p) => Some(p),
+                    Err(e) => {
+                        tracing::error!("reconcile: ensure_disk({}) for lite {}: {:#}", sandbox.user_id, id, e);
+                        None
+                    }
+                };
+                if let Err(e) = self.lite.provision(id, disk.as_deref()).await {
+                    tracing::error!("reconcile: lite {} re-provision failed: {:#}", id, e);
+                }
+                lite += 1;
+                continue;
+            }
 
             let socket_path = self.launcher.socket_path_for(id);
             // Old records (pre-pid_starttime) have only `pid`. Backfill from
@@ -349,12 +383,22 @@ impl VmManager {
             None
         };
 
+        // Persistent `$HOME` image: created on first sandbox of the user,
+        // reused forever after. The exact same file is what Lite loop-mounts
+        // on the host and what FC attaches as /dev/vdb in the guest.
+        let user_disk = if acquire_home {
+            Some(self.user_homes.ensure_disk(&user_id, USER_DISK_SIZE_GIB).await
+                .context("ensure user home disk")?)
+        } else {
+            None
+        };
+
         if kind == SandboxKind::Lite {
             let mut sandbox = Sandbox::new_with_id(sandbox_id, user_id, template_name, vm_size, SandboxKind::Lite);
             // Lite is "running" in the sense that exec is allowed against it;
             // there's no actual long-running process. State persists in /root.
             self.redis.sandbox_put(&sandbox).await?;
-            if let Err(e) = self.lite.provision(&sandbox.id).await {
+            if let Err(e) = self.lite.provision(&sandbox.id, user_disk.as_deref()).await {
                 self.fail_sandbox(&mut sandbox, format!("lite provision: {e}")).await;
                 return Ok(sandbox);
             }
@@ -434,7 +478,7 @@ impl VmManager {
         let boot_config = BootConfig { rootfs_path: overlay_rootfs, ..template_boot };
         let start = std::time::Instant::now();
 
-        match self.launcher.boot(&sandbox.id, &boot_config, &vm_size, &network, enroll_token.as_deref()).await {
+        match self.launcher.boot(&sandbox.id, &boot_config, &vm_size, &network, enroll_token.as_deref(), user_disk.as_deref()).await {
             Ok(vm) => {
                 tracing::info!("Booted VM {} in {:?} (size: {:?})", sandbox.id, start.elapsed(), vm_size);
                 sandbox.pid = Some(vm.pid());
@@ -593,9 +637,9 @@ impl VmManager {
     }
 
     /// Run `argv` in a lite sandbox. Errors if the sandbox is a Vm.
-    /// `home_override = Some(dir)` binds that dir as `/root` (the sandbox
-    /// `$HOME`); `None` means anonymous caller, ephemeral scratch.
-    pub async fn exec_lite(&self, id: &str, argv: &[String], home_override: Option<&std::path::Path>) -> Result<ExecOutput> {
+    /// The sandbox's `/root` is whatever `provision()` set up: either the
+    /// user's persistent loop-mounted disk or an empty scratch dir.
+    pub async fn exec_lite(&self, id: &str, argv: &[String]) -> Result<ExecOutput> {
         let sandbox = self.redis.sandbox_get(id).await?
             .context("Sandbox not found")?;
         if sandbox.kind != SandboxKind::Lite {
@@ -604,7 +648,7 @@ impl VmManager {
         let template = self.lite_templates.get(&sandbox.template)
             .with_context(|| format!("lite template missing: {}", sandbox.template))?
             .clone();
-        let out = self.lite.exec(id, &template, argv, home_override).await?;
+        let out = self.lite.exec(id, &template, argv).await?;
         // Touch last_activity so cleanup_idle works for lite sandboxes too.
         if let Ok(Some(mut s)) = self.redis.sandbox_get(id).await {
             s.touch();

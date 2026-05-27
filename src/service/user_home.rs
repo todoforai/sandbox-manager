@@ -96,6 +96,57 @@ impl UserHomeStore {
             let _ = tokio::fs::remove_dir_all(dir).await;
         }
     }
+
+    /// Path of the user's persistent `$HOME` disk image. The file at this
+    /// path is the single source of truth for the user's home bytes: VM
+    /// sandboxes attach it as a virtio-blk drive; Lite sandboxes loop-mount
+    /// it on the host. Caller must have provisioned the parent dir.
+    pub fn disk_path(&self, user_id: &str) -> Result<PathBuf> {
+        Ok(self.home_dir(user_id)?.join("home.img"))
+    }
+
+    /// Ensure the user's `$HOME` disk image exists and is formatted. Creates
+    /// a sparse `size_gib`-sized raw file and `mkfs.ext4`s it on first call;
+    /// returns the path. Idempotent: if the file already exists, returns it
+    /// unchanged (no resize, no reformat).
+    ///
+    /// The image is **never re-formatted** once it exists — that would lose
+    /// every byte the user has accumulated. If the file looks corrupt the
+    /// operator must delete it manually.
+    pub async fn ensure_disk(&self, user_id: &str, size_gib: u64) -> Result<PathBuf> {
+        let path = self.disk_path(user_id)?;
+        if path.exists() {
+            return Ok(path);
+        }
+        // Sparse allocation: on-disk usage is what the guest writes, not
+        // size_gib. A fresh 50G ext4 image is ~5MB on disk.
+        let size_bytes = size_gib.checked_mul(1024 * 1024 * 1024)
+            .context("size_gib overflow")?;
+        let f = tokio::fs::File::create(&path).await
+            .with_context(|| format!("create disk {path:?}"))?;
+        f.set_len(size_bytes).await
+            .with_context(|| format!("truncate disk {path:?} to {size_gib}G"))?;
+        drop(f);
+
+        // mkfs.ext4 -F: don't prompt; we know the file is fresh and empty.
+        // -E lazy_itable_init=1,lazy_journal_init=1 keeps mkfs near-instant
+        // on large sparse files (default would zero the inode table eagerly).
+        let status = tokio::process::Command::new("mkfs.ext4")
+            .args(["-F", "-E", "lazy_itable_init=1,lazy_journal_init=1"])
+            .arg(&path)
+            .stdin(std::process::Stdio::null())
+            .stdout(std::process::Stdio::null())
+            .stderr(std::process::Stdio::null())
+            .status().await
+            .with_context(|| format!("spawn mkfs.ext4 {path:?}"))?;
+        if !status.success() {
+            // Don't leave a half-formatted file behind to confuse the next call.
+            let _ = tokio::fs::remove_file(&path).await;
+            anyhow::bail!("mkfs.ext4 {path:?} exited {status}");
+        }
+        tracing::info!("created home disk {} ({}G sparse)", path.display(), size_gib);
+        Ok(path)
+    }
 }
 
 /// Reject anything that could escape `root` via the filesystem join, or

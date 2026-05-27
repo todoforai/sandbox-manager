@@ -299,6 +299,7 @@ impl FirecrackerLauncher {
         size: &VmSize,
         network: &VmNetwork,
         enroll_token: Option<&str>,
+        user_disk: Option<&std::path::Path>,
     ) -> Result<FirecrackerVm> {
         let socket_path = self.socket_path_for(vm_id);
         let console_log = self.runtime_dir.join(format!("{}.console.log", vm_id));
@@ -370,7 +371,7 @@ impl FirecrackerLauncher {
         // must tear it down before returning Err — otherwise we leak a
         // detached firecracker into PID 1's lap.
         let setup = async {
-            self.configure_vm(&vm, boot_config, size, network, enroll_token, vm_id).await?;
+            self.configure_vm(&vm, boot_config, size, network, enroll_token, vm_id, user_disk).await?;
             vm.api_request("PUT", "/actions", Some(r#"{"action_type":"InstanceStart"}"#))
                 .await
                 .context("Failed to start VM")?;
@@ -399,6 +400,7 @@ impl FirecrackerLauncher {
         network: &VmNetwork,
         enroll_token: Option<&str>,
         sandbox_id: &str,
+        user_disk: Option<&std::path::Path>,
     ) -> Result<()> {
         // Boot args — network only, no secret material. Netmask is derived
         // from the configured subnet prefix so non-/16 deployments still work.
@@ -435,6 +437,23 @@ impl FirecrackerLauncher {
         vm.api_request("PUT", "/drives/rootfs", Some(&drive.to_string()))
             .await
             .context("Failed to configure drive")?;
+
+        // User-home drive (virtio-blk). The guest sees this as /dev/vdb
+        // (rootfs is /dev/vda) and `/init` mounts it on /root. Same image
+        // file a Lite sandbox of this user would loop-mount on the host;
+        // the per-user flock guarantees at most one of (VM guest, host
+        // loop) ever has it mounted, so ext4 can't be double-mounted.
+        if let Some(disk) = user_disk {
+            let userhome = serde_json::json!({
+                "drive_id": "userhome",
+                "path_on_host": disk,
+                "is_root_device": false,
+                "is_read_only": false,
+            });
+            vm.api_request("PUT", "/drives/userhome", Some(&userhome.to_string()))
+                .await
+                .context("Failed to attach user-home drive")?;
+        }
 
         // Network interface. MMDS reachability is granted later by listing
         // this iface in `/mmds/config.network_interfaces` — Firecracker ≥1.0

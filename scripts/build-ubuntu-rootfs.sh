@@ -125,6 +125,21 @@ mount -t devtmpfs devtmpfs /dev 2>/dev/null || true
 mkdir -p /dev/pts
 mount -t devpts devpts /dev/pts
 
+# Persistent $HOME on /dev/vdb (virtio-blk drive `userhome` attached by FC
+# when the sandbox has acquire_home=true). Same ext4 image a Lite sandbox
+# of this user would loop-mount on the host; the per-user host flock
+# guarantees we're the only mounter. Non-fatal: missing device → ephemeral
+# /root on the rootfs (anonymous tier path).
+if [ -b /dev/vdb ]; then
+    if mount /dev/vdb /root; then
+        echo "[init] /dev/vdb mounted on /root (persistent \$HOME)"
+    else
+        echo "[init] /dev/vdb present but mount failed; running ephemeral" >&2
+    fi
+else
+    echo "[init] no /dev/vdb; running ephemeral"
+fi
+
 # Setup networking
 ip link set lo up
 if ip link show eth0 >/dev/null 2>&1; then

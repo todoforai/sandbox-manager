@@ -135,13 +135,11 @@ impl SandboxService {
             None
         };
 
-        // Provision persistent $HOME for any authenticated caller. Lite
-        // bind-mounts it as `/root` on every exec. VMs currently have no
-        // shared-home mount (post-virtiofs removal); the dir still exists
-        // so a future virtio-blk per-user disk image can live in it. The
-        // flock taken inside the manager enforces "at most one sandbox per
-        // user owns this home", with synchronous eviction of any prior
-        // holder. Anonymous callers skip both the provision and the lock.
+        // Persistent $HOME for authenticated callers. The manager will:
+        //   1. take a flock on <user-home>/.lock (evicting any prior holder),
+        //   2. ensure <user-home>/home.img exists (sparse ext4),
+        //   3. attach it — VM as /dev/vdb, Lite as a host loop mount of /root.
+        // Anonymous callers skip steps 1–3 and get an ephemeral scratch.
         let acquire_home = !identity.is_anonymous;
         if acquire_home {
             self.user_homes.provision(&owner_id).await
@@ -280,12 +278,10 @@ impl SandboxService {
 
     /// Run argv in a lite sandbox. Standard owner check applies.
     ///
-    /// Authenticated callers get their persistent host home directory
-    /// bind-mounted as `/root` (the sandbox `$HOME`). Every CLI tool sees
-    /// a normal home with whatever creds/state the user has accumulated;
-    /// writes land directly in the persistent dir. Anonymous callers
-    /// (`identity.is_anonymous`, i.e. Better Auth `isAnonymous=1`) get an
-    /// ephemeral scratch instead — no persistent state across sandboxes.
+    /// The sandbox's `/root` was already set up at `create_sandbox` time
+    /// (either the user's persistent loop-mounted disk or an ephemeral
+    /// scratch). exec just runs argv inside bwrap; nothing tier-specific
+    /// to decide here.
     pub async fn exec_sandbox(
         &self,
         identity: &AuthIdentity,
@@ -293,14 +289,7 @@ impl SandboxService {
         argv: &[String],
     ) -> Result<ExecOutput> {
         self.assert_owner(identity, id).await?;
-        let sandbox = self.manager.get_sandbox(id).await?
-            .context("sandbox not found")?;
-        let home = if identity.is_anonymous {
-            None
-        } else {
-            Some(self.user_homes.provision(&sandbox.user_id).await?)
-        };
-        self.manager.exec_lite(id, argv, home.as_deref()).await
+        self.manager.exec_lite(id, argv).await
     }
 
     pub async fn stats(&self) -> Result<SandboxStats> {
