@@ -51,7 +51,7 @@ deploy() {
         # filter, required by cli-lite). Without this, LiteBackend logs a
         # WARN at startup and falls back to shared host net.
         echo "Syncing systemd units (sandbox-bridge, sandbox-bridge-lite)..."
-        apt-get install -y nftables >/dev/null 2>&1 || true
+        apt-get install -y nftables e2fsprogs >/dev/null 2>&1 || true
         sudo bash $DEPLOY_PATH/releases/$RELEASE/systemd/install.sh
 
         echo "Linking shared dir for ecosystem.config.js to read..."

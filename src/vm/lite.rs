@@ -144,16 +144,17 @@ impl LiteBackend {
         let mnt = self.home_mountpoint(id);
         let was_mounted = self.mounted.remove(id).map(|(_, v)| v).unwrap_or(false);
         if was_mounted {
-            // `umount -l`: lazy detach. The mount goes away from the
-            // filesystem tree immediately even if something inside still
-            // has fds open; the actual cleanup happens when those close.
-            // For Lite there shouldn't be open fds (bwrap exec is dead by
-            // the time we get here), but lazy is the safe default.
-            let status = Command::new("umount").arg("-l").arg(&mnt).status().await;
-            match status {
-                Ok(s) if s.success() => {}
-                Ok(s) => tracing::warn!("lite {}: umount -l {} exited {}", id, mnt.display(), s),
-                Err(e) => tracing::warn!("lite {}: spawn umount {}: {}", id, mnt.display(), e),
+            // Synchronous umount: bwrap exec is already dead by the time
+            // destroy runs, so there should be no open fds. Synchronous
+            // means the ext4 superblock writeout completes before we
+            // return, so a tier flip (Lite → VM evicts Lite) can hand the
+            // image to FC without racing pending writeback. Falls back to
+            // lazy on EBUSY (rare; some background kernel reader).
+            let status = Command::new("umount").arg(&mnt).status().await;
+            let ok = matches!(&status, Ok(s) if s.success());
+            if !ok {
+                tracing::warn!("lite {}: umount {} failed ({:?}); retrying lazy", id, mnt.display(), status);
+                let _ = Command::new("umount").arg("-l").arg(&mnt).status().await;
             }
         }
         let dir = self.scratch_root.join(id);

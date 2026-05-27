@@ -30,6 +30,17 @@ if [ ! -e /dev/kvm ]; then
     exit 1
 fi
 
+# e2fsprogs (mkfs.ext4) — sandbox-manager runs this on first sandbox of
+# each user to create <user-homes>/<uid>/home.img. util-linux (mount,
+# umount, mountpoint) is base; mkfs.ext4 isn't guaranteed on minimal hosts.
+if ! command -v mkfs.ext4 >/dev/null 2>&1; then
+    echo "Installing e2fsprogs (mkfs.ext4)..."
+    apt-get install -y e2fsprogs >/dev/null 2>&1 || {
+        echo "ERROR: failed to install e2fsprogs; needed for per-user home disks"
+        exit 1
+    }
+fi
+
 # Install Firecracker
 echo ""
 echo "=== Installing Firecracker ${FIRECRACKER_VERSION} ==="

@@ -30,7 +30,7 @@ const DEFAULT_USER_LIMIT: usize = 10;
 /// Logical size of each user's `$HOME` disk image (GiB). Sparse — on-disk
 /// usage is only what the user actually writes. Acts as a hard ceiling per
 /// user; ext4 inside the image will refuse writes past this.
-const USER_DISK_SIZE_GIB: u64 = 50;
+const USER_DISK_SIZE_GIB: u64 = 200;
 
 pub struct VmManager {
     config: ManagerConfig,
@@ -138,36 +138,11 @@ impl VmManager {
                 Ok(None) => continue,
                 Err(e) => { tracing::warn!("reconcile: get {} failed: {}", id, e); continue; }
             };
-            if sandbox.kind == SandboxKind::Lite {
-                // Re-acquire the per-user flock + re-mount the user's disk.
-                // Lite has no long-running process to attach to; its only
-                // persistent state is the loop mount, which is gone after
-                // manager death. The lock is also gone (fd closed with us)
-                // so it must be free now.
-                match self.user_homes.acquire_lock(&sandbox.user_id) {
-                    Ok(LockOutcome::Acquired(fd)) => { self.home_locks.insert(id.clone(), fd); }
-                    Ok(LockOutcome::Busy) => {
-                        tracing::error!("reconcile: home lock for user {} busy; lite {} unprotected",
-                            sandbox.user_id, id);
-                    }
-                    Err(e) => tracing::warn!("reconcile: acquire_lock({}): {:#}", sandbox.user_id, e),
-                }
-                // Defensive: if a stale loop mount somehow survived, drop it
-                // before re-mounting (would otherwise EBUSY).
-                self.lite.force_unmount_leftover(id).await;
-                let disk = match self.user_homes.ensure_disk(&sandbox.user_id, USER_DISK_SIZE_GIB).await {
-                    Ok(p) => Some(p),
-                    Err(e) => {
-                        tracing::error!("reconcile: ensure_disk({}) for lite {}: {:#}", sandbox.user_id, id, e);
-                        None
-                    }
-                };
-                if let Err(e) = self.lite.provision(id, disk.as_deref()).await {
-                    tracing::error!("reconcile: lite {} re-provision failed: {:#}", id, e);
-                }
-                lite += 1;
-                continue;
-            }
+            // Defer Lite reconcile to a second pass below — VMs must
+            // re-acquire their flock first so a still-running VM's image
+            // doesn't get loop-mounted by a stale Lite record sharing the
+            // same user. (Pre-flock data could have such overlap.)
+            if sandbox.kind == SandboxKind::Lite { lite += 1; continue; }
 
             let socket_path = self.launcher.socket_path_for(id);
             // Old records (pre-pid_starttime) have only `pid`. Backfill from
@@ -253,9 +228,62 @@ impl VmManager {
             }
             dead += 1;
         }
+
+        // Second pass: Lite sandboxes. By now every surviving VM has taken
+        // its user-home flock, so a Lite for the same user will see Busy
+        // and we must NOT loop-mount the image (would corrupt ext4 with the
+        // VM mounter). Lite has no long-running process so "preserving" it
+        // is purely re-establishing the host loop mount; failure just means
+        // exec will fail with a clear error until the user re-creates.
+        let mut lite_remounted = 0;
+        let mut lite_skipped = 0;
+        for id in &ids {
+            let sandbox = match self.redis.sandbox_get(id).await {
+                Ok(Some(s)) if s.kind == SandboxKind::Lite => s,
+                _ => continue,
+            };
+            match self.user_homes.acquire_lock(&sandbox.user_id) {
+                Ok(LockOutcome::Acquired(fd)) => { self.home_locks.insert(id.clone(), fd); }
+                Ok(LockOutcome::Busy) => {
+                    // A VM of the same user already holds it. Mark this
+                    // Lite as Error: two sandboxes can't coexist anyway,
+                    // and we won't be able to exec against it.
+                    tracing::error!(
+                        "reconcile: lite {} skipped — user {}'s home is held by a VM (stale duplicate?)",
+                        id, sandbox.user_id,
+                    );
+                    self.redis.sandbox_set_state(
+                        id, SandboxState::Error,
+                        Some("home held by another sandbox; delete this one"),
+                    ).await.ok();
+                    lite_skipped += 1;
+                    continue;
+                }
+                Err(e) => {
+                    tracing::warn!("reconcile: acquire_lock({}): {:#}", sandbox.user_id, e);
+                    lite_skipped += 1;
+                    continue;
+                }
+            }
+            self.lite.force_unmount_leftover(id).await;
+            let disk = match self.user_homes.ensure_disk(&sandbox.user_id, USER_DISK_SIZE_GIB).await {
+                Ok(p) => Some(p),
+                Err(e) => {
+                    tracing::error!("reconcile: ensure_disk({}) for lite {}: {:#}", sandbox.user_id, id, e);
+                    None
+                }
+            };
+            if let Err(e) = self.lite.provision(id, disk.as_deref()).await {
+                tracing::error!("reconcile: lite {} re-provision failed: {:#}", id, e);
+                lite_skipped += 1;
+            } else {
+                lite_remounted += 1;
+            }
+        }
+        let _ = lite; // counted in the VM pass; superseded by the second-pass totals
         tracing::info!(
-            "reconciled {} sandbox(es): {} VM re-attached, {} VM dead → Error, {} lite preserved",
-            ids.len(), reattached, dead, lite,
+            "reconciled {} sandbox(es): {} VM re-attached, {} VM dead → Error, {} lite re-mounted, {} lite skipped",
+            ids.len(), reattached, dead, lite_remounted, lite_skipped,
         );
 
         // Sweep stale Creating records — sandboxes whose boot was interrupted
