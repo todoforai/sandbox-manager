@@ -54,30 +54,6 @@ deploy() {
         apt-get install -y nftables >/dev/null 2>&1 || true
         sudo bash $DEPLOY_PATH/releases/$RELEASE/systemd/install.sh
 
-        # Ensure virtiofsd is on PATH — sandbox-manager refuses to start
-        # without it (vm::virtiofs::which_virtiofsd bails). Idempotent.
-        # Note: virtiofsd 'releases' on gitlab don't have asset links, only
-        # source-code archives. The binary zip is hosted as a /uploads/
-        # attachment (URL discovered via the release API). Pin the exact
-        # asset path; bump alongside VFSD_VERSION.
-        if ! command -v virtiofsd >/dev/null 2>&1; then
-            VFSD_VERSION=v1.10.1
-            VFSD_URL="https://gitlab.com/virtio-fs/virtiofsd/uploads/2cf9068046720699531407101f2bcb60/virtiofsd-\${VFSD_VERSION}.zip"
-            echo "Installing virtiofsd \$VFSD_VERSION..."
-            apt-get install -y unzip >/dev/null 2>&1 || true
-            # -fSL: fail on HTTP error, follow redirects, no progress bar
-            # noise. unzip below is the authoritative check that the
-            # content is actually a zip.
-            curl -fSL "\$VFSD_URL" -o /tmp/virtiofsd.zip
-            rm -rf /tmp/virtiofsd-unpack && mkdir /tmp/virtiofsd-unpack
-            unzip -q /tmp/virtiofsd.zip -d /tmp/virtiofsd-unpack
-            VFSD_BIN=\$(find /tmp/virtiofsd-unpack -name virtiofsd -type f -perm -111 | head -1)
-            [ -n "\$VFSD_BIN" ] || { echo "ERROR: virtiofsd binary not in release zip"; exit 1; }
-            sudo install -m 0755 "\$VFSD_BIN" /usr/local/bin/virtiofsd
-            rm -rf /tmp/virtiofsd.zip /tmp/virtiofsd-unpack
-            virtiofsd --version
-        fi
-
         echo "Linking shared dir for ecosystem.config.js to read..."
         ln -sfn $DEPLOY_PATH/shared $DEPLOY_PATH/releases/$RELEASE/shared
 

@@ -1,22 +1,23 @@
 //! Per-user persistent HOME for sandboxes.
 //!
 //! Each user gets one directory at `<root>/<user_id>/` that **is** their
-//! `$HOME` for every sandbox they ever run. No subpaths, no filtering, no
-//! schema — the home is the home, bit for bit.
+//! `$HOME` for every sandbox they run. Lite sandboxes bind this directory
+//! directly as `/root` on every exec.
 //!
-//! - Lite sandboxes bind this directory directly as `/root` (their `$HOME`).
-//!   Writes land in the persistent host tree immediately; reads see whatever
-//!   the user's tools have produced anywhere else.
-//! - VM sandboxes share the SAME directory live via virtio-fs (no copy,
-//!   no boot drain). `virtiofsd` exports `<root>/<user_id>/`, the guest
-//!   mounts it as `/root`. Bit for bit identical to what Lite sees; rotate
-//!   Lite↔VM with no transition step. See `vm::virtiofs`.
+//! ## Exclusivity
 //!
-//! Anonymous callers (Better Auth `isAnonymous=1`) get no persistent home
-//! — their sandbox is a clean ephemeral scratch (handled by the lite
-//! backend's default). The anonymous decision is made in the service
-//! layer based on `AuthIdentity::is_anonymous`, not on `user_id`.
+//! At most one sandbox per user may "hold" the home directory at any time.
+//! Enforced by a per-user `flock(LOCK_EX|LOCK_NB)` on `<root>/<user_id>/.lock`,
+//! acquired in [`UserHomeStore::acquire_lock`]. The returned `OwnedFd` lives
+//! on the in-memory [`VmManager`] state for the sandbox; dropping it (sandbox
+//! delete, manager process exit) releases the kernel lock automatically.
+//!
+//! Anonymous callers (Better Auth `isAnonymous=1`) get no persistent home —
+//! their sandbox is a clean ephemeral scratch (handled by the lite backend's
+//! default). The anonymous decision is made in the service layer based on
+//! `AuthIdentity::is_anonymous`, not on `user_id`.
 
+use std::os::fd::{AsRawFd, OwnedFd};
 use std::path::{Path, PathBuf};
 
 use anyhow::{Context, Result};
@@ -25,6 +26,14 @@ use anyhow::{Context, Result};
 pub struct UserHomeStore {
     /// Root dir. Each user gets `<root>/<user_id>/`.
     root: PathBuf,
+}
+
+/// Result of trying to acquire a user-home lock. `Busy` means another
+/// sandbox of this user already holds the home; caller must evict it
+/// (delete the existing sandbox) and retry.
+pub enum LockOutcome {
+    Acquired(OwnedFd),
+    Busy,
 }
 
 impl UserHomeStore {
@@ -47,6 +56,37 @@ impl UserHomeStore {
         tokio::fs::create_dir_all(&dir).await
             .with_context(|| format!("create user home {dir:?}"))?;
         Ok(dir)
+    }
+
+    /// Try to take exclusive ownership of the user's home for a sandbox.
+    /// Non-blocking: returns `Busy` immediately if another sandbox-manager-
+    /// owned fd already holds the lock. Caller must call [`Self::provision`]
+    /// first so the lock file's parent dir exists.
+    ///
+    /// The returned `OwnedFd` must outlive the sandbox; dropping it releases
+    /// the kernel lock (also released automatically on process death).
+    pub fn acquire_lock(&self, user_id: &str) -> Result<LockOutcome> {
+        let lock_path = self.home_dir(user_id)?.join(".lock");
+        let file = std::fs::OpenOptions::new()
+            .create(true)
+            .read(true)
+            .write(true)
+            .truncate(false)
+            .open(&lock_path)
+            .with_context(|| format!("open lock file {lock_path:?}"))?;
+        let fd: OwnedFd = file.into();
+        // flock(LOCK_EX|LOCK_NB): exclusive, non-blocking. EWOULDBLOCK ==
+        // another sandbox-manager fd holds it. Lock is fd-scoped: closing
+        // the fd (or the process dying) releases it.
+        let rc = unsafe { libc::flock(fd.as_raw_fd(), libc::LOCK_EX | libc::LOCK_NB) };
+        if rc == 0 {
+            return Ok(LockOutcome::Acquired(fd));
+        }
+        let err = std::io::Error::last_os_error();
+        if err.raw_os_error() == Some(libc::EWOULDBLOCK) {
+            return Ok(LockOutcome::Busy);
+        }
+        Err(err).with_context(|| format!("flock {lock_path:?}"))
     }
 
     /// Best-effort recursive delete. Called when a user account is removed.
@@ -150,5 +190,29 @@ mod tests {
         assert!(store.provision("../escape").await.is_err());
         let parent = tmp.path().parent().unwrap();
         assert!(!parent.join("escape").exists());
+    }
+
+    #[tokio::test]
+    async fn lock_is_exclusive() {
+        let tmp = tempfile::tempdir().unwrap();
+        let store = UserHomeStore::new(tmp.path().to_path_buf());
+        store.provision("dave").await.unwrap();
+        let LockOutcome::Acquired(fd1) = store.acquire_lock("dave").unwrap() else { panic!("expected Acquired") };
+        // Second try must report Busy.
+        assert!(matches!(store.acquire_lock("dave").unwrap(), LockOutcome::Busy));
+        // Drop the first fd → lock released → next acquire succeeds.
+        drop(fd1);
+        assert!(matches!(store.acquire_lock("dave").unwrap(), LockOutcome::Acquired(_)));
+    }
+
+    #[tokio::test]
+    async fn lock_is_per_user() {
+        let tmp = tempfile::tempdir().unwrap();
+        let store = UserHomeStore::new(tmp.path().to_path_buf());
+        store.provision("eve").await.unwrap();
+        store.provision("frank").await.unwrap();
+        let _e = store.acquire_lock("eve").unwrap();
+        // Different user's lock is independent.
+        assert!(matches!(store.acquire_lock("frank").unwrap(), LockOutcome::Acquired(_)));
     }
 }

@@ -93,22 +93,6 @@ pub struct Sandbox {
     /// template's `rootfs.ext4`). VM only. Removed on sandbox delete.
     #[serde(default)]
     pub rootfs_overlay: Option<PathBuf>,
-
-    /// Host path of the user's persistent home dir, shared into the VM via
-    /// virtio-fs (mounted as /root inside the guest). Same dir Lite binds.
-    /// `None` for anonymous callers or templates that opt out of sharing.
-    /// Recorded so `delete_sandbox` can drop the right virtiofsd handle
-    /// without re-deriving the path.
-    #[serde(default)]
-    pub user_home_host_path: Option<PathBuf>,
-
-    /// virtiofsd process pid + starttime, paired with `user_home_host_path`.
-    /// Same identity scheme as `pid` / `pid_starttime` for Firecracker: lets
-    /// us kill the right process across manager restart without PID-reuse risk.
-    #[serde(default)]
-    pub virtiofsd_pid: Option<u32>,
-    #[serde(default)]
-    pub virtiofsd_pid_starttime: Option<u64>,
 }
 
 impl Sandbox {
@@ -130,9 +114,6 @@ impl Sandbox {
             error: None,
             device_id: None,
             rootfs_overlay: None,
-            user_home_host_path: None,
-            virtiofsd_pid: None,
-            virtiofsd_pid_starttime: None,
         }
     }
 

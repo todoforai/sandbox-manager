@@ -30,34 +30,6 @@ if [ ! -e /dev/kvm ]; then
     exit 1
 fi
 
-# Install virtiofsd (Rust rewrite — small static binary, ~5MB)
-echo ""
-echo "=== Installing virtiofsd ==="
-VIRTIOFSD_VERSION="${VIRTIOFSD_VERSION:-v1.10.1}"
-if command -v virtiofsd &>/dev/null; then
-    echo "virtiofsd already installed: $(virtiofsd --version 2>&1 | head -1)"
-else
-    # The virtiofsd 'release' on gitlab has no asset links — only source
-    # archives. The actual binary zip is a /uploads/ attachment (URL
-    # discovered via release API). Pin the path; bump alongside the
-    # version. See deploy.sh for the same pattern.
-    VFSD_URL="https://gitlab.com/virtio-fs/virtiofsd/uploads/2cf9068046720699531407101f2bcb60/virtiofsd-${VIRTIOFSD_VERSION}.zip"
-    echo "Downloading ${VFSD_URL}..."
-    # -fSL: fail loudly on HTTP errors instead of silently writing the
-    # 404 HTML to virtiofsd.zip and confusing unzip downstream.
-    curl -fSL "${VFSD_URL}" -o /tmp/virtiofsd.zip
-    rm -rf /tmp/virtiofsd-unpack && mkdir /tmp/virtiofsd-unpack
-    unzip -q /tmp/virtiofsd.zip -d /tmp/virtiofsd-unpack
-    VFSD_BIN=$(find /tmp/virtiofsd-unpack -name virtiofsd -type f -perm -111 | head -1)
-    if [ -z "$VFSD_BIN" ]; then
-        echo "ERROR: virtiofsd binary not found inside ${VFSD_URL}"
-        exit 1
-    fi
-    install -m 0755 "$VFSD_BIN" "${INSTALL_DIR}/virtiofsd"
-    rm -rf /tmp/virtiofsd.zip /tmp/virtiofsd-unpack
-    echo "Installed: $(virtiofsd --version 2>&1 | head -1)"
-fi
-
 # Install Firecracker
 echo ""
 echo "=== Installing Firecracker ${FIRECRACKER_VERSION} ==="

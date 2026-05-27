@@ -50,11 +50,6 @@ make tinyconfig
 ./scripts/config --enable CONFIG_SQUASHFS
 ./scripts/config --enable CONFIG_SQUASHFS_ZSTD
 ./scripts/config --enable CONFIG_FUSE_FS
-# virtio-fs — shared-host directory mounted into the guest. Used by
-# sandbox-manager to expose the per-user persistent home (same bytes the
-# Lite tier sees) into the VM as /root. Selects FUSE_FS (already on)
-# and VIRTIO (already on).
-./scripts/config --enable CONFIG_VIRTIO_FS
 ./scripts/config --enable CONFIG_OVERLAY_FS
 ./scripts/config --enable CONFIG_TMPFS
 ./scripts/config --enable CONFIG_PROC_FS

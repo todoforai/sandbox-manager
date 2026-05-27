@@ -61,7 +61,7 @@ async fn main() -> Result<()> {
         .with_context(|| format!("create user homes root {}", user_homes_root.display()))?;
     tracing::info!("User homes root: {}", user_homes_root.display());
     let user_homes = service::user_home::UserHomeStore::new(user_homes_root);
-    let manager = Arc::new(VmManager::new(config, redis.clone()).await?);
+    let manager = Arc::new(VmManager::new(config, redis.clone(), user_homes.clone()).await?);
 
     let backend = backend::BackendClient::from_env()?;
     tracing::info!("Backend client configured");
