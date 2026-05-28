@@ -119,6 +119,75 @@ impl VmManager {
         Ok(manager)
     }
 
+    /// Mark a dead VM's sandbox as Error and release its host resources.
+    /// Redis state is flipped *first* so the source of truth becomes correct
+    /// even if host-resource cleanup later fails; the next sweep won't
+    /// re-process this id because Error is not in `sandbox:active`.
+    /// `sandbox_set_state` is now a no-op if the record was deleted
+    /// concurrently (see redis.rs), so this is safe to call against a
+    /// possibly-racing `delete_sandbox`.
+    async fn mark_vm_dead(&self, sandbox: &Sandbox, reason: &str) {
+        let id = &sandbox.id;
+        if let Err(e) = self.redis.sandbox_set_state(id, SandboxState::Error, Some(reason)).await {
+            tracing::warn!("mark_vm_dead({}): set_state Error failed: {}", id, e);
+        }
+        tracing::error!(sandbox_id = %id, user_id = %sandbox.user_id, pid = ?sandbox.pid,
+            "VM dead → Error: {}", reason);
+        self.vms.remove(id);
+        self.home_locks.remove(id);
+        if let Some(ref tap) = sandbox.tap_device {
+            if let Err(e) = self.network.destroy_tap(tap) {
+                tracing::warn!("mark_vm_dead({}): destroy_tap({}) failed: {:#}", id, tap, e);
+            }
+        }
+        if let Some(ip) = sandbox.ip_address {
+            self.release_ip_if_owner(ip, id).await;
+        }
+        std::fs::remove_file(self.launcher.socket_path_for(id)).ok();
+    }
+
+    /// Periodic liveness sweep: for every sandbox in `sandbox:active`, verify
+    /// the recorded `(pid, starttime)` still names a live, non-zombie process.
+    /// Anything that fails is run through `mark_vm_dead`. Cheap — one Redis
+    /// SMEMBERS, one GET per id, one `/proc/<pid>/stat` read per VM. No
+    /// socket I/O (a wedged-but-running FC is rare; add a probe later if
+    /// it bites). Lite sandboxes have no long-lived process and are skipped.
+    ///
+    /// Both Running and Paused VMs are checked: `sandbox:active` includes
+    /// both, and a paused Firecracker can still die (OOM, manual kill).
+    pub async fn reconcile_active_vms(&self) -> Result<usize> {
+        let ids = self.redis.sandbox_active_ids().await?;
+        let mut dead = 0;
+        for id in ids {
+            let sandbox = match self.redis.sandbox_get(&id).await {
+                Ok(Some(s)) => s,
+                Ok(None) => continue,
+                Err(e) => { tracing::warn!("reconcile_active_vms: get {} failed: {}", id, e); continue; }
+            };
+            if sandbox.kind != SandboxKind::Vm { continue }
+            if !matches!(sandbox.state, SandboxState::Running | SandboxState::Paused) { continue }
+            // Active VM without pid identity = corrupt/legacy record we
+            // cannot verify. Same verdict as a dead process: mark Error so
+            // the user can delete + recreate. Backfilling from /proc here
+            // (like startup does) would require also probing the API socket
+            // to avoid trusting an unrelated process — out of scope for the
+            // hot loop.
+            let (Some(pid), Some(st)) = (sandbox.pid, sandbox.pid_starttime) else {
+                self.mark_vm_dead(&sandbox, "active VM has no pid/pid_starttime — unverifiable").await;
+                dead += 1;
+                continue;
+            };
+            let alive = FirecrackerVm::attach(pid, st, self.launcher.socket_path_for(&id))
+                .map(|vm| vm.is_alive())
+                .unwrap_or(false);
+            if !alive {
+                self.mark_vm_dead(&sandbox, "Firecracker process gone (crashed, killed, or host rebooted)").await;
+                dead += 1;
+            }
+        }
+        Ok(dead)
+    }
+
     /// On startup, re-attach to every still-running Firecracker. Because VMs
     /// are spawned detached (`setsid` + dropped Child), they survive manager
     /// restarts. Re-attach requires:
@@ -132,6 +201,7 @@ impl VmManager {
         if ids.is_empty() { return Ok(()) }
 
         let (mut reattached, mut dead, mut lite) = (0, 0, 0);
+        let mut busy_lite: Vec<(String, String)> = Vec::new(); // (sandbox_id, user_id) deferred for post-pass retry
         for id in &ids {
             let sandbox = match self.redis.sandbox_get(id).await {
                 Ok(Some(s)) => s,
@@ -154,21 +224,20 @@ impl VmManager {
                     continue;
                 }
                 match self.user_homes.acquire_lock(&sandbox.user_id) {
-                    Ok(LockOutcome::Acquired(fd)) => { self.home_locks.insert(id.clone(), fd); }
-                    Ok(LockOutcome::Busy) => tracing::error!(
-                        "reconcile: home lock for user {} busy; lite {} unprotected",
-                        sandbox.user_id, id,
-                    ),
+                    Ok(LockOutcome::Acquired(fd)) => {
+                        self.home_locks.insert(id.clone(), fd);
+                        self.lite_reattach(id, &sandbox.user_id).await;
+                        lite += 1;
+                    }
+                    Ok(LockOutcome::Busy) => {
+                        // Rolling deploy: previous sandbox-manager still
+                        // holds the lock + the mount. We MUST NOT mount
+                        // the same image now — would double-mount ext4.
+                        // Defer to the post-pass retry below.
+                        busy_lite.push((id.clone(), sandbox.user_id.clone()));
+                    }
                     Err(e) => tracing::warn!("reconcile: acquire_lock({}): {:#}", sandbox.user_id, e),
                 }
-                self.lite.force_unmount_leftover(id).await;
-                let disk = self.user_homes.ensure_disk(&sandbox.user_id, USER_DISK_SIZE_GIB).await
-                    .map_err(|e| tracing::error!("reconcile: ensure_disk({}): {:#}", sandbox.user_id, e))
-                    .ok();
-                if let Err(e) = self.lite.provision(id, disk.as_deref()).await {
-                    tracing::error!("reconcile: lite {} re-provision failed: {:#}", id, e);
-                }
-                lite += 1;
                 continue;
             }
 
@@ -256,6 +325,40 @@ impl VmManager {
             }
             dead += 1;
         }
+
+        // Post-pass: retry the Lite sandboxes whose lock was busy on the
+        // first try (rolling-deploy window). One sleep covers all of them;
+        // poll once per second up to 30s. Total worst-case startup delay:
+        // 30s regardless of N users. As soon as every busy lock is taken
+        // (or we time out) we exit the wait loop.
+        if !busy_lite.is_empty() {
+            tracing::info!("reconcile: {} lite sandbox(es) busy, waiting for previous process to release locks...", busy_lite.len());
+            let mut remaining = busy_lite;
+            'wait: for _ in 0..30 {
+                tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+                let mut still_busy = Vec::with_capacity(remaining.len());
+                for (sid, uid) in remaining.drain(..) {
+                    match self.user_homes.acquire_lock(&uid) {
+                        Ok(LockOutcome::Acquired(fd)) => {
+                            self.home_locks.insert(sid.clone(), fd);
+                            self.lite_reattach(&sid, &uid).await;
+                            lite += 1;
+                        }
+                        Ok(LockOutcome::Busy) => still_busy.push((sid, uid)),
+                        Err(e) => tracing::warn!("reconcile retry: acquire_lock({}): {:#}", uid, e),
+                    }
+                }
+                if still_busy.is_empty() { break 'wait; }
+                remaining = still_busy;
+            }
+            for (sid, uid) in remaining {
+                tracing::error!(
+                    "reconcile: home lock for user {} still busy after 30s; lite {} unprotected",
+                    uid, sid,
+                );
+            }
+        }
+
         tracing::info!(
             "reconciled {} sandbox(es): {} VM re-attached, {} VM dead → Error, {} lite re-mounted",
             ids.len(), reattached, dead, lite,
@@ -511,6 +614,20 @@ impl VmManager {
             self.redis.sandbox_inc_created().await.ok();
         }
         Ok(sandbox)
+    }
+
+    /// Re-establish the Lite loop mount + ensure the user's disk exists.
+    /// Called from reconcile after the per-user home flock has been taken
+    /// (either in the first pass or the deferred retry). Caller is
+    /// responsible for the flock; this just does the on-disk work.
+    async fn lite_reattach(&self, sandbox_id: &str, user_id: &str) {
+        self.lite.force_unmount_leftover(sandbox_id).await;
+        let disk = self.user_homes.ensure_disk(user_id, USER_DISK_SIZE_GIB).await
+            .map_err(|e| tracing::error!("reconcile: ensure_disk({}): {:#}", user_id, e))
+            .ok();
+        if let Err(e) = self.lite.provision(sandbox_id, disk.as_deref()).await {
+            tracing::error!("reconcile: lite {} re-provision failed: {:#}", sandbox_id, e);
+        }
     }
 
     /// Take the user's home flock, evicting an existing holder (one of this
