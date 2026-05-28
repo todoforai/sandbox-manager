@@ -111,14 +111,20 @@ deploy() {
         DEPLOY_PORT=\$NEW_PORT pm2 start ecosystem.config.js --env production
         pm2 save --force
 
-        # Wait for new instance to be healthy before touching nginx
+        # Wait for new instance to be healthy before touching nginx.
+        # Reconcile can block the HTTP server for tens of seconds when:
+        #   - old instance still holds N lite flocks (we wait up to 10s
+        #     for them, see VmManager::reconcile)
+        #   - we have to loop-mount hundreds of user home disks via
+        #     scripts/lite-mount-home.sh (each mount ~20ms in practice)
+        # 90s budget covers both at current scale (~300 sandboxes).
         echo "Waiting for new instance..."
-        for i in \$(seq 1 30); do
+        for i in \$(seq 1 90); do
             if curl -sf http://127.0.0.1:\$NEW_PORT/health >/dev/null 2>&1; then
-                echo "✅ New instance healthy on port \$NEW_PORT"
+                echo "✅ New instance healthy on port \$NEW_PORT (after \${i}s)"
                 break
             fi
-            [ \$i -eq 30 ] && { echo "❌ New instance failed to start!"; pm2 logs sandbox-manager-\$NEW_PORT --lines 40 --nostream; exit 1; }
+            [ \$i -eq 90 ] && { echo "❌ New instance failed to start!"; pm2 logs sandbox-manager-\$NEW_PORT --lines 40 --nostream; exit 1; }
             sleep 1
         done
 
