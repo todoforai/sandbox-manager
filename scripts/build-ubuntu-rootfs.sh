@@ -495,6 +495,17 @@ umount "$ROOTFS_DIR/proc"
 umount "$ROOTFS_DIR/dev"
 trap - EXIT
 
+# Static device nodes the kernel needs to *start* /init.
+# devtmpfs gets remounted over /dev inside /init, but before /init runs the
+# kernel opens /dev/console (and stdin/stdout/stderr point at it) — if the
+# node is missing exec("/init") fails with ENOENT, surfacing as the very
+# confusing "Requested init /init failed (error -2)" panic. mkfs.ext4 -d
+# copies these into the image as real device nodes (it preserves type/major/minor).
+mknod -m 622 "$ROOTFS_DIR/dev/console" c 5 1
+mknod -m 666 "$ROOTFS_DIR/dev/null"    c 1 3
+mknod -m 666 "$ROOTFS_DIR/dev/zero"    c 1 5
+mknod -m 666 "$ROOTFS_DIR/dev/tty"     c 5 0
+
 # Create ext4 image
 echo "Creating ext4 image ($SIZE_MB MB)..."
 dd if=/dev/zero of="$OUTPUT" bs=1M count="$SIZE_MB" status=progress
@@ -518,6 +529,13 @@ for bin in /usr/bin/bash /usr/bin/curl /usr/bin/wget /usr/bin/jq \
            /etc/sandbox-tools.txt /etc/sandbox-manifest.json /init; do
     if [ ! -e "$VERIFY_MNT$bin" ]; then
         echo "FAIL: $bin missing from image" >&2
+        exit 1
+    fi
+done
+# Device-node sanity: missing /dev/console = kernel can't start /init.
+for node in /dev/console /dev/null /dev/zero /dev/tty; do
+    if [ ! -c "$VERIFY_MNT$node" ]; then
+        echo "FAIL: $node missing or not a char device in image" >&2
         exit 1
     fi
 done

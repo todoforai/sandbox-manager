@@ -5,9 +5,10 @@
 # via shared/.env).
 #
 # Usage:
-#   ./scripts/build-templates.sh           # build both: ubuntu-base + cli-lite
-#   ./scripts/build-templates.sh ubuntu    # only ubuntu-base (rootfs + kernel)
-#   ./scripts/build-templates.sh cli       # only cli-lite
+#   ./scripts/build-templates.sh                 # build both: ubuntu-base + cli-lite
+#   ./scripts/build-templates.sh ubuntu          # only ubuntu-base (rootfs + kernel)
+#   ./scripts/build-templates.sh cli             # only cli-lite
+#   ./scripts/build-templates.sh ubuntu --force  # force rebuild even if vmlinux is fresh
 #
 # Side effects:
 #   $TEMPLATES_DIR/ubuntu-base/{rootfs.ext4,vmlinux}
@@ -33,7 +34,16 @@ else
     TEMPLATES_DIR="$DATA_DIR/templates"
 fi
 export DATA_DIR TEMPLATES_DIR
-TARGET="${1:-all}"
+
+TARGET="all"
+FORCE=0
+for arg in "$@"; do
+    case "$arg" in
+        --force|-f) FORCE=1 ;;
+        ubuntu|cli|all) TARGET="$arg" ;;
+        *) echo "usage: $0 [ubuntu|cli|all] [--force]" >&2; exit 2 ;;
+    esac
+done
 
 # Bridge binary preflight — fail clearly before slow apt/debootstrap work.
 # build-ubuntu-rootfs.sh needs $BRIDGE_BIN (or a sibling ../bridge checkout
@@ -59,12 +69,20 @@ build_ubuntu() {
     OUTPUT="$TMP/rootfs.ext4" "$SCRIPT_DIR/build-ubuntu-rootfs.sh"
     mv "$TMP/rootfs.ext4" "$out_dir/rootfs.ext4"
 
-    if [ -f "$out_dir/vmlinux" ]; then
-        echo "==> vmlinux already present, skipping kernel build (delete to force rebuild)"
+    # Stamp vmlinux with the sha256 of build-kernel.sh so we rebuild whenever
+    # the kernel config recipe changes (the old `[ -f vmlinux ]` skip silently
+    # shipped stale binaries across config changes — see commit bb4b8ed).
+    local kbuild_hash stamp_file
+    kbuild_hash=$(sha256sum "$SCRIPT_DIR/build-kernel.sh" | awk '{print $1}')
+    stamp_file="$out_dir/vmlinux.kbuild-sha256"
+    if [ "$FORCE" -eq 0 ] && [ -f "$out_dir/vmlinux" ] \
+       && [ "$(cat "$stamp_file" 2>/dev/null || true)" = "$kbuild_hash" ]; then
+        echo "==> vmlinux up to date (build-kernel.sh sha256 matches), skipping kernel build"
         return
     fi
     echo "==> building kernel into $out_dir/vmlinux"
     ( cd "$TMP" && OUTPUT="$out_dir/vmlinux" "$SCRIPT_DIR/build-kernel.sh" )
+    echo "$kbuild_hash" > "$stamp_file"
 }
 
 build_cli() {
@@ -77,7 +95,6 @@ case "$TARGET" in
     ubuntu)  build_ubuntu ;;
     cli)     build_cli ;;
     all)     build_ubuntu; build_cli ;;
-    *) echo "usage: $0 [ubuntu|cli|all]" >&2; exit 2 ;;
 esac
 
 echo
