@@ -104,7 +104,13 @@ deploy() {
         STREAM_CONF=/etc/nginx/streams-available/sandbox-noise-stream.conf
 
         echo "Starting new instance on port \$NEW_PORT..."
-        DEPLOY_PORT=\$NEW_PORT pm2 start ecosystem.config.js --env production
+        # NODE_ENV must be set in the shell env *during config evaluation*,
+        # not just via --env production (which only swaps env_production
+        # inside app blocks). ecosystem.config.js reads NODE_ENV at top
+        # level to gate the dev-only webApp entry; without this it tries
+        # to start the dev web server with \`bun\` (not installed in prod)
+        # and PM2 returns non-zero, aborting the deploy mid-drain.
+        NODE_ENV=production DEPLOY_PORT=\$NEW_PORT pm2 start ecosystem.config.js --env production
         pm2 save --force
 
         # Wait for new instance to be healthy before touching nginx
@@ -213,7 +219,7 @@ rollback() {
 
         # Start rollback on the inactive port first
         cd $DEPLOY_PATH/current
-        DEPLOY_PORT=$ROLLBACK_PORT pm2 start ecosystem.config.js --env production
+        NODE_ENV=production DEPLOY_PORT=$ROLLBACK_PORT pm2 start ecosystem.config.js --env production
         pm2 save --force
 
         # Wait healthy before touching nginx
