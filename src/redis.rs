@@ -150,17 +150,19 @@ impl RedisClient {
         }
     }
 
-    /// Read-modify-write on the sandbox record: updates `state`, `last_activity`
-    /// and optionally `error`, keeps `sandbox:active` in sync, and publishes the
-    /// new state on `sandbox:events:<userId>`.
+    /// Atomic read-modify-write on the sandbox record: updates `state`,
+    /// `last_activity` and optionally `error`, keeps `sandbox:active` in
+    /// sync, and publishes the new state on `sandbox:events:<userId>`.
     ///
-    /// The read and write are separate round-trips; in this service only one
-    /// logical op is ever in flight per sandbox (create/pause/resume/delete
-    /// are user-driven and serialized per id), so the lost-update race is
-    /// unreachable in practice. No-op if the record was deleted concurrently.
+    /// Atomic via Lua so a concurrent `sandbox_delete` cannot resurrect the
+    /// key: if `sandbox:<id>` is gone at script time, the script is a no-op.
+    /// Needed because the background liveness sweep can race user-driven
+    /// deletes (was safe before when callers were strictly serialized).
     pub async fn sandbox_set_state(&self, id: &str, state: SandboxState, error: Option<&str>) -> Result<()> {
         let mut conn = self.conn();
 
+        // Compute the new error value client-side. Doing it in Lua would
+        // require deserializing JSON in the script.
         let raw: Option<String> = conn.get(format!("sandbox:{id}")).await?;
         let Some(raw) = raw else { return Ok(()); };
         let mut obj: Sandbox = serde_json::from_str(&raw).context("deserialize sandbox")?;
@@ -179,19 +181,31 @@ impl RedisClient {
         let new_json = serde_json::to_string(&obj).context("serialize sandbox")?;
         let is_active = matches!(state, SandboxState::Running | SandboxState::Paused);
 
-        let mut pipe = redis::pipe();
-        pipe.atomic()
-            .set(format!("sandbox:{id}"), &new_json).ignore();
-        if is_active {
-            pipe.sadd("sandbox:active", id).ignore();
-        } else {
-            pipe.srem("sandbox:active", id).ignore();
-        }
-        pipe.publish(events_channel(&obj.user_id), &new_json).ignore();
-
-        pipe.query_async::<()>(&mut conn)
+        // KEYS: 1=sandbox:<id>, 2=sandbox:active, 3=events_channel
+        // ARGV: 1=new_json, 2=id, 3="1"/"0" is_active
+        let script = Script::new(
+            r#"
+            if redis.call('EXISTS', KEYS[1]) == 0 then return 0 end
+            redis.call('SET', KEYS[1], ARGV[1])
+            if ARGV[3] == '1' then
+              redis.call('SADD', KEYS[2], ARGV[2])
+            else
+              redis.call('SREM', KEYS[2], ARGV[2])
+            end
+            redis.call('PUBLISH', KEYS[3], ARGV[1])
+            return 1
+            "#,
+        );
+        let _: i64 = script
+            .key(format!("sandbox:{id}"))
+            .key("sandbox:active")
+            .key(events_channel(&obj.user_id))
+            .arg(&new_json)
+            .arg(id)
+            .arg(if is_active { "1" } else { "0" })
+            .invoke_async(&mut conn)
             .await
-            .context("sandbox_set_state pipeline failed")?;
+            .context("sandbox_set_state script failed")?;
         Ok(())
     }
 

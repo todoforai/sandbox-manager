@@ -92,6 +92,31 @@ async fn main() -> Result<()> {
         }
     });
 
+    // Periodic VM liveness sweep. The reaper above only collects zombies;
+    // it never updates Redis. Without this loop, a Firecracker that dies
+    // mid-session leaves Redis stuck on `Running` until the next manager
+    // restart or user action. Source of truth = `sandbox:active`; for each
+    // running VM, check `(pid, starttime)` against /proc — anything gone
+    // → mark Error + free TAP/IP. Cheap (~µs per VM), no socket I/O.
+    let reconcile_manager = manager.clone();
+    // Clamp to >=1: tokio::time::interval panics on Duration::ZERO and that
+    // would kill the spawned task silently (JoinHandle is dropped).
+    let reconcile_interval = std::env::var("VM_RECONCILE_INTERVAL_SECS")
+        .ok().and_then(|s| s.parse().ok()).unwrap_or(10u64).max(1);
+    tracing::info!("VM liveness reconcile interval: {}s", reconcile_interval);
+    tokio::spawn(async move {
+        let mut tick = tokio::time::interval(std::time::Duration::from_secs(reconcile_interval));
+        tick.tick().await; // skip immediate tick — startup reconcile already ran
+        loop {
+            tick.tick().await;
+            match reconcile_manager.reconcile_active_vms().await {
+                Ok(0) => {}
+                Ok(n) => tracing::warn!("periodic reconcile: {} VM(s) found dead → Error", n),
+                Err(e) => tracing::error!("periodic reconcile failed: {:#}", e),
+            }
+        }
+    });
+
     // No background idle cleanup. Lifecycle is fully user-driven:
     //   - VMs run until owner/admin explicitly deletes them. Never auto-paused.
     //   - Lite sandboxes are stateless: each `exec` is a fresh bwrap that exits

@@ -628,4 +628,48 @@ mod tests {
         let raw = "1234 (firecracker) Z 1 1 1 0 -1 0 0 0 0 0 0 0 0 0 0 0 1 0 999 rest...\n";
         assert_eq!(parse_proc_stat(raw), Some((999, 'Z')));
     }
+
+    /// End-to-end test for the only liveness signal the periodic reconciler
+    /// trusts: spawn a real process, attach, kill it, observe is_alive flip.
+    /// No Firecracker / KVM needed — `is_alive` only reads `/proc/<pid>/stat`.
+    #[test]
+    fn is_alive_tracks_real_process_death() {
+        // Long-running child we can identify by pid + starttime.
+        let mut child = std::process::Command::new("sleep")
+            .arg("30")
+            .spawn()
+            .expect("spawn sleep");
+        let pid = child.id();
+        let starttime = read_proc_starttime(pid).expect("read starttime of live child");
+
+        // Socket path is unused by is_alive(); any path works.
+        let vm = FirecrackerVm::attach(pid, starttime, "/tmp/unused.sock".into())
+            .expect("attach to live process");
+        assert!(vm.is_alive(), "freshly-spawned process should be alive");
+
+        // Kill + reap → /proc/<pid>/ disappears.
+        child.kill().expect("SIGKILL");
+        child.wait().expect("reap");
+
+        assert!(!vm.is_alive(), "dead process must report not alive");
+        assert!(FirecrackerVm::attach(pid, starttime, "/tmp/unused.sock".into()).is_none(),
+            "attach must refuse a gone pid");
+    }
+
+    /// PID-reuse defense: if a different process ends up with the same PID
+    /// later, the starttime mismatch must make is_alive return false even
+    /// though /proc/<pid>/ exists. We can't force PID reuse deterministically,
+    /// so we simulate it by recording one process's pid with a wrong starttime.
+    #[test]
+    fn is_alive_rejects_pid_reuse() {
+        let mut child = std::process::Command::new("sleep").arg("30").spawn().expect("spawn");
+        let pid = child.id();
+        let real_st = read_proc_starttime(pid).expect("starttime");
+
+        let vm = FirecrackerVm::attach(pid, real_st.wrapping_add(1), "/tmp/unused.sock".into());
+        assert!(vm.is_none(), "attach must reject pid with mismatched starttime");
+
+        child.kill().ok();
+        child.wait().ok();
+    }
 }
