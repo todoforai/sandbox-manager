@@ -33,7 +33,13 @@ const logDir = process.env.PM2_LOG_DIR
 // entries override earlier ones.
 const baseDir = __dirname;
 const sharedDir = path.join(baseDir, 'shared');
-const isProd = process.env.NODE_ENV === 'production';
+// Prod detection MUST NOT depend on process.env. PM2's daemon evaluates this
+// file in *its own* env, not the caller's, so `NODE_ENV=production pm2 start`
+// from the deploy script does not reach here. Instead, detect prod via path:
+// deploys live under /var/www/, dev checkouts don't. Falls back to NODE_ENV
+// for anyone running this from a non-standard location.
+const isProd = baseDir.startsWith('/var/www/')
+  || process.env.NODE_ENV === 'production';
 const envFromDisk = {
   ...loadEnvFile(path.join(baseDir, isProd ? '.env' : '.env.development')),
   ...loadEnvFile(path.join(sharedDir, '.env')),
