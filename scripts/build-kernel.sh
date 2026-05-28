@@ -37,9 +37,13 @@ make tinyconfig
 # Firecracker uses virtio over MMIO (no PCI bus is exposed — we even pass
 # `pci=off` on the kernel cmdline). Without VIRTIO_MMIO the guest kernel
 # never enumerates /dev/vda and panics with "VFS: Unable to mount root fs".
-# VIRTIO_PCI is kept for completeness / future cloud-hypervisor compat but
-# is unused by Firecracker today.
+#
+# CONFIG_VIRTIO_MENU is REQUIRED before VIRTIO_MMIO/VIRTIO_PCI/VIRTIO_BLK
+# or they get silently dropped by olddefconfig — exactly like CONFIG_BLOCK
+# above. Tinyconfig leaves the virtio submenu disabled; VIRTIO_NET and
+# VIRTIO_CONSOLE only sneak in because they're `select`-ed elsewhere.
 ./scripts/config --enable CONFIG_VIRTIO
+./scripts/config --enable CONFIG_VIRTIO_MENU
 ./scripts/config --enable CONFIG_VIRTIO_MMIO
 ./scripts/config --enable CONFIG_VIRTIO_PCI
 ./scripts/config --enable CONFIG_VIRTIO_BLK
