@@ -45,6 +45,11 @@ make tinyconfig
 ./scripts/config --enable CONFIG_VIRTIO
 ./scripts/config --enable CONFIG_VIRTIO_MENU
 ./scripts/config --enable CONFIG_VIRTIO_MMIO
+# Firecracker registers virtio devices via the kernel cmdline (no DT/ACPI),
+# e.g. `virtio_mmio.device=4K@0xd0000000:5`. Without CMDLINE_DEVICES the
+# parser is dead code, no device is probed, /dev/vda never appears →
+# "VFS: Cannot open root device /dev/vda" panic at boot.
+./scripts/config --enable CONFIG_VIRTIO_MMIO_CMDLINE_DEVICES
 ./scripts/config --enable CONFIG_VIRTIO_PCI
 ./scripts/config --enable CONFIG_VIRTIO_BLK
 ./scripts/config --enable CONFIG_VIRTIO_NET
