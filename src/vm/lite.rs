@@ -66,33 +66,57 @@ pub struct LiteBackend {
     /// this at the installed helper so the nftables egress policy applies.
     netns_wrapper: Option<PathBuf>,
     /// Per-sandbox-id flag: `true` = `<scratch>/home` is a loop-mounted
-    /// ext4 from the user's `home.img`, `false` = plain directory (anon).
-    /// `destroy()` reads this to know whether to `umount` first.
+    /// ext4 from the user's `home.img`, `false` (or absent) = plain
+    /// directory (anon). `destroy()` reads this to decide whether to call
+    /// the unmount helper.
     mounted: DashMap<String, bool>,
+    /// Path to `lite-mount-home.sh`. See `Self::new` for resolution order.
+    mount_helper: PathBuf,
 }
 
 impl LiteBackend {
     pub fn new(scratch_root: PathBuf) -> Self {
-        // Resolve netns wrapper: env override → installed path → none.
-        // Installed path matches systemd/install.sh's LIB_DIR.
-        let netns_wrapper = std::env::var_os("LITE_NETNS_WRAPPER")
-            .map(PathBuf::from)
-            .or_else(|| {
-                let p = PathBuf::from("/usr/local/lib/sandbox-manager/lite-netns.sh");
-                p.exists().then_some(p)
-            });
+        // Resolve helper script paths the same way for both:
+        //   1. $LITE_*_WRAPPER / $LITE_*_HELPER env (tests / oddball dev)
+        //   2. /usr/local/lib/sandbox-manager/<name>.sh (systemd/install.sh)
+        //   3. ../scripts/<name>.sh next to the binary (cargo run from repo)
+        fn resolve_helper(env: &str, name: &str) -> Option<PathBuf> {
+            std::env::var_os(env).map(PathBuf::from)
+                .or_else(|| {
+                    let installed = PathBuf::from(format!("/usr/local/lib/sandbox-manager/{name}"));
+                    installed.exists().then_some(installed)
+                })
+                .or_else(|| {
+                    // cargo run / dev: binary is target/release/sandbox-manager
+                    // → scripts are ../../scripts/<name>
+                    let exe = std::env::current_exe().ok()?;
+                    let candidate = exe.parent()?.parent()?.parent()?
+                        .join("scripts").join(name);
+                    candidate.exists().then_some(candidate)
+                })
+        }
+
+        let netns_wrapper = resolve_helper("LITE_NETNS_WRAPPER", "lite-netns.sh");
         if netns_wrapper.is_none() {
             tracing::warn!(
                 "lite-netns.sh not found — cli-lite sandboxes will share the host netns. \
                  Run systemd/install.sh and enable sandbox-bridge-lite.service before opening FREE tier."
             );
         }
+
+        // Mount helper is mandatory for the authenticated tier; we fail
+        // loudly at provision time (not here) if it's missing, so anon
+        // tier still works without the install.sh step.
+        let mount_helper = resolve_helper("LITE_MOUNT_HELPER", "lite-mount-home.sh")
+            .unwrap_or_else(|| PathBuf::from("/usr/local/lib/sandbox-manager/lite-mount-home.sh"));
+
         Self {
             scratch_root,
             timeout_sec: 30,
             max_output_bytes: 1 << 20,
             netns_wrapper,
             mounted: DashMap::new(),
+            mount_helper,
         }
     }
 
@@ -115,44 +139,33 @@ impl LiteBackend {
             .with_context(|| format!("create lite home mountpoint {mnt:?}"))?;
 
         if let Some(disk_path) = disk {
-            // `mount -o loop`: kernel allocates a free /dev/loopN, binds it
-            // to the image, mounts ext4. sandbox-manager already runs with
-            // the privileges this needs (same caps as Firecracker spawn).
-            let status = Command::new("mount")
-                .args(["-o", "loop"])
-                .arg(disk_path)
-                .arg(&mnt)
-                .status().await
-                .with_context(|| format!("spawn mount -o loop {disk_path:?} {mnt:?}"))?;
-            if !status.success() {
-                anyhow::bail!("mount -o loop {disk_path:?} {mnt:?} exited {status}");
-            }
+            // Shell out to the privileged helper (sudo no-op when we're
+            // already root). Same code path on dev and prod — no caps
+            // dance, no devtmpfs games. See scripts/lite-mount-home.sh.
+            let out = run_helper(&self.mount_helper, &["attach", path_str(disk_path)?, path_str(&mnt)?]).await
+                .with_context(|| format!("lite-mount-home attach {disk_path:?} → {mnt:?}"))?;
             self.mounted.insert(id.to_string(), true);
-            tracing::info!("lite {}: mounted {} → {}", id, disk_path.display(), mnt.display());
-        } else {
-            self.mounted.insert(id.to_string(), false);
+            tracing::info!("lite {}: mounted {} via {} → {}",
+                id, disk_path.display(), out.trim(), mnt.display());
         }
         Ok(())
     }
 
-    /// Tear down. If a disk was loop-mounted in `provision`, unmount it
-    /// first (the kernel releases the loop device automatically). Then
-    /// remove the scratch dir. Best-effort: failures are logged, not
-    /// returned — destroy is a cleanup path and the caller can't act on
-    /// the error anyway.
+    /// Tear down. If a disk was loop-mounted in `provision`, unmount the
+    /// ext4 and detach the loop device. Then remove the scratch dir.
+    /// Best-effort: failures are logged, not returned — destroy is a
+    /// cleanup path and the caller can't act on the error anyway.
     pub async fn destroy(&self, id: &str) {
         let mnt = self.home_mountpoint(id);
-        let was_mounted = self.mounted.remove(id).map(|(_, v)| v).unwrap_or(false);
-        if was_mounted {
-            // Synchronous umount: bwrap exec is dead by the time destroy
-            // runs, so there's nothing holding fds. Sync also means ext4
-            // writeout completes before we return — a tier flip can hand
-            // the image to FC immediately without racing writeback.
-            let status = Command::new("umount").arg(&mnt).status().await;
-            match status {
-                Ok(s) if s.success() => {}
-                Ok(s) => tracing::warn!("lite {}: umount {} exited {}", id, mnt.display(), s),
-                Err(e) => tracing::warn!("lite {}: spawn umount {}: {}", id, mnt.display(), e),
+        if let Some((_, was_mounted)) = self.mounted.remove(id) {
+            if was_mounted {
+                // Synchronous: ext4 writeout finishes before this returns,
+                // so a tier flip can hand the image to FC without racing.
+                if let Ok(mnt_str) = path_str(&mnt) {
+                    if let Err(e) = run_helper(&self.mount_helper, &["detach", mnt_str]).await {
+                        tracing::warn!("lite {}: detach {}: {:#}", id, mnt.display(), e);
+                    }
+                }
             }
         }
         let dir = self.scratch_root.join(id);
@@ -162,15 +175,14 @@ impl LiteBackend {
     /// Best-effort umount of `<scratch>/<id>/home` without touching our
     /// in-memory map. Used by `VmManager` startup reconcile to clean up
     /// leftover mounts from a previous (now-dead) sandbox-manager.
+    /// The helper's `detach` subcommand also frees the backing loop
+    /// device — important across restarts because we lost the in-memory
+    /// loop-device map.
     pub async fn force_unmount_leftover(&self, id: &str) {
         let mnt = self.home_mountpoint(id);
         if !mnt.exists() { return }
-        // Quick check: is something actually mounted there? `mountpoint -q`
-        // returns 0 if yes. If not mounted, skip the umount.
-        let is_mp = Command::new("mountpoint").arg("-q").arg(&mnt)
-            .status().await.map(|s| s.success()).unwrap_or(false);
-        if is_mp {
-            let _ = Command::new("umount").arg("-l").arg(&mnt).status().await;
+        if let Ok(mnt_str) = path_str(&mnt) {
+            let _ = run_helper(&self.mount_helper, &["detach", mnt_str]).await;
         }
     }
 
@@ -266,6 +278,28 @@ fn truncate_utf8(mut bytes: Vec<u8>, max: usize) -> (String, bool) {
     let truncated = bytes.len() > max;
     if truncated { bytes.truncate(max); }
     (String::from_utf8_lossy(&bytes).into_owned(), truncated)
+}
+
+/// Run a privileged sandbox-manager helper script. Prepends `sudo -n` so
+/// it works under either:
+///   - prod: sandbox-manager is root → sudo is a no-op fast-path.
+///   - dev:  sandbox-manager is `master` → sudoers rule (installed by
+///           `systemd/install.sh`) grants passwordless access.
+///
+/// Returns stdout as String on success; errors include stderr.
+async fn run_helper(helper: &Path, args: &[&str]) -> Result<String> {
+    let out = Command::new("sudo")
+        .arg("-n")
+        .arg(helper)
+        .args(args)
+        .output().await
+        .with_context(|| format!("spawn sudo {} {}", helper.display(), args.join(" ")))?;
+    if !out.status.success() {
+        let stderr = String::from_utf8_lossy(&out.stderr);
+        anyhow::bail!("{} {} exited {}: {}",
+            helper.display(), args.join(" "), out.status, stderr.trim());
+    }
+    Ok(String::from_utf8_lossy(&out.stdout).into_owned())
 }
 
 /// Loop-mount round-trip tests. Require root (`CAP_SYS_ADMIN` for
