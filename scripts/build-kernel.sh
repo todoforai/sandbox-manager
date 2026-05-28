@@ -28,6 +28,11 @@ make tinyconfig
 ./scripts/config --enable CONFIG_SERIAL_8250
 ./scripts/config --enable CONFIG_SERIAL_8250_CONSOLE
 
+# Block layer — REQUIRED before VIRTIO_BLK/EXT4_FS or they get silently
+# dropped by `olddefconfig` (tinyconfig disables CONFIG_BLOCK).
+./scripts/config --enable CONFIG_BLOCK
+./scripts/config --enable CONFIG_BLK_DEV
+
 # Virtio (required for Firecracker)
 ./scripts/config --enable CONFIG_VIRTIO
 ./scripts/config --enable CONFIG_VIRTIO_PCI
