@@ -67,9 +67,17 @@ fi
 # Fetch MMDS session token once, then read optional bootstrap values.
 # MMDS V2 returns leaf strings JSON-encoded (surrounded by quotes) regardless
 # of Accept header in our Firecracker version, so strip outer quotes.
+# Don't swallow wget errors. A silently failing GET is how we lost a
+# full day to a missing CONFIG_POSIX_TIMERS in the guest kernel:
+# wget --timeout triggered timer_create, which returned ENOSYS, making
+# wget abort with rc=134 — invisible because stderr went to /dev/null.
 mmds_get() {
-    local raw
-    raw=$(wget -q -O - --header="X-metadata-token: $MMDS_SESSION" "http://169.254.169.254/$1" 2>/dev/null || true)
+    local raw rc err
+    err=$(mktemp)
+    raw=$(wget -q -O - --header="X-metadata-token: $MMDS_SESSION" "http://169.254.169.254/$1" 2>"$err")
+    rc=$?
+    [ $rc -ne 0 ] && echo "[init] mmds_get($1) rc=$rc: $(head -c 200 "$err")" >&2
+    rm -f "$err"
     [ "${raw#\"}" != "$raw" ] && raw="${raw#\"}" && raw="${raw%\"}"
     printf '%s' "$raw"
 }
@@ -81,9 +89,13 @@ log_debug() { init_debug && echo "[init] $*"; }
 echo "[init] Fetching bootstrap data from MMDS..."
 log_debug "route to 169.254.169.254: $(ip route get 169.254.169.254 2>&1 | head -1)"
 mmds_err=/tmp/mmds-put.err
+# `--timeout=N` calls timer_create(2) — if CONFIG_POSIX_TIMERS is off in
+# the guest kernel (it was on May 11–28), wget aborts with rc=134 and
+# we get empty MMDS with no obvious cause. --tries=1 alone is enough;
+# MMDS is link-local and either responds in <1ms or not at all.
 MMDS_SESSION=$(wget -q -O - --method=PUT \
     --header='X-metadata-token-ttl-seconds: 60' \
-    --tries=1 --timeout=5 \
+    --tries=1 \
     'http://169.254.169.254/latest/api/token' 2>"$mmds_err" || true)
 if [ -n "$MMDS_SESSION" ]; then
     log_debug "MMDS PUT ok, session token len=${#MMDS_SESSION}"
