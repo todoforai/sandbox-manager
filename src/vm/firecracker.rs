@@ -22,7 +22,10 @@ use super::size::VmSize;
 /// Handle to a running Firecracker VM. Identifies the process by
 /// `(pid, starttime)` so PID reuse across a manager restart cannot fool us.
 /// Owns nothing the kernel cares about — safe to drop or reconstruct via
-/// [`Self::attach`].
+/// [`Self::attach`]. Cloneable so async background tasks (e.g.
+/// `restart_bridge`'s deferred MMDS clear) can keep a handle past the
+/// borrow scope; the clone shares pid/socket — no extra kernel state.
+#[derive(Clone)]
 pub struct FirecrackerVm {
     pid: u32,
     /// `/proc/<pid>/stat` field 22 (process start_time, in clock ticks since
@@ -163,6 +166,15 @@ impl FirecrackerVm {
     /// (which `/init` reads on next boot) and then send `SendCtrlAltDel`. The
     /// kernel cmdline carries `panic=1 reboot=k`, so when PID 1 exits the guest
     /// reboots and `/init` redeems the fresh token via `bridge login --token`.
+    /// Window between SendCtrlAltDel and clearing the re-enroll MMDS payload.
+    /// Covers: guest shutdown (~1s) + reboot (~5–10s) + `/init` (~1s) + bridge
+    /// `login --token` redeem RTT (~1–2s). 60s leaves generous slack so the
+    /// new credentials get persisted before we wipe the stale (already-used)
+    /// token+force_reenroll out of MMDS. After this window, any later
+    /// unrelated guest reboot reads an empty enroll_token from MMDS and falls
+    /// through to the saved creds path — the safe behaviour.
+    const MMDS_REENROLL_CLEAR_DELAY: Duration = Duration::from_secs(60);
+
     pub async fn restart_bridge(&self, enroll_token: &str, sandbox_id: &str) -> Result<()> {
         // `force_reenroll=true` tells /init to wipe persistent credentials
         // before running `bridge login --token`. Without it, `bridge login`
@@ -175,6 +187,25 @@ impl FirecrackerVm {
         self.api_request("PUT", "/actions", Some(r#"{"action_type":"SendCtrlAltDel"}"#))
             .await
             .context("Failed to send SendCtrlAltDel to trigger guest reboot")?;
+
+        // Sticky-MMDS guard: after the redeem window, clear the one-shot
+        // payload so a later unrelated reboot doesn't re-wipe credentials and
+        // try to redeem an expired/used token. Fire-and-forget — the API call
+        // failing here is non-fatal (worst case: stale MMDS, slightly fragile
+        // future reboot, but never silently broken thanks to the empty
+        // enroll_token check in /init).
+        let vm = self.clone();
+        let sandbox_id = sandbox_id.to_string();
+        tokio::spawn(async move {
+            tokio::time::sleep(Self::MMDS_REENROLL_CLEAR_DELAY).await;
+            let baseline = match build_mmds_bootstrap(None, &sandbox_id, false) {
+                Ok(p) => p,
+                Err(e) => { tracing::warn!("MMDS clear payload build failed: {}", e); return; }
+            };
+            if let Err(e) = vm.api_request("PUT", "/mmds", Some(&baseline)).await {
+                tracing::warn!("MMDS clear after restart_bridge failed for {}: {}", sandbox_id, e);
+            }
+        });
         Ok(())
     }
 
