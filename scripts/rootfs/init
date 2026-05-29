@@ -106,13 +106,17 @@ ENROLL_TOKEN=""
 NOISE_BACKEND_ADDR_OVR=""
 NOISE_BACKEND_PUB_OVR=""
 SANDBOX_ID=""
+FORCE_REENROLL=""
 if [ -n "$MMDS_SESSION" ]; then
     ENROLL_TOKEN=$(mmds_get enroll_token)
     SANDBOX_ID=$(mmds_get sandbox_id)
     # Optional dev/non-prod overrides — point bridge at a different Noise endpoint.
     NOISE_BACKEND_ADDR_OVR=$(mmds_get noise_backend_addr)
     NOISE_BACKEND_PUB_OVR=$(mmds_get noise_backend_pub)
-    log_debug "MMDS GET: enroll_token len=${#ENROLL_TOKEN}, sandbox_id=${SANDBOX_ID:-<empty>}, noise_addr=${NOISE_BACKEND_ADDR_OVR:-<empty>}"
+    # Set by sandbox-manager's restart-bridge endpoint ("Connect VM to TODOforAI").
+    # Without it, persistent creds on /dev/vdb cause bridge login to ignore the token.
+    FORCE_REENROLL=$(mmds_get force_reenroll)
+    log_debug "MMDS GET: enroll_token len=${#ENROLL_TOKEN}, sandbox_id=${SANDBOX_ID:-<empty>}, noise_addr=${NOISE_BACKEND_ADDR_OVR:-<empty>}, force_reenroll=${FORCE_REENROLL:-<empty>}"
 fi
 
 # Give every VM a unique, human-readable hostname. The rootfs ships with
@@ -150,6 +154,14 @@ fi
 # --device-name pins the friendly label set above (vm-<sandbox-id>).
 BRIDGE_ARGS=""
 if [ -n "$ENROLL_TOKEN" ] && [ "$ENROLL_TOKEN" != "null" ]; then
+    # `bridge login` short-circuits if creds already exist (subcmd.c login_load_credentials).
+    # On normal reboot we want that — daemon comes up with saved creds. On admin-triggered
+    # re-enrollment (force_reenroll=true) we must wipe creds first; otherwise the fresh
+    # token is silently ignored and the bridge keeps using the old (possibly revoked) one.
+    if [ "$FORCE_REENROLL" = "true" ]; then
+        echo "[init] force_reenroll=true — wiping saved credentials before token redeem"
+        rm -f "$HOME/.config/todoforai/credentials.json"
+    fi
     echo "[init] Will redeem enrollment token (len=${#ENROLL_TOKEN}, prefix=${ENROLL_TOKEN:0:8})..."
     BRIDGE_ARGS="login --token $ENROLL_TOKEN --device-name $(cat /etc/hostname 2>/dev/null || echo unknown)"
 fi
