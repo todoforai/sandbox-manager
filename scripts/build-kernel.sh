@@ -51,6 +51,15 @@ make tinyconfig
 # callers either abort or hang. TIMERFD (already enabled below) is a
 # different syscall family and does not cover this.
 ./scripts/config --enable CONFIG_POSIX_TIMERS
+./scripts/config --enable CONFIG_HIGH_RES_TIMERS
+
+# Modern glibc fast paths: rseq (per-CPU ops, malloc tcache) and the
+# membarrier syscall (cross-thread fence used by jemalloc/Go runtime).
+# Cheap and load-bearing — without them many glibc paths fall back to
+# slower syscalls or, in the case of contended membarrier consumers,
+# deadlock waiting for a barrier that never arrives.
+./scripts/config --enable CONFIG_MEMBARRIER
+./scripts/config --enable CONFIG_RSEQ
 
 # Virtio (required for Firecracker)
 # Firecracker uses virtio over MMIO (no PCI bus is exposed — we even pass
@@ -151,7 +160,8 @@ make olddefconfig
 REQUIRED=(
     CONFIG_BLOCK CONFIG_BLK_DEV
     CONFIG_FUTEX CONFIG_RT_MUTEXES CONFIG_FUTEX_PI
-    CONFIG_POSIX_TIMERS
+    CONFIG_POSIX_TIMERS CONFIG_HIGH_RES_TIMERS
+    CONFIG_MEMBARRIER CONFIG_RSEQ
     CONFIG_VIRTIO CONFIG_VIRTIO_MENU
     CONFIG_VIRTIO_MMIO CONFIG_VIRTIO_MMIO_CMDLINE_DEVICES
     CONFIG_VIRTIO_BLK CONFIG_VIRTIO_NET CONFIG_VIRTIO_CONSOLE
