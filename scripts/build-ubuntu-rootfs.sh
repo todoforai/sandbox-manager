@@ -71,13 +71,15 @@ fi
 
 echo "Using bridge: $BRIDGE_BIN ($(ls -lh "$BRIDGE_BIN" | awk '{print $5}'))"
 
-# Build version stamp — sha256 of (this script + bridge binary). Written to
-# /etc/todoforai-template-version inside the rootfs and echoed by /init at
-# boot, so console logs make stale rootfs immediately visible.
+# Build version stamp — sha256 of (this script + /init + bridge binary).
+# Written to /etc/todoforai-template-version inside the rootfs and echoed by
+# /init at boot, so console logs make stale rootfs immediately visible.
 SCRIPT_PATH="${BASH_SOURCE[0]}"
+INIT_PATH="$SCRIPT_DIR/rootfs/init"
 [ -r "$SCRIPT_PATH" ] || { echo "ERROR: build script not readable at $SCRIPT_PATH" >&2; exit 1; }
+[ -r "$INIT_PATH" ]   || { echo "ERROR: init script not readable at $INIT_PATH" >&2; exit 1; }
 [ -r "$BRIDGE_BIN" ]  || { echo "ERROR: bridge binary not readable at $BRIDGE_BIN" >&2; exit 1; }
-TEMPLATE_VERSION="$(sha256sum "$SCRIPT_PATH" "$BRIDGE_BIN" | sha256sum | cut -d' ' -f1)"
+TEMPLATE_VERSION="$(sha256sum "$SCRIPT_PATH" "$INIT_PATH" "$BRIDGE_BIN" | sha256sum | cut -d' ' -f1)"
 echo "Template version: $TEMPLATE_VERSION"
 
 # Download Ubuntu Base tarball
@@ -101,170 +103,10 @@ chmod +x "$ROOTFS_DIR/usr/local/bin/todoforai-bridge"
 mkdir -p "$ROOTFS_DIR/etc"
 printf '%s\n' "$TEMPLATE_VERSION" > "$ROOTFS_DIR/etc/todoforai-template-version"
 
-# /init — fetch enroll token from MMDS, redeem via `todoforai-bridge login`, then exec bridge.
-cat > "$ROOTFS_DIR/init" << 'INIT_EOF'
-#!/bin/bash
-# Minimal init for Firecracker VM with bridge.
-#
-# Enrollment token arrives via Firecracker MMDS (169.254.169.254), not the
-# kernel cmdline — /proc/cmdline is world-readable, MMDS at least bounds
-# exposure to the short window between boot and redeem.
-
-export HOME=/root
-export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
-mkdir -p /root
-
-# Print build version for log-driven staleness detection.
-[ -r /etc/todoforai-template-version ] && \
-    echo "[init] template-version=$(cat /etc/todoforai-template-version)"
-
-# Mount essential filesystems
-mount -t proc proc /proc
-mount -t sysfs sysfs /sys
-mount -t devtmpfs devtmpfs /dev 2>/dev/null || true
-mkdir -p /dev/pts
-mount -t devpts devpts /dev/pts
-
-# Persistent $HOME on /dev/vdb (virtio-blk drive `userhome` attached by FC
-# when the sandbox has acquire_home=true). Same ext4 image a Lite sandbox
-# of this user would loop-mount on the host; the per-user host flock
-# guarantees we're the only mounter. Non-fatal: missing device → ephemeral
-# /root on the rootfs (anonymous tier path).
-if [ -b /dev/vdb ]; then
-    if mount /dev/vdb /root; then
-        echo "[init] /dev/vdb mounted on /root (persistent \$HOME)"
-    else
-        echo "[init] /dev/vdb present but mount failed; running ephemeral" >&2
-    fi
-else
-    echo "[init] no /dev/vdb; running ephemeral"
-fi
-
-# Setup networking
-ip link set lo up
-if ip link show eth0 >/dev/null 2>&1; then
-    ip link set eth0 up
-
-    # Parse kernel cmdline for network config
-    GUEST_IP=""
-    GATEWAY_IP=""
-    for param in $(cat /proc/cmdline); do
-        case "$param" in
-            ip=*)
-                # Format: ip=client_ip::gateway:netmask::interface:autoconf
-                GUEST_IP=$(echo "${param#ip=}" | cut -d: -f1)
-                GATEWAY_IP=$(echo "${param#ip=}" | cut -d: -f3)
-                ;;
-        esac
-    done
-
-    # Configure static IP if provided via cmdline
-    if [ -n "$GUEST_IP" ]; then
-        ip addr add "$GUEST_IP/16" dev eth0
-        [ -n "$GATEWAY_IP" ] && ip route add default via "$GATEWAY_IP"
-        echo "[init] Network: $GUEST_IP via $GATEWAY_IP"
-    fi
-
-    # Route to MMDS (169.254.169.254) via eth0 — needed for link-local metadata.
-    ip route add 169.254.169.254 dev eth0 2>/dev/null || true
-fi
-
-# Fetch MMDS session token once, then read optional bootstrap values.
-# MMDS V2 returns leaf strings JSON-encoded (surrounded by quotes) regardless
-# of Accept header in our Firecracker version, so strip outer quotes.
-mmds_get() {
-    local raw
-    raw=$(wget -q -O - --header="X-metadata-token: $MMDS_SESSION" "http://169.254.169.254/$1" 2>/dev/null || true)
-    # Strip surrounding double quotes if present.
-    [ "${raw#\"}" != "$raw" ] && raw="${raw#\"}" && raw="${raw%\"}"
-    printf '%s' "$raw"
-}
-echo "[init] Fetching bootstrap data from MMDS..."
-MMDS_SESSION=$(wget -q -O - --method=PUT \
-    --header='X-metadata-token-ttl-seconds: 60' \
-    'http://169.254.169.254/latest/api/token' 2>/dev/null || true)
-ENROLL_TOKEN=""
-NOISE_BACKEND_ADDR_OVR=""
-NOISE_BACKEND_PUB_OVR=""
-SANDBOX_ID=""
-if [ -n "$MMDS_SESSION" ]; then
-    ENROLL_TOKEN=$(mmds_get enroll_token)
-    SANDBOX_ID=$(mmds_get sandbox_id)
-    # Optional dev/non-prod overrides — point bridge at a different Noise endpoint.
-    NOISE_BACKEND_ADDR_OVR=$(mmds_get noise_backend_addr)
-    NOISE_BACKEND_PUB_OVR=$(mmds_get noise_backend_pub)
-fi
-
-# Give every VM a unique, human-readable hostname. The rootfs ships with
-# /etc/hostname=sandbox (set at build time, see below), which would collide
-# across VMs and show up as "(none)" / "sandbox" in bridge identity. Lite
-# sandboxes don't use this rootfs (they use bwrap), so this branch is always
-# a real VM — name it vm-<id> rather than sandbox-<id>. Always rename, even
-# if SANDBOX_ID is missing (random suffix), so `uname -n` never returns the
-# kernel default "(none)" that would otherwise leak into the device name.
-if [ -n "$SANDBOX_ID" ] && [ "$SANDBOX_ID" != "null" ]; then
-    HN="vm-$(printf '%s' "$SANDBOX_ID" | cut -c1-8)"
-else
-    HN="vm-$(tr -dc a-f0-9 </dev/urandom | head -c8)"
-fi
-echo "$HN" > /etc/hostname
-# `hostname` binary may be missing in trimmed rootfs; /proc fallback always works.
-hostname "$HN" 2>/dev/null || echo "$HN" > /proc/sys/kernel/hostname
-
-if [ -n "$NOISE_BACKEND_ADDR_OVR" ] && [ "$NOISE_BACKEND_ADDR_OVR" != "null" ]; then
-    # Bridge auto-selects dev port (14100) when host is local/sandbox-gateway,
-    # so we only export the host. BRIDGE_PORT is the daemon's HTTP/WS port.
-    export NOISE_BACKEND_HOST="${NOISE_BACKEND_ADDR_OVR%:*}"
-    export BRIDGE_PORT="4000" # bridge HTTP/WS in dev (no nginx)
-    echo "[init] Using NOISE_BACKEND_HOST=$NOISE_BACKEND_HOST BRIDGE_PORT=$BRIDGE_PORT"
-fi
-if [ -n "$NOISE_BACKEND_PUB_OVR" ] && [ "$NOISE_BACKEND_PUB_OVR" != "null" ]; then
-    export NOISE_BACKEND_PUBKEY="$NOISE_BACKEND_PUB_OVR"
-fi
-
-# First-boot bootstrap: if MMDS provided a token, pass it via `login --token`.
-# `bridge login` redeems and then runs the daemon in the same process — so a
-# single exec covers both first boot (with token) and subsequent boots (saved
-# creds in ~/.config/todoforai/credentials.json). Bridge auto-detects
-# deviceType=SANDBOX from /etc/todoforai-sandbox (dropped at rootfs build);
-# --device-name pins the friendly label set above (vm-<sandbox-id>).
-BRIDGE_ARGS=""
-if [ -n "$ENROLL_TOKEN" ] && [ "$ENROLL_TOKEN" != "null" ]; then
-    echo "[init] Will redeem enrollment token (len=${#ENROLL_TOKEN}, prefix=${ENROLL_TOKEN:0:8})..."
-    BRIDGE_ARGS="login --token $ENROLL_TOKEN --device-name $(cat /etc/hostname 2>/dev/null || echo unknown)"
-fi
-
-# --- Recovery SSH (vsock) bring-up ----------------------------------------
-# Lock this VM's recovery principal to its sandbox id. A cert minted for a
-# different sandbox is signed by the same CA but will fail principal check.
-if [ -n "$SANDBOX_ID" ] && [ "$SANDBOX_ID" != "null" ]; then
-    mkdir -p /etc/ssh/auth_principals
-    printf 'recovery:%s\n' "$SANDBOX_ID" > /etc/ssh/auth_principals/recovery
-    chmod 0644 /etc/ssh/auth_principals/recovery
-fi
-# First-boot host keys (rootfs is per-VM, so these are unique per sandbox).
-if [ ! -f /etc/ssh/ssh_host_ed25519_key ]; then
-    ssh-keygen -A >/dev/null 2>&1 || echo "[init] ssh-keygen -A failed" >&2
-fi
-mkdir -p /run/sshd /var/run/sshd
-# Start sshd on loopback only (ListenAddress 127.0.0.1 in 10-recovery.conf).
-/usr/sbin/sshd 2>/dev/null && echo "[init] sshd started (recovery channel)" || \
-    echo "[init] sshd failed to start" >&2
-# Bridge vsock port 22 → loopback sshd. Background; logs to console.
-/usr/local/bin/recovery-vsock-bridge </dev/null >/dev/console 2>&1 &
-echo "[init] vsock recovery bridge started (pid=$!)"
-
-echo "[init] Starting bridge..."
-# shellcheck disable=SC2086 # BRIDGE_ARGS intentionally word-split
-exec /usr/local/bin/todoforai-bridge $BRIDGE_ARGS
-
-# Fallback — no working bridge. Keep VM alive for debug.
-if [ -t 0 ]; then
-    exec /bin/bash
-else
-    while true; do sleep 3600; done
-fi
-INIT_EOF
+# /init — fetch enroll token from MMDS, redeem via `todoforai-bridge login`,
+# then exec bridge. Lives in scripts/rootfs/init so it can be diff/lint/grep
+# normally (heredoc-embedded scripts hide bugs — see commit history).
+install -m 0755 "$SCRIPT_DIR/rootfs/init" "$ROOTFS_DIR/init"
 chmod +x "$ROOTFS_DIR/init"
 
 # Minimal /etc files. During build we bind-mount the host's resolv.conf so DNS
