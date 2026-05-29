@@ -148,6 +148,7 @@ BUSYBOX_APPLETS="sh ash ls cat cp mv rm mkdir rmdir touch echo printf
   vi nano less more
   hostname uname id whoami
   base64 md5sum sha256sum sha512sum
+  timeout mktemp
   wget ping nslookup nc"
 BUSYBOX_SUPPORTED="$($BUSYBOX_OUT --list | sort)"
 for applet in $BUSYBOX_APPLETS; do

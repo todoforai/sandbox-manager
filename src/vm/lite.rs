@@ -30,6 +30,7 @@ use anyhow::{bail, Context, Result};
 use dashmap::DashMap;
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
+use tokio::io::AsyncWriteExt;
 use tokio::process::Command;
 
 /// Output of a single `exec` invocation.
@@ -268,7 +269,199 @@ impl LiteBackend {
             truncated: t1 || t2,
         })
     }
+
+    /// Probe the tool catalog inside the jail. Mirrors `bridge_scan_tools()`
+    /// in `bridge/tools.c` — same wire format in (`<key>\t<b64_versionCmd>\t
+    /// <b64_statusCmd>\n`; trailing install field, if present, is ignored
+    /// here — installs go through a separate `install_tool` path), same JSON
+    /// shape out: `{ "<toolName>": { installed, version?, authenticated?,
+    /// statusOutput? } }`. Triggered explicitly by the backend; no periodic
+    /// scan. Per-probe timeouts match the bridge (`VERSION_TIMEOUT_MS=5s`,
+    /// `STATUS_TIMEOUT_MS=10s`); an outer wall-clock cap (`SCAN_TIMEOUT_SEC`)
+    /// bounds the whole scan.
+    ///
+    /// **Safety:** runs the same bwrap flags as `exec`. The catalog content
+    /// goes through `sh -c`, which bypasses `exec`'s `allowed_bins` argv[0]
+    /// allow-list — but the jail itself (read-only rootfs, unshare-all,
+    /// filtered netns, bound `/root`) is the actual containment boundary,
+    /// not the allow-list. Same trust model as `exec` running an
+    /// allow-listed shell. Catalog is fed via stdin (no argv size limit).
+    pub async fn scan_tools(
+        &self,
+        id: &str,
+        template: &LiteTemplate,
+        entries: &str,
+    ) -> Result<String> {
+        const SCAN_TIMEOUT_SEC: u64 = 240;
+        const MAX_SCAN_OUTPUT: usize = 4 << 20; // 4 MiB
+
+        let home = self.home_mountpoint(id);
+        if !home.is_dir() {
+            bail!("lite sandbox {id} not provisioned (mountpoint {home:?} missing)");
+        }
+
+        let mut cmd = match &self.netns_wrapper {
+            Some(w) => {
+                let mut c = Command::new(w);
+                c.args([id, "--", "bwrap"]);
+                c
+            }
+            None => Command::new("bwrap"),
+        };
+        cmd.args([
+            "--ro-bind", path_str(&template.rootfs_dir)?, "/",
+            "--bind", path_str(&home)?, "/root",
+            "--proc", "/proc",
+            "--dev", "/dev",
+            "--tmpfs", "/tmp",
+            "--unshare-all",
+            "--share-net",
+            "--die-with-parent",
+            "--new-session",
+            "--chdir", "/root",
+            "--clearenv",
+            "--setenv", "PATH", "/usr/bin:/bin",
+            "--setenv", "HOME", "/root",
+            "--setenv", "SSL_CERT_FILE", "/etc/ssl/certs/ca-certificates.crt",
+            "--setenv", "SSL_CERT_DIR", "/etc/ssl/certs",
+            "--",
+            "sh", "-c", SCAN_TOOLS_SCRIPT,
+        ]);
+        cmd.stdin(std::process::Stdio::piped());
+        cmd.stdout(std::process::Stdio::piped());
+        cmd.stderr(std::process::Stdio::piped());
+        cmd.kill_on_drop(true);
+
+        let mut child = cmd.spawn().context("spawn lite scan_tools")?;
+        if let Some(mut stdin) = child.stdin.take() {
+            stdin.write_all(entries.as_bytes()).await.context("write catalog to scan_tools stdin")?;
+            // drop stdin to send EOF
+        }
+
+        let out = match tokio::time::timeout(
+            std::time::Duration::from_secs(SCAN_TIMEOUT_SEC),
+            child.wait_with_output(),
+        ).await {
+            Ok(r) => r.context("lite scan_tools wait")?,
+            Err(_) => bail!("scan_tools timed out after {SCAN_TIMEOUT_SEC}s"),
+        };
+
+        if !out.status.success() {
+            let stderr = String::from_utf8_lossy(&out.stderr);
+            bail!("scan_tools exited {}: {}", out.status, stderr.trim());
+        }
+        // Truncation would yield invalid JSON — bridge bails on overflow
+        // (bridge/tools.c:482-490); do the same here.
+        if out.stdout.len() > MAX_SCAN_OUTPUT {
+            bail!("scan_tools output exceeded {MAX_SCAN_OUTPUT} bytes");
+        }
+        Ok(String::from_utf8_lossy(&out.stdout).into_owned())
+    }
 }
+
+/// In-jail probe loop. Reads tab-separated, base64-encoded catalog entries
+/// from stdin (one per line: `<key>\t<b64_versionCmd>\t<b64_statusCmd>`;
+/// any 4th install field is ignored — installs go through a separate
+/// `install_tool` path), runs each tool's version/status with per-probe
+/// timeouts (5s / 10s), emits a single JSON object on stdout matching
+/// `bridge/tools.c:probe_append_json`: `{ "<name>": { installed, version?,
+/// authenticated?, statusOutput? } }`. Requires `sh`, `base64`, `timeout`,
+/// `head`, `awk`, `mktemp` — all in the cli-lite rootfs.
+const SCAN_TOOLS_SCRIPT: &str = r#"
+set -u
+TAB=$(printf '\t')
+TMP=$(mktemp) || exit 1
+trap 'rm -f "$TMP"' EXIT
+
+# Sanitize captured output the way bridge/tools.c:257-262 does: replace
+# control bytes < 0x20 except \n \r \t with spaces, then trim trailing
+# whitespace. Input is byte-capped by `head -c N` upstream, so O(N).
+sanitize() {
+  awk 'BEGIN{RS="\0"} {
+    s=$0; out=""
+    for(i=1;i<=length(s);i++){
+      c=substr(s,i,1)
+      if (c<" " && c!="\n" && c!="\r" && c!="\t") out=out " "
+      else out=out c
+    }
+    sub(/[ \t\r\n]+$/, "", out)
+    printf "%s", out
+  }'
+}
+# JSON-escape stdin → stdout. Only \, ", \n, \r, \t need escaping —
+# sanitize already replaced other control bytes with spaces.
+json_escape() {
+  awk 'BEGIN{RS="\0"} {
+    s=$0; out=""
+    for(i=1;i<=length(s);i++){
+      c=substr(s,i,1)
+      if      (c=="\\") out=out "\\\\"
+      else if (c=="\"") out=out "\\\""
+      else if (c=="\n") out=out "\\n"
+      else if (c=="\r") out=out "\\r"
+      else if (c=="\t") out=out "\\t"
+      else              out=out c
+    }
+    printf "%s", out
+  }'
+}
+
+# Run cmd with per-probe timeout, capture up to $3 bytes of combined
+# stdout/stderr to $TMP, sanitize, set OUT and EXIT. Tempfile (/tmp tmpfs in
+# the jail) caps memory regardless of output volume; `head -c` bounds read.
+# EXIT reflects the command (`timeout` returns 124 on kill), not head/awk.
+run_capped() {  # $1=timeout_sec  $2=cmd  $3=cap_bytes  → sets OUT, EXIT
+  : >"$TMP"
+  timeout "$1" sh -c "$2" >"$TMP" 2>&1
+  EXIT=$?
+  OUT=$(head -c "$3" "$TMP" | sanitize)
+}
+
+# POSIX `read` with whitespace IFS collapses consecutive tabs, so a line
+# `key\tvb64\t` (empty statusCmd) splits into 2 fields, not 3. Preprocess:
+# skip malformed/oversized lines (mirroring bridge/tools.c:parse_entry caps),
+# replace empty fields with the sentinel "_" so base64 -d yields "".
+printf '{'
+first=1
+awk -v T="$TAB" 'BEGIN{FS=T; OFS=T} {
+  if (NF < 2) next                       # need at least key + version
+  if (length($1) == 0 || length($1) > 64) next
+  if (length($2) > 1024) next            # b64 cap → decoded < 768
+  if (NF >= 3 && length($3) > 1024) next
+  for (i=1; i<=3; i++) if ($i == "") $i = "_"
+  NF = 3; print
+}' | while IFS="$TAB" read -r key vb64 sb64; do
+  [ "$key" != "_" ] || continue
+  vcmd=$(printf '%s' "$vb64" | base64 -d 2>/dev/null || true)
+  scmd=$(printf '%s' "$sb64" | base64 -d 2>/dev/null || true)
+
+  version_out=""; v_exit=1
+  status_out="";  s_exit=1
+  if [ -n "$vcmd" ]; then run_capped 5  "$vcmd" 100; version_out=$OUT; v_exit=$EXIT; fi
+  if [ -n "$scmd" ]; then run_capped 10 "$scmd" 200; status_out=$OUT;  s_exit=$EXIT; fi
+
+  installed=0
+  if [ -n "$vcmd" ] && [ "$v_exit" = 0 ] && [ -n "$version_out" ]; then installed=1
+  elif [ -z "$vcmd" ] && [ -n "$scmd" ] && [ "$s_exit" = 0 ]; then installed=1
+  fi
+
+  [ "$first" = 1 ] || printf ','
+  first=0
+  printf '"'; printf '%s' "$key" | json_escape; printf '":{'
+  if [ "$installed" = 1 ]; then printf '"installed":true'; else printf '"installed":false'; fi
+  if [ "$installed" = 1 ] && [ -n "$vcmd" ] && [ "$v_exit" = 0 ] && [ -n "$version_out" ]; then
+    printf ',"version":"'; printf '%s' "$version_out" | json_escape; printf '"'
+  fi
+  if [ "$installed" = 1 ] && [ -n "$scmd" ]; then
+    if [ "$s_exit" = 0 ]; then printf ',"authenticated":true'; else printf ',"authenticated":false'; fi
+    if [ -n "$status_out" ]; then
+      printf ',"statusOutput":"'; printf '%s' "$status_out" | json_escape; printf '"'
+    fi
+  fi
+  printf '}'
+done
+printf '}'
+"#;
 
 fn path_str(p: &Path) -> Result<&str> {
     p.to_str().with_context(|| format!("non-utf8 path: {p:?}"))
