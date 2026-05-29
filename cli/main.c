@@ -348,7 +348,7 @@ static void cmd_login(int argc, char **argv) {
              bh ? bh : LOGIN_DEFAULT_BACKEND_HOST,
              bp ? bp : LOGIN_DEFAULT_NOISE_PORT);
 
-    if (login_device_flow(addr_buf, "sandbox", NULL) != 0) exit(1);
+    if (login_device_flow(addr_buf, "sandbox", NULL, NULL) != 0) exit(1);
 }
 
 static void cmd_whoami(int argc, char **argv) {
