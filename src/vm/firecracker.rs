@@ -164,7 +164,11 @@ impl FirecrackerVm {
     /// kernel cmdline carries `panic=1 reboot=k`, so when PID 1 exits the guest
     /// reboots and `/init` redeems the fresh token via `bridge login --token`.
     pub async fn restart_bridge(&self, enroll_token: &str, sandbox_id: &str) -> Result<()> {
-        let mmds = build_mmds_bootstrap(Some(enroll_token), sandbox_id)?;
+        // `force_reenroll=true` tells /init to wipe persistent credentials
+        // before running `bridge login --token`. Without it, `bridge login`
+        // short-circuits when ~/.config/todoforai/credentials.json exists on
+        // /dev/vdb and ignores the fresh token (see bridge/subcmd.c).
+        let mmds = build_mmds_bootstrap(Some(enroll_token), sandbox_id, true)?;
         self.api_request("PUT", "/mmds", Some(&mmds))
             .await
             .context("Failed to update MMDS with fresh enroll token")?;
@@ -530,7 +534,7 @@ impl FirecrackerLauncher {
                 .await
                 .context("Failed to configure MMDS")?;
 
-            let mmds = build_mmds_bootstrap(enroll_token, sandbox_id)?;
+            let mmds = build_mmds_bootstrap(enroll_token, sandbox_id, false)?;
             vm.api_request("PUT", "/mmds", Some(&mmds))
                 .await
                 .context("Failed to populate MMDS")?;
@@ -543,14 +547,24 @@ impl FirecrackerLauncher {
 
 /// Build the MMDS JSON payload consumed by the guest `/init` at boot:
 /// `enroll_token` (optional), `sandbox_id`, plus optional dev-only Noise
-/// overrides. Shared between initial `configure_vm` and `restart_bridge` so
-/// the boot contract stays in one place.
-fn build_mmds_bootstrap(enroll_token: Option<&str>, sandbox_id: &str) -> Result<String> {
+/// overrides. Shared between initial `configure_vm` (force_reenroll=false)
+/// and `restart_bridge` (force_reenroll=true) so the boot contract stays in
+/// one place.
+fn build_mmds_bootstrap(
+    enroll_token: Option<&str>, sandbox_id: &str, force_reenroll: bool,
+) -> Result<String> {
     let mut mmds = serde_json::Map::new();
     if let Some(token) = enroll_token {
         mmds.insert("enroll_token".into(), serde_json::Value::String(token.to_string()));
     }
     mmds.insert("sandbox_id".into(), serde_json::Value::String(sandbox_id.to_string()));
+    if force_reenroll {
+        // Read by /init; tells it to remove ~/.config/todoforai/credentials.json
+        // before `bridge login --token` so the fresh token actually gets redeemed
+        // instead of being ignored by the login short-circuit. MMDS leaf strings —
+        // use the string "true" to match the /init `[ "$FORCE_REENROLL" = "true" ]`.
+        mmds.insert("force_reenroll".into(), serde_json::Value::String("true".into()));
+    }
     // Optional dev override: tell bridge inside the VM to talk to a non-prod
     // Noise endpoint (e.g. the local backend). Bridge falls back to its
     // hardcoded prod default when these are absent. Logged at WARN so a
