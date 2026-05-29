@@ -47,13 +47,27 @@ if ! iptables -t nat -C POSTROUTING -s "$SUBNET" -j MASQUERADE 2>/dev/null; then
     iptables -t nat -A POSTROUTING -s "$SUBNET" -j MASQUERADE
 fi
 
-# 6. Inter-VM isolation
+# 6. UFW bypass. This host runs FORWARD policy DROP via UFW. The ufw-*
+# chains are jumped to before any rule we'd `-A`ppend would be reached,
+# so VM→internet packets get dropped before NAT runs. Insert ACCEPTs at
+# the top so they win. ensure-bridge-lite.sh does exactly this for the
+# lite bridge — without it the cli-lite tier wouldn't work either.
+for spec in "-i $BRIDGE" "-o $BRIDGE"; do
+    if ! iptables -C FORWARD $spec -j ACCEPT 2>/dev/null; then
+        log "adding FORWARD ACCEPT for $spec"
+        iptables -I FORWARD $spec -j ACCEPT
+    fi
+done
+
+# 7. Inter-VM isolation. Inserted AFTER the broad ACCEPTs above so it
+# lands HIGHER in the chain (lower line number) and wins for same-bridge
+# traffic. Append-style here would lose to the wildcard ACCEPTs.
 if ! iptables -C FORWARD -i "$BRIDGE" -o "$BRIDGE" -j DROP 2>/dev/null; then
     log "adding inter-VM DROP rule"
-    iptables -A FORWARD -i "$BRIDGE" -o "$BRIDGE" -j DROP
+    iptables -I FORWARD -i "$BRIDGE" -o "$BRIDGE" -j DROP
 fi
 
-# 7. Re-enslave any orphan tap-* devices.
+# 8. Re-enslave any orphan tap-* devices.
 # If the bridge was deleted out from under running VMs and just got recreated,
 # their TAPs are now master-less. Re-attach them so VMs regain connectivity.
 for tap in $(ip -br link show type tun 2>/dev/null | awk '/^tap-/ {print $1}'); do
