@@ -83,6 +83,20 @@ build_ubuntu() {
     echo "==> building kernel into $out_dir/vmlinux"
     ( cd "$TMP" && OUTPUT="$out_dir/vmlinux" "$SCRIPT_DIR/build-kernel.sh" )
     echo "$kbuild_hash" > "$stamp_file"
+
+    # Kernel/init boot smoke test — catches the bugs that broke "Add hosted
+    # desktop" for weeks (missing CONFIG_BLOCK / CONFIG_FUTEX /
+    # CONFIG_POSIX_TIMERS / MEMBARRIER / RSEQ, dropped mmds_get helper,
+    # MMDS round-trip). Runs Firecracker directly — no sandbox-manager or
+    # backend needed. ~10s, no host network. Skip with SKIP_SMOKE=1.
+    # (smoke-test-boot.sh is the e2e variant that needs sandbox-manager.)
+    if [ "${SKIP_SMOKE:-0}" != 1 ] && [ -r /dev/kvm ] && command -v firecracker >/dev/null; then
+        echo "==> running kernel/init boot smoke test"
+        KERNEL="$out_dir/vmlinux" ROOTFS="$out_dir/rootfs.ext4" \
+            "$SCRIPT_DIR/smoke-test-kernel-boot.sh"
+    else
+        echo "==> skipping boot smoke test (no /dev/kvm or no firecracker; SKIP_SMOKE=${SKIP_SMOKE:-0})"
+    fi
 }
 
 build_cli() {
