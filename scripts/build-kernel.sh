@@ -33,6 +33,25 @@ make tinyconfig
 ./scripts/config --enable CONFIG_BLOCK
 ./scripts/config --enable CONFIG_BLK_DEV
 
+# Futex — userland pthread/mutex/cond/cancellation, dl_load_lock, malloc
+# arena locks all depend on it. Without it ANY glibc-linked binary aborts
+# with "The futex facility returned an unexpected error code." (rc=134).
+#
+# tinyconfig sets EXPERT=y which exposes FUTEX as a tunable, then disables
+# it. We need to undo both: re-enable FUTEX, and pull in PI/RT_MUTEXES for
+# the priority-inheritance variants glibc uses on contended locks.
+./scripts/config --enable CONFIG_FUTEX
+./scripts/config --enable CONFIG_RT_MUTEXES
+./scripts/config --enable CONFIG_FUTEX_PI
+
+# POSIX timers — timer_create/timer_settime/clock_nanosleep family used by
+# glibc/OpenSSH/cron and most non-trivial userland. Without this, the
+# kernel logs "process N (foo) attempted a POSIX timer syscall while
+# CONFIG_POSIX_TIMERS is not set" and the syscall returns ENOSYS — most
+# callers either abort or hang. TIMERFD (already enabled below) is a
+# different syscall family and does not cover this.
+./scripts/config --enable CONFIG_POSIX_TIMERS
+
 # Virtio (required for Firecracker)
 # Firecracker uses virtio over MMIO (no PCI bus is exposed — we even pass
 # `pci=off` on the kernel cmdline). Without VIRTIO_MMIO the guest kernel
@@ -55,6 +74,10 @@ make tinyconfig
 ./scripts/config --enable CONFIG_VIRTIO_NET
 ./scripts/config --enable CONFIG_VIRTIO_CONSOLE
 ./scripts/config --enable CONFIG_VIRTIO_BALLOON
+# HW_RANDOM_VIRTIO is silently dropped without its HW_RANDOM parent menu
+# (same olddefconfig footgun as VIRTIO_MENU). Without it the guest has no
+# virtio-rng device — works but slower entropy seeding at boot.
+./scripts/config --enable CONFIG_HW_RANDOM
 ./scripts/config --enable CONFIG_HW_RANDOM_VIRTIO
 
 # Networking
@@ -71,6 +94,8 @@ make tinyconfig
 ./scripts/config --enable CONFIG_SQUASHFS_ZSTD
 ./scripts/config --enable CONFIG_FUSE_FS
 ./scripts/config --enable CONFIG_OVERLAY_FS
+# TMPFS depends on SHMEM; tinyconfig leaves SHMEM=n, dropping TMPFS silently.
+./scripts/config --enable CONFIG_SHMEM
 ./scripts/config --enable CONFIG_TMPFS
 ./scripts/config --enable CONFIG_PROC_FS
 ./scripts/config --enable CONFIG_SYSFS
@@ -118,6 +143,38 @@ make tinyconfig
 # Build
 echo "Building kernel with $JOBS jobs..."
 make olddefconfig
+
+# Fail loud if olddefconfig silently dropped anything we need. Without this
+# the resulting vmlinux boots most of the way and then panics at the first
+# missing-driver step (see commits bb4b8ed, 29a98ff, ab647ad — three rounds
+# of exactly this bug).
+REQUIRED=(
+    CONFIG_BLOCK CONFIG_BLK_DEV
+    CONFIG_FUTEX CONFIG_RT_MUTEXES CONFIG_FUTEX_PI
+    CONFIG_POSIX_TIMERS
+    CONFIG_VIRTIO CONFIG_VIRTIO_MENU
+    CONFIG_VIRTIO_MMIO CONFIG_VIRTIO_MMIO_CMDLINE_DEVICES
+    CONFIG_VIRTIO_BLK CONFIG_VIRTIO_NET CONFIG_VIRTIO_CONSOLE
+    CONFIG_VIRTIO_BALLOON CONFIG_VIRTIO_VSOCKETS
+    CONFIG_HW_RANDOM CONFIG_HW_RANDOM_VIRTIO
+    CONFIG_EXT4_FS CONFIG_SHMEM CONFIG_TMPFS
+    CONFIG_DEVTMPFS CONFIG_DEVTMPFS_MOUNT
+    CONFIG_NET CONFIG_INET CONFIG_NETDEVICES CONFIG_NET_CORE
+    CONFIG_BINFMT_ELF CONFIG_BINFMT_SCRIPT
+    CONFIG_VSOCKETS
+)
+missing=()
+for cfg in "${REQUIRED[@]}"; do
+    grep -qx "$cfg=y" .config || missing+=("$cfg")
+done
+if [ ${#missing[@]} -gt 0 ]; then
+    echo "ERROR: olddefconfig dropped required CONFIG_* options:" >&2
+    printf '  %s\n' "${missing[@]}" >&2
+    echo "Check Kconfig depends for each — usually a parent menu (VIRTIO_MENU," >&2
+    echo "BLOCK, HW_RANDOM, SHMEM, etc.) is missing." >&2
+    exit 1
+fi
+
 make -j"$JOBS" vmlinux
 
 # Copy output. Accept absolute OUTPUT (e.g. /data/templates/.../vmlinux);
