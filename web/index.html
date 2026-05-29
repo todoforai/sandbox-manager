@@ -545,7 +545,10 @@ async function loadAll() {
       api('/templates').catch(() => []),
     ]);
     state.authed = true;
-    state.sandboxes = (list || []).filter(s => s.state !== 'terminated');
+    const aliveRank = { running: 0, paused: 1, creating: 2 };
+    state.sandboxes = (list || [])
+      .filter(s => s.state !== 'terminated')
+      .sort((a, b) => (aliveRank[a.state] ?? 9) - (aliveRank[b.state] ?? 9) || (b.last_activity || 0) - (a.last_activity || 0));
     state.templates = templates || [];
     state.err = null;
   } catch (e) {
