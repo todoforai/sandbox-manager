@@ -157,6 +157,23 @@ impl FirecrackerVm {
         Ok(())
     }
 
+    /// Re-enroll the in-guest bridge with a fresh enroll token. The bridge runs
+    /// as PID 1 in the guest with no hot-reload path, so the only way to swap
+    /// its device credentials is a guest reboot. We PUT the new token into MMDS
+    /// (which `/init` reads on next boot) and then send `SendCtrlAltDel`. The
+    /// kernel cmdline carries `panic=1 reboot=k`, so when PID 1 exits the guest
+    /// reboots and `/init` redeems the fresh token via `bridge login --token`.
+    pub async fn restart_bridge(&self, enroll_token: &str, sandbox_id: &str) -> Result<()> {
+        let mmds = build_mmds_bootstrap(Some(enroll_token), sandbox_id)?;
+        self.api_request("PUT", "/mmds", Some(&mmds))
+            .await
+            .context("Failed to update MMDS with fresh enroll token")?;
+        self.api_request("PUT", "/actions", Some(r#"{"action_type":"SendCtrlAltDel"}"#))
+            .await
+            .context("Failed to send SendCtrlAltDel to trigger guest reboot")?;
+        Ok(())
+    }
+
     /// Stop the VM. Sends `SendCtrlAltDel` (which the guest /init must trap
     /// as poweroff — without that it's a reboot signal), waits up to
     /// `GRACEFUL_SHUTDOWN_MS`, then SIGKILLs. `waitpid(WNOHANG)` at the end
@@ -513,26 +530,8 @@ impl FirecrackerLauncher {
                 .await
                 .context("Failed to configure MMDS")?;
 
-            let mut mmds = serde_json::Map::new();
-            if let Some(token) = enroll_token {
-                mmds.insert("enroll_token".into(), serde_json::Value::String(token.to_string()));
-            }
-            mmds.insert("sandbox_id".into(), serde_json::Value::String(sandbox_id.to_string()));
-            // Optional dev override: tell bridge inside the VM to talk to a non-prod
-            // Noise endpoint (e.g. the local backend). Bridge falls back to its
-            // hardcoded prod default when these are absent. Logged at WARN so a
-            // misconfigured prod deployment is loud about redirecting guest enrollment.
-            if let Ok(addr) = std::env::var("MMDS_NOISE_BACKEND_ADDR") {
-                tracing::warn!("MMDS override: noise_backend_addr={}", addr);
-                mmds.insert("noise_backend_addr".into(), serde_json::Value::String(addr));
-            }
-            if let Ok(pub_hex) = std::env::var("MMDS_NOISE_BACKEND_PUBKEY") {
-                if pub_hex.len() != 64 || !pub_hex.chars().all(|c| c.is_ascii_hexdigit()) {
-                    anyhow::bail!("MMDS_NOISE_BACKEND_PUBKEY must be 64 hex chars");
-                }
-                mmds.insert("noise_backend_pub".into(), serde_json::Value::String(pub_hex));
-            }
-            vm.api_request("PUT", "/mmds", Some(&serde_json::Value::Object(mmds).to_string()))
+            let mmds = build_mmds_bootstrap(enroll_token, sandbox_id)?;
+            vm.api_request("PUT", "/mmds", Some(&mmds))
                 .await
                 .context("Failed to populate MMDS")?;
         }
@@ -540,6 +539,33 @@ impl FirecrackerLauncher {
         Ok(())
     }
 
+}
+
+/// Build the MMDS JSON payload consumed by the guest `/init` at boot:
+/// `enroll_token` (optional), `sandbox_id`, plus optional dev-only Noise
+/// overrides. Shared between initial `configure_vm` and `restart_bridge` so
+/// the boot contract stays in one place.
+fn build_mmds_bootstrap(enroll_token: Option<&str>, sandbox_id: &str) -> Result<String> {
+    let mut mmds = serde_json::Map::new();
+    if let Some(token) = enroll_token {
+        mmds.insert("enroll_token".into(), serde_json::Value::String(token.to_string()));
+    }
+    mmds.insert("sandbox_id".into(), serde_json::Value::String(sandbox_id.to_string()));
+    // Optional dev override: tell bridge inside the VM to talk to a non-prod
+    // Noise endpoint (e.g. the local backend). Bridge falls back to its
+    // hardcoded prod default when these are absent. Logged at WARN so a
+    // misconfigured prod deployment is loud about redirecting guest enrollment.
+    if let Ok(addr) = std::env::var("MMDS_NOISE_BACKEND_ADDR") {
+        tracing::warn!("MMDS override: noise_backend_addr={}", addr);
+        mmds.insert("noise_backend_addr".into(), serde_json::Value::String(addr));
+    }
+    if let Ok(pub_hex) = std::env::var("MMDS_NOISE_BACKEND_PUBKEY") {
+        if pub_hex.len() != 64 || !pub_hex.chars().all(|c| c.is_ascii_hexdigit()) {
+            anyhow::bail!("MMDS_NOISE_BACKEND_PUBKEY must be 64 hex chars");
+        }
+        mmds.insert("noise_backend_pub".into(), serde_json::Value::String(pub_hex));
+    }
+    Ok(serde_json::Value::Object(mmds).to_string())
 }
 
 /// Find firecracker binary

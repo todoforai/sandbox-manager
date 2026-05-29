@@ -82,6 +82,20 @@ pub async fn resume_sandbox(
     Ok(StatusCode::OK)
 }
 
+/// Emergency "Connect VM to TODOforAI" — mint a fresh sandbox-scoped enroll
+/// token, push it into the guest via MMDS and reboot the VM. Used when the
+/// in-guest bridge is wedged or its device row was revoked.
+pub async fn restart_bridge(
+    State(service): State<SandboxService>,
+    Path(id): Path<String>,
+) -> Result<StatusCode, (StatusCode, String)> {
+    service
+        .restart_bridge(&root_admin(), &id)
+        .await
+        .map_err(|e| rest_error(ErrorCode::BadRequest, e.to_string()))?;
+    Ok(StatusCode::OK)
+}
+
 #[derive(Serialize)]
 pub struct SandboxLogs {
     kind: SandboxKind,

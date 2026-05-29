@@ -162,6 +162,7 @@ async function refresh() {
             ${s.state === 'running' ? `<button data-act="pause" data-id="${s.id}">Pause</button>` : ''}
             ${s.state === 'paused' ? `<button data-act="resume" data-id="${s.id}">Resume</button>` : ''}
             ${s.kind === 'vm' && (s.state === 'running' || s.state === 'paused') ? `<button data-act="recovery" data-id="${s.id}">Recovery SSH</button>` : ''}
+            ${s.kind === 'vm' && s.state === 'running' ? `<button data-act="restart-bridge" data-id="${s.id}" title="Mint a fresh enroll token, push it into the VM via MMDS and reboot — the bridge re-enrolls on next boot.">Connect VM to TODOforAI</button>` : ''}
             <button class="danger" data-act="delete" data-id="${s.id}">Delete</button>
           </td>
         </tr>`;
@@ -196,9 +197,10 @@ document.addEventListener('click', async e => {
     if (act === 'delete' && !confirm('Delete sandbox ' + id.slice(0,8) + '?')) return;
     btn.disabled = true;
     try {
-      if (act === 'pause')    await api(`/admin/api/sandbox/${id}/pause`,  { method: 'POST' });
-      if (act === 'resume')   await api(`/admin/api/sandbox/${id}/resume`, { method: 'POST' });
-      if (act === 'delete')   await api(`/admin/api/sandbox/${id}`,        { method: 'DELETE' });
+      if (act === 'pause')          await api(`/admin/api/sandbox/${id}/pause`,          { method: 'POST' });
+      if (act === 'resume')         await api(`/admin/api/sandbox/${id}/resume`,         { method: 'POST' });
+      if (act === 'restart-bridge') await api(`/admin/api/sandbox/${id}/restart-bridge`, { method: 'POST' });
+      if (act === 'delete')         await api(`/admin/api/sandbox/${id}`,                { method: 'DELETE' });
       if (act === 'recovery') {
         const r = await api(`/admin/api/sandbox/${id}/recovery-script`, { method: 'POST' });
         showRecoveryModal(id, r);

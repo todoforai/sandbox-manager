@@ -565,9 +565,10 @@ async function act(id, action) {
   state.pendingAction = `${id}:${action}`;
   render();
   try {
-    if (action === 'pause')  await api(`/sandbox/${id}/pause`,  { method: 'POST' });
-    if (action === 'resume') await api(`/sandbox/${id}/resume`, { method: 'POST' });
-    if (action === 'delete') await api(`/sandbox/${id}`,         { method: 'DELETE' });
+    if (action === 'pause')          await api(`/sandbox/${id}/pause`,          { method: 'POST' });
+    if (action === 'resume')         await api(`/sandbox/${id}/resume`,         { method: 'POST' });
+    if (action === 'restart-bridge') await api(`/sandbox/${id}/restart-bridge`, { method: 'POST' });
+    if (action === 'delete')         await api(`/sandbox/${id}`,                 { method: 'DELETE' });
     await loadAll();
   } catch (e) {
     state.err = e.message;
@@ -699,6 +700,11 @@ function renderVm(s) {
   }
   if (s.state === 'paused') {
     actions.appendChild(btn('Resume', () => act(s.id, 'resume'), { disabled: anyBusy, busy: busy('resume') }));
+  }
+  if (s.kind === 'vm' && s.state === 'running') {
+    actions.appendChild(btn('Connect to TODOforAI', () => {
+      if (confirm(`Reconnect sandbox ${s.id.slice(0, 8)}… to TODOforAI?\n\nThe VM will reboot and re-enroll with a fresh token.`)) act(s.id, 'restart-bridge');
+    }, { disabled: anyBusy, busy: busy('restart-bridge') }));
   }
   actions.appendChild(
     btn('Terminate', () => {

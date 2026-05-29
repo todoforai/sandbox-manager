@@ -777,6 +777,26 @@ impl VmManager {
         Ok(out)
     }
 
+    /// Run `scan_tools` inside a lite sandbox. VM sandboxes use the
+    /// in-guest bridge for this; here we run the same probe loop inside
+    /// the lite jail. Same wire format as bridge `scan_tools`.
+    pub async fn scan_tools_lite(&self, id: &str, entries: &str) -> Result<String> {
+        let sandbox = self.redis.sandbox_get(id).await?
+            .context("Sandbox not found")?;
+        if sandbox.kind != SandboxKind::Lite {
+            anyhow::bail!("scan_tools_lite is only for lite sandboxes; VMs scan via the bridge");
+        }
+        let template = self.lite_templates.get(&sandbox.template)
+            .with_context(|| format!("lite template missing: {}", sandbox.template))?
+            .clone();
+        let out = self.lite.scan_tools(id, &template, entries).await?;
+        if let Ok(Some(mut s)) = self.redis.sandbox_get(id).await {
+            s.touch();
+            self.redis.sandbox_put(&s).await.ok();
+        }
+        Ok(out)
+    }
+
     pub async fn pause_sandbox(&self, id: &str) -> Result<()> {
         let sandbox = self.redis.sandbox_get(id).await?
             .context("Sandbox not found")?;
@@ -808,6 +828,27 @@ impl VmManager {
         vm.resume().await?;
         self.redis.sandbox_set_state(id, SandboxState::Running, None).await?;
         tracing::info!("Resumed sandbox {}", id);
+        Ok(())
+    }
+
+    /// Re-enroll the bridge inside a running VM with a fresh enroll token.
+    /// Writes the token into MMDS and triggers a guest reboot; `/init` reads
+    /// it on next boot and runs `bridge login --token`. Running-only: a paused
+    /// guest won't process SendCtrlAltDel and the short-lived token would
+    /// expire before the next boot.
+    pub async fn restart_bridge(&self, id: &str, enroll_token: &str) -> Result<()> {
+        let sandbox = self.redis.sandbox_get(id).await?
+            .context("Sandbox not found")?;
+        if sandbox.kind == SandboxKind::Lite {
+            anyhow::bail!("restart-bridge is VM-only");
+        }
+        if sandbox.state != SandboxState::Running {
+            anyhow::bail!("Sandbox is not running");
+        }
+        let vm = self.vms.get(id)
+            .context("VM process handle lost (process gone); delete and recreate")?;
+        vm.restart_bridge(enroll_token, id).await?;
+        tracing::info!("Triggered bridge re-enroll on sandbox {}", id);
         Ok(())
     }
 

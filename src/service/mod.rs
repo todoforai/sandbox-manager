@@ -271,6 +271,22 @@ impl SandboxService {
         self.manager.resume_sandbox(id).await
     }
 
+    /// Mint a fresh sandbox-scoped enroll token and re-enroll the bridge
+    /// inside the VM by writing it into MMDS and rebooting the guest. Use
+    /// when the VM's bridge is wedged or its token was revoked — the next
+    /// boot picks up the new token via `/init`.
+    pub async fn restart_bridge(&self, identity: &AuthIdentity, id: &str) -> Result<()> {
+        self.assert_owner(identity, id).await?;
+        let sandbox = self.manager.get_sandbox(id).await?
+            .context("sandbox not found")?;
+        let token = self.backend
+            .mint_enroll_token(&sandbox.user_id, Some(ENROLL_TOKEN_TTL_SEC), Some(id))
+            .await
+            .context("failed to mint enroll token")?
+            .token;
+        self.manager.restart_bridge(id, &token).await
+    }
+
     pub async fn balloon_sandbox(&self, identity: &AuthIdentity, id: &str, target_mib: u32) -> Result<()> {
         self.assert_owner(identity, id).await?;
         self.manager.balloon_sandbox(id, target_mib).await
@@ -290,6 +306,18 @@ impl SandboxService {
     ) -> Result<ExecOutput> {
         self.assert_owner(identity, id).await?;
         self.manager.exec_lite(id, argv).await
+    }
+
+    /// Probe the tool catalog inside a lite sandbox. `entries` is the same
+    /// tab-separated base64 catalog the backend sends to the VM bridge.
+    pub async fn scan_tools_sandbox(
+        &self,
+        identity: &AuthIdentity,
+        id: &str,
+        entries: &str,
+    ) -> Result<String> {
+        self.assert_owner(identity, id).await?;
+        self.manager.scan_tools_lite(id, entries).await
     }
 
     pub async fn stats(&self) -> Result<SandboxStats> {

@@ -83,6 +83,21 @@ pub async fn resume_sandbox(
     Ok(StatusCode::OK)
 }
 
+/// Reconnect a VM sandbox to TODOforAI: mint a fresh enroll token, push it
+/// via MMDS and reboot the guest. The in-guest `/init` redeems it on next boot.
+pub async fn restart_bridge(
+    State(service): State<SandboxService>,
+    Auth(identity): Auth,
+    Path(id): Path<String>,
+) -> Result<StatusCode, (StatusCode, String)> {
+    service
+        .restart_bridge(&identity, &id)
+        .await
+        .map_err(|e| rest_error(ErrorCode::BadRequest, e.to_string()))?;
+
+    Ok(StatusCode::OK)
+}
+
 /// Set the virtio-balloon target (MiB). Guest gives that much RAM back to the host.
 #[derive(Debug, Deserialize)]
 pub struct BalloonRequest {
@@ -164,6 +179,37 @@ pub async fn exec_sandbox(
         .await
         .map(|o| Json(o.into()))
         .map_err(|e| rest_error(ErrorCode::BadRequest, e.to_string()))
+}
+
+/// Probe the tool catalog inside a lite sandbox. `entries` is the same
+/// tab-separated, base64-encoded catalog string the backend sends to the
+/// VM bridge as `scan_tools` (`<key>\t<b64_versionCmd>\t<b64_statusCmd>
+/// [\t<b64_installCmd>]\n` per line). Returns the same JSON shape
+/// `bridge_scan_tools()` emits.
+#[derive(Debug, Deserialize)]
+pub struct ScanToolsRequest {
+    pub entries: String,
+}
+
+#[derive(Debug, Serialize)]
+pub struct ScanToolsResponse {
+    /// `{ "<toolName>": { installed, version?, installedNow?, authenticated?, statusOutput? } }`
+    pub results: serde_json::Value,
+}
+
+pub async fn scan_tools_sandbox(
+    State(service): State<SandboxService>,
+    Auth(identity): Auth,
+    Path(id): Path<String>,
+    Json(req): Json<ScanToolsRequest>,
+) -> Result<Json<ScanToolsResponse>, (StatusCode, String)> {
+    let json = service
+        .scan_tools_sandbox(&identity, &id, &req.entries)
+        .await
+        .map_err(|e| rest_error(ErrorCode::BadRequest, e.to_string()))?;
+    let results: serde_json::Value = serde_json::from_str(&json)
+        .map_err(|e| rest_error(ErrorCode::Internal, format!("scan_tools produced invalid JSON: {e}")))?;
+    Ok(Json(ScanToolsResponse { results }))
 }
 
 /// Mint a short-lived SSH user cert that grants access to this sandbox over
