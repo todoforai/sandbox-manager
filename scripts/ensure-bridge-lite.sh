@@ -78,25 +78,31 @@ table inet sandbox-lite {
                      8333, 9999, 14444, 137-139, 445, 23 }
     }
 
-    # FORWARD: lite netns → public internet (routed through host).
+    # FORWARD: traffic transiting the host (lite netns → public internet).
+    # Default-deny: explicit accepts only.
     chain forward {
-        type filter hook forward priority 0; policy accept;
+        type filter hook forward priority 0; policy drop;
 
         ct state established,related accept
 
-        # Only police traffic leaving the lite bridge.
-        iifname != "$BRIDGE" return
+        # Only police traffic *leaving* the lite bridge. `accept` (not
+        # `return`) because this is a base chain with `policy drop` — a
+        # `return` here falls through to the drop policy and would kill
+        # unrelated FORWARD traffic (e.g. the paid VM bridge).
+        iifname != "$BRIDGE" accept
 
-        # Block abuse destinations / ports first.
+        # Block abuse destinations regardless of port.
         ip daddr @rfc1918   counter drop
         ip daddr @link_local counter drop
+
+        # Block abuse ports.
         tcp dport @blocked_ports counter drop
         udp dport @blocked_ports counter drop
 
         # Per-source-IP rate limit on new connections.
         ct state new limit rate over 60/second counter drop
 
-        # Allow only DNS / HTTP / HTTPS to anything that survived above.
+        # Allow DNS (53), HTTP (80), HTTPS (443).
         udp dport 53 accept
         tcp dport { 53, 80, 443 } accept
 
@@ -104,23 +110,31 @@ table inet sandbox-lite {
         counter drop
     }
 
-    # INPUT: lite netns → the host itself. Critical: traffic to 10.0.0.1
-    # (paid-VM bridge gateway), 10.2.0.1 (this bridge), 127.0.0.1, or any
-    # other IP the host owns is *input*, not *forward* — FORWARD chain
-    # never sees it. Without this, cli-lite could curl http://10.0.0.1/.
+    # INPUT: traffic addressed *to the host itself* from the lite netns.
+    # The host owns 10.0.0.1 (br-sandbox, paid VM bridge), 10.2.0.1 (this
+    # bridge), 127.0.0.1, plus any public IP. Without an input filter,
+    # cli-lite could curl http://10.0.0.1/ (the paid VM gateway) directly
+    # — FORWARD never sees it because the host is the destination.
     chain input {
         type filter hook input priority 0; policy accept;
 
         ct state established,related accept
 
-        # Only police traffic arriving on the lite bridge.
+        # Only police traffic arriving from the lite bridge.
         iifname != "$BRIDGE" accept
 
-        # ICMP echo so users can ping the gateway (handy for debugging).
+        # Allow DHCP-style replies & ICMP for sane behavior (ping the gw).
         icmp type { echo-request, echo-reply } accept
 
-        # Everything else aimed at the host (incl. sandbox-manager on
-        # :8200/:8202, host services on :22, etc.): drop.
+        # Allow DNS to the bridge IP (if a future setup runs a resolver
+        # there). Currently lite-netns.sh points at 1.1.1.1, so this is a
+        # no-op but harmless.
+        udp dport 53 accept
+        tcp dport 53 accept
+
+        # Everything else aimed at the host: drop. In particular this
+        # blocks http://10.0.0.1/, http://10.2.0.1/, http://127.0.0.1/,
+        # and the sandbox-manager API on :9000/:9002.
         counter drop
     }
 }
