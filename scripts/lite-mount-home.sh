@@ -63,13 +63,32 @@ case "$cmd" in
         # mount entry. `findmnt -n -o SOURCE` prints e.g. `/dev/loop17`.
         LOOP="$(findmnt -n -o SOURCE -- "$TARGET" 2>/dev/null || true)"
 
+        # Resolve the backing image so we can also free parallel loop
+        # attachments (e.g. udisks2 auto-mount on desktop hosts allocates
+        # its own /dev/loopN against the same file — our umount won't
+        # touch that one, so without this sweep loops leak per cycle).
+        IMG=""
+        if [ -n "$LOOP" ] && [ -b "$LOOP" ]; then
+            IMG="$(losetup -n -O BACK-FILE -- "$LOOP" 2>/dev/null || true)"
+        fi
+
         if mountpoint -q -- "$TARGET"; then
             umount -- "$TARGET" || die "umount $TARGET failed"
         fi
 
-        # If the loop is still attached (kernel doesn't auto-detach unless
-        # autoclear is set), free it now. Idempotent — ENOENT is fine.
-        if [ -n "$LOOP" ] && [ -b "$LOOP" ]; then
+        # Free every loop attached to this backing file. Any parallel
+        # mount (e.g. /media/<user>/<uuid> from udisks2) is unmounted
+        # first. Idempotent — missing entries are fine.
+        if [ -n "$IMG" ]; then
+            while IFS= read -r L; do
+                [ -n "$L" ] && [ -b "$L" ] || continue
+                MNT="$(findmnt -n -o TARGET -- "$L" 2>/dev/null || true)"
+                if [ -n "$MNT" ]; then
+                    umount -- "$MNT" 2>/dev/null || true
+                fi
+                losetup -d -- "$L" 2>/dev/null || true
+            done < <(losetup -j "$IMG" -n -O NAME 2>/dev/null)
+        elif [ -n "$LOOP" ] && [ -b "$LOOP" ]; then
             losetup -d -- "$LOOP" 2>/dev/null || true
         fi
         ;;

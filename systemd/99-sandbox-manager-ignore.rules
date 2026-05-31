@@ -1,0 +1,18 @@
+# Managed by sandbox-manager/systemd/install.sh — do not edit by hand.
+#
+# Hide sandbox-manager loop images from udisks2 / desktop auto-mount.
+#
+# Why: on dev hosts running a desktop session, udisks2 sees every freshly
+# attached /dev/loopN as a "removable filesystem" and auto-mounts it under
+# /media/<user>/<uuid> using its OWN parallel losetup attachment to the
+# same backing file. Our `lite-mount-home.sh detach` only frees the loop
+# device we allocated, so udisks2's parasite attachment leaks every cycle
+# (see `losetup -a | wc -l` growing monotonically). Also: two concurrent
+# r/w ext4 mounts of the same image is unsafe.
+#
+# UDISKS_IGNORE=1 tells udisks2 to skip the device entirely; UDISKS_AUTO=0
+# is belt-and-braces for older udisks versions.
+#
+# Match: any loop device whose backing file lives under the sandbox-data
+# tree. The path is substituted at install time from $SANDBOX_DATA_DIR.
+SUBSYSTEM=="block", KERNEL=="loop*", ATTR{loop/backing_file}=="@SANDBOX_DATA_DIR@/*", ENV{UDISKS_IGNORE}="1", ENV{UDISKS_AUTO}="0"

@@ -19,6 +19,18 @@ install -m 0755 "$SCRIPTS_DIR/ensure-bridge-lite.sh" "$LIB_DIR/ensure-bridge-lit
 install -m 0755 "$SCRIPTS_DIR/lite-netns.sh"         "$LIB_DIR/lite-netns.sh"
 install -m 0755 "$SCRIPTS_DIR/lite-mount-home.sh"    "$LIB_DIR/lite-mount-home.sh"
 
+# udev rule: hide sandbox-data/* loop devices from udisks2 to stop
+# desktop auto-mount from allocating parallel loop attachments (which
+# leak on detach — see 99-sandbox-manager-ignore.rules header).
+# SANDBOX_DATA_DIR must match the manager's --scratch-root / data dir.
+SANDBOX_DATA_DIR="${SANDBOX_DATA_DIR:-/home/master/sandbox-data}"
+UDEV_RULE="/etc/udev/rules.d/99-sandbox-manager-ignore.rules"
+sed "s|@SANDBOX_DATA_DIR@|${SANDBOX_DATA_DIR}|g" \
+    "$SRC_DIR/99-sandbox-manager-ignore.rules" > "$UDEV_RULE"
+chmod 0644 "$UDEV_RULE"
+udevadm control --reload
+udevadm trigger --subsystem-match=block --action=change || true
+
 # Sudoers rule for lite-mount-home.sh. sandbox-manager invokes this via
 # `sudo -n` on every Lite provision/destroy. On prod the manager already
 # runs as root and sudo is a no-op fast-path; on dev (uid=master) this
