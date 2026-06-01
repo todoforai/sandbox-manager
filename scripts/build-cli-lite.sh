@@ -177,8 +177,12 @@ copy_bin() {
     done < <(ldd "$src" 2>/dev/null | awk '{ for (i=1;i<=NF;i++) if ($i ~ /^\//) print $i }')
     echo "  added: $rel"
 }
+# base64 is required by the scan_tools probe (it base64-decodes every
+# version/status command). Many busybox builds omit the `base64` applet, so
+# pull the real coreutils binary as a guaranteed fallback — copy_bin lands it
+# at /usr/bin/base64, which the busybox symlink (if any) is overwritten by.
 echo "==> Copying additional binaries from host"
-for b in curl jq openssl; do copy_bin "$b"; done
+for b in curl jq openssl base64; do copy_bin "$b"; done
 
 # 2c. Optional language runtimes — only if present on host.
 #     Note: python3/node/bun are dynamically linked and carry their own
@@ -205,6 +209,11 @@ fi
 
 # 3. Mount points bwrap needs to exist in the read-only rootfs.
 mkdir -p "$ROOTFS"/{root,proc,dev,tmp,etc/ssl/certs,usr/bin}
+
+# The catalog-bundled CLIs (and many tools) use `#!/usr/bin/env node`. busybox
+# `env` lives at /bin/env, so expose it at the canonical /usr/bin/env too —
+# without this every `#!/usr/bin/env …` shebang fails with ENOENT.
+ln -sf /bin/env "$ROOTFS/usr/bin/env"
 
 # 4. CA certs so HTTPS works (todoai + curl consult this path).
 for src in /etc/ssl/certs/ca-certificates.crt /etc/pki/tls/certs/ca-bundle.crt; do

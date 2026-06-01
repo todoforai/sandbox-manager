@@ -220,14 +220,7 @@ impl LiteBackend {
         // If a netns wrapper is configured, the outer command is the
         // wrapper script and bwrap becomes its child. Otherwise call bwrap
         // directly (dev / host-shared net — warned at startup).
-        let mut cmd = match &self.netns_wrapper {
-            Some(w) => {
-                let mut c = Command::new(w);
-                c.args([id, "--", "bwrap"]);
-                c
-            }
-            None => Command::new("bwrap"),
-        };
+        let mut cmd = netns_command(self.netns_wrapper.as_deref(), id);
         cmd.args([
             "--ro-bind", path_str(&template.rootfs_dir)?, "/",
             "--bind", path_str(&home)?, "/root",
@@ -300,14 +293,7 @@ impl LiteBackend {
             bail!("lite sandbox {id} not provisioned (mountpoint {home:?} missing)");
         }
 
-        let mut cmd = match &self.netns_wrapper {
-            Some(w) => {
-                let mut c = Command::new(w);
-                c.args([id, "--", "bwrap"]);
-                c
-            }
-            None => Command::new("bwrap"),
-        };
+        let mut cmd = netns_command(self.netns_wrapper.as_deref(), id);
         cmd.args([
             "--ro-bind", path_str(&template.rootfs_dir)?, "/",
             "--bind", path_str(&home)?, "/root",
@@ -493,6 +479,25 @@ async fn run_helper(helper: &Path, args: &[&str]) -> Result<String> {
             helper.display(), args.join(" "), out.status, stderr.trim());
     }
     Ok(String::from_utf8_lossy(&out.stdout).into_owned())
+}
+
+/// Build the command that runs `bwrap` inside the per-exec netns.
+///
+/// `ip netns add` (inside the wrapper) does `mount --make-shared /run/netns`,
+/// which needs `CAP_SYS_ADMIN` — so the wrapper must run privileged. We invoke
+/// it via `sudo -n` (gated by /etc/sudoers.d/sandbox-manager-lite-netns),
+/// mirroring the mount helper. `sudo` is effectively a no-op in prod where
+/// sandbox-manager already runs as root. Without a wrapper (dev / host-shared
+/// net) we exec `bwrap` directly. Caller appends the bwrap args.
+fn netns_command(wrapper: Option<&Path>, id: &str) -> Command {
+    match wrapper {
+        Some(w) => {
+            let mut c = Command::new("sudo");
+            c.arg("-n").arg(w).args([id, "--", "bwrap"]);
+            c
+        }
+        None => Command::new("bwrap"),
+    }
 }
 
 /// Loop-mount round-trip tests. Require root (`CAP_SYS_ADMIN` for

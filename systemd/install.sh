@@ -52,6 +52,22 @@ visudo -cf "$SUDOERS_FILE" >/dev/null || {
     exit 1
 }
 
+# Sudoers rule for lite-netns.sh. sandbox-manager invokes it via `sudo -n`
+# on every Lite exec/scan_tools: `ip netns add` inside the wrapper does
+# `mount --make-shared /run/netns`, which needs CAP_SYS_ADMIN — so the
+# wrapper must run privileged. Same dev-vs-prod rationale as lite-mount.
+NETNS_SUDOERS_FILE="/etc/sudoers.d/sandbox-manager-lite-netns"
+cat > "$NETNS_SUDOERS_FILE" <<EOF
+# Managed by sandbox-manager/systemd/install.sh — do not edit by hand.
+$SBM_USER ALL=(root) NOPASSWD: $LIB_DIR/lite-netns.sh *
+EOF
+chmod 0440 "$NETNS_SUDOERS_FILE"
+visudo -cf "$NETNS_SUDOERS_FILE" >/dev/null || {
+    rm -f "$NETNS_SUDOERS_FILE"
+    echo "ERROR: lite-netns sudoers rule failed visudo check; removed" >&2
+    exit 1
+}
+
 for unit in sandbox-bridge.service sandbox-bridge-recheck.service sandbox-bridge.timer \
             sandbox-bridge-lite.service; do
     install -m 0644 "$SRC_DIR/$unit" "$UNIT_DIR/$unit"
