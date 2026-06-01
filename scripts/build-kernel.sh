@@ -78,7 +78,6 @@ make tinyconfig
 # parser is dead code, no device is probed, /dev/vda never appears →
 # "VFS: Cannot open root device /dev/vda" panic at boot.
 ./scripts/config --enable CONFIG_VIRTIO_MMIO_CMDLINE_DEVICES
-./scripts/config --enable CONFIG_VIRTIO_PCI
 ./scripts/config --enable CONFIG_VIRTIO_BLK
 ./scripts/config --enable CONFIG_VIRTIO_NET
 ./scripts/config --enable CONFIG_VIRTIO_CONSOLE
@@ -99,8 +98,6 @@ make tinyconfig
 
 # Filesystems
 ./scripts/config --enable CONFIG_EXT4_FS
-./scripts/config --enable CONFIG_SQUASHFS
-./scripts/config --enable CONFIG_SQUASHFS_ZSTD
 ./scripts/config --enable CONFIG_FUSE_FS
 ./scripts/config --enable CONFIG_OVERLAY_FS
 # TMPFS depends on SHMEM; tinyconfig leaves SHMEM=n, dropping TMPFS silently.
@@ -133,6 +130,9 @@ make tinyconfig
 ./scripts/config --enable CONFIG_EPOLL
 ./scripts/config --enable CONFIG_SIGNALFD
 ./scripts/config --enable CONFIG_TIMERFD
+# File-change notification. Without it `vite`, `npm run dev`, `tsc --watch`,
+# `cargo watch`, nodemon etc. silently fall back to polling or fail.
+./scripts/config --enable CONFIG_INOTIFY_USER
 ./scripts/config --enable CONFIG_EVENTFD
 ./scripts/config --enable CONFIG_AIO
 
@@ -172,6 +172,7 @@ REQUIRED=(
     CONFIG_NET CONFIG_INET CONFIG_NETDEVICES CONFIG_NET_CORE
     CONFIG_BINFMT_ELF CONFIG_BINFMT_SCRIPT
     CONFIG_VSOCKETS
+    CONFIG_INOTIFY_USER
 )
 missing=()
 for cfg in "${REQUIRED[@]}"; do
