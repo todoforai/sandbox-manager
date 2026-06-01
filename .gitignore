@@ -4,3 +4,4 @@ cli/.analysis/
 cli/.sweep/
 cli/.try/
 .noise/
+/sandbox-manager
