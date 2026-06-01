@@ -83,6 +83,17 @@ if [ -f "$TOOL_CATALOG_JSON" ] && command -v jq >/dev/null 2>&1; then
     for key in $PREINSTALL_KEYS; do
         src_dir="$API_APPS_DIR/$key"
         entry="$src_dir/src/cli.ts"
+        # Catalog key usually == api-apps dir name, but some packages live in a
+        # differently-named dir (e.g. catalog `tfa-vault` → api-apps/vault,
+        # whose package.json declares `bin: { "tfa-vault": … }`). Fall back to
+        # the package whose `bin` declares this key.
+        if [ ! -f "$entry" ]; then
+            for pj in "$API_APPS_DIR"/*/package.json; do
+                if jq -e --arg k "$key" '(.bin|objects)|has($k)' "$pj" >/dev/null 2>&1; then
+                    src_dir="$(dirname "$pj")"; entry="$src_dir/src/cli.ts"; break
+                fi
+            done
+        fi
         if [ ! -f "$entry" ]; then
             echo "  skip bundle: $key (no $entry)"
             continue
