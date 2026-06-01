@@ -27,10 +27,21 @@ use std::os::fd::OwnedFd;
 /// Per-user quota on concurrent sandboxes. TODO: read from appuser:<id>.sandboxLimit.
 const DEFAULT_USER_LIMIT: usize = 10;
 
-/// Logical size of each user's `$HOME` disk image (GiB). Sparse — on-disk
-/// usage is only what the user actually writes. Acts as a hard ceiling per
-/// user; ext4 inside the image will refuse writes past this.
-const USER_DISK_SIZE_GIB: u64 = 200;
+/// Default logical size of each user's `$HOME` disk image (GiB). Sparse —
+/// on-disk usage is only what the user actually writes. Acts as a hard
+/// ceiling per user; ext4 inside the image will refuse writes past this.
+///
+/// Override with `USER_DISK_SIZE_GIB=<n>` env var. Existing images keep
+/// their original size (ensure_disk is idempotent — see user_home.rs); only
+/// newly-created home.imgs use the current value.
+const DEFAULT_USER_DISK_SIZE_GIB: u64 = 20;
+
+fn user_disk_size_gib() -> u64 {
+    std::env::var("USER_DISK_SIZE_GIB").ok()
+        .and_then(|s| s.parse().ok())
+        .filter(|&n: &u64| n > 0)
+        .unwrap_or(DEFAULT_USER_DISK_SIZE_GIB)
+}
 
 pub struct VmManager {
     config: ManagerConfig,
@@ -493,7 +504,7 @@ impl VmManager {
         // reused forever after. The exact same file is what Lite loop-mounts
         // on the host and what FC attaches as /dev/vdb in the guest.
         let user_disk = if acquire_home {
-            Some(self.user_homes.ensure_disk(&user_id, USER_DISK_SIZE_GIB).await
+            Some(self.user_homes.ensure_disk(&user_id, user_disk_size_gib()).await
                 .context("ensure user home disk")?)
         } else {
             None
@@ -622,7 +633,7 @@ impl VmManager {
     /// responsible for the flock; this just does the on-disk work.
     async fn lite_reattach(&self, sandbox_id: &str, user_id: &str) {
         self.lite.force_unmount_leftover(sandbox_id).await;
-        let disk = self.user_homes.ensure_disk(user_id, USER_DISK_SIZE_GIB).await
+        let disk = self.user_homes.ensure_disk(user_id, user_disk_size_gib()).await
             .map_err(|e| tracing::error!("reconcile: ensure_disk({}): {:#}", user_id, e))
             .ok();
         if let Err(e) = self.lite.provision(sandbox_id, disk.as_deref()).await {
