@@ -79,20 +79,29 @@ sudo ./scripts/build-cli-lite.sh
 
 Prod deploys a **standalone** clone of this repo (`deploy.sh` → `git clone
 todoforai/sandbox-manager`), without the monorepo. To keep the rootfs build
-self-sufficient there:
+self-sufficient there, `ubuntu-base` resolves its two monorepo-only inputs:
 
-- **`ubuntu-base`** needs two monorepo-only inputs — the tfa-* tool list
-  (`tool_catalog.json`) and the `todoforai-bridge-static` binary. These are
-  **vendored** into `vendor/` and committed, so the standalone clone builds
-  with no monorepo and no env vars. Path resolution is: explicit env >
-  `vendor/` > monorepo source.
-- Refresh the vendored copies from the monorepo source-of-truth before pushing
-  (also auto-runs at the start of `build-templates.sh` when the monorepo is
-  present, so they never drift):
+- **tfa-* tool list** (`tool_catalog.json`) — **vendored** into
+  `vendor/tool_catalog.json` and committed (small text data, no publish
+  pipeline; same vendor-with-sync pattern as `packages/shared-web/sync.sh`).
+  Resolution: explicit env > `vendor/` > monorepo source. Refresh before
+  pushing (also auto-runs in `build-templates.sh` when the monorepo is present,
+  so it never drifts):
 
   ```bash
-  ./scripts/sync-vendor.sh           # run from inside the monorepo, then commit vendor/
-  ./scripts/sync-vendor.sh --check   # CI/pre-push guard: exit 1 if vendor/ is stale
+  ./scripts/sync-vendor.sh           # copy from monorepo, then commit vendor/tool_catalog.json
+  ./scripts/sync-vendor.sh --check   # CI/pre-push guard: exit 1 if stale
+  ```
+
+- **bridge binary** — **not committed**. Fetched from its canonical GitHub
+  release (the `linux-x64` asset is the static-musl build), pinned in
+  `vendor/bridge.tag` and checksum-verified. Resolution: explicit `BRIDGE_BIN`
+  > monorepo build (`../bridge`) > pinned release download. Downloads cache
+  under `vendor/cache/` (gitignored). Upgrade the bridge by bumping the tag:
+
+  ```bash
+  echo v1.4.4 > vendor/bridge.tag    # then commit
+  ./scripts/sync-vendor.sh bridge    # download + verify (optional; build does it)
   ```
 
 - **`cli-lite`** bundles the `cli/` + `api-apps/` bun workspaces, which are too

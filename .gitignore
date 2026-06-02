@@ -8,3 +8,5 @@ cli/.try/
 # rootfs build artifacts (default OUTPUT of build-ubuntu-rootfs.sh)
 rootfs-ubuntu.ext4
 rootfs*.ext4
+# bridge release download cache (scripts/fetch-bridge.sh)
+vendor/cache/

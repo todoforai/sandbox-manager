@@ -46,17 +46,17 @@ for arg in "$@"; do
 done
 
 # Bridge binary preflight — fail clearly before slow apt/debootstrap work.
-# build-ubuntu-rootfs.sh needs $BRIDGE_BIN, a vendored binary (standalone
-# clone), or a sibling ../bridge checkout to `make static`. Skip for cli-only.
+# build-ubuntu-rootfs.sh resolves the bridge as: $BRIDGE_BIN > monorepo build
+# (../bridge) > pinned release download (vendor/bridge.tag). Skip for cli-only.
 REPO_ROOT="$(dirname "$(dirname "$SCRIPT_DIR")")"
-VENDOR_BRIDGE="$(dirname "$SCRIPT_DIR")/vendor/todoforai-bridge-static"
+BRIDGE_TAG_FILE="$(dirname "$SCRIPT_DIR")/vendor/bridge.tag"
 if [ "$TARGET" != "cli" ] \
    && [ ! -x "${BRIDGE_BIN:-/nonexistent}" ] \
-   && [ ! -e "$VENDOR_BRIDGE" ] \
-   && [ ! -d "$REPO_ROOT/bridge" ]; then
-    echo "ERROR: ubuntu-base needs todoforai-bridge-static." >&2
-    echo "  Set BRIDGE_BIN=/path/to/binary, run scripts/sync-vendor.sh in the" >&2
-    echo "  monorepo and commit vendor/, or check out $REPO_ROOT/bridge." >&2
+   && [ ! -d "$REPO_ROOT/bridge" ] \
+   && [ ! -s "$BRIDGE_TAG_FILE" ]; then
+    echo "ERROR: ubuntu-base needs a bridge binary." >&2
+    echo "  Set BRIDGE_BIN=/path, check out $REPO_ROOT/bridge, or pin a release" >&2
+    echo "  in $BRIDGE_TAG_FILE (downloaded + verified by scripts/sync-vendor.sh)." >&2
     exit 1
 fi
 

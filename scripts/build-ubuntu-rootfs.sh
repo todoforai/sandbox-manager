@@ -18,7 +18,9 @@ VENDOR_DIR="$SANDBOX_MGR_ROOT/vendor"
 # (standalone clone) > monorepo path (dev). Keeps dev on live source while
 # making the standalone clone self-sufficient — no monorepo, no manual env.
 _pick() { for p in "$@"; do [ -e "$p" ] && { echo "$p"; return; }; done; echo "$1"; }
-BRIDGE_BIN="${BRIDGE_BIN:-$(_pick "$VENDOR_DIR/todoforai-bridge-static" "$REPO_ROOT/bridge/build/todoforai-bridge-static")}"
+# Bridge resolves below (after the root check): explicit env > monorepo build
+# (dev) > pinned, checksum-verified release download (standalone clone). The
+# binary is NOT committed — see scripts/sync-vendor.sh + vendor/bridge.tag.
 
 UBUNTU_VERSION="${UBUNTU_VERSION:-24.04}"
 UBUNTU_POINT="${UBUNTU_POINT:-24.04.3}"
@@ -74,21 +76,23 @@ if [ "$(id -u)" != "0" ]; then
     exit 1
 fi
 
-# Check bridge binary exists. In the monorepo we can build it from source; in a
-# standalone clone it must be vendored (scripts/sync-vendor.sh) or passed via
-# BRIDGE_BIN — there is no bridge/ to build from.
-if [ ! -f "$BRIDGE_BIN" ]; then
-    echo "bridge binary not found at: $BRIDGE_BIN"
+# Resolve the bridge binary: explicit BRIDGE_BIN > monorepo build (dev) >
+# pinned release download (standalone clone). The release linux-x64 asset is
+# the static-musl build — identical to `make static` — so it's a drop-in.
+if [ -z "${BRIDGE_BIN:-}" ]; then
     if [ -d "$REPO_ROOT/bridge" ]; then
         echo "Building bridge from $REPO_ROOT/bridge..."
         ( cd "$REPO_ROOT/bridge" && make static )
         BRIDGE_BIN="$REPO_ROOT/bridge/build/todoforai-bridge-static"
     else
-        echo "ERROR: no bridge source (standalone clone) and no vendored binary." >&2
-        echo "  Run scripts/sync-vendor.sh in the monorepo and commit vendor/," >&2
-        echo "  or set BRIDGE_BIN=/path/to/todoforai-bridge-static." >&2
-        exit 1
+        echo "Fetching pinned bridge release ($(cat "$VENDOR_DIR/bridge.tag" 2>/dev/null))..."
+        BRIDGE_BIN="$("$SCRIPT_DIR/sync-vendor.sh" bridge)"
     fi
+fi
+if [ ! -f "$BRIDGE_BIN" ]; then
+    echo "ERROR: bridge binary not found at: $BRIDGE_BIN" >&2
+    echo "  Set BRIDGE_BIN=/path, build in the monorepo, or check vendor/bridge.tag." >&2
+    exit 1
 fi
 
 echo "Using bridge: $BRIDGE_BIN ($(ls -lh "$BRIDGE_BIN" | awk '{print $5}'))"
