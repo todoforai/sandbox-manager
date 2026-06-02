@@ -270,17 +270,21 @@ else
     echo "WARN: no CA bundle found; HTTPS may fail"
 fi
 
-# 4a. /etc/resolv.conf so DNS works inside the sandbox (net is shared with
-#     host but resolv.conf is per-mount-namespace, so copy the host config).
-if [ -f /etc/resolv.conf ]; then
-    cp -L /etc/resolv.conf "$ROOTFS/etc/resolv.conf"
-else
-    cat > "$ROOTFS/etc/resolv.conf" <<'EOF'
+# 4a. /etc/resolv.conf — DNS inside the sandbox.
+#     The lite backend runs each exec in its own network namespace (not
+#     --share-net to the host), and bwrap then `--ro-bind`s this rootfs over
+#     `/`, so the rootfs's /etc/resolv.conf is what the jail actually reads.
+#     NEVER copy the host's file: it typically points at 127.0.0.53
+#     (systemd-resolved stub) which only listens on the *host's* loopback and
+#     is unreachable from the netns → every lookup fails. Bake a public
+#     resolver instead (egress nftables already allows 53 to public; RFC1918
+#     resolvers are dropped). lite-netns.sh may still override per-netns via
+#     /etc/netns/<ns>/resolv.conf for hosts that block public 53 (Hetzner).
+cat > "$ROOTFS/etc/resolv.conf" <<'EOF'
 nameserver 1.1.1.1
 nameserver 8.8.8.8
 options edns0
 EOF
-fi
 
 # 5. Minimal /etc files so getpwuid etc. don't break.
 cat > "$ROOTFS/etc/passwd" <<'EOF'
