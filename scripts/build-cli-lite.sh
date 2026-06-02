@@ -34,6 +34,15 @@ TOOL_CATALOG_JSON="${TOOL_CATALOG_JSON:-$REPO_ROOT/packages/shared-fbe/src/tool_
 API_APPS_DIR="${API_APPS_DIR:-$REPO_ROOT/api-apps}"
 COMPILED_BINS=()
 
+# Browser tooling (section 2d). agent-browser is a static-musl Rust CLI that
+# drives a browser engine over CDP; lightpanda is a tiny headless engine and
+# the Lite default. Chromium is the full-fidelity engine but adds ~400 MB +
+# runtime scaffolding, so it's opt-in (LITE_BUNDLE_CHROMIUM=1). Versions are
+# pinned for reproducibility; override via env.
+AGENT_BROWSER_VERSION="${AGENT_BROWSER_VERSION:-0.27.1}"
+LIGHTPANDA_VERSION="${LIGHTPANDA_VERSION:-0.3.1}"
+LITE_BUNDLE_CHROMIUM="${LITE_BUNDLE_CHROMIUM:-0}"
+
 echo "==> Building cli-lite template at $TEMPLATE_DIR"
 
 # 1. Compile todoai as a standalone binary.
@@ -95,7 +104,9 @@ if [ -f "$TOOL_CATALOG_JSON" ] && command -v jq >/dev/null 2>&1; then
             done
         fi
         if [ ! -f "$entry" ]; then
-            echo "  skip bundle: $key (no $entry)"
+            # agent-browser isn't an api-apps node CLI — it's a prebuilt binary
+            # installed in section 2d. Skip quietly here to avoid a misleading log.
+            [ "$key" = "agent-browser" ] || echo "  skip bundle: $key (no $entry)"
             continue
         fi
         bundle_dir="$ROOTFS/lib/$key"
@@ -246,6 +257,61 @@ if [ -x "$ROOTFS/usr/bin/python3" ] || [ -x "$ROOTFS/bin/python3" ]; then
         echo "  copying $(basename "$py_stdlib") stdlib"
         mkdir -p "$ROOTFS$(dirname "$py_stdlib")"
         cp -rL "$py_stdlib" "$ROOTFS$py_stdlib" 2>/dev/null || true
+    fi
+fi
+
+# 2d. Browser tooling. agent-browser (CDP controller) + lightpanda (default
+#     engine). Chromium is opt-in (full fidelity, heavy). agent-browser picks
+#     its engine via AGENT_BROWSER_ENGINE / --engine; lite-netns + the jail
+#     give it filtered egress and DNS (section 4a).
+echo "==> Installing browser tooling (agent-browser + lightpanda)"
+fetch() { curl -fsSL --retry 3 -o "$1" "$2"; }  # $1=dest $2=url
+
+# agent-browser: a single static-musl Rust binary (no deps, ~11 MB). Pull the
+# linux-musl-x64 binary straight out of the npm tarball at the pinned version.
+AB_TGZ="$(mktemp -d)/ab.tgz"
+if fetch "$AB_TGZ" "https://registry.npmjs.org/agent-browser/-/agent-browser-${AGENT_BROWSER_VERSION}.tgz"; then
+    tar -xzf "$AB_TGZ" -C "$(dirname "$AB_TGZ")" package/bin/agent-browser-linux-musl-x64 2>/dev/null \
+        && install -m 0755 "$(dirname "$AB_TGZ")/package/bin/agent-browser-linux-musl-x64" "$ROOTFS/usr/bin/agent-browser" \
+        && echo "  added: usr/bin/agent-browser ($AGENT_BROWSER_VERSION)"
+else
+    echo "  WARN: agent-browser $AGENT_BROWSER_VERSION download failed — skipping"
+fi
+rm -rf "$(dirname "$AB_TGZ")"
+
+# lightpanda: headless engine, default for Lite. Dynamic (needs libc/libm —
+# already present from the language runtimes). Strip to ~55 MB.
+if fetch "$ROOTFS/usr/bin/lightpanda" "https://github.com/lightpanda-io/browser/releases/download/${LIGHTPANDA_VERSION}/lightpanda-x86_64-linux"; then
+    chmod 0755 "$ROOTFS/usr/bin/lightpanda"
+    strip -s "$ROOTFS/usr/bin/lightpanda" 2>/dev/null || true
+    echo "  added: usr/bin/lightpanda ($LIGHTPANDA_VERSION)"
+else
+    echo "  WARN: lightpanda $LIGHTPANDA_VERSION download failed — skipping"
+fi
+
+# Chromium (opt-in): copy the host's Google Chrome install + its lib closure,
+# plus the minimal runtime files headless Chrome expects (machine-id, a few
+# fonts, fontconfig). agent-browser uses it via --engine chrome.
+if [ "$LITE_BUNDLE_CHROMIUM" = "1" ]; then
+    CHROME_DIR=""
+    for d in /opt/google/chrome /opt/chromium.org/chromium; do [ -x "$d/chrome" ] && CHROME_DIR="$d" && break; done
+    if [ -n "$CHROME_DIR" ]; then
+        echo "==> Bundling Chromium from $CHROME_DIR (LITE_BUNDLE_CHROMIUM=1)"
+        mkdir -p "$ROOTFS$CHROME_DIR"
+        cp -a "$CHROME_DIR"/. "$ROOTFS$CHROME_DIR/"
+        # Lib closure of the chrome binary (copy_bin only handles one level;
+        # chrome dlopen's extras, so walk ldd of the main binary).
+        while read -r lib; do case "$lib" in /*) copy_lib "$lib" ;; esac; done \
+            < <(ldd "$CHROME_DIR/chrome" 2>/dev/null | awk '{ for (i=1;i<=NF;i++) if ($i ~ /^\//) print $i }')
+        ln -sf "$CHROME_DIR/chrome" "$ROOTFS/usr/bin/chrome"
+        # Runtime scaffolding headless Chrome needs in the minimal jail.
+        printf '00000000000000000000000000000000\n' > "$ROOTFS/etc/machine-id"
+        mkdir -p "$ROOTFS/usr/share/fonts/truetype/dejavu" "$ROOTFS/etc/fonts"
+        cp /usr/share/fonts/truetype/dejavu/DejaVuSans*.ttf "$ROOTFS/usr/share/fonts/truetype/dejavu/" 2>/dev/null || true
+        [ -f /etc/fonts/fonts.conf ] && cp /etc/fonts/fonts.conf "$ROOTFS/etc/fonts/fonts.conf"
+        echo "  added: usr/bin/chrome (+ libs, fonts, machine-id)"
+    else
+        echo "  WARN: LITE_BUNDLE_CHROMIUM=1 but no Chrome found on host — skipping"
     fi
 fi
 
