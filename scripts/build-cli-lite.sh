@@ -208,6 +208,13 @@ if [ -f "$TOOL_CATALOG_JSON" ] && command -v jq >/dev/null 2>&1; then
         | map(.value.pkg // .key) | .[]
     ' "$TOOL_CATALOG_JSON")
     for b in $SYSTEM_KEYS; do
+        # Skip tools the rootfs already provides (busybox applet or an earlier
+        # copy_bin) — don't silently swap out the jail's existing utilities
+        # (sed/grep/patch are busybox applets; curl was copied above). This
+        # loop only adds genuinely-missing system tools like rclone.
+        if [ -e "$ROOTFS/usr/bin/$b" ] || [ -e "$ROOTFS/bin/$b" ]; then
+            continue
+        fi
         copy_bin "$b"
         # copy_bin preserves the host path (e.g. ~/.todoforai/tools/bin/rclone),
         # which may not be on the jail PATH (/usr/bin:/bin). Symlink onto PATH.
