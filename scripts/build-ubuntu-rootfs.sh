@@ -48,6 +48,14 @@ echo "Packages: $PACKAGES"
 # of truth shared with edge/frontend). Accepts installer == "bun" or "npm" —
 # both publish to the npm registry and bun installs either. Empty if catalog
 # absent or jq missing.
+# Fail loudly rather than silently shipping a rootfs without the catalog CLIs:
+# if the catalog exists but jq is missing on the build host, the preinstall
+# would be empty and the VM would boot toolless (no tfa-vault/explore/review).
+if [ -f "$TOOL_CATALOG_JSON" ] && ! command -v jq >/dev/null 2>&1; then
+    echo "ERROR: jq not found on build host but TOOL_CATALOG exists ($TOOL_CATALOG_JSON)." >&2
+    echo "  Without jq the rootfs ships with NO preinstalled catalog CLIs. Install jq (apt-get install -y jq) and re-run." >&2
+    exit 1
+fi
 BUN_PREINSTALL=""
 if [ -f "$TOOL_CATALOG_JSON" ] && command -v jq >/dev/null 2>&1; then
     BUN_PREINSTALL=$(jq -r '

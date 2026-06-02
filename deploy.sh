@@ -284,6 +284,10 @@ provision_templates() {
         set -a; . \$DEPLOY_PATH/shared/.env; set +a
         echo "TEMPLATES_DIR=\${TEMPLATES_DIR:-<unset>}"
 
+        # jq is required to read the tool catalog; without it the rootfs ships
+        # toolless (no tfa-vault/explore/review). Ensure it before building.
+        command -v jq >/dev/null 2>&1 || { echo "Installing jq (required by template build)..."; apt-get install -y jq >/dev/null 2>&1; }
+
         # Preflight + build live in scripts/build-templates.sh — no prod-only checks here.
         ./scripts/build-templates.sh $target
 
