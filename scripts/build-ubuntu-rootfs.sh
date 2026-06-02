@@ -395,7 +395,10 @@ for bin in /usr/bin/bash /usr/bin/curl /usr/bin/wget /usr/bin/jq \
            /etc/ssh/recovery_ca.pub /etc/ssh/sshd_config.d/10-recovery.conf \
            /etc/ssh/auth_principals/recovery \
            /etc/sandbox-tools.txt /etc/sandbox-manifest.json /init; do
-    if [ ! -e "$VERIFY_MNT$bin" ]; then
+    # -e follows symlinks; /usr/local/bin/fd is an absolute symlink to
+    # /usr/bin/fdfind that would resolve against the *host* root from here and
+    # dangle. Accept a present symlink (-L) too — its target lives in the image.
+    if [ ! -e "$VERIFY_MNT$bin" ] && [ ! -L "$VERIFY_MNT$bin" ]; then
         echo "FAIL: $bin missing from image" >&2
         exit 1
     fi
