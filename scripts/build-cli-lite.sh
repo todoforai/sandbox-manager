@@ -195,6 +195,30 @@ copy_bin() {
 echo "==> Copying additional binaries from host"
 for b in curl jq openssl base64; do copy_bin "$b"; done
 
+# 2b'. System-installer tools tagged `preinstallCloud: true` in TOOL_CATALOG
+#      (installer == "system" → host package / static binary, not bun/npm).
+#      Copied from the host with their dynamic libs, same as 2b. Best-effort:
+#      skip silently if absent on the host. Covers rclone (cloud sync) etc.
+#      Note: rclone FUSE `mount` won't work in the bwrap jail (no /dev/fuse,
+#      no CAP_SYS_ADMIN) — but `lsf/cat/copy/sync` are HTTPS-only and do.
+if [ -f "$TOOL_CATALOG_JSON" ] && command -v jq >/dev/null 2>&1; then
+    SYSTEM_KEYS=$(jq -r '
+        to_entries
+        | map(select(.value.preinstallCloud == true and .value.installer == "system"))
+        | map(.value.pkg // .key) | .[]
+    ' "$TOOL_CATALOG_JSON")
+    for b in $SYSTEM_KEYS; do
+        copy_bin "$b"
+        # copy_bin preserves the host path (e.g. ~/.todoforai/tools/bin/rclone),
+        # which may not be on the jail PATH (/usr/bin:/bin). Symlink onto PATH.
+        src="$(command -v "$b" 2>/dev/null || true)"
+        if [ -n "$src" ] && [ ! -e "$ROOTFS/usr/bin/$b" ] && [ ! -e "$ROOTFS/bin/$b" ]; then
+            mkdir -p "$ROOTFS/usr/bin"
+            ln -sf "/${src#/}" "$ROOTFS/usr/bin/$b"
+        fi
+    done
+fi
+
 # 2c. Optional language runtimes — only if present on host.
 #     Note: python3/node/bun are dynamically linked and carry their own
 #     stdlib/runtime; we copy the runtime + its libs but NOT site-packages or
