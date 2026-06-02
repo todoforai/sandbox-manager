@@ -45,6 +45,17 @@ LITE_BUNDLE_CHROMIUM="${LITE_BUNDLE_CHROMIUM:-0}"
 
 echo "==> Building cli-lite template at $TEMPLATE_DIR"
 
+# cli-lite bundles the todoai CLI ($REPO_ROOT/cli) and the tfa-* tools
+# ($REPO_ROOT/api-apps) — both large bun workspaces that live only in the
+# monorepo. A standalone clone (prod deploy) has neither, so build cli-lite in
+# the monorepo and ship the rootfs to $TEMPLATES_DIR/cli-lite instead. Skip
+# cleanly here rather than fail a combined `provision-templates all` run.
+if [ ! -d "$CLI_DIR" ] || [ ! -d "$API_APPS_DIR" ]; then
+    echo "==> SKIP cli-lite: monorepo sources absent (CLI_DIR=$CLI_DIR, API_APPS_DIR=$API_APPS_DIR)."
+    echo "    Build cli-lite in the monorepo and rsync $TEMPLATE_DIR to the host."
+    exit 0
+fi
+
 # 1. Compile todoai as a standalone binary.
 #    --compile bakes the bundle in; the resulting binary will not exec
 #    arbitrary JS — it only runs the embedded entrypoint.

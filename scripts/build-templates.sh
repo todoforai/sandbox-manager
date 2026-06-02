@@ -46,20 +46,32 @@ for arg in "$@"; do
 done
 
 # Bridge binary preflight — fail clearly before slow apt/debootstrap work.
-# build-ubuntu-rootfs.sh needs $BRIDGE_BIN (or a sibling ../bridge checkout
-# to `make static`). Skip the check for cli-only builds.
+# build-ubuntu-rootfs.sh needs $BRIDGE_BIN, a vendored binary (standalone
+# clone), or a sibling ../bridge checkout to `make static`. Skip for cli-only.
 REPO_ROOT="$(dirname "$(dirname "$SCRIPT_DIR")")"
+VENDOR_BRIDGE="$(dirname "$SCRIPT_DIR")/vendor/todoforai-bridge-static"
 if [ "$TARGET" != "cli" ] \
    && [ ! -x "${BRIDGE_BIN:-/nonexistent}" ] \
+   && [ ! -e "$VENDOR_BRIDGE" ] \
    && [ ! -d "$REPO_ROOT/bridge" ]; then
     echo "ERROR: ubuntu-base needs todoforai-bridge-static." >&2
-    echo "  Set BRIDGE_BIN=/path/to/binary, or check out $REPO_ROOT/bridge." >&2
+    echo "  Set BRIDGE_BIN=/path/to/binary, run scripts/sync-vendor.sh in the" >&2
+    echo "  monorepo and commit vendor/, or check out $REPO_ROOT/bridge." >&2
     exit 1
 fi
 
 # One TMP for the whole run, cleaned up on exit (success or fail).
 TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
+
+# When building inside the monorepo, refresh vendor/ from the source-of-truth
+# (tool_catalog.json + bridge binary) so the committed vendor copies — which
+# the standalone prod clone relies on — never drift. No-op in a standalone
+# clone (no monorepo source to sync from).
+if [ -f "$REPO_ROOT/packages/shared-fbe/src/tool_catalog.json" ]; then
+    echo "==> refreshing vendor/ from monorepo source"
+    "$SCRIPT_DIR/sync-vendor.sh"
+fi
 
 build_ubuntu() {
     local out_dir="$TEMPLATES_DIR/ubuntu-base"

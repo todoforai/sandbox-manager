@@ -1,0 +1,649 @@
+{
+  "zele": {
+    "category": "email",
+    "pkg": "zele",
+    "installer": "npm",
+    "label": "Gmail",
+    "statusCmd": "zele whoami",
+    "loginCmd": "zele login",
+    "credentialPaths": [
+      "~/.zele/sqlite.db"
+    ],
+    "capabilities": "Read inbox, search/send/reply email, email addresses — multi-account Gmail, OAuth browser login for setup.",
+    "description": "Use for anything Gmail: reading the user's inbox, searching mail, sending or replying to email. Multi-account, OAuth login via `zele login`.",
+    "versionCmd": "zele --version 2>/dev/null | head -1"
+  },
+  "xurl": {
+    "category": "social",
+    "pkg": "@xdevplatform/xurl",
+    "installer": "npm",
+    "label": "X",
+    "statusCmd": "xurl whoami 2>&1 | grep -oP '\"username\":\\s*\"\\K[^\"]+' | head -1",
+    "loginCmd": "xurl auth oauth2",
+    "credentialPaths": [
+      "~/.xurl"
+    ],
+    "capabilities": "Post tweets, reply & quote, read timelines, search tweets, like & repost, follow/unfollow, DMs, media uploads",
+    "description": "Use to interact with X/Twitter: post/reply/quote tweets, search, read timelines, like/repost, follow, DMs, media upload. Authenticated raw API access via `xurl <method> <path>`.",
+    "versionCmd": "xurl --version 2>/dev/null | head -1"
+  },
+  "tiktok-uploader": {
+    "category": "social",
+    "pkg": "tiktok-uploader",
+    "installer": "pip",
+    "label": "TikTok",
+    "statusCmd": "python3 -c 'import tiktok_uploader' 2>&1",
+    "loginCmd": "npx @todoforai/tiktok-cookie-helper",
+    "credentialPaths": [
+      "~/.tiktok/cookies.txt"
+    ],
+    "capabilities": "Upload videos, batch uploads, schedule posts, custom covers, hashtags & mentions",
+    "description": "Use to upload videos to TikTok (single or batch), schedule posts, set covers/hashtags/mentions. Cookie-based auth: run `npx @todoforai/tiktok-cookie-helper` → log in to tiktok.com → export cookies via 'Get cookies.txt LOCALLY' extension → saved to ~/.tiktok/cookies.txt.",
+    "versionCmd": "pip show tiktok-uploader 2>/dev/null | grep -oP 'Version: \\K.*'"
+  },
+  "instagrapi": {
+    "category": "social",
+    "pkg": "instagrapi",
+    "installer": "pip",
+    "label": "Instagram",
+    "capabilities": "Upload photos & reels, post stories, send DMs, like & comment, manage followers",
+    "description": "Use for Instagram automation: upload photos/reels, post stories, DMs, like/comment, follower management. Python library; call via `python3 -c \"from instagrapi import Client; ...\"`.",
+    "statusCmd": "python3 -c \"import instagrapi\" 2>/dev/null",
+    "versionCmd": "pip show instagrapi 2>/dev/null | grep -oP 'Version: \\K.*'"
+  },
+  "mudslide": {
+    "category": "messaging",
+    "pkg": "mudslide",
+    "installer": "npm",
+    "label": "WhatsApp",
+    "statusCmd": "mudslide me",
+    "loginCmd": "mudslide login",
+    "credentialPaths": [
+      "~/.local/share/mudslide"
+    ],
+    "capabilities": "Send messages, send images & files, send locations & polls, group management, QR code login",
+    "description": "Use to send WhatsApp messages/files/media/locations/polls from CLI. QR-code login via `mudslide login`.",
+    "versionCmd": "mudslide --version 2>/dev/null | head -1"
+  },
+  "telegram-send": {
+    "category": "messaging",
+    "pkg": "telegram-send",
+    "installer": "pip",
+    "label": "Telegram",
+    "statusCmd": "test -f ~/.config/telegram-send/telegram-send.conf && echo 'configured'",
+    "loginCmd": "telegram-send --configure",
+    "credentialPaths": [
+      "~/.config/telegram-send/telegram-send.conf"
+    ],
+    "capabilities": "Send messages, send files & images, send video & audio, Markdown/HTML formatting, channel & group support",
+    "description": "Use to send Telegram messages/files from CLI (one-way bot output). Configure once with `telegram-send --configure`. For full Telegram automation use a different tool.",
+    "versionCmd": "telegram-send --version 2>/dev/null | head -1"
+  },
+  "apollo-api": {
+    "category": "marketing",
+    "pkg": "@todoforai/apollo-api",
+    "installer": "npm",
+    "label": "Apollo",
+    "capabilities": "Lead search & enrichment, email sequences, CRM sync",
+    "description": "Use for B2B prospecting: search Apollo's people/company DB, enrich leads with emails/titles/companies, manage sequences and CRM data. Needs APOLLO_API_KEY.",
+    "versionCmd": "apollo-api --version 2>/dev/null | head -1"
+  },
+  "meta-ads": {
+    "category": "marketing",
+    "pkg": "meta-ads",
+    "installer": "pip",
+    "label": "Meta Ads",
+    "statusCmd": "meta auth status 2>&1",
+    "capabilities": "Meta/Facebook & Instagram ad campaigns: campaigns/adsets/ads CRUD, insights & reporting, catalog/product-feed/product-set/product-item, ad creatives, datasets (pixels), pages — Marketing API via the official `meta` CLI.",
+    "description": "Auth via env vars (no login command): set ACCESS_TOKEN (Meta Marketing API user/system token) and AD_ACCOUNT_ID (e.g. act_123456); optionally BUSINESS_ID for dataset commands. Get a token at https://developers.facebook.com/tools/explorer with scopes ads_management, ads_read, business_management — or use a System User token from Business Manager (no expiry). `meta auth status` only checks if ACCESS_TOKEN is set, not if it's valid; run `meta ads campaign list` to validate. Examples: `meta ads campaign list`, `meta ads insights get --date-preset last_7d`, `meta ads adset get 123456 --output json`. Output: table|json|plain via `-o`.",
+    "versionCmd": "meta --version 2>/dev/null | head -1"
+  },
+  "elevenlabs-api": {
+    "category": "media",
+    "pkg": "@todoforai/elevenlabs-api",
+    "installer": "npm",
+    "label": "ElevenLabs",
+    "capabilities": "Text-to-speech, voice cloning, multiple languages",
+    "description": "Use to generate speech audio from text, clone voices, or list voices. Needs ELEVENLABS_API_KEY.",
+    "versionCmd": "elevenlabs-api --version 2>/dev/null | head -1"
+  },
+  "codex-imagegen-api": {
+    "category": "media",
+    "pkg": "@todoforai/codex-imagegen-api",
+    "installer": "npm",
+    "label": "Image Gen",
+    "capabilities": "AI image generation & editing via TODOFORAI backend (gpt-image)",
+    "description": "Use to generate or edit images. Subcommands: `codex-imagegen-api generate \"<prompt>\" -o out.png [--size 1024x1024] [--quality low|medium|high]` and `codex-imagegen-api edit \"<instruction>\" -i in.png -o out.png` (repeat `-i` for multiple reference images).",
+    "versionCmd": "codex-imagegen-api --version 2>/dev/null | head -1"
+  },
+  "suno-api": {
+    "category": "media",
+    "pkg": "@todoforai/suno-api",
+    "installer": "npm",
+    "label": "Suno",
+    "capabilities": "AI music generation, custom lyrics, multiple genres",
+    "description": "Use to generate music/songs from a prompt or custom lyrics. Needs SUNO_API_KEY.",
+    "versionCmd": "suno-api --version 2>/dev/null | head -1"
+  },
+  "ntn": {
+    "category": "utility",
+    "pkg": "ntn",
+    "installer": "npm",
+    "label": "Notion",
+    "statusCmd": "ntn doctor 2>&1 | grep -E 'Default workspace\\s+✔' >/dev/null",
+    "loginCmd": "ntn login",
+    "credentialPaths": [
+      "~/.config/notion"
+    ],
+    "capabilities": "Official Notion CLI: workspace-wide OAuth login, raw API calls (`ntn api <path>`), page/datasource management, file uploads, Workers deploy.",
+    "description": "Two auth tracks: (1) `ntn login` for Workers/internal commands (`ntn doctor`, `ntn workers`) — workspace OAuth stored in keychain. (2) Public REST API (`ntn api`, `ntn pages`, `ntn datasources`, `ntn files`) requires NOTION_API_TOKEN env var (integration token from https://www.notion.so/my-integrations) — and the target pages must be Connected to that integration via the Notion UI: page `...` → Connections. Examples: `ntn api /v1/users/me`, `ntn api /v1/search -X POST -d '{\"query\":\"...\"}'`, `ntn pages get <id>` (Markdown export), `ntn pages create --parent page:<id> --content '# Title'`, `ntn pages update <id> --content '...'`, `ntn pages trash <id> --yes`. Use `ntn datasources resolve <database-id>` then `ntn datasources query <data-source-id>`.",
+    "versionCmd": "ntn --version 2>/dev/null | head -1"
+  },
+  "perplexity-api": {
+    "category": "utility",
+    "pkg": "@todoforai/perplexity-api",
+    "installer": "npm",
+    "label": "Perplexity",
+    "capabilities": "AI-powered web search, chat completions, async chat, embeddings and agent runs",
+    "description": "Use when you need current web-grounded answers with citations (news, prices, docs released after training cutoff). Prefer over plain LLM when freshness/sources matter. Needs PERPLEXITY_API_KEY.",
+    "versionCmd": "perplexity-api --version 2>/dev/null | head -1"
+  },
+  "gh": {
+    "category": "development",
+    "pkg": "gh",
+    "installer": "binary",
+    "preinstallCloud": true,
+    "label": "GitHub",
+    "statusCmd": "gh auth status",
+    "loginCmd": "gh auth login",
+    "credentialPaths": [
+      "~/.config/gh/hosts.yml"
+    ],
+    "capabilities": "Repos, PRs & issues, actions & releases, gists & SSH keys",
+    "description": "Use for any GitHub operation: create/list/merge PRs, file issues, manage releases, trigger/inspect Actions, clone/fork repos, gists. Prefer `gh` over raw GitHub API calls.",
+    "versionCmd": "gh --version 2>/dev/null | head -1"
+  },
+  "glab": {
+    "category": "development",
+    "pkg": "glab",
+    "installer": "binary",
+    "label": "GitLab",
+    "statusCmd": "glab auth status",
+    "loginCmd": "glab auth login",
+    "credentialPaths": [
+      "~/.config/glab-cli/config.yml"
+    ],
+    "capabilities": "Repos, MRs & issues, CI/CD pipelines, releases",
+    "description": "Use for any GitLab operation: MRs, issues, pipelines, releases, repo management. GitLab equivalent of `gh`.",
+    "versionCmd": "glab --version 2>/dev/null | head -1"
+  },
+  "vercel": {
+    "category": "deployment",
+    "pkg": "vercel",
+    "installer": "npm",
+    "label": "Vercel",
+    "statusCmd": "vercel whoami",
+    "loginCmd": "vercel login",
+    "credentialPaths": [
+      "~/.local/share/com.vercel.cli/auth.json"
+    ],
+    "capabilities": "Deploy & preview, environment variables, domain management",
+    "description": "Use to deploy a project to Vercel (`vercel deploy`), manage env vars, domains, and preview URLs.",
+    "versionCmd": "vercel --version 2>/dev/null | head -1"
+  },
+  "netlify": {
+    "category": "deployment",
+    "pkg": "netlify-cli",
+    "installer": "npm",
+    "label": "Netlify",
+    "statusCmd": "netlify api getCurrentUser 2>&1 | grep -oP '\"email\":\\s*\"\\K[^\"]+' | head -1",
+    "loginCmd": "netlify login",
+    "credentialPaths": [
+      "~/.netlify/config.json"
+    ],
+    "capabilities": "Deploy & preview, serverless functions, forms & identity",
+    "description": "Use to deploy sites/functions to Netlify, manage env vars, forms, identity. `netlify deploy --prod` for production.",
+    "versionCmd": "netlify --version 2>/dev/null | head -1"
+  },
+  "firebase": {
+    "category": "deployment",
+    "pkg": "firebase-tools",
+    "installer": "npm",
+    "label": "Firebase",
+    "statusCmd": "firebase login:list 2>&1 | grep '@'",
+    "loginCmd": "firebase login",
+    "credentialPaths": [
+      "~/.config/configstore/firebase-tools.json"
+    ],
+    "capabilities": "Hosting & deploy, Firestore & Realtime DB, auth & functions",
+    "description": "Use for Firebase: deploy hosting/functions, manage Firestore/Realtime DB rules and data, auth users, emulators.",
+    "versionCmd": "firebase --version 2>/dev/null | head -1"
+  },
+  "wrangler": {
+    "category": "deployment",
+    "pkg": "wrangler",
+    "installer": "npm",
+    "label": "Cloudflare",
+    "statusCmd": "wrangler whoami 2>&1 | grep -v 'Failed' | grep '@'",
+    "loginCmd": "wrangler login",
+    "credentialPaths": [
+      "~/.config/.wrangler/config/default.toml"
+    ],
+    "capabilities": "Workers & Pages deploy, KV & D1 storage, R2 & Queues",
+    "description": "Use for Cloudflare developer platform: deploy Workers/Pages, manage KV/D1/R2/Queues, tail logs. Use `cloudflared` for tunnels.",
+    "versionCmd": "wrangler --version 2>/dev/null | head -1"
+  },
+  "stripe": {
+    "category": "payments",
+    "pkg": "stripe",
+    "installer": "binary",
+    "label": "Stripe",
+    "statusCmd": "stripe get /v1/account 2>&1 | grep -oP '\"id\":\\s*\"\\K[^\"]+' | head -1",
+    "loginCmd": "stripe login",
+    "credentialPaths": [
+      "~/.config/stripe/config.toml"
+    ],
+    "capabilities": "Payments & subscriptions, webhook testing, invoice management",
+    "description": "Use for Stripe: inspect/create customers, charges, subscriptions, invoices, webhooks. `stripe listen` to forward webhooks locally; `stripe get/post /v1/...` for raw API.",
+    "versionCmd": "stripe --version 2>/dev/null | head -1"
+  },
+  "flyctl": {
+    "category": "cloud",
+    "pkg": "flyctl",
+    "installer": "binary",
+    "label": "Fly.io",
+    "statusCmd": "flyctl auth whoami 2>&1 | grep -v 'not logged in' | head -1",
+    "loginCmd": "flyctl auth login",
+    "credentialPaths": [
+      "~/.fly/config.yml"
+    ],
+    "capabilities": "Deploy containers globally, Postgres & volumes, auto-scaling",
+    "description": "Use to deploy apps/containers to Fly.io edge, manage Postgres/volumes/machines/secrets. `flyctl deploy` from app dir.",
+    "versionCmd": "flyctl version 2>/dev/null | head -1"
+  },
+  "supabase": {
+    "category": "cloud",
+    "pkg": "supabase",
+    "installer": "binary",
+    "label": "Supabase",
+    "statusCmd": "supabase projects list >/dev/null 2>&1 && echo authenticated",
+    "loginCmd": "supabase login",
+    "credentialPaths": [
+      "~/.config/supabase/access-token"
+    ],
+    "capabilities": "Postgres database, auth & storage, edge functions",
+    "description": "Use for Supabase projects: run/migrate local Postgres, deploy edge functions, manage auth/storage, link to cloud project.",
+    "versionCmd": "supabase --version 2>/dev/null | head -1"
+  },
+  "railway": {
+    "category": "cloud",
+    "pkg": "@railway/cli",
+    "installer": "npm",
+    "label": "Railway",
+    "statusCmd": "railway whoami 2>&1 | grep -v 'Unauthorized'",
+    "loginCmd": "railway login",
+    "credentialPaths": [
+      "~/.railway/config.json"
+    ],
+    "capabilities": "Deploy apps & databases, environment management, auto-scaling",
+    "description": "Use to deploy apps/services to Railway, provision databases, manage env vars and environments. `railway up` to deploy current dir.",
+    "versionCmd": "railway --version 2>/dev/null | head -1"
+  },
+  "shopify": {
+    "category": "ecommerce",
+    "pkg": "@shopify/cli",
+    "installer": "npm",
+    "label": "Shopify",
+    "statusCmd": "test -f ~/.config/shopify/config.json && echo 'authenticated'",
+    "loginCmd": "shopify auth login",
+    "credentialPaths": [
+      "~/.config/shopify/config.json"
+    ],
+    "capabilities": "Theme development, app scaffolding, store management",
+    "description": "Use for Shopify dev: scaffold/develop themes and apps, push/pull themes, run dev server against a store.",
+    "versionCmd": "shopify version 2>/dev/null | head -1"
+  },
+  "datadog-ci": {
+    "category": "monitoring",
+    "pkg": "@datadog/datadog-ci",
+    "installer": "npm",
+    "label": "Datadog",
+    "capabilities": "CI test visibility, sourcemap uploads, deployment tracking",
+    "description": "Use in CI to upload test results/sourcemaps/coverage to Datadog and mark deployments. Needs DATADOG_API_KEY.",
+    "versionCmd": "datadog-ci version 2>/dev/null | head -1"
+  },
+  "sentry-cli": {
+    "category": "monitoring",
+    "pkg": "@sentry/cli",
+    "installer": "npm",
+    "label": "Sentry",
+    "statusCmd": "sentry-cli info 2>&1 | grep -q 'Authentication Info' && echo authenticated",
+    "loginCmd": "sentry-cli login",
+    "credentialPaths": [
+      "~/.sentryclirc"
+    ],
+    "capabilities": "Release management, sourcemap uploads, error monitoring",
+    "description": "Use to create Sentry releases, upload sourcemaps/debug-symbols, associate commits, send events. `sentry-cli releases new <version>`.",
+    "versionCmd": "sentry-cli --version 2>/dev/null | head -1"
+  },
+  "todoai": {
+    "category": "utility",
+    "pkg": "@todoforai/cli",
+    "installer": "bun",
+    "label": "TODOforAI",
+    "capabilities": "Create & manage TODOs, run workflows, API access",
+    "description": "Use to programmatically create/list/update TODOs in TODOforAI, kick off workflows, call the platform API.",
+    "installCmd": "bun add -g @todoforai/cli",
+    "versionCmd": "todoai --version 2>/dev/null | head -1",
+    "internal": true
+  },
+  "newman": {
+    "category": "testing",
+    "pkg": "newman",
+    "installer": "npm",
+    "label": "Postman",
+    "capabilities": "Run API test collections, CI/CD integration, HTML reports",
+    "description": "Use to run Postman collections from CLI (API smoke tests, CI checks). `newman run <collection.json> -e <env.json>`.",
+    "versionCmd": "newman --version 2>/dev/null | head -1"
+  },
+  "curl": {
+    "category": "networking",
+    "pkg": "curl",
+    "installer": "system",
+    "label": "Web Request",
+    "binName": "curl",
+    "capabilities": "HTTP/HTTPS/FTP client: GET/POST/PUT/DELETE, headers, auth, file upload/download, follow redirects, cookies, TLS.",
+    "description": "Default tool for any HTTP request: hitting REST APIs, downloading files, testing endpoints. Common flags: `-s` silent, `-L` follow redirects, `-H 'Header: ...'`, `-X POST -d '...'`, `-o file`, `-f` fail on HTTP errors. Pipe into `jq` for JSON.",
+    "versionCmd": "curl --version 2>/dev/null | head -1",
+    "preinstallCloud": true,
+    "internal": true
+  },
+  "cloudflared": {
+    "category": "networking",
+    "pkg": "cloudflared",
+    "installer": "binary",
+    "label": "Tunnel",
+    "capabilities": "Tunnel to localhost, expose local services, zero-trust access",
+    "description": "Use to expose a local port to the public internet via a Cloudflare tunnel. Quick: `cloudflared tunnel --url http://localhost:<port>` prints a public https URL.",
+    "versionCmd": "cloudflared --version 2>/dev/null | head -1"
+  },
+  "vault": {
+    "category": "security",
+    "pkg": "vault",
+    "installer": "binary",
+    "preinstallCloud": true,
+    "label": "HashiCorp Vault",
+    "statusCmd": "vault token lookup >/dev/null 2>&1 && echo authenticated",
+    "loginCmd": "vault login",
+    "credentialPaths": [
+      "~/.vault-token"
+    ],
+    "capabilities": "Secrets management, dynamic credentials",
+    "description": "HashiCorp Vault CLI — only for Terraform/vals/ecosystem integrations that expect it. For all credential read/write tasks use `tfa-vault` instead. Needs VAULT_ADDR + VAULT_TOKEN.",
+    "versionCmd": "vault --version 2>/dev/null | head -1"
+  },
+  "rclone": {
+    "category": "cloud",
+    "pkg": "rclone",
+    "installer": "system",
+    "preinstallCloud": true,
+    "label": "Cloud Sync",
+    "statusCmd": "rclone listremotes 2>&1 | grep -v 'NOTICE' | grep -q ':' && echo authenticated",
+    "loginCmd": "rclone config",
+    "credentialPaths": [
+      "~/.config/rclone/rclone.conf"
+    ],
+    "capabilities": "Access Google Drive, OneDrive, Dropbox, S3 and 40+ cloud providers. List, copy, sync, move, mount files as virtual filesystem (FUSE). Use 'rclone config create <name> <provider>' to connect (opens browser for OAuth).",
+    "description": "Use to access cloud storage (Drive/OneDrive/Dropbox/S3/40+). Connect: `rclone config create <name> <provider>` (OAuth via browser). Core ops: `rclone listremotes`, `rclone lsf <remote>:<path>`, `rclone cat <remote>:<file>`, `rclone copy|sync <src> <dst>`. Mount as FUSE (lazy fetch): `rclone mount <remote>: ~/.todoforai/mnt/<remote> --vfs-cache-mode full --daemon`; unmount with `fusermount -u <path>`. Note: FUSE `mount` needs /dev/fuse + CAP_SYS_ADMIN — works on VM sandboxes and bridge devices, but NOT in lite sandboxes; there use `lsf`/`cat`/`copy`/`sync` (HTTPS-only) instead. See `subProviders` for per-provider connect commands.",
+    "subProviders": {
+      "gdrive": {
+        "label": "Google Drive",
+        "authType": "oauth",
+        "connectCmd": "rclone config create {{REMOTE}} drive",
+        "statusCmd": "rclone lsd {{REMOTE}}: 2>&1 | head -1",
+        "remoteName": "gdrive",
+        "rcloneType": "drive",
+        "userInfoCmd": "TOKEN=$(rclone config dump 2>/dev/null | python3 -c \"import json,sys; print(json.loads(json.load(sys.stdin)['{{REMOTE}}']['token'])['access_token'])\") && curl -sf 'https://www.googleapis.com/drive/v3/about?fields=user' -H \"Authorization: Bearer $TOKEN\" | python3 -c \"import json,sys; print(json.load(sys.stdin)['user']['emailAddress'])\" 2>/dev/null"
+      },
+      "onedrive": {
+        "label": "OneDrive",
+        "authType": "oauth",
+        "connectCmd": "rclone config create {{REMOTE}} onedrive",
+        "statusCmd": "rclone lsd {{REMOTE}}: 2>&1 | head -1",
+        "remoteName": "onedrive",
+        "rcloneType": "onedrive",
+        "userInfoCmd": "TOKEN=$(rclone config dump 2>/dev/null | python3 -c \"import json,sys; print(json.loads(json.load(sys.stdin)['{{REMOTE}}']['token'])['access_token'])\") && curl -sf 'https://graph.microsoft.com/v1.0/me' -H \"Authorization: Bearer $TOKEN\" | python3 -c \"import json,sys; d=json.load(sys.stdin); print(d.get('mail') or d.get('userPrincipalName',''))\" 2>/dev/null"
+      },
+      "dropbox": {
+        "label": "Dropbox",
+        "authType": "oauth",
+        "connectCmd": "rclone config create {{REMOTE}} dropbox",
+        "statusCmd": "rclone lsd {{REMOTE}}: 2>&1 | head -1",
+        "remoteName": "dropbox",
+        "rcloneType": "dropbox",
+        "userInfoCmd": "TOKEN=$(rclone config dump 2>/dev/null | python3 -c \"import json,sys; print(json.loads(json.load(sys.stdin)['{{REMOTE}}']['token'])['access_token'])\") && curl -sf -X POST 'https://api.dropboxapi.com/2/users/get_current_account' -H \"Authorization: Bearer $TOKEN\" | python3 -c \"import json,sys; print(json.load(sys.stdin)['email'])\" 2>/dev/null"
+      },
+      "s3": {
+        "label": "Amazon S3",
+        "authType": "credentials",
+        "connectCmd": "rclone config create {{REMOTE}} s3",
+        "statusCmd": "rclone lsd {{REMOTE}}: 2>&1 | head -1",
+        "remoteName": "s3",
+        "rcloneType": "s3"
+      }
+    },
+    "versionCmd": "rclone version 2>/dev/null | head -1"
+  },
+  "pymupdf": {
+    "category": "utility",
+    "pkg": "pymupdf",
+    "installer": "pip",
+    "label": "PDF",
+    "capabilities": "PDF text editing, extraction, merge, split",
+    "description": "Use to programmatically read/edit/merge/split PDFs (text + positions). Call from `python3 -c`. Extract text: `pymupdf.open(p)[i].get_text()`; with bbox/font: `.get_text('dict')`. Replace text in place: `page.add_redact_annot(page.search_for('old')[0], text='new'); page.apply_redactions(); doc.save(out)`. For PDF → markdown prefer `firecrawl parse`.",
+    "versionCmd": "python3 -c 'import pymupdf; print(pymupdf.__version__)' 2>/dev/null",
+    "preinstallCloud": true
+  },
+  "agent-browser": {
+    "category": "development",
+    "pkg": "agent-browser",
+    "installer": "npm",
+    "preinstallCloud": true,
+    "label": "Browser",
+    "capabilities": "Headless browser automation, web scraping, accessibility tree snapshots, screenshots, PDF generation",
+    "description": "Headless browser for JS-rendered pages, automated flows, screenshots, PDF export. **Default browser choice** — use this unless the user's own session/cookies are required (then use `todoforai-browser`). Prefer `curl` for plain HTTP, `firecrawl` for bulk scrape/crawl. Commands: open <url>, click/type/fill <selector> <text>, snapshot (accessibility tree with @refs — use these for clicking), screenshot [path], pdf <path>, eval <js>, wait <selector|ms>.",
+    "versionCmd": "agent-browser --version 2>/dev/null | head -1"
+  },
+  "firecrawl": {
+    "category": "development",
+    "pkg": "firecrawl-cli",
+    "installer": "npm",
+    "label": "Firecrawl",
+    "statusCmd": "firecrawl view-config 2>&1 | grep -q 'Authenticated' && echo authenticated",
+    "loginCmd": "firecrawl login",
+    "credentialPaths": [
+      "~/.config/firecrawl-cli"
+    ],
+    "capabilities": "Web scraping, crawling, search, map URLs, parse local HTML/PDF/DOCX to markdown, AI agent extraction",
+    "description": "Use for web → markdown at scale: single pages (`firecrawl scrape <url>`), whole sites (`firecrawl crawl <url>`), URL discovery (`firecrawl map <url>`), web search (`firecrawl search <query>`), local doc conversion (`firecrawl parse <file.pdf|docx|html|xlsx>`), AI-guided extraction (`firecrawl agent <prompt>`). Prefer over `curl` when you want markdown not HTML. Auth: `firecrawl login` or FIRECRAWL_API_KEY.",
+    "versionCmd": "firecrawl --version 2>/dev/null | head -1"
+  },
+  "todoforai-browser": {
+    "category": "development",
+    "pkg": "@todoforai/browser",
+    "installer": "npm",
+    "label": "Browser (Extension)",
+    "capabilities": "Browser automation via extension (non-headless), web scraping, accessibility tree snapshots, screenshots, PDF generation",
+    "description": "Drives the user's real browser via the TODOforAI extension (non-headless). Use when the task needs the user's actual session — logged-in accounts, saved cookies, extensions, MFA. For anything else prefer headless `agent-browser`. Commands: open <url>, click/type/fill <selector> <text>, snapshot (accessibility tree with @refs for clicking), screenshot [path], pdf <path>, eval <js>, wait <selector|ms>. Supports drag/drop, file uploads, form interactions.",
+    "versionCmd": "node -p \"require(require('child_process').execSync('which todoforai-browser',{encoding:'utf8'}).trim().replace(/\\/dist\\/index\\.js$/, '/package.json')).version\" 2>/dev/null",
+    "internal": true
+  },
+  "todoforai-subagent": {
+    "category": "development",
+    "pkg": "@todoforai/subagent",
+    "installer": "npm",
+    "label": "Sub-agent",
+    "capabilities": "Spawn a TODO for AI sub-agent (FluidAgent) from the CLI; pipe stdin in, get an answer out",
+    "description": "Run a sub-agent task from a shell block. Usage: `todoforai-subagent [-m model] [-s :preset|@file|text] [--tools read,grep,bash] \"<question>\"`. Pipe stdin to include input context. Presets: :review, :explore, :plan, :summarize. Auth via TODOFORAI_API_KEY (auto-injected by edge).",
+    "versionCmd": "todoforai-subagent --version 2>/dev/null | head -1",
+    "installCmd": "bun add -g @todoforai/subagent",
+    "internal": true
+  },
+  "todoforai-summary": {
+    "category": "development",
+    "pkg": "@todoforai/summary",
+    "installer": "npm",
+    "label": "Summarize (Lite)",
+    "capabilities": "Summarize files or piped input via a sub-agent",
+    "description": "Summarize file contents or stdin. Usage: `todoforai-summary [-f <file>]... [<files...>] [<focus>]` or `cat x | todoforai-summary \"focus\"`. Wraps `todoforai-subagent --sysmsg :summarize`.",
+    "versionCmd": "todoforai-summary --version 2>/dev/null | head -1",
+    "installCmd": "bun add -g @todoforai/summary",
+    "internal": true
+  },
+  "tfa-explore": {
+    "category": "development",
+    "pkg": "@todoforai/tfa-explore",
+    "installer": "npm",
+    "label": "Explore",
+    "capabilities": "Explore a codebase as a real TODO: read-only agent maps structure, surfaces relevant files, streams findings to terminal",
+    "description": "Codebase exploration as a real TODO with patched permissions (read/grep/bash only) and live streaming. Usage: `tfa-explore [--repo <path>] \"<question>\"`. Creates a TODO visible in the UI and streams block events to stdout until DONE.",
+    "versionCmd": "tfa-explore --version 2>/dev/null | head -1",
+    "statusCmd": "tfa-explore whoami",
+    "installCmd": "bun add -g @todoforai/tfa-explore",
+    "preinstall": true,
+    "preinstallCloud": true,
+    "internal": true
+  },
+  "tfa-review": {
+    "category": "development",
+    "pkg": "@todoforai/tfa-review",
+    "installer": "npm",
+    "label": "Review",
+    "capabilities": "Review a git diff as a real TODO: read-only agent assesses goal, finds issues, suggests simpler approaches",
+    "description": "Capture `git diff` and ask a read-only sub-agent to review it as a real TODO. Usage: `tfa-review [--repo <path>] [--against <ref>] \"<goal>\"`. Default diffs uncommitted changes vs HEAD. Streams block events to stdout until DONE.",
+    "versionCmd": "tfa-review --version 2>/dev/null | head -1",
+    "statusCmd": "tfa-review whoami",
+    "installCmd": "bun add -g @todoforai/tfa-review",
+    "preinstall": true,
+    "preinstallCloud": true,
+    "internal": true
+  },
+  "tfa-summary": {
+    "category": "development",
+    "pkg": "@todoforai/tfa-summary",
+    "installer": "npm",
+    "label": "Summarize",
+    "capabilities": "Summarize files or piped input as a real TODO with no-tools sub-agent",
+    "description": "Summarize file contents or stdin as a real TODO. Usage: `tfa-summary [-f <file>]... [<files...>] [<focus>]` or `cat x | tfa-summary \"focus\"`. No tools (content is inlined); streams block events to stdout until DONE.",
+    "versionCmd": "tfa-summary --version 2>/dev/null | head -1",
+    "statusCmd": "tfa-summary whoami",
+    "installCmd": "bun add -g @todoforai/tfa-summary",
+    "internal": true
+  },
+  "tfa-vault": {
+    "category": "security",
+    "pkg": "@todoforai/vault",
+    "installer": "npm",
+    "label": "Vault",
+    "capabilities": "Zero-config TODOforAI vault CLI: put/get/patch/list/rm secrets in the user's KV v2 vault. Reuses bridge credentials (TODOFORAI_API_KEY / ~/.config/todoforai/credentials.json); derives vault URL from backend URL.",
+    "description": "Native TODOforAI secret store — free, zero-config (reuses bridge credentials; no VAULT_ADDR/VAULT_TOKEN/login). **Default credential source: for any task touching API keys, tokens, service accounts, or third-party auth, check `tfa-vault` before searching repo files, .env, or env vars — unless the user provides another source.** Discover-then-consume pattern: `tfa-vault list accounts/` to find keys, then `KEY=$(tfa-vault get -f api_key accounts/<service>)` in shell. Common paths: `accounts/<service>`, `api/<service>`, `secrets/<service>`. Usage: `tfa-vault put <path> k=v [k=v ...]`, `tfa-vault get [-f <field>] <path>`, `tfa-vault patch <path> k=v ...`, `tfa-vault list [<prefix>]`, `tfa-vault rm <path>`. Values: inline (`k=v`), file (`k=@/path`), stdin (`k=-`). `get -f <field>` writes raw value with no trailing newline — safe in `$(...)`. Exit 2 means \"not found\" (distinct from network errors).",
+    "versionCmd": "tfa-vault --version 2>/dev/null | head -1",
+    "statusCmd": "tfa-vault whoami",
+    "installCmd": "bun add -g @todoforai/vault",
+    "preinstall": true,
+    "preinstallCloud": true
+  },
+  "ripgrep": {
+    "category": "development",
+    "pkg": "ripgrep",
+    "installer": "binary",
+    "label": "Search",
+    "capabilities": "Fast recursive grep with regex, .gitignore-aware, parallel, unicode-correct",
+    "description": "Fast code/text search. Usage: `rg <pattern> [path]`, `-i` case-insensitive, `-l` files only, `-t <lang>` filter by language, `-g '<glob>'` filter by glob, `-C N` context. Prefer over `grep -r`.",
+    "versionCmd": "rg --version 2>/dev/null | head -1",
+    "preinstallCloud": true,
+    "binary": {
+      "linux-x86_64":    { "url": "https://github.com/BurntSushi/ripgrep/releases/download/14.1.1/ripgrep-14.1.1-x86_64-unknown-linux-musl.tar.gz", "archive": "tar.gz", "extract": "ripgrep-14.1.1-x86_64-unknown-linux-musl/rg" },
+      "linux-aarch64":   { "url": "https://github.com/BurntSushi/ripgrep/releases/download/14.1.1/ripgrep-14.1.1-aarch64-unknown-linux-gnu.tar.gz", "archive": "tar.gz", "extract": "ripgrep-14.1.1-aarch64-unknown-linux-gnu/rg" },
+      "darwin-x86_64":   { "url": "https://github.com/BurntSushi/ripgrep/releases/download/14.1.1/ripgrep-14.1.1-x86_64-apple-darwin.tar.gz",       "archive": "tar.gz", "extract": "ripgrep-14.1.1-x86_64-apple-darwin/rg" },
+      "darwin-aarch64":  { "url": "https://github.com/BurntSushi/ripgrep/releases/download/14.1.1/ripgrep-14.1.1-aarch64-apple-darwin.tar.gz",      "archive": "tar.gz", "extract": "ripgrep-14.1.1-aarch64-apple-darwin/rg" },
+      "windows-x86_64":  { "url": "https://github.com/BurntSushi/ripgrep/releases/download/14.1.1/ripgrep-14.1.1-x86_64-pc-windows-msvc.zip",       "archive": "zip",    "extract": "ripgrep-14.1.1-x86_64-pc-windows-msvc/rg.exe" }
+    },
+    "binName": "rg",
+    "internal": true
+  },
+  "fd": {
+    "category": "development",
+    "pkg": "fd-find",
+    "installer": "binary",
+    "label": "Find Files",
+    "capabilities": "Fast user-friendly find replacement: regex by default, .gitignore-aware, parallel",
+    "description": "Find files/dirs by name. Usage: `fd <pattern> [path]`, `-e <ext>` filter by extension, `-t f|d` type, `-H` include hidden, `-x <cmd>` exec per match.",
+    "versionCmd": "fd --version 2>/dev/null | head -1",
+    "preinstallCloud": true,
+    "binary": {
+      "linux-x86_64":    { "url": "https://github.com/sharkdp/fd/releases/download/v10.2.0/fd-v10.2.0-x86_64-unknown-linux-musl.tar.gz", "archive": "tar.gz", "extract": "fd-v10.2.0-x86_64-unknown-linux-musl/fd" },
+      "linux-aarch64":   { "url": "https://github.com/sharkdp/fd/releases/download/v10.2.0/fd-v10.2.0-aarch64-unknown-linux-gnu.tar.gz", "archive": "tar.gz", "extract": "fd-v10.2.0-aarch64-unknown-linux-gnu/fd" },
+      "darwin-x86_64":   { "url": "https://github.com/sharkdp/fd/releases/download/v10.2.0/fd-v10.2.0-x86_64-apple-darwin.tar.gz",       "archive": "tar.gz", "extract": "fd-v10.2.0-x86_64-apple-darwin/fd" },
+      "darwin-aarch64":  { "url": "https://github.com/sharkdp/fd/releases/download/v10.2.0/fd-v10.2.0-aarch64-apple-darwin.tar.gz",      "archive": "tar.gz", "extract": "fd-v10.2.0-aarch64-apple-darwin/fd" },
+      "windows-x86_64":  { "url": "https://github.com/sharkdp/fd/releases/download/v10.2.0/fd-v10.2.0-x86_64-pc-windows-msvc.zip",       "archive": "zip",    "extract": "fd-v10.2.0-x86_64-pc-windows-msvc/fd.exe" }
+    },
+    "binName": "fd",
+    "internal": true
+  },
+  "jq": {
+    "category": "development",
+    "pkg": "jq",
+    "installer": "binary",
+    "label": "JSON",
+    "capabilities": "Command-line JSON processor: query, filter, transform, format JSON streams",
+    "description": "JSON pipeline tool. Usage: `cat x.json | jq '.field'`, `jq -r` raw output, `jq '.[] | select(.k==\"v\")'`, `jq -s` slurp array. Pairs well with curl/rg.",
+    "versionCmd": "jq --version 2>/dev/null | head -1",
+    "preinstallCloud": true,
+    "binary": {
+      "linux-x86_64":    { "url": "https://github.com/jqlang/jq/releases/download/jq-1.7.1/jq-linux-amd64",     "archive": "raw" },
+      "linux-aarch64":   { "url": "https://github.com/jqlang/jq/releases/download/jq-1.7.1/jq-linux-arm64",     "archive": "raw" },
+      "darwin-x86_64":   { "url": "https://github.com/jqlang/jq/releases/download/jq-1.7.1/jq-macos-amd64",     "archive": "raw" },
+      "darwin-aarch64":  { "url": "https://github.com/jqlang/jq/releases/download/jq-1.7.1/jq-macos-arm64",     "archive": "raw" },
+      "windows-x86_64":  { "url": "https://github.com/jqlang/jq/releases/download/jq-1.7.1/jq-windows-amd64.exe", "archive": "raw" }
+    },
+    "binName": "jq",
+    "internal": true
+  },
+  "patch": {
+    "category": "development",
+    "pkg": "patch",
+    "installer": "system",
+    "preinstallCloud": true,
+    "label": "Apply Diff",
+    "capabilities": "Apply unified/context diff patches to files; reverse, dry-run, fuzzy matching",
+    "description": "Apply diffs. Usage: `patch -p1 < changes.diff` (strip 1 leading path component), `--dry-run` to preview, `-R` to reverse, `-N` skip already-applied. Reads unified (`diff -u`) or context diffs.",
+    "versionCmd": "patch --version 2>/dev/null | head -1",
+    "binName": "patch",
+    "internal": true
+  },
+  "sed": {
+    "category": "development",
+    "pkg": "sed",
+    "installer": "system",
+    "preinstallCloud": true,
+    "label": "Replace Text",
+    "capabilities": "Stream editor: in-place text substitution, line filtering, scripted edits",
+    "description": "Non-interactive text transformation. Usage: `sed 's/old/new/g' file`, `-i` edit in place (`-i ''` on macOS), `-n '5,10p'` print line range, `-E` extended regex. Pair with `rg -l` to bulk-rewrite matched files.",
+    "versionCmd": "sed --version 2>/dev/null | head -1",
+    "binName": "sed",
+    "internal": true
+  },
+  "grep": {
+    "category": "development",
+    "pkg": "grep",
+    "installer": "system",
+    "preinstallCloud": true,
+    "label": "Search Text",
+    "capabilities": "Search plain text for lines matching a regex: recursive, fixed-string, context, invert, count",
+    "description": "Line-based text search. Usage: `grep <pattern> file`, `-r` recursive, `-i` case-insensitive, `-n` line numbers, `-E` extended regex, `-F` fixed strings, `-v` invert, `-C N` context, `-l` files only. For large code searches prefer `rg`.",
+    "versionCmd": "grep --version 2>/dev/null | head -1",
+    "binName": "grep",
+    "internal": true
+  }
+}

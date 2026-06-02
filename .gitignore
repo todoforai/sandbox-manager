@@ -5,3 +5,6 @@ cli/.sweep/
 cli/.try/
 .noise/
 /sandbox-manager
+# rootfs build artifacts (default OUTPUT of build-ubuntu-rootfs.sh)
+rootfs-ubuntu.ext4
+rootfs*.ext4

@@ -5,8 +5,20 @@
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-REPO_ROOT="$(dirname "$(dirname "$SCRIPT_DIR")")"
-BRIDGE_BIN="${BRIDGE_BIN:-$REPO_ROOT/bridge/build/todoforai-bridge-static}"
+# sandbox-manager repo root (parent of scripts/) — holds templates/ and
+# vendor/, valid in both the monorepo (sandbox-manager/ subdir) and the
+# standalone prod clone.
+SANDBOX_MGR_ROOT="$(dirname "$SCRIPT_DIR")"
+# Monorepo root holds bridge/ and packages/shared-fbe/. Present only when this
+# repo sits inside the monorepo; absent in the standalone prod clone, which
+# instead carries vendored copies under vendor/ (see scripts/sync-vendor.sh).
+REPO_ROOT="$(dirname "$SANDBOX_MGR_ROOT")"
+VENDOR_DIR="$SANDBOX_MGR_ROOT/vendor"
+# Resolution order for monorepo-only inputs: explicit env > vendored copy
+# (standalone clone) > monorepo path (dev). Keeps dev on live source while
+# making the standalone clone self-sufficient — no monorepo, no manual env.
+_pick() { for p in "$@"; do [ -e "$p" ] && { echo "$p"; return; }; done; echo "$1"; }
+BRIDGE_BIN="${BRIDGE_BIN:-$(_pick "$VENDOR_DIR/todoforai-bridge-static" "$REPO_ROOT/bridge/build/todoforai-bridge-static")}"
 
 UBUNTU_VERSION="${UBUNTU_VERSION:-24.04}"
 UBUNTU_POINT="${UBUNTU_POINT:-24.04.3}"
@@ -14,8 +26,10 @@ ARCH="amd64"
 ROOTFS_DIR="${ROOTFS_DIR:-/tmp/rootfs-ubuntu-build}"
 OUTPUT="${OUTPUT:-rootfs-ubuntu.ext4}"
 SIZE_MB="${SIZE_MB:-1500}"
-PACKAGES_FILE="${PACKAGES_FILE:-$REPO_ROOT/sandbox-manager/templates/ubuntu-base.packages}"
-TOOL_CATALOG_JSON="${TOOL_CATALOG_JSON:-$REPO_ROOT/packages/shared-fbe/src/tool_catalog.json}"
+# Package list always lives inside the sandbox-manager repo, so resolve it
+# against SANDBOX_MGR_ROOT — correct in both the monorepo and standalone clone.
+PACKAGES_FILE="${PACKAGES_FILE:-$SANDBOX_MGR_ROOT/templates/ubuntu-base.packages}"
+TOOL_CATALOG_JSON="${TOOL_CATALOG_JSON:-$(_pick "$VENDOR_DIR/tool_catalog.json" "$REPO_ROOT/packages/shared-fbe/src/tool_catalog.json")}"
 BUN_PREINSTALL_BINS=""
 
 if [ ! -f "$PACKAGES_FILE" ]; then
@@ -60,13 +74,21 @@ if [ "$(id -u)" != "0" ]; then
     exit 1
 fi
 
-# Check bridge binary exists
+# Check bridge binary exists. In the monorepo we can build it from source; in a
+# standalone clone it must be vendored (scripts/sync-vendor.sh) or passed via
+# BRIDGE_BIN — there is no bridge/ to build from.
 if [ ! -f "$BRIDGE_BIN" ]; then
     echo "bridge binary not found at: $BRIDGE_BIN"
-    echo "Building bridge..."
-    cd "$REPO_ROOT/bridge"
-    make static
-    BRIDGE_BIN="$REPO_ROOT/bridge/build/todoforai-bridge-static"
+    if [ -d "$REPO_ROOT/bridge" ]; then
+        echo "Building bridge from $REPO_ROOT/bridge..."
+        ( cd "$REPO_ROOT/bridge" && make static )
+        BRIDGE_BIN="$REPO_ROOT/bridge/build/todoforai-bridge-static"
+    else
+        echo "ERROR: no bridge source (standalone clone) and no vendored binary." >&2
+        echo "  Run scripts/sync-vendor.sh in the monorepo and commit vendor/," >&2
+        echo "  or set BRIDGE_BIN=/path/to/todoforai-bridge-static." >&2
+        exit 1
+    fi
 fi
 
 echo "Using bridge: $BRIDGE_BIN ($(ls -lh "$BRIDGE_BIN" | awk '{print $5}'))"

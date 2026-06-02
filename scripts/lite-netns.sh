@@ -48,6 +48,12 @@ cleanup() {
 }
 trap cleanup EXIT INT TERM
 
+# `ip netns add` pins under /run/netns; ensure it exists and is a shared tmpfs.
+# Without this, a host where /run/netns was never set up fails the bind with
+# "Bind /proc/self/ns/net -> /run/netns/<ns> failed: No such file or directory".
+mkdir -p /run/netns
+mountpoint -q /run/netns || mount -t tmpfs --make-shared tmpfs /run/netns 2>/dev/null || true
+
 # Bridge must already exist (sandbox-bridge-lite.service).
 ip link show "$BRIDGE" >/dev/null 2>&1 || {
     echo "lite-netns: bridge $BRIDGE missing — is sandbox-bridge-lite.service running?" >&2

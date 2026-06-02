@@ -75,6 +75,37 @@ sudo ./scripts/build-ubuntu-rootfs.sh
 sudo ./scripts/build-cli-lite.sh
 ```
 
+#### Monorepo vs standalone clone
+
+Prod deploys a **standalone** clone of this repo (`deploy.sh` → `git clone
+todoforai/sandbox-manager`), without the monorepo. To keep the rootfs build
+self-sufficient there:
+
+- **`ubuntu-base`** needs two monorepo-only inputs — the tfa-* tool list
+  (`tool_catalog.json`) and the `todoforai-bridge-static` binary. These are
+  **vendored** into `vendor/` and committed, so the standalone clone builds
+  with no monorepo and no env vars. Path resolution is: explicit env >
+  `vendor/` > monorepo source.
+- Refresh the vendored copies from the monorepo source-of-truth before pushing
+  (also auto-runs at the start of `build-templates.sh` when the monorepo is
+  present, so they never drift):
+
+  ```bash
+  ./scripts/sync-vendor.sh           # run from inside the monorepo, then commit vendor/
+  ./scripts/sync-vendor.sh --check   # CI/pre-push guard: exit 1 if vendor/ is stale
+  ```
+
+- **`cli-lite`** bundles the `cli/` + `api-apps/` bun workspaces, which are too
+  large to vendor. Build it **in the monorepo** and ship the result:
+
+  ```bash
+  rsync -a --delete "$DATA_DIR/templates/cli-lite/" \
+    root@sandbox.todofor.ai:/data/templates/cli-lite/
+  ```
+
+  On a standalone clone `build-cli-lite.sh` skips cleanly (so
+  `provision-templates all` still builds `ubuntu-base`).
+
 ### 3. Run
 
 ```bash

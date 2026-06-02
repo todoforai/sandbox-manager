@@ -19,6 +19,12 @@ mount -t sysfs sysfs /sys
 mount -t devtmpfs devtmpfs /dev 2>/dev/null || true
 mkdir -p /dev/pts
 mount -t devpts devpts /dev/pts
+# Runtime state must be RAM-backed and wiped each boot. Without this, /run sits
+# on the persistent rootfs, so `ip netns add` pins survive restarts and collide
+# ("Cannot create namespace file ...: File exists"); it also breaks flock,
+# defeating iproute2's own race protection.
+mount -t tmpfs tmpfs /run
+mkdir -p /run/netns
 
 # Persistent $HOME on /dev/vdb (virtio-blk drive `userhome` attached by FC
 # when the sandbox has acquire_home=true). Same ext4 image a Lite sandbox
