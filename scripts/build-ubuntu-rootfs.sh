@@ -80,7 +80,12 @@ fi
 # pinned release download (standalone clone). The release linux-x64 asset is
 # the static-musl build — identical to `make static` — so it's a drop-in.
 if [ -z "${BRIDGE_BIN:-}" ]; then
-    if [ -d "$REPO_ROOT/bridge" ]; then
+    # Monorepo dev build only when bridge/ is a *real* source tree with a
+    # `static` target — guards against stray leftover dirs (e.g. a bare
+    # bridge/build/ from an old prod layout) that would otherwise trigger a
+    # doomed `make static`. Otherwise fall through to the pinned release.
+    if [ -d "$REPO_ROOT/bridge" ] && [ -f "$REPO_ROOT/bridge/Makefile" ] \
+       && make -C "$REPO_ROOT/bridge" -n static >/dev/null 2>&1; then
         echo "Building bridge from $REPO_ROOT/bridge..."
         ( cd "$REPO_ROOT/bridge" && make static )
         BRIDGE_BIN="$REPO_ROOT/bridge/build/todoforai-bridge-static"
