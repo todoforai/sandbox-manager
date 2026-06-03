@@ -78,7 +78,10 @@ systemctl enable --now sandbox-bridge.service sandbox-bridge.timer sandbox-bridg
 
 echo
 echo "Installed. Status:"
-systemctl --no-pager status sandbox-bridge.service      | head -n 5
-systemctl --no-pager status sandbox-bridge-lite.service | head -n 5
-ip -br link show br-sandbox
-ip -br link show br-sandbox-lite
+# Diagnostics only — never fail the install. `systemctl status` exits non-zero
+# when a oneshot is momentarily inactive (e.g. mid-restart), and `set -e` +
+# `pipefail` would otherwise abort an otherwise-successful deploy on that race.
+systemctl --no-pager status sandbox-bridge.service      | head -n 5 || true
+systemctl --no-pager status sandbox-bridge-lite.service | head -n 5 || true
+ip -br link show br-sandbox      || true
+ip -br link show br-sandbox-lite || true

@@ -97,10 +97,12 @@ table inet sandbox-lite {
 
         ct state established,related accept
 
-        # Only police traffic *leaving* the lite bridge. `accept` (not
-        # `return`) because this is a base chain with `policy drop` — a
-        # `return` here falls through to the drop policy and would kill
+        # Only police traffic *leaving* the lite bridge. Use 'accept' (not
+        # 'return') because this is a base chain with 'policy drop' — a
+        # 'return' here falls through to the drop policy and would kill
         # unrelated FORWARD traffic (e.g. the paid VM bridge).
+        # NOTE: no backticks in this heredoc — it's unquoted (expands
+        # $BRIDGE / $LITE_DEV_VAULT_RULE) so bash would command-substitute them.
         iifname != "$BRIDGE" accept
 
         # Block abuse destinations regardless of port.
