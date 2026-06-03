@@ -32,7 +32,6 @@
     "pkg": "tiktok-uploader",
     "installer": "pip",
     "label": "TikTok",
-    "statusCmd": "python3 -c 'import tiktok_uploader' 2>&1",
     "loginCmd": "npx @todoforai/tiktok-cookie-helper",
     "credentialPaths": [
       "~/.tiktok/cookies.txt"
@@ -48,7 +47,6 @@
     "label": "Instagram",
     "capabilities": "Upload photos & reels, post stories, send DMs, like & comment, manage followers",
     "description": "Use for Instagram automation: upload photos/reels, post stories, DMs, like/comment, follower management. Python library; call via `python3 -c \"from instagrapi import Client; ...\"`.",
-    "statusCmd": "python3 -c \"import instagrapi\" 2>/dev/null",
     "versionCmd": "pip show instagrapi 2>/dev/null | grep -oP 'Version: \\K.*'"
   },
   "mudslide": {
@@ -70,7 +68,6 @@
     "pkg": "telegram-send",
     "installer": "pip",
     "label": "Telegram",
-    "statusCmd": "test -f ~/.config/telegram-send/telegram-send.conf && echo 'configured'",
     "loginCmd": "telegram-send --configure",
     "credentialPaths": [
       "~/.config/telegram-send/telegram-send.conf"
@@ -294,7 +291,6 @@
     "pkg": "@shopify/cli",
     "installer": "npm",
     "label": "Shopify",
-    "statusCmd": "test -f ~/.config/shopify/config.json && echo 'authenticated'",
     "loginCmd": "shopify auth login",
     "credentialPaths": [
       "~/.config/shopify/config.json"
@@ -508,7 +504,6 @@
     "capabilities": "Explore a codebase as a real TODO: read-only agent maps structure, surfaces relevant files, streams findings to terminal",
     "description": "Codebase exploration as a real TODO with patched permissions (read/grep/bash only) and live streaming. Usage: `tfa-explore [--repo <path>] \"<question>\"`. Creates a TODO visible in the UI and streams block events to stdout until DONE.",
     "versionCmd": "tfa-explore --version 2>/dev/null | head -1",
-    "statusCmd": "tfa-explore whoami",
     "installCmd": "bun add -g @todoforai/tfa-explore",
     "preinstall": true,
     "preinstallCloud": true,
@@ -522,7 +517,6 @@
     "capabilities": "Review a git diff as a real TODO: read-only agent assesses goal, finds issues, suggests simpler approaches",
     "description": "Capture `git diff` and ask a read-only sub-agent to review it as a real TODO. Usage: `tfa-review [--repo <path>] [--against <ref>] \"<goal>\"`. Default diffs uncommitted changes vs HEAD. Streams block events to stdout until DONE.",
     "versionCmd": "tfa-review --version 2>/dev/null | head -1",
-    "statusCmd": "tfa-review whoami",
     "installCmd": "bun add -g @todoforai/tfa-review",
     "preinstall": true,
     "preinstallCloud": true,
@@ -536,7 +530,6 @@
     "capabilities": "Summarize files or piped input as a real TODO with no-tools sub-agent",
     "description": "Summarize file contents or stdin as a real TODO. Usage: `tfa-summary [-f <file>]... [<files...>] [<focus>]` or `cat x | tfa-summary \"focus\"`. No tools (content is inlined); streams block events to stdout until DONE.",
     "versionCmd": "tfa-summary --version 2>/dev/null | head -1",
-    "statusCmd": "tfa-summary whoami",
     "installCmd": "bun add -g @todoforai/tfa-summary",
     "internal": true
   },
