@@ -426,19 +426,29 @@ awk -v T="$TAB" 'BEGIN{FS=T; OFS=T} {
   if [ -n "$vcmd" ]; then run_capped 5  "$vcmd" 100; version_out=$OUT; v_exit=$EXIT; fi
   if [ -n "$scmd" ]; then run_capped 10 "$scmd" 200; status_out=$OUT;  s_exit=$EXIT; fi
 
+  # Presence: a non-empty `--version` proves it, but so does a `statusCmd`
+  # that exits 0 — you can't authenticate a binary that isn't there. Treat
+  # either as installed. This also keeps a cold-start `--version` timeout
+  # (exit 124) from hiding a tool whose status probe still answered.
   installed=0
   if [ -n "$vcmd" ] && [ "$v_exit" = 0 ] && [ -n "$version_out" ]; then installed=1
-  elif [ -z "$vcmd" ] && [ -n "$scmd" ] && [ "$s_exit" = 0 ]; then installed=1
+  elif [ -n "$scmd" ] && [ "$s_exit" = 0 ]; then installed=1
   fi
 
   [ "$first" = 1 ] || printf ','
   first=0
   printf '"'; printf '%s' "$key" | json_escape; printf '":{'
   if [ "$installed" = 1 ]; then printf '"installed":true'; else printf '"installed":false'; fi
-  if [ "$installed" = 1 ] && [ -n "$vcmd" ] && [ "$v_exit" = 0 ] && [ -n "$version_out" ]; then
+  if [ -n "$vcmd" ] && [ "$v_exit" = 0 ] && [ -n "$version_out" ]; then
     printf ',"version":"'; printf '%s' "$version_out" | json_escape; printf '"'
   fi
-  if [ "$installed" = 1 ] && [ -n "$scmd" ]; then
+  # Report auth whenever the status probe actually ran (not gated on the
+  # version probe). On a cold start `--version` may time out while
+  # `statusCmd` still answers — that auth signal is exactly what the UI
+  # wants and must not be dropped. A status probe that itself timed out
+  # (s_exit=124) reports authenticated:false, which the next (warm) scan
+  # corrects via merge.
+  if [ -n "$scmd" ]; then
     if [ "$s_exit" = 0 ]; then printf ',"authenticated":true'; else printf ',"authenticated":false'; fi
     if [ -n "$status_out" ]; then
       printf ',"statusOutput":"'; printf '%s' "$status_out" | json_escape; printf '"'
