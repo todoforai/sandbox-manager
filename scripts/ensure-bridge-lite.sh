@@ -26,6 +26,18 @@ SUBNET="${LITE_NETWORK_SUBNET:-10.2.0.0/16}"
 
 log() { echo "[ensure-bridge-lite] $*"; }
 
+# Dev-only vault reachability. In dev, vault-manager runs on this host (bound
+# 0.0.0.0:8800) and tfa-vault must reach it from the lite netns. Traffic to a
+# host-owned IP hits the INPUT chain (not FORWARD), so we allow tcp/8800 to the
+# bridge gateway there. Gated on MMDS_NOISE_BACKEND_ADDR (set only for dev/custom
+# backends; never in prod) so the prod policy stays byte-for-byte default-deny.
+# Override port via LITE_DEV_VAULT_PORT.
+LITE_DEV_VAULT_RULE=""
+if [ -n "${MMDS_NOISE_BACKEND_ADDR:-}" ]; then
+    LITE_DEV_VAULT_RULE="tcp dport ${LITE_DEV_VAULT_PORT:-8800} accept  # dev: tfa-vault → host vault-manager"
+    log "DEV: allowing lite → host ${LITE_DEV_VAULT_PORT:-8800} (vault-manager)"
+fi
+
 # 1. Bridge device
 if ip link show "$BRIDGE" &>/dev/null; then
     log "bridge $BRIDGE exists"
@@ -131,6 +143,9 @@ table inet sandbox-lite {
         # no-op but harmless.
         udp dport 53 accept
         tcp dport 53 accept
+
+        # Dev-only: tfa-vault → host vault-manager (empty string in prod).
+        $LITE_DEV_VAULT_RULE
 
         # Everything else aimed at the host: drop. In particular this
         # blocks http://10.0.0.1/, http://10.2.0.1/, http://127.0.0.1/,

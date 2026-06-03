@@ -652,9 +652,31 @@ impl VmManager {
         // Lock is held → an existing sandbox of this user owns the home.
         // Delete it synchronously (drops the fd, releases the kernel lock)
         // then retry once.
-        let existing: Vec<_> = self.redis.sandbox_list(Some(user_id)).await?
-            .into_iter().filter(Sandbox::is_active).collect();
+        let all: Vec<_> = self.redis.sandbox_list(Some(user_id)).await?;
+        let existing: Vec<_> = all.iter().filter(|s| s.is_active()).cloned().collect();
         if existing.is_empty() {
+            // No *active* record owns the home, yet the kernel flock is held.
+            // After a crash/restart, the in-process `home_locks` fd map can
+            // outlive the Redis active view (e.g. a reconcile re-took the
+            // flock for a sandbox whose record is no longer `is_active`).
+            // Drop any fd we still hold for one of this user's sandbox ids,
+            // which releases the kernel lock, then retry — instead of
+            // bailing as an "orphaned lock".
+            let mut dropped = false;
+            for s in &all {
+                if self.home_locks.remove(&s.id).is_some() {
+                    tracing::warn!(
+                        "dropping stale home-lock fd for sandbox {} (user {}) to recover orphaned lock",
+                        s.id, user_id
+                    );
+                    dropped = true;
+                }
+            }
+            if dropped {
+                if let LockOutcome::Acquired(fd) = self.user_homes.acquire_lock(user_id)? {
+                    return Ok(fd);
+                }
+            }
             anyhow::bail!("user-home lock for {user_id} is busy but no active sandbox owns it (orphaned lock?)");
         }
         for s in existing {
