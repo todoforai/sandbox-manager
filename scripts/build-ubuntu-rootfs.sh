@@ -95,7 +95,12 @@ if [ -z "${BRIDGE_BIN:-}" ]; then
     if [ -d "$REPO_ROOT/bridge" ] && [ -f "$REPO_ROOT/bridge/Makefile" ] \
        && make -C "$REPO_ROOT/bridge" -n static >/dev/null 2>&1; then
         echo "Building bridge from $REPO_ROOT/bridge..."
-        ( cd "$REPO_ROOT/bridge" && make static )
+        # Build as the real user to avoid root-owned zig cache / build artifacts.
+        if [ -n "${SUDO_USER:-}" ]; then
+            sudo -u "$SUDO_USER" make -C "$REPO_ROOT/bridge" static
+        else
+            ( cd "$REPO_ROOT/bridge" && make static )
+        fi
         BRIDGE_BIN="$REPO_ROOT/bridge/build/todoforai-bridge-static"
     else
         echo "Fetching pinned bridge release ($(cat "$VENDOR_DIR/bridge.tag" 2>/dev/null))..."

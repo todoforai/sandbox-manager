@@ -6,7 +6,17 @@
 # both call scripts/build-templates.sh with the same $DATA_DIR semantics.
 set -e
 
-FIRECRACKER_VERSION="${FIRECRACKER_VERSION:-v1.6.0}"
+# Preserve caller's PATH so user-local tools (zig, bun, etc.) are found under sudo.
+# sudo's secure_path strips ~/.local/bin etc. even with -E.
+if [ -n "${SUDO_USER:-}" ] && [ -n "${PATH:-}" ]; then
+    CALLER_HOME="$(getent passwd "$SUDO_USER" | cut -d: -f6)"
+    for p in "$CALLER_HOME/.local/bin" "$CALLER_HOME/bin" "$CALLER_HOME/.bun/bin"; do
+        [[ ":$PATH:" != *":$p:"* ]] && [ -d "$p" ] && PATH="$p:$PATH"
+    done
+    export PATH
+fi
+
+FIRECRACKER_VERSION="${FIRECRACKER_VERSION:-v1.15.1}"
 ARCH="x86_64"
 INSTALL_DIR="/usr/local/bin"
 # DATA_DIR resolution mirrors build-templates.sh / build-cli-lite.sh:

@@ -21,6 +21,15 @@
 
 set -euo pipefail
 
+# Preserve caller's PATH so user-local tools (zig, bun, etc.) are found under sudo.
+if [ -n "${SUDO_USER:-}" ]; then
+    CALLER_HOME="$(getent passwd "$SUDO_USER" | cut -d: -f6)"
+    for p in "$CALLER_HOME/.local/bin" "$CALLER_HOME/bin" "$CALLER_HOME/.bun/bin" "$CALLER_HOME/.cargo/bin"; do
+        [[ ":$PATH:" != *":$p:"* ]] && [ -d "$p" ] && PATH="$p:$PATH"
+    done
+    export PATH
+fi
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Path resolution mirrors sandbox-manager's own (src/vm/config.rs):
