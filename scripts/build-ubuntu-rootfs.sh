@@ -156,9 +156,19 @@ chmod +x "$ROOTFS_DIR/init"
 # Minimal /etc files. During build we bind-mount the host's resolv.conf so DNS
 # works regardless of the host's setup (systemd-resolved stub, corporate DNS,
 # firewalled public resolvers, etc.). The in-image resolv.conf written here is
-# for the VM at boot — 8.8.8.8 is a reasonable default if the VM has egress.
+# for the VM at boot.
+#
+# DNS resolvers (SANDBOX_VM_DNS, space-separated; default Hetzner's recursive
+# resolvers): the public anycast resolvers (8.8.8.8 / 1.1.1.1) are NOT a safe
+# default — many hosts (e.g. Hetzner) firewall outbound DNS to anything but
+# their own resolvers, which silently breaks the in-VM bridge: it can't resolve
+# api.todofor.ai, times out, and /init panics on every VM. Use resolvers the
+# host's network can actually reach. Override per-host via SANDBOX_VM_DNS.
 echo "sandbox" > "$ROOTFS_DIR/etc/hostname"
-echo "nameserver 8.8.8.8" > "$ROOTFS_DIR/etc/resolv.conf"
+: > "$ROOTFS_DIR/etc/resolv.conf"
+for ns in ${SANDBOX_VM_DNS:-185.12.64.1 185.12.64.2}; do
+    echo "nameserver $ns" >> "$ROOTFS_DIR/etc/resolv.conf"
+done
 
 # Sandbox marker — bridge identity.c reads this to self-classify as DeviceType.SANDBOX
 # instead of PC at enroll time. Avoids ever passing --device-type from outside.
