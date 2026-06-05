@@ -289,13 +289,11 @@ pub struct BootConfig {
 
 impl Default for BootConfig {
     fn default() -> Self {
-        let home = std::env::var("HOME").unwrap_or_else(|_| "/root".to_string());
-        let data_dir = std::env::var("DATA_DIR")
-            .unwrap_or_else(|_| format!("{}/sandbox-data", home));
-        
+        let data_dir = super::config::data_dir();
+
         Self {
-            kernel_path: PathBuf::from(format!("{}/templates/ubuntu-base/vmlinux", data_dir)),
-            rootfs_path: PathBuf::from(format!("{}/templates/ubuntu-base/rootfs.ext4", data_dir)),
+            kernel_path: data_dir.join("templates/ubuntu-base/vmlinux"),
+            rootfs_path: data_dir.join("templates/ubuntu-base/rootfs.ext4"),
             boot_args: "console=ttyS0 reboot=k panic=1 pci=off root=/dev/vda rw init=/init".into(),
         }
     }

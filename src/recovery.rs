@@ -143,7 +143,5 @@ pub fn default_ca_path() -> PathBuf {
     if let Ok(p) = std::env::var("RECOVERY_CA_PATH") {
         return PathBuf::from(p);
     }
-    let home = std::env::var("HOME").unwrap_or_else(|_| "/root".into());
-    let data_dir = std::env::var("DATA_DIR").unwrap_or_else(|_| format!("{home}/sandbox-data"));
-    PathBuf::from(format!("{data_dir}/recovery_ca"))
+    crate::vm::config::data_dir().join("recovery_ca")
 }

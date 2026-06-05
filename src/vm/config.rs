@@ -3,6 +3,20 @@
 use std::path::PathBuf;
 use serde::{Deserialize, Serialize};
 
+/// Root of all on-disk state: templates, overlays, snapshots, recovery CA.
+/// `$DATA_DIR` (prod: `/data`), else `$HOME/sandbox-data` (dev), else
+/// `/root/sandbox-data`. Single source of truth — every path default derives
+/// from here so dev and prod layouts stay in lockstep.
+pub fn data_dir() -> PathBuf {
+    if let Ok(d) = std::env::var("DATA_DIR") {
+        if !d.is_empty() {
+            return PathBuf::from(d);
+        }
+    }
+    let home = std::env::var("HOME").unwrap_or_else(|_| "/root".to_string());
+    PathBuf::from(format!("{home}/sandbox-data"))
+}
+
 /// Manager configuration
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ManagerConfig {
@@ -30,14 +44,12 @@ pub struct ManagerConfig {
 
 impl Default for ManagerConfig {
     fn default() -> Self {
-        let home = std::env::var("HOME").unwrap_or_else(|_| "/root".to_string());
-        let data_dir = std::env::var("DATA_DIR")
-            .unwrap_or_else(|_| format!("{}/sandbox-data", home));
-        
+        let data_dir = data_dir();
+
         Self {
-            templates_dir: PathBuf::from(format!("{}/templates", data_dir)),
-            overlays_dir: PathBuf::from(format!("{}/overlays", data_dir)),
-            snapshots_dir: PathBuf::from(format!("{}/snapshots", data_dir)),
+            templates_dir: data_dir.join("templates"),
+            overlays_dir: data_dir.join("overlays"),
+            snapshots_dir: data_dir.join("snapshots"),
             bridge_name: "br-sandbox".into(),
             network_subnet: "10.0.0.0/16".into(),
             max_vms: 5000,
@@ -49,21 +61,18 @@ impl Default for ManagerConfig {
 impl ManagerConfig {
     /// Load from environment variables
     pub fn from_env() -> Self {
-        let home = std::env::var("HOME").unwrap_or_else(|_| "/root".to_string());
-        let default_data_dir = format!("{}/sandbox-data", home);
-        
-        let data_dir = std::env::var("DATA_DIR").unwrap_or(default_data_dir);
-        
+        let data_dir = data_dir();
+
         Self {
             templates_dir: std::env::var("TEMPLATES_DIR")
                 .map(PathBuf::from)
-                .unwrap_or_else(|_| PathBuf::from(format!("{}/templates", data_dir))),
+                .unwrap_or_else(|_| data_dir.join("templates")),
             overlays_dir: std::env::var("OVERLAYS_DIR")
                 .map(PathBuf::from)
-                .unwrap_or_else(|_| PathBuf::from(format!("{}/overlays", data_dir))),
+                .unwrap_or_else(|_| data_dir.join("overlays")),
             snapshots_dir: std::env::var("SNAPSHOTS_DIR")
                 .map(PathBuf::from)
-                .unwrap_or_else(|_| PathBuf::from(format!("{}/snapshots", data_dir))),
+                .unwrap_or_else(|_| data_dir.join("snapshots")),
             bridge_name: std::env::var("BRIDGE_NAME")
                 .unwrap_or_else(|_| "br-sandbox".into()),
             network_subnet: std::env::var("NETWORK_SUBNET")
