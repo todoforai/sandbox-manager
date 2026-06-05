@@ -27,20 +27,34 @@ use std::os::fd::OwnedFd;
 /// Per-user quota on concurrent sandboxes. TODO: read from appuser:<id>.sandboxLimit.
 const DEFAULT_USER_LIMIT: usize = 10;
 
-/// Default logical size of each user's `$HOME` disk image (GiB). Sparse —
-/// on-disk usage is only what the user actually writes. Acts as a hard
-/// ceiling per user; ext4 inside the image will refuse writes past this.
+/// Logical ceiling (MiB) for a newly-created `$HOME` disk image, by sandbox
+/// kind + VM tier. Sparse — on-disk usage is only what the user writes; this
+/// is the hard cap ext4 enforces. Lite sandboxes get a small allotment; VMs
+/// scale with their size tier (see [`VmSize::disk_size_mib`]).
 ///
-/// Override with `USER_DISK_SIZE_GIB=<n>` env var. Existing images keep
-/// their original size (ensure_disk is idempotent — see user_home.rs); only
-/// newly-created home.imgs use the current value.
-const DEFAULT_USER_DISK_SIZE_GIB: u64 = 20;
-
-fn user_disk_size_gib() -> u64 {
-    std::env::var("USER_DISK_SIZE_GIB").ok()
-        .and_then(|s| s.parse().ok())
-        .filter(|&n: &u64| n > 0)
-        .unwrap_or(DEFAULT_USER_DISK_SIZE_GIB)
+/// Only applies to the *first* sandbox a user launches — the home.img is
+/// reused unchanged after that (ensure_disk is idempotent, see user_home.rs).
+///
+/// `USER_DISK_SIZE_MIB=<n>` overrides this for all kinds when set. The legacy
+/// `USER_DISK_SIZE_GIB=<n>` is still honored (as `n * 1024` MiB) for
+/// deployment compatibility, but `USER_DISK_SIZE_MIB` takes precedence.
+fn user_disk_size_mib(kind: SandboxKind, vm_size: VmSize) -> u64 {
+    if let Some(n) = std::env::var("USER_DISK_SIZE_MIB").ok()
+        .and_then(|s| s.parse::<u64>().ok())
+        .filter(|&n| n > 0)
+    {
+        return n;
+    }
+    if let Some(g) = std::env::var("USER_DISK_SIZE_GIB").ok()
+        .and_then(|s| s.parse::<u64>().ok())
+        .filter(|&n| n > 0)
+    {
+        return g * 1024;
+    }
+    match kind {
+        SandboxKind::Lite => VmSize::LITE_DISK_MIB,
+        SandboxKind::Vm => vm_size.disk_size_mib(),
+    }
 }
 
 pub struct VmManager {
@@ -504,7 +518,7 @@ impl VmManager {
         // reused forever after. The exact same file is what Lite loop-mounts
         // on the host and what FC attaches as /dev/vdb in the guest.
         let user_disk = if acquire_home {
-            Some(self.user_homes.ensure_disk(&user_id, user_disk_size_gib()).await
+            Some(self.user_homes.ensure_disk(&user_id, user_disk_size_mib(kind, vm_size)).await
                 .context("ensure user home disk")?)
         } else {
             None
@@ -633,7 +647,9 @@ impl VmManager {
     /// responsible for the flock; this just does the on-disk work.
     async fn lite_reattach(&self, sandbox_id: &str, user_id: &str) {
         self.lite.force_unmount_leftover(sandbox_id).await;
-        let disk = self.user_homes.ensure_disk(user_id, user_disk_size_gib()).await
+        // Lite-only path; size is moot for existing images (ensure_disk is
+        // idempotent) but pass the Lite ceiling for a never-provisioned user.
+        let disk = self.user_homes.ensure_disk(user_id, VmSize::LITE_DISK_MIB).await
             .map_err(|e| tracing::error!("reconcile: ensure_disk({}): {:#}", user_id, e))
             .ok();
         if let Err(e) = self.lite.provision(sandbox_id, disk.as_deref()).await {

@@ -106,26 +106,30 @@ impl UserHomeStore {
     }
 
     /// Ensure the user's `$HOME` disk image exists and is formatted. Creates
-    /// a sparse `size_gib`-sized raw file and `mkfs.ext4`s it on first call;
+    /// a sparse `size_mib`-sized raw file and `mkfs.ext4`s it on first call;
     /// returns the path. Idempotent: if the file already exists, returns it
     /// unchanged (no resize, no reformat).
+    ///
+    /// `size_mib` is only the ceiling for a *freshly created* image — the
+    /// home.img is created on a user's first sandbox and reused by every
+    /// later one, so the first sandbox's tier fixes the user's home size.
     ///
     /// The image is **never re-formatted** once it exists — that would lose
     /// every byte the user has accumulated. If the file looks corrupt the
     /// operator must delete it manually.
-    pub async fn ensure_disk(&self, user_id: &str, size_gib: u64) -> Result<PathBuf> {
+    pub async fn ensure_disk(&self, user_id: &str, size_mib: u64) -> Result<PathBuf> {
         let path = self.disk_path(user_id)?;
         if path.exists() {
             return Ok(path);
         }
         // Sparse allocation: on-disk usage is what the guest writes, not
-        // size_gib. A fresh 50G ext4 image is ~5MB on disk.
-        let size_bytes = size_gib.checked_mul(1024 * 1024 * 1024)
-            .context("size_gib overflow")?;
+        // size_mib. A fresh 20G ext4 image is ~5MB on disk.
+        let size_bytes = size_mib.checked_mul(1024 * 1024)
+            .context("size_mib overflow")?;
         let f = tokio::fs::File::create(&path).await
             .with_context(|| format!("create disk {path:?}"))?;
         f.set_len(size_bytes).await
-            .with_context(|| format!("truncate disk {path:?} to {size_gib}G"))?;
+            .with_context(|| format!("truncate disk {path:?} to {size_mib}M"))?;
         drop(f);
 
         // mkfs.ext4 -F: don't prompt; we know the file is fresh and empty.
@@ -144,7 +148,7 @@ impl UserHomeStore {
             let _ = tokio::fs::remove_file(&path).await;
             anyhow::bail!("mkfs.ext4 {path:?} exited {status}");
         }
-        tracing::info!("created home disk {} ({}G sparse)", path.display(), size_gib);
+        tracing::info!("created home disk {} ({}M sparse)", path.display(), size_mib);
         Ok(path)
     }
 }
@@ -275,7 +279,7 @@ mod tests {
         let tmp = tempfile::tempdir().unwrap();
         let store = UserHomeStore::new(tmp.path().to_path_buf());
         store.provision("gina").await.unwrap();
-        let path = store.ensure_disk("gina", 4).await.unwrap();
+        let path = store.ensure_disk("gina", 4 * 1024).await.unwrap();
         assert!(path.is_file(), "home.img must exist");
 
         let meta = std::fs::metadata(&path).unwrap();
@@ -297,7 +301,7 @@ mod tests {
         let tmp = tempfile::tempdir().unwrap();
         let store = UserHomeStore::new(tmp.path().to_path_buf());
         store.provision("hank").await.unwrap();
-        let p1 = store.ensure_disk("hank", 4).await.unwrap();
+        let p1 = store.ensure_disk("hank", 4 * 1024).await.unwrap();
         // Mutate one byte inside the image — second call must NOT reformat
         // (would destroy user data). We poke a byte well past the ext4
         // superblock so any reformat is guaranteed to overwrite it.
@@ -307,7 +311,7 @@ mod tests {
             f.seek(SeekFrom::Start(2 * 1024 * 1024)).unwrap(); // 2 MiB in
             f.write_all(b"DO-NOT-WIPE").unwrap();
         }
-        let p2 = store.ensure_disk("hank", 4).await.unwrap();
+        let p2 = store.ensure_disk("hank", 4 * 1024).await.unwrap();
         assert_eq!(p1, p2);
         let mut f = std::fs::File::open(&p2).unwrap();
         f.seek(SeekFrom::Start(2 * 1024 * 1024)).unwrap();

@@ -41,6 +41,23 @@ impl VmSize {
         }
     }
     
+    /// Logical ceiling of the user's persistent `$HOME` disk image, in MiB.
+    /// Sparse — actual on-disk usage is only what the guest writes; this is
+    /// the hard cap ext4 enforces. Scales with the VM tier; Lite sandboxes
+    /// are provisioned via [`Self::LITE_DISK_MIB`] instead.
+    pub fn disk_size_mib(&self) -> u64 {
+        match self {
+            VmSize::Small => 4 * 1024,
+            VmSize::Medium => 8 * 1024,
+            VmSize::Large | VmSize::XLarge => 20 * 1024,
+            VmSize::Custom { .. } => 20 * 1024,
+        }
+    }
+
+    /// Disk ceiling for Lite (bwrap) sandboxes — small, since they only run
+    /// our CLIs and keep minimal state.
+    pub const LITE_DISK_MIB: u64 = 500;
+
     /// Number of virtual CPUs
     pub fn vcpu_count(&self) -> u8 {
         match self {
@@ -107,6 +124,16 @@ mod tests {
         assert_eq!(VmSize::XLarge.memory_mb(), 1024);
     }
     
+    #[test]
+    fn test_disk_size_mib() {
+        assert_eq!(VmSize::Small.disk_size_mib(), 4 * 1024);
+        assert_eq!(VmSize::Medium.disk_size_mib(), 8 * 1024);
+        assert_eq!(VmSize::Large.disk_size_mib(), 20 * 1024);
+        assert_eq!(VmSize::XLarge.disk_size_mib(), 20 * 1024);
+        assert_eq!(VmSize::Custom { memory_mb: 192, vcpu_count: 2 }.disk_size_mib(), 20 * 1024);
+        assert_eq!(VmSize::LITE_DISK_MIB, 500);
+    }
+
     #[test]
     fn test_custom_size() {
         let custom = VmSize::Custom { memory_mb: 192, vcpu_count: 2 };
