@@ -18,6 +18,7 @@ type Config struct {
 	Namespace       string // containerd namespace, default "sandbox"
 	Runtime         string // default io.containerd.kata-fc.v2
 	RuntimeConfig   string // Kata config TOML selecting the Firecracker VMM
+	KataRuntimeBin  string // kata-runtime binary (direct-volume add/remove)
 	Snapshotter     string // default "devmapper"
 	RootfsImage     string // OCI image whose entrypoint is todoforai-bridge
 
@@ -48,6 +49,7 @@ func Load() (*Config, error) {
 		Namespace:       env("CONTAINERD_NAMESPACE", "sandbox"),
 		Runtime:         env("SANDBOX_RUNTIME", "io.containerd.kata-fc.v2"),
 		RuntimeConfig:   env("SANDBOX_RUNTIME_CONFIG", "/opt/kata/share/defaults/kata-containers/configuration-fc.toml"),
+		KataRuntimeBin:  env("KATA_RUNTIME_BIN", "/opt/kata/bin/kata-runtime"),
 		Snapshotter:     env("SANDBOX_SNAPSHOTTER", "devmapper"),
 		RootfsImage:     env("SANDBOX_ROOTFS_IMAGE", "docker.io/todoforai/sandbox-rootfs:latest"),
 		CNIBinDir:       env("CNI_BIN_DIR", "/opt/cni/bin"),

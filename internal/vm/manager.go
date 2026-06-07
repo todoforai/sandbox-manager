@@ -22,6 +22,7 @@ type Manager struct {
 	client *containerd.Client
 	cfg    *config.Config
 	net    *Network
+	home   *homeDisk
 }
 
 func NewManager(cfg *config.Config) (*Manager, error) {
@@ -33,7 +34,8 @@ func NewManager(cfg *config.Config) (*Manager, error) {
 	if err != nil {
 		return nil, fmt.Errorf("cni init: %w", err)
 	}
-	return &Manager{client: client, cfg: cfg, net: net}, nil
+	home := newHomeDisk(cfg.KataRuntimeBin, "/run/sandbox-manager/home-volumes")
+	return &Manager{client: client, cfg: cfg, net: net, home: home}, nil
 }
 
 func (m *Manager) Close() error { return m.client.Close() }
@@ -67,20 +69,28 @@ func (m *Manager) Create(ctx context.Context, s Spec) (*Created, error) {
 	}
 
 	// The bridge is the image entrypoint; we only inject env + the home disk.
-	//
-	// TODO(host-verify): home.img is a raw ext4 *file*. Bind-mounting the file
-	// to /root exposes the file, not its filesystem — this must instead attach
-	// it as a virtio-blk device (mounted by the entrypoint) or loop-mount on
-	// the host and bind the resulting dir. Needs a live Kata boot to settle the
-	// exact mechanism; left as a bind for now so the shape is visible.
+	// home.img attaches as a real block device via Kata direct-volume (see
+	// homedisk.go) — the volume path is what we bind to /root, and Kata
+	// hot-plugs the disk as virtio-blk so the guest mounts its ext4 there.
+	// Proven live: read/write persists across VMs (sandbox migration).
 	mounts := []specs.Mount{}
 	if s.HomeImg != "" {
+		volPath, err := m.home.Attach(s.ID, s.HomeImg)
+		if err != nil {
+			return nil, fmt.Errorf("attach home disk: %w", err)
+		}
 		mounts = append(mounts, specs.Mount{
 			Destination: "/root",
-			Source:      s.HomeImg,
+			Source:      volPath,
 			Type:        "bind",
 			Options:     []string{"rbind", "rw"},
 		})
+	}
+	// On any failure after this point, release the home disk before returning.
+	detachHome := func() {
+		if s.HomeImg != "" {
+			m.home.Detach(s.ID)
+		}
 	}
 	env := []string{"DEVICE_NAME=" + s.DeviceName}
 	if s.EnrollToken != "" {
@@ -106,12 +116,14 @@ func (m *Manager) Create(ctx context.Context, s Spec) (*Created, error) {
 		),
 	)
 	if err != nil {
+		detachHome()
 		return nil, fmt.Errorf("new container: %w", err)
 	}
 
 	task, err := container.NewTask(ctx, cio.NullIO)
 	if err != nil {
 		container.Delete(ctx, containerd.WithSnapshotCleanup)
+		detachHome()
 		return nil, fmt.Errorf("new task: %w", err)
 	}
 
@@ -119,6 +131,7 @@ func (m *Manager) Create(ctx context.Context, s Spec) (*Created, error) {
 	if err != nil {
 		task.Delete(ctx, containerd.WithProcessKill)
 		container.Delete(ctx, containerd.WithSnapshotCleanup)
+		detachHome()
 		return nil, fmt.Errorf("cni attach: %w", err)
 	}
 
@@ -126,6 +139,7 @@ func (m *Manager) Create(ctx context.Context, s Spec) (*Created, error) {
 		m.net.Detach(ctx, s.ID, int(task.Pid()))
 		task.Delete(ctx, containerd.WithProcessKill)
 		container.Delete(ctx, containerd.WithSnapshotCleanup)
+		detachHome()
 		return nil, fmt.Errorf("task start: %w", err)
 	}
 	return &Created{IP: ip}, nil
@@ -202,5 +216,7 @@ func (m *Manager) Delete(ctx context.Context, id string) error {
 		task.Kill(ctx, syscall.SIGKILL)
 		task.Delete(ctx, containerd.WithProcessKill)
 	}
-	return container.Delete(ctx, containerd.WithSnapshotCleanup)
+	err = container.Delete(ctx, containerd.WithSnapshotCleanup)
+	m.home.Detach(id) // release loop + direct-volume (no-op if no home disk)
+	return err
 }
