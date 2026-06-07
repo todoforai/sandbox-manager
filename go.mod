@@ -3,6 +3,7 @@ module github.com/todoforai/sandbox-manager
 go 1.23
 
 require (
+	github.com/containerd/containerd/api v1.8.0
 	github.com/containerd/containerd/v2 v2.0.2
 	github.com/containerd/go-cni v1.1.11
 	github.com/opencontainers/runtime-spec v1.2.0
@@ -16,7 +17,6 @@ require (
 	github.com/Microsoft/hcsshim v0.12.9 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/containerd/cgroups/v3 v3.0.3 // indirect
-	github.com/containerd/containerd/api v1.8.0 // indirect
 	github.com/containerd/continuity v0.4.4 // indirect
 	github.com/containerd/errdefs v1.0.0 // indirect
 	github.com/containerd/errdefs/pkg v0.3.0 // indirect

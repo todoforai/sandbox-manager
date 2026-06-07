@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"syscall"
 
+	runtimeoptions "github.com/containerd/containerd/api/types/runtimeoptions/v1"
 	containerd "github.com/containerd/containerd/v2/client"
 	"github.com/containerd/containerd/v2/pkg/cio"
 	"github.com/containerd/containerd/v2/pkg/namespaces"
@@ -86,11 +87,17 @@ func (m *Manager) Create(ctx context.Context, s Spec) (*Created, error) {
 		env = append(env, "ENROLL_TOKEN="+s.EnrollToken)
 	}
 
+	// Select the Firecracker VMM via the Kata config TOML. The containerd
+	// client API (unlike CRI) ignores the ConfigPath in containerd's config,
+	// so we pass it through the runtime options — without this the kata shim
+	// falls back to its default (QEMU). Verified on the spike box: nil opts
+	// boot QEMU, this boots firecracker.
+	runtimeOpts := &runtimeoptions.Options{ConfigPath: m.cfg.RuntimeConfig}
 	container, err := m.client.NewContainer(ctx, s.ID,
 		containerd.WithImage(image),
 		containerd.WithSnapshotter(m.cfg.Snapshotter),
 		containerd.WithNewSnapshot(s.ID+"-snap", image),
-		containerd.WithRuntime(m.cfg.Runtime, nil),
+		containerd.WithRuntime(m.cfg.Runtime, runtimeOpts),
 		containerd.WithNewSpec(
 			oci.WithImageConfig(image),
 			oci.WithEnv(env),

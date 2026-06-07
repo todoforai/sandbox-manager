@@ -40,7 +40,12 @@ fi
 echo "   preinstall: ${BUN_PREINSTALL:-(none)}"
 
 echo ">> docker build $IMAGE"
+# --provenance/--sbom=false: keep it a single-manifest image. The buildx
+# attestation manifest makes the result a manifest *list*, which containerd's
+# `image import` rejects ("no unpack platforms defined") when loading into the
+# devmapper snapshotter for Kata.
 docker build \
+    --provenance=false --sbom=false \
     --build-arg BUN_PREINSTALL="$BUN_PREINSTALL" \
     -t "$IMAGE" \
     -f "$OCI_DIR/Dockerfile" \
