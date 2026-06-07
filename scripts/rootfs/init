@@ -70,6 +70,24 @@ if ip link show eth0 >/dev/null 2>&1; then
     ip route add 169.254.169.254 dev eth0 2>/dev/null || true
 fi
 
+# Wall-clock anchor. Firecracker exposes no RTC/CMOS, so without kvm-clock in
+# the guest kernel the clock starts at the build epoch (~1999) and never
+# advances to real time — every TLS handshake then fails CERT_NOT_YET_VALID
+# (breaks `bun add`, npm, HTTPS). The kernel fix is CONFIG_KVM_GUEST (see
+# build-kernel.sh); this is the portable fallback that also covers kernels
+# built before that landed. Only fires when the clock is implausibly old
+# (< 2024), so a correct kvm-clock makes it a no-op. Source of truth is the
+# gateway's HTTP Date header — no NTP, no extra egress, already reachable.
+if [ "$(date -u +%Y)" -lt 2024 ] 2>/dev/null && [ -n "$GATEWAY_IP" ]; then
+    HTTP_DATE=$(wget -q -S -O /dev/null --tries=1 "http://$GATEWAY_IP:4000/" 2>&1 \
+        | sed -n 's/^[[:space:]]*Date:[[:space:]]*//Ip' | head -1)
+    if [ -n "$HTTP_DATE" ] && date -u -s "$HTTP_DATE" >/dev/null 2>&1; then
+        echo "[init] clock anchored from gateway Date header: $(date -u)"
+    else
+        echo "[init] WARN: clock is $(date -u +%Y) and gateway Date sync failed" >&2
+    fi
+fi
+
 # Fetch MMDS session token once, then read optional bootstrap values.
 # MMDS V2 returns leaf strings JSON-encoded (surrounded by quotes) regardless
 # of Accept header in our Firecracker version, so strip outer quotes.

@@ -203,7 +203,10 @@ copy_bin() {
     local rel="${src#/}"
     local dst="$ROOTFS/$rel"
     mkdir -p "$(dirname "$dst")"
-    cp -L "$src" "$dst"
+    # --remove-destination: a prior run may have replaced $dst with a symlink
+    # back to $src (see the `ln -sf` in the runtimes step); without it, `cp -L`
+    # dereferences that symlink and errors with "same file".
+    cp -L --remove-destination "$src" "$dst"
     chmod 0755 "$dst"
     while read -r lib; do
         case "$lib" in /*) copy_lib "$lib" ;; esac

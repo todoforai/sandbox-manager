@@ -436,7 +436,7 @@
     "installer": "pip",
     "label": "PDF",
     "capabilities": "PDF text editing, extraction, merge, split",
-    "description": "Use to programmatically read/edit/merge/split PDFs (text + positions). Call from `python3 -c`. Extract text: `pymupdf.open(p)[i].get_text()`; with bbox/font: `.get_text('dict')`. Replace text in place: `page.add_redact_annot(page.search_for('old')[0], text='new'); page.apply_redactions(); doc.save(out)`. For PDF → markdown prefer `firecrawl parse`.",
+    "description": "Use to programmatically read/edit/merge/split PDFs (text + positions). Call from `python3 -c`. Extract text: `pymupdf.open(p)[i].get_text()`; with bbox/font: `.get_text('dict')`. Replace text in place: `page.add_redact_annot(page.search_for('old')[0], text='new'); page.apply_redactions(); doc.save(out)`.",
     "versionCmd": "python3 -c 'import pymupdf; print(pymupdf.__version__)' 2>/dev/null",
     "preinstallCloud": true
   },
@@ -447,22 +447,8 @@
     "preinstallCloud": true,
     "label": "Browser",
     "capabilities": "Headless browser automation, web scraping, accessibility tree snapshots, screenshots, PDF generation",
-    "description": "Headless browser for JS-rendered pages, automated flows, screenshots, PDF export. **Default browser choice** — use this unless the user's own session/cookies are required (then use `todoforai-browser`). Prefer `curl` for plain HTTP, `firecrawl` for bulk scrape/crawl. Commands: open <url>, click/type/fill <selector> <text>, snapshot (accessibility tree with @refs — use these for clicking), screenshot [path], pdf <path>, eval <js>, wait <selector|ms>.",
+    "description": "Headless browser for JS-rendered pages, automated flows, screenshots, PDF export. **Default browser choice** — use this unless the user's own session/cookies are required (then use `todoforai-browser`). Prefer `curl` for plain HTTP. Commands: open <url>, click/type/fill <selector> <text>, snapshot (accessibility tree with @refs — use these for clicking), screenshot [path], pdf <path>, eval <js>, wait <selector|ms>.",
     "versionCmd": "agent-browser --version 2>/dev/null | head -1"
-  },
-  "firecrawl": {
-    "category": "development",
-    "pkg": "firecrawl-cli",
-    "installer": "npm",
-    "label": "Firecrawl",
-    "statusCmd": "firecrawl view-config 2>&1 | grep -q 'Authenticated' && echo authenticated",
-    "loginCmd": "firecrawl login",
-    "credentialPaths": [
-      "~/.config/firecrawl-cli"
-    ],
-    "capabilities": "Web scraping, crawling, search, map URLs, parse local HTML/PDF/DOCX to markdown, AI agent extraction",
-    "description": "Use for web → markdown at scale: single pages (`firecrawl scrape <url>`), whole sites (`firecrawl crawl <url>`), URL discovery (`firecrawl map <url>`), web search (`firecrawl search <query>`), local doc conversion (`firecrawl parse <file.pdf|docx|html|xlsx>`), AI-guided extraction (`firecrawl agent <prompt>`). Prefer over `curl` when you want markdown not HTML. Auth: `firecrawl login` or FIRECRAWL_API_KEY.",
-    "versionCmd": "firecrawl --version 2>/dev/null | head -1"
   },
   "todoforai-browser": {
     "category": "development",

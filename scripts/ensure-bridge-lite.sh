@@ -186,4 +186,24 @@ if ! iptables -C FORWARD -i "$BRIDGE" -o "$BRIDGE" -j DROP 2>/dev/null; then
     iptables -I FORWARD -i "$BRIDGE" -o "$BRIDGE" -j DROP
 fi
 
+# 8. Sweep orphaned per-exec netns. lite-netns.sh now names each exec's netns
+#    uniquely (sb-<tag>-<run>) and tears it down via an EXIT/INT/TERM trap.
+#    Only a hard kill (SIGKILL / power loss) leaks one — its netns survives
+#    with no process inside. Reap those here so they don't accumulate across
+#    restarts.
+#
+#    Two guards against killing a *live* sibling:
+#      - non-empty `ip netns pids` → an in-flight exec is running inside.
+#      - age < 60s → still in lite-netns.sh's setup window (the gap between
+#        `ip netns add` and `ip netns exec`, where pids is legitimately empty).
+#    Both must clear before we reap.
+for nsfile in $(find /run/netns -maxdepth 1 -name 'sb-*' -mmin +1 2>/dev/null); do
+    ns="$(basename "$nsfile")"
+    if [ -z "$(ip netns pids "$ns" 2>/dev/null)" ]; then
+        log "reaping orphaned netns $ns"
+        ip netns del "$ns" 2>/dev/null || true
+        rm -rf "/etc/netns/$ns" 2>/dev/null || true
+    fi
+done
+
 log "OK"

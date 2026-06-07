@@ -2,8 +2,8 @@
 # Per-exec network namespace for cli-lite sandboxes.
 #
 # Each invocation:
-#   1. creates netns sb-<id>
-#   2. creates veth pair (host: vl-<short>, peer: eth0 inside ns)
+#   1. creates netns sb-<tag>-<run>  (unique per exec — see RUN below)
+#   2. creates veth pair (host: vl-<tag><run>, peer: eth0 inside ns)
 #   3. attaches host side to br-sandbox-lite
 #   4. assigns a unique /16 IP from 10.2.0.0/16 (derived from id)
 #   5. execs the supplied command inside the netns
@@ -23,15 +23,27 @@ shift
 BRIDGE="${LITE_BRIDGE_NAME:-br-sandbox-lite}"
 SUBNET_PREFIX="${LITE_SUBNET_PREFIX:-10.2}"   # IPs allocated as $PREFIX.x.y/16
 
-# Short, collision-resistant tag for veth (kernel max 15 chars for ifname).
-# 6 hex chars of sha1(id) — birthday collisions on the order of 16M.
-TAG="$(printf '%s' "$ID" | sha1sum | cut -c1-6)"
-NS="sb-${TAG}"
-VETH_HOST="vl-${TAG}"
+# Per-exec uniqueness. Lite sandboxes are stateless one-shot execs against a
+# persistent disk, and the same sandbox id can run several execs concurrently
+# (e.g. the vault browser firing parallel commands). A netns/IP derived solely
+# from the id would collide ("Cannot create namespace file .../sb-<tag>: File
+# exists"), so we mix in a per-invocation random run tag. Network state is not
+# shared between execs — only the disk is, and that's guarded by the per-user
+# home flock elsewhere.
+#
+# Short, collision-resistant tags (kernel max 15 chars for ifname):
+#   TAG = 4 hex of sha1(id)        (identifies the sandbox, for sweeping)
+#   RUN = 6 hex from /dev/urandom  (identifies this exec; 24 bits, uniform)
+# veth name "vl-"+4+6 = 13 chars, under the 15-char ifname limit.
+TAG="$(printf '%s' "$ID" | sha1sum | cut -c1-4)"
+RUN="$(od -An -N3 -tx1 /dev/urandom | tr -d ' \n')"
+NS="sb-${TAG}-${RUN}"
+VETH_HOST="vl-${TAG}${RUN}"
 VETH_NS="eth0"
 
-# Hash the id into the /16 host part (avoid .0, .1=gateway, .255).
-HASH16=$((0x$(printf '%s' "$ID" | sha1sum | cut -c1-4)))
+# Hash id+run into the /16 host part so concurrent execs of the same id get
+# distinct IPs on the bridge (avoid .0, .1=gateway, .255).
+HASH16=$((0x$(printf '%s' "${ID}-${RUN}" | sha1sum | cut -c1-4)))
 OCT3=$(( (HASH16 >> 8) & 0xff ))
 OCT4=$(( HASH16 & 0xff ))
 # Skip reserved low addresses and broadcast.
@@ -40,11 +52,18 @@ OCT4=$(( HASH16 & 0xff ))
 IP="${SUBNET_PREFIX}.${OCT3}.${OCT4}/16"
 GATEWAY="${SUBNET_PREFIX}.0.1"
 
+# Only delete the netns if *this* invocation created it. Otherwise a rare RUN
+# collision (the `ip netns add` below fails with "File exists") would make the
+# loser's EXIT trap tear down the winner's live namespace — the very bug we're
+# fixing. The veth is ours regardless (named per-run), so always remove it.
+NS_CREATED=0
 cleanup() {
     # Idempotent: each step swallowed individually so partial setup still tears down.
     ip link del "$VETH_HOST" 2>/dev/null || true
-    ip netns del "$NS" 2>/dev/null || true
-    rm -rf "/etc/netns/$NS" 2>/dev/null || true
+    if [ "$NS_CREATED" = 1 ]; then
+        ip netns del "$NS" 2>/dev/null || true
+        rm -rf "/etc/netns/$NS" 2>/dev/null || true
+    fi
 }
 trap cleanup EXIT INT TERM
 
@@ -60,10 +79,11 @@ ip link show "$BRIDGE" >/dev/null 2>&1 || {
     exit 69
 }
 
-# Wipe any leftover from a previous crashed exec with this id.
-cleanup
-
+# NS/VETH are unique per invocation, so there's nothing of ours to wipe here.
+# (A crashed exec leaks a uniquely-named netns; startup sweep handles those —
+# we must NOT blind-delete a name that a concurrent sibling exec may hold.)
 ip netns add "$NS"
+NS_CREATED=1
 ip link add "$VETH_HOST" type veth peer name "$VETH_NS"
 ip link set "$VETH_HOST" master "$BRIDGE"
 ip link set "$VETH_HOST" up

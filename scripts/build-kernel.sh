@@ -53,6 +53,18 @@ make tinyconfig
 ./scripts/config --enable CONFIG_POSIX_TIMERS
 ./scripts/config --enable CONFIG_HIGH_RES_TIMERS
 
+# kvm-clock — paravirtual wall-clock from the host. Firecracker exposes no
+# RTC/CMOS and no kvm-clock is usable without guest paravirt support, so a
+# tinyconfig guest boots at the kernel epoch (year 1999) and STAYS there:
+# TSC counts elapsed time but has no wall-clock anchor. Every TLS handshake
+# then fails with CERT_NOT_YET_VALID, breaking `bun add`/`npm i`/HTTPS.
+# HYPERVISOR_GUEST exposes the paravirt menu; PARAVIRT + KVM_GUEST pull in
+# the kvmclock driver, which reads MSR_KVM_WALL_CLOCK at boot and registers
+# the "kvm-clock" clocksource (auto-selected over tsc). No network, no RTC.
+./scripts/config --enable CONFIG_HYPERVISOR_GUEST
+./scripts/config --enable CONFIG_PARAVIRT
+./scripts/config --enable CONFIG_KVM_GUEST
+
 # Modern glibc fast paths: rseq (per-CPU ops, malloc tcache) and the
 # membarrier syscall (cross-thread fence used by jemalloc/Go runtime).
 # Cheap and load-bearing — without them many glibc paths fall back to
@@ -161,6 +173,7 @@ REQUIRED=(
     CONFIG_BLOCK CONFIG_BLK_DEV
     CONFIG_FUTEX CONFIG_RT_MUTEXES CONFIG_FUTEX_PI
     CONFIG_POSIX_TIMERS CONFIG_HIGH_RES_TIMERS
+    CONFIG_HYPERVISOR_GUEST CONFIG_PARAVIRT CONFIG_KVM_GUEST
     CONFIG_MEMBARRIER CONFIG_RSEQ
     CONFIG_VIRTIO CONFIG_VIRTIO_MENU
     CONFIG_VIRTIO_MMIO CONFIG_VIRTIO_MMIO_CMDLINE_DEVICES
