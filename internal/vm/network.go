@@ -3,7 +3,6 @@ package vm
 import (
 	"context"
 	"fmt"
-	"net"
 
 	gocni "github.com/containerd/go-cni"
 )
@@ -28,9 +27,14 @@ func NewNetwork(binDir, confDir string) (*Network, error) {
 	return &Network{cni: c}, nil
 }
 
-// netnsPath is the network namespace of the Kata shim's PID. Kata runs the VMM
-// in this netns, so CNI sets up the host-side veth/tap there; tc-redirect-tap
-// then mirrors it onto the Firecracker TAP.
+// netnsPath is the network namespace CNI operates on.
+//
+// TODO(host-verify): with Kata, task.Pid() is the host-side shim/VMM — its
+// netns may be the HOST netns, in which case CNI would wire the host, not the
+// guest. The likely-correct design is an explicit per-sandbox netns created
+// here, run CNI against it, and pass it into the runtime spec. Needs a live
+// Kata boot (`ip netns`, process tree, guest connectivity) to confirm before
+// trusting this path.
 func netnsPath(pid int) string {
 	return fmt.Sprintf("/proc/%d/ns/net", pid)
 }
@@ -55,5 +59,3 @@ func (n *Network) Attach(ctx context.Context, id string, pid int) (string, error
 func (n *Network) Detach(ctx context.Context, id string, pid int) {
 	_ = n.cni.Remove(ctx, id, netnsPath(pid))
 }
-
-var _ = net.IPv4 // keep net import meaningful if Attach is trimmed

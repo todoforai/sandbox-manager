@@ -38,6 +38,10 @@ func main() {
 	be := backend.New(cfg.BackendURL, cfg.BackendAPIKey)
 	svc := service.New(cfg, st, mgr, homes, be)
 
+	if err := svc.Reconcile(context.Background()); err != nil {
+		log.Printf("reconcile (non-fatal): %v", err)
+	}
+
 	handler := api.NewServer(st, svc)
 	log.Printf("sandbox-manager listening on %s (runtime=%s snapshotter=%s)",
 		cfg.BindAddr, cfg.Runtime, cfg.Snapshotter)

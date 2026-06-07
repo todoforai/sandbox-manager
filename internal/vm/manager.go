@@ -65,9 +65,13 @@ func (m *Manager) Create(ctx context.Context, s Spec) (*Created, error) {
 		return nil, fmt.Errorf("pull %s: %w", m.cfg.RootfsImage, err)
 	}
 
-	// The bridge is the image entrypoint; we only inject env + the home drive.
-	// home.img is attached as an extra block-backed mount at /root (proven by
-	// the spike). The rootfs is a per-VM devmapper thin-clone.
+	// The bridge is the image entrypoint; we only inject env + the home disk.
+	//
+	// TODO(host-verify): home.img is a raw ext4 *file*. Bind-mounting the file
+	// to /root exposes the file, not its filesystem — this must instead attach
+	// it as a virtio-blk device (mounted by the entrypoint) or loop-mount on
+	// the host and bind the resulting dir. Needs a live Kata boot to settle the
+	// exact mechanism; left as a bind for now so the shape is visible.
 	mounts := []specs.Mount{}
 	if s.HomeImg != "" {
 		mounts = append(mounts, specs.Mount{
@@ -133,6 +137,9 @@ func (m *Manager) Exec(ctx context.Context, id string, argv []string) ([]byte, e
 	if err != nil {
 		return nil, err
 	}
+	if len(argv) == 0 {
+		return nil, fmt.Errorf("exec: empty argv")
+	}
 	buf := &outputBuffer{}
 	proc, err := task.Exec(ctx, "exec-"+randHex(6), &specs.Process{
 		Args: argv,
@@ -149,8 +156,31 @@ func (m *Manager) Exec(ctx context.Context, id string, argv []string) ([]byte, e
 	if err := proc.Start(ctx); err != nil {
 		return nil, err
 	}
-	<-statusC
-	return buf.Bytes(), nil
+	status := <-statusC
+	out := buf.Bytes()
+	if code := status.ExitCode(); code != 0 {
+		return out, fmt.Errorf("exec exited %d", code)
+	}
+	return out, nil
+}
+
+// IsLive reports whether a sandbox still has a running task under containerd.
+// Used by startup reconciliation to detect VMs that died while we were down.
+func (m *Manager) IsLive(ctx context.Context, id string) bool {
+	ctx = m.ctx(ctx)
+	container, err := m.client.LoadContainer(ctx, id)
+	if err != nil {
+		return false
+	}
+	task, err := container.Task(ctx, nil)
+	if err != nil {
+		return false
+	}
+	st, err := task.Status(ctx)
+	if err != nil {
+		return false
+	}
+	return st.Status == containerd.Running
 }
 
 // Delete tears down a microVM: detach CNI, kill task, delete container + snapshot.

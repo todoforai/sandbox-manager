@@ -61,10 +61,3 @@ func (s *Store) EnsureDisk(userID string, sizeMiB uint64) (string, error) {
 	}
 	return path, nil
 }
-
-// Delete removes a user's home dir (account deletion). Best-effort.
-func (s *Store) Delete(userID string) {
-	if dir, err := s.dir(userID); err == nil {
-		os.RemoveAll(dir)
-	}
-}

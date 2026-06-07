@@ -43,26 +43,34 @@ func (s *Service) Create(ctx context.Context, id store.Identity, template, size 
 	if id.IsAnonymous {
 		return nil, ErrAnonymous
 	}
-	n, err := s.store.UserActiveCount(ctx, id.UserID)
-	if err != nil {
-		return nil, err
-	}
-	if n > 0 {
-		return nil, ErrQuota
-	}
-
-	sid := newID()
-	deviceName := "vm-" + sid[:8]
 	if size == "" {
 		size = "medium"
 	}
+	sid := newID()
+	deviceName := "vm-" + sid[:8]
+
+	// Atomic one-per-user gate. If the user already holds the slot, reject
+	// before doing any expensive work. Released on every failure path below
+	// and on delete.
+	ok, err := s.store.ReserveUserSlot(ctx, id.UserID, sid)
+	if err != nil {
+		return nil, err
+	}
+	if !ok {
+		return nil, ErrQuota
+	}
+	release := func() { s.store.ReleaseUserSlot(ctx, id.UserID, sid) }
 
 	homeImg, err := s.homes.EnsureDisk(id.UserID, s.cfg.UserDiskSizeMiB)
 	if err != nil {
+		release()
 		return nil, fmt.Errorf("ensure home disk: %w", err)
 	}
+	// Mint the token as late as possible (it has a short TTL) so image pull /
+	// boot don't eat into the redeem window.
 	token, err := s.backend.MintEnrollToken(ctx, id.UserID, sid, enrollTTLSec)
 	if err != nil {
+		release()
 		return nil, fmt.Errorf("mint enroll token: %w", err)
 	}
 
@@ -77,6 +85,7 @@ func (s *Service) Create(ctx context.Context, id store.Identity, template, size 
 		LastActivity: sandbox.NowMillis(),
 	}
 	if err := s.store.Put(ctx, sb); err != nil {
+		release()
 		return nil, err
 	}
 
@@ -87,6 +96,7 @@ func (s *Service) Create(ctx context.Context, id store.Identity, template, size 
 		sb.State = sandbox.StateError
 		sb.Error = err.Error()
 		s.store.Put(ctx, sb)
+		release()
 		return nil, err
 	}
 
@@ -94,7 +104,11 @@ func (s *Service) Create(ctx context.Context, id store.Identity, template, size 
 	sb.IPAddress = created.IP
 	sb.LastActivity = sandbox.NowMillis()
 	if err := s.store.Put(ctx, sb); err != nil {
-		return nil, err
+		// We have a running VM we can't record — don't leak it. Tear it down
+		// best-effort and free the slot, then surface the error.
+		s.vm.Delete(ctx, sid)
+		release()
+		return nil, fmt.Errorf("persist running sandbox: %w", err)
 	}
 	s.store.IncCreated(ctx)
 	return sb, nil
@@ -133,6 +147,10 @@ func (s *Service) Delete(ctx context.Context, id store.Identity, sandboxID strin
 	if err != nil {
 		return err
 	}
+	// Mark terminating (still counts as active, so quota stays held) and only
+	// free the record + slot AFTER the VM is actually gone. If vm.Delete
+	// fails, the sandbox stays terminating/active — the user can't create
+	// another while a VM may still be running.
 	sb.State = sandbox.StateTerminating
 	s.store.Put(ctx, sb)
 
@@ -142,12 +160,45 @@ func (s *Service) Delete(ctx context.Context, id store.Identity, sandboxID strin
 	if sb.DeviceID != "" {
 		s.backend.DeleteDevice(ctx, sb.UserID, sb.DeviceID)
 	}
-	return s.store.Delete(ctx, sandboxID)
+	if err := s.store.Delete(ctx, sandboxID); err != nil {
+		return err
+	}
+	return s.store.ReleaseUserSlot(ctx, sb.UserID, sandboxID)
+}
+
+// Reconcile re-syncs persisted state against containerd reality at startup.
+// containerd owns process liveness across our restarts; this just catches the
+// drift: an "active" record whose VM died while we were down is marked error
+// and its quota slot released. Cheap — iterates only the active set.
+func (s *Service) Reconcile(ctx context.Context) error {
+	all, err := s.store.List(ctx, "")
+	if err != nil {
+		return err
+	}
+	for _, sb := range all {
+		if !sb.IsActive() {
+			continue
+		}
+		if s.vm.IsLive(ctx, sb.ID) {
+			continue
+		}
+		sb.State = sandbox.StateError
+		sb.Error = "vm not running at reconcile"
+		s.store.Put(ctx, sb)
+		s.store.ReleaseUserSlot(ctx, sb.UserID, sb.ID)
+	}
+	return nil
 }
 
 func (s *Service) Stats(ctx context.Context) (map[string]any, error) {
-	total, _ := s.store.TotalCreated(ctx)
-	all, _ := s.store.List(ctx, "")
+	total, err := s.store.TotalCreated(ctx)
+	if err != nil {
+		return nil, err
+	}
+	all, err := s.store.List(ctx, "")
+	if err != nil {
+		return nil, err
+	}
 	active := 0
 	for _, sb := range all {
 		if sb.IsActive() {

@@ -36,8 +36,9 @@ type authedHandler func(http.ResponseWriter, *http.Request, store.Identity)
 // auth extracts the bearer token, resolves identity via Redis, and injects it.
 func (s *Server) auth(h authedHandler) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		tok := strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer ")
-		if tok == "" {
+		auth := r.Header.Get("Authorization")
+		tok, ok := strings.CutPrefix(auth, "Bearer ")
+		if !ok || tok == "" {
 			httpErr(w, http.StatusUnauthorized, "missing bearer token")
 			return
 		}
@@ -55,7 +56,10 @@ func (s *Server) create(w http.ResponseWriter, r *http.Request, id store.Identit
 		Template string `json:"template"`
 		Size     string `json:"size"`
 	}
-	json.NewDecoder(r.Body).Decode(&req)
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		httpErr(w, http.StatusBadRequest, "invalid JSON body")
+		return
+	}
 	sb, err := s.svc.Create(r.Context(), id, req.Template, req.Size)
 	if err != nil {
 		writeServiceErr(w, err)
@@ -94,7 +98,14 @@ func (s *Server) exec(w http.ResponseWriter, r *http.Request, id store.Identity)
 	var req struct {
 		Argv []string `json:"argv"`
 	}
-	json.NewDecoder(r.Body).Decode(&req)
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		httpErr(w, http.StatusBadRequest, "invalid JSON body")
+		return
+	}
+	if len(req.Argv) == 0 {
+		httpErr(w, http.StatusBadRequest, "argv is required")
+		return
+	}
 	out, err := s.svc.Exec(r.Context(), id, r.PathValue("id"), req.Argv)
 	if err != nil {
 		writeServiceErr(w, err)

@@ -35,8 +35,11 @@ type Sandbox struct {
 	LastActivity int64  `json:"last_activity"`
 }
 
+// IsActive reports whether the sandbox holds resources / counts against quota.
+// Terminating MUST count: until the VM is actually gone, the user must not be
+// able to create another, and it must not be dropped from sandbox:active.
 func (s *Sandbox) IsActive() bool {
-	return s.State == StateRunning || s.State == StateCreating
+	return s.State == StateRunning || s.State == StateCreating || s.State == StateTerminating
 }
 
 func NowMillis() int64 { return time.Now().UnixMilli() }

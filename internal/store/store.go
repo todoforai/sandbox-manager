@@ -93,6 +93,14 @@ func (s *Store) ResolveIdentity(ctx context.Context, token string) (*Identity, e
 
 // ── Inventory ────────────────────────────────────────────────────────────────
 
+// relIfOwner deletes the key only when its value equals ARGV[1] (the owning
+// sandbox id). Used by ReleaseUserSlot to avoid clobbering a reused slot.
+var relIfOwner = redis.NewScript(`
+if redis.call('GET', KEYS[1]) == ARGV[1] then
+  return redis.call('DEL', KEYS[1])
+end
+return 0`)
+
 func eventsChannel(userID string) string { return "sandbox:events:" + userID }
 
 // Put inserts/replaces a sandbox record, keeps set memberships consistent, and
@@ -180,19 +188,18 @@ func (s *Store) List(ctx context.Context, userID string) ([]*sandbox.Sandbox, er
 	return out, nil
 }
 
-// UserActiveCount counts a user's active sandboxes — for one-per-user quota.
-func (s *Store) UserActiveCount(ctx context.Context, userID string) (int, error) {
-	userIDs, err := s.rdb.SMembers(ctx, "sandbox:user:"+userID).Result()
-	if err != nil {
-		return 0, err
-	}
-	n := 0
-	for _, id := range userIDs {
-		if s.rdb.SIsMember(ctx, "sandbox:active", id).Val() {
-			n++
-		}
-	}
-	return n, nil
+// ReserveUserSlot atomically claims the single sandbox slot for userID via
+// SET NX, returning true if claimed. This is the enforcement point for
+// one-sandbox-per-user: a concurrent create for the same user fails the NX.
+// The slot is held until ReleaseUserSlot (on delete/error).
+func (s *Store) ReserveUserSlot(ctx context.Context, userID, sandboxID string) (bool, error) {
+	return s.rdb.SetNX(ctx, "sandbox:user-slot:"+userID, sandboxID, 0).Result()
+}
+
+// ReleaseUserSlot frees the slot only if sandboxID still owns it (so a late
+// cleanup can't clobber a slot a newer sandbox already took). Idempotent.
+func (s *Store) ReleaseUserSlot(ctx context.Context, userID, sandboxID string) error {
+	return relIfOwner.Run(ctx, s.rdb, []string{"sandbox:user-slot:" + userID}, sandboxID).Err()
 }
 
 func (s *Store) IncCreated(ctx context.Context) error {
