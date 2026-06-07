@@ -48,5 +48,12 @@ RUN chmod +x /usr/local/bin/todoforai-bridge /usr/local/bin/sandbox-entrypoint
 # Self-classify as a sandbox device at enroll time (bridge reads this).
 RUN touch /etc/todoforai-sandbox
 
+# DNS resolvers baked into the image. The microVM has no DHCP/resolved to write
+# /etc/resolv.conf, and Kata won't inject one (unlike Docker at runtime), so the
+# guest would have no resolver and DNS fails (HTTPS to api.todofor.ai times
+# out). Public anycast resolvers (oci/resolv.conf); swap that file if a host
+# firewalls outbound DNS to its own resolvers.
+COPY resolv.conf /etc/resolv.conf
+
 WORKDIR /root
 ENTRYPOINT ["/usr/local/bin/sandbox-entrypoint"]

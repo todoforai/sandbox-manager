@@ -96,6 +96,12 @@ fi
 # ioctl TAP/bridge/IP-allocation in vm/network.rs. host-local IPAM keeps the
 # lease store (no more Redis IP-scan loop); firewall plugin does the NAT the
 # old sandbox-bridge.service systemd unit did by hand.
+#
+# NO tc-redirect-tap: Kata's internetworking_model=tcfilter (the FC config
+# default) already redirects the CNI veth to the Firecracker TAP. Adding
+# tc-redirect-tap on top makes BOTH try to add the qdisc -> "file exists" and
+# the VM fails to boot. Verified live: bridge+firewall alone gives the guest a
+# 10.88.x.x IP with working internet + DNS.
 log "2b. CNI conflist -> $CNI_CONF/10-sandbox.conflist"
 mkdir -p "$CNI_CONF"
 cat > "$CNI_CONF/10-sandbox.conflist" <<'EOF'
@@ -114,12 +120,11 @@ cat > "$CNI_CONF/10-sandbox.conflist" <<'EOF'
         "routes": [{ "dst": "0.0.0.0/0" }]
       }
     },
-    { "type": "firewall" },
-    { "type": "tc-redirect-tap" }
+    { "type": "firewall" }
   ]
 }
 EOF
-echo "wrote conflist (bridge + host-local IPAM + firewall + tc-redirect-tap)"
+echo "wrote conflist (bridge + host-local IPAM + firewall)"
 
 # ===========================================================================
 # 3. Kata Containers static install (+ Firecracker hypervisor config)

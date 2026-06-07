@@ -97,6 +97,17 @@ func (m *Manager) Create(ctx context.Context, s Spec) (*Created, error) {
 		env = append(env, "ENROLL_TOKEN="+s.EnrollToken)
 	}
 
+	// Networking FIRST: create the netns + run CNI in it, then boot the VM
+	// inside that netns. Proven on the spike box — the reverse (CNI on the
+	// VM's PID after boot) does NOT wire the guest. Kata's tcfilter model
+	// redirects the CNI veth to the Firecracker TAP.
+	nsPath, ip, err := m.net.Setup(ctx, s.ID)
+	if err != nil {
+		detachHome()
+		return nil, fmt.Errorf("network setup: %w", err)
+	}
+	teardownNet := func() { m.net.Teardown(ctx, s.ID) }
+
 	// Select the Firecracker VMM via the Kata config TOML. The containerd
 	// client API (unlike CRI) ignores the ConfigPath in containerd's config,
 	// so we pass it through the runtime options — without this the kata shim
@@ -113,9 +124,14 @@ func (m *Manager) Create(ctx context.Context, s Spec) (*Created, error) {
 			oci.WithEnv(env),
 			oci.WithMounts(mounts),
 			oci.WithHostname(s.DeviceName),
+			oci.WithLinuxNamespace(specs.LinuxNamespace{
+				Type: specs.NetworkNamespace,
+				Path: nsPath,
+			}),
 		),
 	)
 	if err != nil {
+		teardownNet()
 		detachHome()
 		return nil, fmt.Errorf("new container: %w", err)
 	}
@@ -123,22 +139,15 @@ func (m *Manager) Create(ctx context.Context, s Spec) (*Created, error) {
 	task, err := container.NewTask(ctx, cio.NullIO)
 	if err != nil {
 		container.Delete(ctx, containerd.WithSnapshotCleanup)
+		teardownNet()
 		detachHome()
 		return nil, fmt.Errorf("new task: %w", err)
 	}
 
-	ip, err := m.net.Attach(ctx, s.ID, int(task.Pid()))
-	if err != nil {
-		task.Delete(ctx, containerd.WithProcessKill)
-		container.Delete(ctx, containerd.WithSnapshotCleanup)
-		detachHome()
-		return nil, fmt.Errorf("cni attach: %w", err)
-	}
-
 	if err := task.Start(ctx); err != nil {
-		m.net.Detach(ctx, s.ID, int(task.Pid()))
 		task.Delete(ctx, containerd.WithProcessKill)
 		container.Delete(ctx, containerd.WithSnapshotCleanup)
+		teardownNet()
 		detachHome()
 		return nil, fmt.Errorf("task start: %w", err)
 	}
@@ -212,11 +221,11 @@ func (m *Manager) Delete(ctx context.Context, id string) error {
 		return nil // already gone
 	}
 	if task, err := container.Task(ctx, nil); err == nil {
-		m.net.Detach(ctx, id, int(task.Pid()))
 		task.Kill(ctx, syscall.SIGKILL)
 		task.Delete(ctx, containerd.WithProcessKill)
 	}
 	err = container.Delete(ctx, containerd.WithSnapshotCleanup)
-	m.home.Detach(id) // release loop + direct-volume (no-op if no home disk)
+	m.net.Teardown(ctx, id)  // CNI remove + netns del (no-op if absent)
+	m.home.Detach(id)        // release loop + direct-volume (no-op if no home disk)
 	return err
 }
