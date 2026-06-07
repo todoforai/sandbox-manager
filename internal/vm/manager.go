@@ -3,7 +3,12 @@ package vm
 import (
 	"context"
 	"fmt"
+	"os"
+	"path/filepath"
+	"strconv"
+	"strings"
 	"syscall"
+	"time"
 
 	runtimeoptions "github.com/containerd/containerd/api/types/runtimeoptions/v1"
 	containerd "github.com/containerd/containerd/v2/client"
@@ -48,6 +53,9 @@ func (m *Manager) ctx(ctx context.Context) context.Context {
 // Spec describes a microVM to create.
 type Spec struct {
 	ID          string
+	UserID      string // owner — stamped as a container label for recovery
+	Template    string // stamped as a container label
+	Size        string // stamped as a container label
 	EnrollToken string // injected as ENROLL_TOKEN env — bridge redeems it
 	HomeImg     string // host path to the user's home.img (attached as /root)
 	DeviceName  string // friendly bridge device name (vm-<id8>)
@@ -63,9 +71,15 @@ type Created struct {
 func (m *Manager) Create(ctx context.Context, s Spec) (*Created, error) {
 	ctx = m.ctx(ctx)
 
-	image, err := m.client.Pull(ctx, m.cfg.RootfsImage, containerd.WithPullUnpack)
+	// Use the locally-present rootfs image if we already have it; only pull
+	// when it's missing. Avoids a registry round-trip on every create and
+	// supports locally-imported images (dev / air-gapped hosts).
+	image, err := m.client.GetImage(ctx, m.cfg.RootfsImage)
 	if err != nil {
-		return nil, fmt.Errorf("pull %s: %w", m.cfg.RootfsImage, err)
+		image, err = m.client.Pull(ctx, m.cfg.RootfsImage, containerd.WithPullUnpack)
+		if err != nil {
+			return nil, fmt.Errorf("pull %s: %w", m.cfg.RootfsImage, err)
+		}
 	}
 
 	// The bridge is the image entrypoint; we only inject env + the home disk.
@@ -119,6 +133,15 @@ func (m *Manager) Create(ctx context.Context, s Spec) (*Created, error) {
 		containerd.WithSnapshotter(m.cfg.Snapshotter),
 		containerd.WithNewSnapshot(s.ID+"-snap", image),
 		containerd.WithRuntime(m.cfg.Runtime, runtimeOpts),
+		// Stamp ownership on the container so containerd is a recoverable
+		// source of truth — reconcile can rebuild/validate Redis from these,
+		// and orphans are discoverable even if Redis loses state.
+		containerd.WithContainerLabels(map[string]string{
+			"todoforai.sandbox":  "true",
+			"todoforai.user_id":  s.UserID,
+			"todoforai.template": s.Template,
+			"todoforai.size":     s.Size,
+		}),
 		containerd.WithNewSpec(
 			oci.WithImageConfig(image),
 			oci.WithEnv(env),
@@ -174,6 +197,7 @@ func (m *Manager) Exec(ctx context.Context, id string, argv []string) ([]byte, e
 	proc, err := task.Exec(ctx, "exec-"+randHex(6), &specs.Process{
 		Args: argv,
 		Cwd:  "/root",
+		Env:  []string{"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"},
 	}, cio.NewCreator(cio.WithStreams(nil, buf, buf)))
 	if err != nil {
 		return nil, err
@@ -221,11 +245,43 @@ func (m *Manager) Delete(ctx context.Context, id string) error {
 		return nil // already gone
 	}
 	if task, err := container.Task(ctx, nil); err == nil {
+		// Kill is async: set up the exit channel first, SIGKILL, then wait for
+		// the task to actually exit before deleting it — otherwise Delete races
+		// the still-"running" task and fails with "failed precondition".
+		exitC, _ := task.Wait(ctx)
 		task.Kill(ctx, syscall.SIGKILL)
+		select {
+		case <-exitC:
+		case <-time.After(15 * time.Second):
+		}
 		task.Delete(ctx, containerd.WithProcessKill)
 	}
 	err = container.Delete(ctx, containerd.WithSnapshotCleanup)
-	m.net.Teardown(ctx, id)  // CNI remove + netns del (no-op if absent)
-	m.home.Detach(id)        // release loop + direct-volume (no-op if no home disk)
+	// This kata-fc version orphans the Firecracker VMM on task teardown: the
+	// shim exits but firecracker reparents to init and lingers (verified — even
+	// `ctr container delete` doesn't reap it). Kill it explicitly by its --id
+	// (always the sandbox id). No-op if it already exited cleanly.
+	killFirecracker(id)
+	m.net.Teardown(ctx, id) // CNI remove + netns del (no-op if absent)
+	m.home.Detach(id)       // release loop + direct-volume (no-op if no home disk)
 	return err
+}
+
+// killFirecracker SIGKILLs the Firecracker VMM launched with `--id <id>`,
+// found by scanning /proc (robust: no pattern self-match like pkill -f, which
+// matches its own argv). No-op if it's already gone.
+func killFirecracker(id string) {
+	procs, _ := filepath.Glob("/proc/[0-9]*")
+	for _, p := range procs {
+		if comm, _ := os.ReadFile(p + "/comm"); strings.TrimSpace(string(comm)) != "firecracker" {
+			continue
+		}
+		cmdline, _ := os.ReadFile(p + "/cmdline")
+		if !strings.Contains(strings.ReplaceAll(string(cmdline), "\x00", " "), "--id "+id) {
+			continue
+		}
+		if pid, err := strconv.Atoi(filepath.Base(p)); err == nil {
+			syscall.Kill(pid, syscall.SIGKILL)
+		}
+	}
 }

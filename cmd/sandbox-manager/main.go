@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/todoforai/sandbox-manager/internal/api"
 	"github.com/todoforai/sandbox-manager/internal/backend"
@@ -38,9 +39,10 @@ func main() {
 	be := backend.New(cfg.BackendURL, cfg.BackendAPIKey)
 	svc := service.New(cfg, st, mgr, homes, be)
 
-	if err := svc.Reconcile(context.Background()); err != nil {
-		log.Printf("reconcile (non-fatal): %v", err)
-	}
+	// Keep the Redis projection in sync with containerd lifecycle truth:
+	// reconcile at startup and periodically thereafter (a VM can die while
+	// we're up, leaving a stale 'running' record + held quota slot).
+	go svc.ReconcileLoop(context.Background(), 30*time.Second)
 
 	handler := api.NewServer(st, svc)
 	log.Printf("sandbox-manager listening on %s (runtime=%s snapshotter=%s)",

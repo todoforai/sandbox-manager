@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
+	"time"
 
 	"github.com/todoforai/sandbox-manager/internal/backend"
 	"github.com/todoforai/sandbox-manager/internal/config"
@@ -92,7 +94,8 @@ func (s *Service) Create(ctx context.Context, id store.Identity, template, size 
 	}
 
 	created, err := s.vm.Create(ctx, vm.Spec{
-		ID: sid, EnrollToken: token, HomeImg: homeImg, DeviceName: deviceName,
+		ID: sid, UserID: id.UserID, Template: template, Size: size,
+		EnrollToken: token, HomeImg: homeImg, DeviceName: deviceName,
 	})
 	if err != nil {
 		sb.State = sandbox.StateError
@@ -184,12 +187,33 @@ func (s *Service) Reconcile(ctx context.Context) error {
 		if s.vm.IsLive(ctx, sb.ID) {
 			continue
 		}
+		// Dead VM still marked active: clean up leftover container/netns/
+		// direct-volume (best effort), mark error, free the quota slot.
+		s.vm.Delete(ctx, sb.ID)
 		sb.State = sandbox.StateError
 		sb.Error = "vm not running at reconcile"
 		s.store.Put(ctx, sb)
 		s.store.ReleaseUserSlot(ctx, sb.UserID, sb.ID)
 	}
 	return nil
+}
+
+// ReconcileLoop runs Reconcile on startup and then every interval until ctx is
+// cancelled. containerd owns lifecycle truth; this keeps the Redis projection
+// (state + quota slots) from drifting when a VM dies while we're running.
+func (s *Service) ReconcileLoop(ctx context.Context, interval time.Duration) {
+	t := time.NewTicker(interval)
+	defer t.Stop()
+	for {
+		if err := s.Reconcile(ctx); err != nil {
+			log.Printf("reconcile: %v", err)
+		}
+		select {
+		case <-ctx.Done():
+			return
+		case <-t.C:
+		}
+	}
 }
 
 func (s *Service) Stats(ctx context.Context) (map[string]any, error) {

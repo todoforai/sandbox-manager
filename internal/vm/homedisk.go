@@ -54,6 +54,10 @@ func (h *homeDisk) Attach(sandboxID, img string) (string, error) {
 		return "", fmt.Errorf("losetup %s: %w", img, err)
 	}
 	loop := strings.TrimSpace(string(out))
+	// Record the loop device ourselves so Detach doesn't depend on Kata's
+	// private direct-volume metadata layout (which could change between
+	// versions). The Kata readback stays as a fallback.
+	os.WriteFile(filepath.Join(vp, "loop"), []byte(loop), 0o644)
 
 	mountInfo, _ := json.Marshal(map[string]any{
 		"volume-type": "block",
@@ -76,16 +80,22 @@ func (h *homeDisk) Attach(sandboxID, img string) (string, error) {
 // already gone (partial-create cleanup, double delete).
 func (h *homeDisk) Detach(sandboxID string) {
 	vp := h.volumePath(sandboxID)
-	if loop := h.registeredLoop(vp); loop != "" {
+	if loop := h.recordedLoop(vp); loop != "" {
 		exec.Command("losetup", "-d", loop).Run()
 	}
 	exec.Command(h.kataRuntime, "direct-volume", "remove", "--volume-path", vp).Run()
 	os.RemoveAll(vp)
 }
 
-// registeredLoop returns the device Kata recorded for this volume path, or ""
-// if no registration exists. Kata keys mountInfo.json by base64(volumePath).
-func (h *homeDisk) registeredLoop(volPath string) string {
+// recordedLoop returns the loop device backing this volume. Prefers our own
+// record (written at Attach); falls back to Kata's direct-volume metadata
+// (keyed by base64(volumePath)) for sandboxes attached before this existed.
+func (h *homeDisk) recordedLoop(volPath string) string {
+	if b, err := os.ReadFile(filepath.Join(volPath, "loop")); err == nil {
+		if loop := strings.TrimSpace(string(b)); loop != "" {
+			return loop
+		}
+	}
 	key := base64.StdEncoding.EncodeToString([]byte(volPath))
 	data, err := os.ReadFile(filepath.Join(
 		"/run/kata-containers/shared/direct-volumes", key, "mountInfo.json"))
