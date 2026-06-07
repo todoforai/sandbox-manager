@@ -28,6 +28,16 @@ func NewServer(st *store.Store, svc *service.Service) http.Handler {
 	mux.HandleFunc("DELETE /sandbox/{id}", s.auth(s.delete))
 	mux.HandleFunc("POST /sandbox/{id}/exec", s.auth(s.exec))
 	mux.HandleFunc("GET /stats", s.auth(s.stats))
+	mux.HandleFunc("GET /templates", s.auth(s.templates))
+
+	// Admin UI surface. Same handlers, but the panel talks /admin/api/* and
+	// expects an admin bearer token. List/Get/Delete already widen to all
+	// users when the identity is admin (see service.go), so no new logic —
+	// just route aliases gated on the admin role.
+	mux.HandleFunc("GET /admin/api/sandbox", s.admin(s.list))
+	mux.HandleFunc("GET /admin/api/sandbox/{id}", s.admin(s.get))
+	mux.HandleFunc("DELETE /admin/api/sandbox/{id}", s.admin(s.delete))
+	mux.HandleFunc("GET /admin/api/stats", s.admin(s.stats))
 	return mux
 }
 
@@ -49,6 +59,25 @@ func (s *Server) auth(h authedHandler) http.HandlerFunc {
 		}
 		h(w, r, *id)
 	}
+}
+
+// admin is auth + an admin-role gate, for the /admin/api/* panel routes.
+func (s *Server) admin(h authedHandler) http.HandlerFunc {
+	return s.auth(func(w http.ResponseWriter, r *http.Request, id store.Identity) {
+		if !id.IsAdmin() {
+			httpErr(w, http.StatusForbidden, "admin role required")
+			return
+		}
+		h(w, r, id)
+	})
+}
+
+// templates lists the sandbox templates a user can boot. There's no dynamic
+// registry yet, so this is the static set the rootfs supports.
+func (s *Server) templates(w http.ResponseWriter, r *http.Request, _ store.Identity) {
+	writeJSON(w, http.StatusOK, []map[string]string{
+		{"id": "ubuntu-base", "name": "Ubuntu base", "description": "Default Ubuntu userland with the tfa-* CLI toolset."},
+	})
 }
 
 func (s *Server) create(w http.ResponseWriter, r *http.Request, id store.Identity) {

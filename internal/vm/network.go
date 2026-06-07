@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"os/exec"
-	"strings"
 
 	gocni "github.com/containerd/go-cni"
 )
@@ -51,6 +50,9 @@ func (n *Network) Setup(ctx context.Context, id string) (nsPath, ip string, err 
 	nsPath = netnsPath(id)
 	res, err := n.cni.Setup(ctx, id, nsPath)
 	if err != nil {
+		// CNI may have partially allocated (IPAM lease, host veth, fw rules)
+		// before failing — run Remove to release it, then drop the netns.
+		n.cni.Remove(ctx, id, nsPath)
 		exec.Command("ip", "netns", "del", id).Run()
 		return "", "", fmt.Errorf("cni setup: %w", err)
 	}
@@ -67,8 +69,5 @@ func (n *Network) Setup(ctx context.Context, id string) (nsPath, ip string, err 
 // Teardown removes CNI config and the netns. Idempotent (best-effort on delete).
 func (n *Network) Teardown(ctx context.Context, id string) {
 	_ = n.cni.Remove(ctx, id, netnsPath(id))
-	if out, err := exec.Command("ip", "netns", "del", id).CombinedOutput(); err != nil &&
-		!strings.Contains(string(out), "No such file") {
-		// best effort; nothing actionable on delete
-	}
+	_ = exec.Command("ip", "netns", "del", id).Run()
 }

@@ -237,26 +237,29 @@ func (m *Manager) IsLive(ctx context.Context, id string) bool {
 	return st.Status == containerd.Running
 }
 
-// Delete tears down a microVM: detach CNI, kill task, delete container + snapshot.
+// Delete tears down a microVM: kill task, delete container + snapshot, then
+// reap the orphaned VMM, CNI and home disk. The host-side cleanup (firecracker/
+// netns/loop) runs UNCONDITIONALLY — even when the container is already gone —
+// so a retry or reconcile after a partial/crashed delete still leaves no
+// residue.
 func (m *Manager) Delete(ctx context.Context, id string) error {
 	ctx = m.ctx(ctx)
-	container, err := m.client.LoadContainer(ctx, id)
-	if err != nil {
-		return nil // already gone
-	}
-	if task, err := container.Task(ctx, nil); err == nil {
-		// Kill is async: set up the exit channel first, SIGKILL, then wait for
-		// the task to actually exit before deleting it — otherwise Delete races
-		// the still-"running" task and fails with "failed precondition".
-		exitC, _ := task.Wait(ctx)
-		task.Kill(ctx, syscall.SIGKILL)
-		select {
-		case <-exitC:
-		case <-time.After(15 * time.Second):
+	var err error
+	if container, lerr := m.client.LoadContainer(ctx, id); lerr == nil {
+		if task, terr := container.Task(ctx, nil); terr == nil {
+			// Kill is async: set up the exit channel first, SIGKILL, then wait
+			// for the task to actually exit before deleting it — otherwise
+			// Delete races the still-"running" task ("failed precondition").
+			exitC, _ := task.Wait(ctx)
+			task.Kill(ctx, syscall.SIGKILL)
+			select {
+			case <-exitC:
+			case <-time.After(15 * time.Second):
+			}
+			task.Delete(ctx, containerd.WithProcessKill)
 		}
-		task.Delete(ctx, containerd.WithProcessKill)
+		err = container.Delete(ctx, containerd.WithSnapshotCleanup)
 	}
-	err = container.Delete(ctx, containerd.WithSnapshotCleanup)
 	// This kata-fc version orphans the Firecracker VMM on task teardown: the
 	// shim exits but firecracker reparents to init and lingers (verified — even
 	// `ctr container delete` doesn't reap it). Kill it explicitly by its --id

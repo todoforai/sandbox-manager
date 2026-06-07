@@ -68,7 +68,12 @@ func (h *homeDisk) Attach(sandboxID, img string) (string, error) {
 	})
 	if out, err := exec.Command(h.kataRuntime, "direct-volume", "add",
 		"--volume-path", vp, "--mount-info", string(mountInfo)).CombinedOutput(); err != nil {
+		// Add can fail after writing partial metadata; undo everything so the
+		// caller (which installs its detach hook only after Attach returns)
+		// isn't left with a leaked loop / stale registration / volume dir.
 		exec.Command("losetup", "-d", loop).Run()
+		exec.Command(h.kataRuntime, "direct-volume", "remove", "--volume-path", vp).Run()
+		os.RemoveAll(vp)
 		return "", fmt.Errorf("direct-volume add: %v: %s", err, out)
 	}
 	return vp, nil

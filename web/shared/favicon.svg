@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- Base T shape with subtle rounding -->
+  <path d="M20 7 Q20 5 22 5 H78 Q80 5 80 7 V23 Q80 25 78 25 H60 V48 Q60 50 58 50 H42 Q40 50 40 48 V25 H22 Q20 25 20 23 Z" fill="#ff4500" />
+
+  <!-- Rocket flame - angular and flame-like -->
+  <!-- Outer flame layer -->
+  <path d="M40 50 L60 50 L65 60 L60 70 L55 80 L50 90 L45 80 L40 70 L35 60 Z" fill="#ff7700" />
+
+  <!-- Middle flame layer -->
+  <path d="M42 50 L58 50 L62 57 L58 65 L54 73 L50 81 L46 73 L42 65 L38 57 Z" fill="#ffaa00" />
+
+  <!-- Inner flame layer -->
+  <path d="M44 50 L56 50 L59 55 L56 61 L53 67 L50 73 L47 67 L44 61 L41 55 Z" fill="#ffdd00" />
+
+  <!-- Core flame -->
+  <path d="M46 50 L54 50 L56 53 L54 57 L52 61 L50 65 L48 61 L46 57 L44 53 Z" fill="#ffff88" />
+</svg>

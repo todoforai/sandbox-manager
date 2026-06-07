@@ -184,6 +184,16 @@ func (s *Service) Reconcile(ctx context.Context) error {
 		if !sb.IsActive() {
 			continue
 		}
+		// Never touch a sandbox mid-create/mid-delete: an in-flight Create
+		// hasn't booted the VM yet (IsLive would be false → we'd wrongly free
+		// its quota and delete its resources out from under it), and a Delete
+		// is already cleaning up. Only reconcile these if they've been stuck
+		// past a grace window (a crashed operation that left the record).
+		if sb.State == sandbox.StateCreating || sb.State == sandbox.StateTerminating {
+			if sandbox.NowMillis()-sb.LastActivity < reconcileGraceMillis {
+				continue
+			}
+		}
 		if s.vm.IsLive(ctx, sb.ID) {
 			continue
 		}
@@ -197,6 +207,11 @@ func (s *Service) Reconcile(ctx context.Context) error {
 	}
 	return nil
 }
+
+// reconcileGraceMillis is how long a sandbox may sit in creating/terminating
+// before reconcile assumes the operation crashed and cleans it up. Comfortably
+// longer than a worst-case create (pull + boot).
+const reconcileGraceMillis = 5 * 60 * 1000
 
 // ReconcileLoop runs Reconcile on startup and then every interval until ctx is
 // cancelled. containerd owns lifecycle truth; this keeps the Redis projection
