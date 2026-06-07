@@ -1,19 +1,6 @@
 const fs = require('fs');
 const path = require('path');
 
-// Parse a KEY=VALUE env file into an object (shared .env without a loader dep).
-function loadEnvFile(p) {
-  const out = {};
-  if (!fs.existsSync(p)) return out;
-  for (const line of fs.readFileSync(p, 'utf8').split('\n')) {
-    const t = line.trim();
-    if (!t || t.startsWith('#')) continue;
-    const i = t.indexOf('=');
-    if (i > 0) out[t.slice(0, i)] = t.slice(i + 1);
-  }
-  return out;
-}
-
 // Resolve a Go >=1.23 binary — PM2's daemon PATH often points at an older
 // system Go (go.mod requires 1.23). Prefer an explicit GO_BIN / ~/sdk install.
 function resolveGo() {
@@ -40,18 +27,33 @@ function resolveBun() {
 }
 const BUN = resolveBun();
 
-const baseDir = __dirname;
 const isProd = process.env.NODE_ENV === 'production';
-const envFromDisk = loadEnvFile(path.join(baseDir, isProd ? '.env' : '.env.development'));
 
 const logDir = process.env.PM2_LOG_DIR
   || (fs.existsSync('/var/log/todoforai') ? '/var/log/todoforai' : null);
 
-// Go service — dev runs from source via `go run`, prod runs the built binary.
+// The manager must run as ROOT: it talks to containerd.sock (root:root 0660),
+// runs losetup / kata-runtime direct-volume / ip netns, and manages firecracker.
+// PM2 itself runs as `master`, so we launch the binary through `sudo` — a
+// NOPASSWD sudoers rule (/etc/sudoers.d/sandbox-manager-run) whitelists exactly
+// this binary. sudo resets the environment (and refuses arbitrary KEY=VALUE
+// args without SETENV), so the binary loads its own .env / .env.development
+// from its cwd; we only pass NODE_ENV through (whitelisted via SETENV in the
+// sudoers rule) so it picks the right file. Both dev and prod run the prebuilt
+// ./sandbox-manager binary — `go run` as root would pollute root's Go cache —
+// so in dev we build it here, synchronously, before PM2 launches it.
+const binary = path.join(__dirname, 'sandbox-manager');
+if (!isProd) {
+  const go = require('child_process').spawnSync(
+    GO, ['build', '-o', binary, './cmd/sandbox-manager'],
+    { cwd: __dirname, stdio: 'inherit' });
+  if (go.status !== 0) throw new Error('sandbox-manager build failed');
+}
+
 const restApp = {
   name: 'sandbox-manager',
-  script: isProd ? './sandbox-manager' : GO,
-  args: isProd ? undefined : 'run ./cmd/sandbox-manager',
+  script: 'sudo',
+  args: ['-n', `NODE_ENV=${isProd ? 'production' : 'development'}`, binary],
   interpreter: 'none',
   cwd: __dirname,
   instances: 1,
@@ -67,10 +69,6 @@ const restApp = {
     out_file: `${logDir}/sandbox-manager-out.log`,
   }),
   log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
-  env: {
-    ...envFromDisk,
-    NODE_ENV: isProd ? 'production' : 'development',
-  },
 };
 
 // Dev-only web sidecar: serves web/ on 8250 (user) + 8280 (admin), proxying

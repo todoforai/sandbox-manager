@@ -1,9 +1,43 @@
 package config
 
 import (
+	"bufio"
 	"fmt"
 	"os"
+	"strings"
 )
+
+// loadDotEnv reads KEY=VALUE lines from an env file into the process
+// environment (without overriding values already set). Picks .env in
+// production, else .env.development — matching the ecosystem convention. This
+// lets the binary self-load its config when launched via `sudo <binary>`,
+// which strips the parent environment.
+func loadDotEnv() {
+	name := ".env.development"
+	if os.Getenv("NODE_ENV") == "production" {
+		name = ".env"
+	}
+	f, err := os.Open(name)
+	if err != nil {
+		return
+	}
+	defer f.Close()
+	sc := bufio.NewScanner(f)
+	for sc.Scan() {
+		line := strings.TrimSpace(sc.Text())
+		if line == "" || strings.HasPrefix(line, "#") {
+			continue
+		}
+		k, v, ok := strings.Cut(line, "=")
+		if !ok {
+			continue
+		}
+		k = strings.TrimSpace(k)
+		if _, set := os.LookupEnv(k); !set {
+			os.Setenv(k, strings.TrimSpace(v))
+		}
+	}
+}
 
 // Config is the full runtime configuration, all from env. No file, no flags —
 // the spike script + deploy set these.
@@ -40,6 +74,7 @@ func env(key, def string) string {
 
 // Load reads config from env, erroring only on the truly required values.
 func Load() (*Config, error) {
+	loadDotEnv()
 	c := &Config{
 		BindAddr:        env("BIND_ADDR", "0.0.0.0:8200"),
 		DragonflyURL:    os.Getenv("DRAGONFLY_URL"),
