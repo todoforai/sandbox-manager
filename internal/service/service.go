@@ -66,8 +66,10 @@ func (s *Service) Create(ctx context.Context, id store.Identity, template, size 
 		release()
 		return nil, fmt.Errorf("ensure home disk: %w", err)
 	}
-	// Mint the token as late as possible (it has a short TTL) so image pull /
-	// boot don't eat into the redeem window.
+	// NOTE: the token has a short TTL (enrollTTLSec) and is minted before
+	// vm.Create — which includes the image pull. On a cold pull this can eat
+	// into the redeem window; if that proves flaky in practice, pull/cache the
+	// image before minting. Left simple until a live run shows it matters.
 	token, err := s.backend.MintEnrollToken(ctx, id.UserID, sid, enrollTTLSec)
 	if err != nil {
 		release()

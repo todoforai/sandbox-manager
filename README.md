@@ -21,14 +21,29 @@ HTTP API ──> service (auth + quota, 1 sandbox/user)
                 └─> backend client ──────────────────────────────────────> mint enrollment token
 ```
 
-The bridge is the container **entrypoint**; the enrollment token is injected as
-an env var (`ENROLL_TOKEN`). No MMDS, no guest `/init`, no SSH/vsock recovery
-(use `containerd task exec`).
+The bridge is the container **entrypoint** (`oci/entrypoint.sh`): on first boot
+it redeems the `ENROLL_TOKEN` env var via `todoforai-bridge login --token`,
+saving creds onto the persistent `home.img`, then execs the daemon. Idempotent
+on restart. No MMDS, no guest `/init`, no SSH/vsock recovery (use
+`containerd task exec`).
+
+## Building the sandbox rootfs (OCI image)
+
+The guest userland is a normal OCI image (`oci/Dockerfile`) — Kata ships the
+guest kernel, so there's nothing else to build. The image bundles the toolset
+(jq, rg, fd, gh, vault, bun, …), the tfa-* catalog CLIs, and the bridge.
+
+```sh
+scripts/build-oci.sh                                   # -> sandbox-rootfs:dev
+IMAGE=registry/foo/sandbox-rootfs:v1 PUSH=1 scripts/build-oci.sh
+```
+
+Point the service at it with `SANDBOX_ROOTFS_IMAGE`.
 
 ## Prereqs (host)
 
-Run `../sandbox-manager/scripts/spike-kata-fc.sh` once (installs Kata + CNI,
-devmapper pool, registers the `io.containerd.kata-fc.v2` runtime).
+Run `scripts/spike-kata-fc.sh` once (installs Kata + CNI, devmapper pool,
+registers the `io.containerd.kata-fc.v2` runtime).
 
 ## Run
 

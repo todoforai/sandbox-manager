@@ -12,3 +12,4 @@ rootfs*.ext4
 vendor/cache/
 linux/
 target/
+assets/cache/
