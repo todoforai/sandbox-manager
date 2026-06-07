@@ -1,12 +1,12 @@
 const fs = require('fs');
 const path = require('path');
 
-// Resolve a Go >=1.25 binary — PM2's daemon PATH often points at an older
-// system Go (go.mod requires 1.25). Prefer an explicit GO_BIN / ~/sdk install.
+// Resolve a Go >=1.26 binary — PM2's daemon PATH often points at an older
+// system Go (go.mod requires 1.26). Prefer an explicit GO_BIN / ~/sdk install.
 function resolveGo() {
   const candidates = [
     process.env.GO_BIN,
-    `${process.env.HOME || ''}/sdk/go1.25.11/bin/go`,
+    `${process.env.HOME || ''}/sdk/go1.26.4/bin/go`,
     '/usr/local/go/bin/go',
   ].filter(Boolean);
   for (const c of candidates) if (fs.existsSync(c)) return c;
