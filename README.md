@@ -42,12 +42,33 @@ Point the service at it with `SANDBOX_ROOTFS_IMAGE`.
 
 ## Prereqs (host)
 
-Run `scripts/spike-kata-fc.sh` once (installs Kata + CNI, devmapper pool,
-registers the `io.containerd.kata-fc.v2` runtime).
+On a fresh machine, run these once (both idempotent):
+
+```sh
+sudo ./scripts/spike-kata-fc.sh   # Kata + Firecracker, CNI, devmapper pool,
+                                  # registers io.containerd.kata-fc.v2
+./scripts/setup-host.sh           # NOPASSWD sudoers rule + /data/user-homes
+```
+
+`setup-host.sh` is what makes the box reproducible: the service must run as
+root (containerd.sock, losetup, kata-runtime, ip netns, firecracker), but PM2
+runs as your user, so it installs a NOPASSWD sudoers rule letting PM2 launch
+the manager via `sudo`. The rule is generated (the binary path is repo-/user-
+specific), so it's not committed — re-run `setup-host.sh` after moving the repo
+or on each new PC.
 
 ## Run
 
+Config lives in `.env` (prod) / `.env.development` (dev); the binary loads it
+from its cwd. Start via PM2 — it builds the binary and launches it as root:
+
 ```sh
-DRAGONFLY_URL=redis://... BACKEND_URL=https://api.todofor.ai \
-BACKEND_ADMIN_API_KEY=... go run ./cmd/sandbox-manager
+pm2 start ecosystem.config.js --only sandbox-manager
+pm2 logs sandbox-manager
+```
+
+To run the binary directly (e.g. debugging), it still needs root:
+
+```sh
+sudo NODE_ENV=development ./sandbox-manager
 ```
