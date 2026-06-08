@@ -111,5 +111,11 @@ func Load() (*Config, error) {
 			return nil, fmt.Errorf("%s is required", k)
 		}
 	}
+	// In dev, NOISE_BACKEND_HOST MUST be set: otherwise the in-VM bridge falls
+	// through to its built-in prod default (api.todofor.ai) and every local VM
+	// silently enrolls against production. Fail fast rather than leak.
+	if os.Getenv("NODE_ENV") != "production" && c.NoiseBackendHost == "" {
+		return nil, fmt.Errorf("NOISE_BACKEND_HOST is required in dev (else VMs enroll against prod); set it to the host CNI gateway (e.g. 10.88.0.1)")
+	}
 	return c, nil
 }
