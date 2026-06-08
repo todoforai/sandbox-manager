@@ -37,7 +37,7 @@
       "~/.tiktok/cookies.txt"
     ],
     "capabilities": "Upload videos, batch uploads, schedule posts, custom covers, hashtags & mentions",
-    "description": "Use to upload videos to TikTok (single or batch), schedule posts, set covers/hashtags/mentions. Cookie-based auth: run `npx @todoforai/tiktok-cookie-helper` → log in to tiktok.com → export cookies via 'Get cookies.txt LOCALLY' extension → saved to ~/.tiktok/cookies.txt.",
+    "description": "Upload videos to TikTok, schedule posts, set covers and hashtags.",
     "versionCmd": "pip show tiktok-uploader 2>/dev/null | grep -oP 'Version: \\K.*'"
   },
   "instagrapi": {
@@ -46,7 +46,7 @@
     "installer": "pip",
     "label": "Instagram",
     "capabilities": "Upload photos & reels, post stories, send DMs, like & comment, manage followers",
-    "description": "Use for Instagram automation: upload photos/reels, post stories, DMs, like/comment, follower management. Python library; call via `python3 -c \"from instagrapi import Client; ...\"`.",
+    "description": "Instagram automation: upload photos/reels, stories, DMs, likes, follower management.",
     "versionCmd": "pip show instagrapi 2>/dev/null | grep -oP 'Version: \\K.*'"
   },
   "mudslide": {
@@ -73,7 +73,7 @@
       "~/.config/telegram-send/telegram-send.conf"
     ],
     "capabilities": "Send messages, send files & images, send video & audio, Markdown/HTML formatting, channel & group support",
-    "description": "Use to send Telegram messages/files from CLI (one-way bot output). Configure once with `telegram-send --configure`. For full Telegram automation use a different tool.",
+    "description": "Send Telegram messages and files from CLI via a bot.",
     "versionCmd": "telegram-send --version 2>/dev/null | head -1"
   },
   "apollo-api": {
@@ -92,7 +92,7 @@
     "label": "Meta Ads",
     "statusCmd": "meta auth status 2>&1",
     "capabilities": "Meta/Facebook & Instagram ad campaigns: campaigns/adsets/ads CRUD, insights & reporting, catalog/product-feed/product-set/product-item, ad creatives, datasets (pixels), pages — Marketing API via the official `meta` CLI.",
-    "description": "Auth via env vars (no login command): set ACCESS_TOKEN (Meta Marketing API user/system token) and AD_ACCOUNT_ID (e.g. act_123456); optionally BUSINESS_ID for dataset commands. Get a token at https://developers.facebook.com/tools/explorer with scopes ads_management, ads_read, business_management — or use a System User token from Business Manager (no expiry). `meta auth status` only checks if ACCESS_TOKEN is set, not if it's valid; run `meta ads campaign list` to validate. Examples: `meta ads campaign list`, `meta ads insights get --date-preset last_7d`, `meta ads adset get 123456 --output json`. Output: table|json|plain via `-o`.",
+    "description": "Manage Meta/Facebook & Instagram ad campaigns, insights, creatives, and catalogs.",
     "versionCmd": "meta --version 2>/dev/null | head -1"
   },
   "elevenlabs-api": {
@@ -110,7 +110,7 @@
     "installer": "npm",
     "label": "Image Gen",
     "capabilities": "AI image generation & editing via TODOFORAI backend (gpt-image)",
-    "description": "Use to generate or edit images. Subcommands: `codex-imagegen-api generate \"<prompt>\" -o out.png [--size 1024x1024] [--quality low|medium|high]` and `codex-imagegen-api edit \"<instruction>\" -i in.png -o out.png` (repeat `-i` for multiple reference images).",
+    "description": "Generate or edit images with AI.",
     "versionCmd": "codex-imagegen-api --version 2>/dev/null | head -1"
   },
   "suno-api": {
@@ -133,7 +133,7 @@
       "~/.config/notion"
     ],
     "capabilities": "Official Notion CLI: workspace-wide OAuth login, raw API calls (`ntn api <path>`), page/datasource management, file uploads, Workers deploy.",
-    "description": "Two auth tracks: (1) `ntn login` for Workers/internal commands (`ntn doctor`, `ntn workers`) — workspace OAuth stored in keychain. (2) Public REST API (`ntn api`, `ntn pages`, `ntn datasources`, `ntn files`) requires NOTION_API_TOKEN env var (integration token from https://www.notion.so/my-integrations) — and the target pages must be Connected to that integration via the Notion UI: page `...` → Connections. Examples: `ntn api /v1/users/me`, `ntn api /v1/search -X POST -d '{\"query\":\"...\"}'`, `ntn pages get <id>` (Markdown export), `ntn pages create --parent page:<id> --content '# Title'`, `ntn pages update <id> --content '...'`, `ntn pages trash <id> --yes`. Use `ntn datasources resolve <database-id>` then `ntn datasources query <data-source-id>`.",
+    "description": "Read, create, and update Notion pages and databases.",
     "versionCmd": "ntn --version 2>/dev/null | head -1"
   },
   "perplexity-api": {
@@ -142,7 +142,7 @@
     "installer": "npm",
     "label": "Perplexity",
     "capabilities": "AI-powered web search, chat completions, async chat, embeddings and agent runs",
-    "description": "Use when you need current web-grounded answers with citations (news, prices, docs released after training cutoff). Prefer over plain LLM when freshness/sources matter. Needs PERPLEXITY_API_KEY.",
+    "description": "Web-grounded AI search with citations. Use when you need fresh information beyond training cutoff.",
     "versionCmd": "perplexity-api --version 2>/dev/null | head -1"
   },
   "gh": {
@@ -327,8 +327,8 @@
     "pkg": "@todoforai/cli",
     "installer": "bun",
     "label": "TODOforAI",
-    "capabilities": "Create & manage TODOs, run workflows, API access",
-    "description": "Use to programmatically create/list/update TODOs in TODOforAI, kick off workflows, call the platform API.",
+    "capabilities": "Create/list/inspect/update TODOs, run templates & workflows, platform API access",
+    "description": "Use for the TODOforAI platform: `todoai \"prompt\"` to create a TODO, `todoai list` to browse recent ones, `todoai --inspect <id>` to read a TODO's full chat log, `todoai status/addmessage/delete` to manage them, `--template` to run a registry workflow.",
     "installCmd": "bun add -g @todoforai/cli",
     "versionCmd": "todoai --version 2>/dev/null | head -1",
     "internal": true
@@ -349,7 +349,7 @@
     "label": "Web Request",
     "binName": "curl",
     "capabilities": "HTTP/HTTPS/FTP client: GET/POST/PUT/DELETE, headers, auth, file upload/download, follow redirects, cookies, TLS.",
-    "description": "Default tool for any HTTP request: hitting REST APIs, downloading files, testing endpoints. Common flags: `-s` silent, `-L` follow redirects, `-H 'Header: ...'`, `-X POST -d '...'`, `-o file`, `-f` fail on HTTP errors. Pipe into `jq` for JSON.",
+    "description": "",
     "versionCmd": "curl --version 2>/dev/null | head -1",
     "preinstallCloud": true,
     "internal": true
@@ -390,7 +390,7 @@
       "~/.config/rclone/rclone.conf"
     ],
     "capabilities": "Access Google Drive, OneDrive, Dropbox, S3 and 40+ cloud providers. List, copy, sync, move, mount files as virtual filesystem (FUSE). Use 'rclone config create <name> <provider>' to connect (opens browser for OAuth).",
-    "description": "Use to access cloud storage (Drive/OneDrive/Dropbox/S3/40+). Connect: `rclone config create <name> <provider>` (OAuth via browser). Core ops: `rclone listremotes`, `rclone lsf <remote>:<path>`, `rclone cat <remote>:<file>`, `rclone copy|sync <src> <dst>`. Mount as FUSE (lazy fetch): `rclone mount <remote>: ~/.todoforai/mnt/<remote> --vfs-cache-mode full --daemon`; unmount with `fusermount -u <path>`. Note: FUSE `mount` needs /dev/fuse + CAP_SYS_ADMIN — works on VM sandboxes and bridge devices, but NOT in lite sandboxes; there use `lsf`/`cat`/`copy`/`sync` (HTTPS-only) instead. See `subProviders` for per-provider connect commands.",
+    "description": "Access cloud storage (Google Drive, OneDrive, Dropbox, S3, 40+ providers). List, copy, sync, or mount files.",
     "subProviders": {
       "gdrive": {
         "label": "Google Drive",
@@ -456,7 +456,7 @@
     "installer": "npm",
     "label": "Browser (Extension)",
     "capabilities": "Browser automation via extension (non-headless), web scraping, accessibility tree snapshots, screenshots, PDF generation",
-    "description": "Drives the user's real browser via the TODOforAI extension (non-headless). Use when the task needs the user's actual session — logged-in accounts, saved cookies, extensions, MFA. For anything else prefer headless `agent-browser`. Commands: open <url>, click/type/fill <selector> <text>, snapshot (accessibility tree with @refs for clicking), screenshot [path], pdf <path>, eval <js>, wait <selector|ms>. Supports drag/drop, file uploads, form interactions.",
+    "description": "Drives the user's real browser via the extension. Use when the task needs the user's actual logged-in session, cookies, or MFA.",
     "versionCmd": "node -p \"require(require('child_process').execSync('which todoforai-browser',{encoding:'utf8'}).trim().replace(/\\/dist\\/index\\.js$/, '/package.json')).version\" 2>/dev/null",
     "internal": true
   },
@@ -466,7 +466,7 @@
     "installer": "npm",
     "label": "Sub-agent",
     "capabilities": "Spawn a TODO for AI sub-agent (FluidAgent) from the CLI; pipe stdin in, get an answer out",
-    "description": "Run a sub-agent task from a shell block. Usage: `todoforai-subagent [-m model] [-s :preset|@file|text] [--tools read,grep,bash] \"<question>\"`. Pipe stdin to include input context. Presets: :review, :explore, :plan, :summarize. Auth via TODOFORAI_API_KEY (auto-injected by edge).",
+    "description": "Spawn a sub-agent for a focused task. Pipe context via stdin.",
     "versionCmd": "todoforai-subagent --version 2>/dev/null | head -1",
     "installCmd": "bun add -g @todoforai/subagent",
     "internal": true
@@ -477,7 +477,7 @@
     "installer": "npm",
     "label": "Summarize (Lite)",
     "capabilities": "Summarize files or piped input via a sub-agent",
-    "description": "Summarize file contents or stdin. Usage: `todoforai-summary [-f <file>]... [<files...>] [<focus>]` or `cat x | todoforai-summary \"focus\"`. Wraps `todoforai-subagent --sysmsg :summarize`.",
+    "description": "Summarize files or piped content via a sub-agent.",
     "versionCmd": "todoforai-summary --version 2>/dev/null | head -1",
     "installCmd": "bun add -g @todoforai/summary",
     "internal": true
@@ -488,7 +488,7 @@
     "installer": "npm",
     "label": "Explore",
     "capabilities": "Explore a codebase as a real TODO: read-only agent maps structure, surfaces relevant files, streams findings to terminal",
-    "description": "Codebase exploration as a real TODO with patched permissions (read/grep/bash only) and live streaming. Usage: `tfa-explore [--repo <path>] \"<question>\"`. Creates a TODO visible in the UI and streams block events to stdout until DONE.",
+    "description": "Explore a codebase with a read-only sub-agent. Streams findings live.",
     "versionCmd": "tfa-explore --version 2>/dev/null | head -1",
     "installCmd": "bun add -g @todoforai/tfa-explore",
     "preinstall": true,
@@ -501,7 +501,7 @@
     "installer": "npm",
     "label": "Review",
     "capabilities": "Review a git diff as a real TODO: read-only agent assesses goal, finds issues, suggests simpler approaches",
-    "description": "Capture `git diff` and ask a read-only sub-agent to review it as a real TODO. Usage: `tfa-review [--repo <path>] [--against <ref>] \"<goal>\"`. Default diffs uncommitted changes vs HEAD. Streams block events to stdout until DONE.",
+    "description": "Review a git diff with a read-only sub-agent.",
     "versionCmd": "tfa-review --version 2>/dev/null | head -1",
     "installCmd": "bun add -g @todoforai/tfa-review",
     "preinstall": true,
@@ -514,7 +514,7 @@
     "installer": "npm",
     "label": "Summarize",
     "capabilities": "Summarize files or piped input as a real TODO with no-tools sub-agent",
-    "description": "Summarize file contents or stdin as a real TODO. Usage: `tfa-summary [-f <file>]... [<files...>] [<focus>]` or `cat x | tfa-summary \"focus\"`. No tools (content is inlined); streams block events to stdout until DONE.",
+    "description": "Summarize files or piped content as a visible TODO.",
     "versionCmd": "tfa-summary --version 2>/dev/null | head -1",
     "installCmd": "bun add -g @todoforai/tfa-summary",
     "internal": true
@@ -525,7 +525,7 @@
     "installer": "npm",
     "label": "Vault",
     "capabilities": "Zero-config TODOforAI vault CLI: put/get/patch/list/rm secrets in the user's KV v2 vault. Reuses bridge credentials (TODOFORAI_API_KEY / ~/.config/todoforai/credentials.json); derives vault URL from backend URL.",
-    "description": "Native TODOforAI secret store — free, zero-config (reuses bridge credentials; no VAULT_ADDR/VAULT_TOKEN/login). **Default credential source: for any task touching API keys, tokens, service accounts, or third-party auth, check `tfa-vault` before searching repo files, .env, or env vars — unless the user provides another source.** Discover-then-consume pattern: `tfa-vault list accounts/` to find keys, then `KEY=$(tfa-vault get -f api_key accounts/<service>)` in shell. Common paths: `accounts/<service>`, `api/<service>`, `secrets/<service>`. Usage: `tfa-vault put <path> k=v [k=v ...]`, `tfa-vault get [-f <field>] <path>`, `tfa-vault patch <path> k=v ...`, `tfa-vault list [<prefix>]`, `tfa-vault rm <path>`. Values: inline (`k=v`), file (`k=@/path`), stdin (`k=-`). `get -f <field>` writes raw value with no trailing newline — safe in `$(...)`. Exit 2 means \"not found\" (distinct from network errors).",
+    "description": "The user's secret store. Always check here first for API keys, tokens, and credentials before looking elsewhere.",
     "versionCmd": "tfa-vault --version 2>/dev/null | head -1",
     "statusCmd": "tfa-vault whoami",
     "installCmd": "bun add -g @todoforai/vault",
@@ -538,15 +538,35 @@
     "installer": "binary",
     "label": "Search",
     "capabilities": "Fast recursive grep with regex, .gitignore-aware, parallel, unicode-correct",
-    "description": "Fast code/text search. Usage: `rg <pattern> [path]`, `-i` case-insensitive, `-l` files only, `-t <lang>` filter by language, `-g '<glob>'` filter by glob, `-C N` context. Prefer over `grep -r`.",
+    "description": "",
     "versionCmd": "rg --version 2>/dev/null | head -1",
     "preinstallCloud": true,
     "binary": {
-      "linux-x86_64":    { "url": "https://github.com/BurntSushi/ripgrep/releases/download/14.1.1/ripgrep-14.1.1-x86_64-unknown-linux-musl.tar.gz", "archive": "tar.gz", "extract": "ripgrep-14.1.1-x86_64-unknown-linux-musl/rg" },
-      "linux-aarch64":   { "url": "https://github.com/BurntSushi/ripgrep/releases/download/14.1.1/ripgrep-14.1.1-aarch64-unknown-linux-gnu.tar.gz", "archive": "tar.gz", "extract": "ripgrep-14.1.1-aarch64-unknown-linux-gnu/rg" },
-      "darwin-x86_64":   { "url": "https://github.com/BurntSushi/ripgrep/releases/download/14.1.1/ripgrep-14.1.1-x86_64-apple-darwin.tar.gz",       "archive": "tar.gz", "extract": "ripgrep-14.1.1-x86_64-apple-darwin/rg" },
-      "darwin-aarch64":  { "url": "https://github.com/BurntSushi/ripgrep/releases/download/14.1.1/ripgrep-14.1.1-aarch64-apple-darwin.tar.gz",      "archive": "tar.gz", "extract": "ripgrep-14.1.1-aarch64-apple-darwin/rg" },
-      "windows-x86_64":  { "url": "https://github.com/BurntSushi/ripgrep/releases/download/14.1.1/ripgrep-14.1.1-x86_64-pc-windows-msvc.zip",       "archive": "zip",    "extract": "ripgrep-14.1.1-x86_64-pc-windows-msvc/rg.exe" }
+      "linux-x86_64": {
+        "url": "https://github.com/BurntSushi/ripgrep/releases/download/14.1.1/ripgrep-14.1.1-x86_64-unknown-linux-musl.tar.gz",
+        "archive": "tar.gz",
+        "extract": "ripgrep-14.1.1-x86_64-unknown-linux-musl/rg"
+      },
+      "linux-aarch64": {
+        "url": "https://github.com/BurntSushi/ripgrep/releases/download/14.1.1/ripgrep-14.1.1-aarch64-unknown-linux-gnu.tar.gz",
+        "archive": "tar.gz",
+        "extract": "ripgrep-14.1.1-aarch64-unknown-linux-gnu/rg"
+      },
+      "darwin-x86_64": {
+        "url": "https://github.com/BurntSushi/ripgrep/releases/download/14.1.1/ripgrep-14.1.1-x86_64-apple-darwin.tar.gz",
+        "archive": "tar.gz",
+        "extract": "ripgrep-14.1.1-x86_64-apple-darwin/rg"
+      },
+      "darwin-aarch64": {
+        "url": "https://github.com/BurntSushi/ripgrep/releases/download/14.1.1/ripgrep-14.1.1-aarch64-apple-darwin.tar.gz",
+        "archive": "tar.gz",
+        "extract": "ripgrep-14.1.1-aarch64-apple-darwin/rg"
+      },
+      "windows-x86_64": {
+        "url": "https://github.com/BurntSushi/ripgrep/releases/download/14.1.1/ripgrep-14.1.1-x86_64-pc-windows-msvc.zip",
+        "archive": "zip",
+        "extract": "ripgrep-14.1.1-x86_64-pc-windows-msvc/rg.exe"
+      }
     },
     "binName": "rg",
     "internal": true
@@ -557,15 +577,35 @@
     "installer": "binary",
     "label": "Find Files",
     "capabilities": "Fast user-friendly find replacement: regex by default, .gitignore-aware, parallel",
-    "description": "Find files/dirs by name. Usage: `fd <pattern> [path]`, `-e <ext>` filter by extension, `-t f|d` type, `-H` include hidden, `-x <cmd>` exec per match.",
+    "description": "",
     "versionCmd": "fd --version 2>/dev/null | head -1",
     "preinstallCloud": true,
     "binary": {
-      "linux-x86_64":    { "url": "https://github.com/sharkdp/fd/releases/download/v10.2.0/fd-v10.2.0-x86_64-unknown-linux-musl.tar.gz", "archive": "tar.gz", "extract": "fd-v10.2.0-x86_64-unknown-linux-musl/fd" },
-      "linux-aarch64":   { "url": "https://github.com/sharkdp/fd/releases/download/v10.2.0/fd-v10.2.0-aarch64-unknown-linux-gnu.tar.gz", "archive": "tar.gz", "extract": "fd-v10.2.0-aarch64-unknown-linux-gnu/fd" },
-      "darwin-x86_64":   { "url": "https://github.com/sharkdp/fd/releases/download/v10.2.0/fd-v10.2.0-x86_64-apple-darwin.tar.gz",       "archive": "tar.gz", "extract": "fd-v10.2.0-x86_64-apple-darwin/fd" },
-      "darwin-aarch64":  { "url": "https://github.com/sharkdp/fd/releases/download/v10.2.0/fd-v10.2.0-aarch64-apple-darwin.tar.gz",      "archive": "tar.gz", "extract": "fd-v10.2.0-aarch64-apple-darwin/fd" },
-      "windows-x86_64":  { "url": "https://github.com/sharkdp/fd/releases/download/v10.2.0/fd-v10.2.0-x86_64-pc-windows-msvc.zip",       "archive": "zip",    "extract": "fd-v10.2.0-x86_64-pc-windows-msvc/fd.exe" }
+      "linux-x86_64": {
+        "url": "https://github.com/sharkdp/fd/releases/download/v10.2.0/fd-v10.2.0-x86_64-unknown-linux-musl.tar.gz",
+        "archive": "tar.gz",
+        "extract": "fd-v10.2.0-x86_64-unknown-linux-musl/fd"
+      },
+      "linux-aarch64": {
+        "url": "https://github.com/sharkdp/fd/releases/download/v10.2.0/fd-v10.2.0-aarch64-unknown-linux-gnu.tar.gz",
+        "archive": "tar.gz",
+        "extract": "fd-v10.2.0-aarch64-unknown-linux-gnu/fd"
+      },
+      "darwin-x86_64": {
+        "url": "https://github.com/sharkdp/fd/releases/download/v10.2.0/fd-v10.2.0-x86_64-apple-darwin.tar.gz",
+        "archive": "tar.gz",
+        "extract": "fd-v10.2.0-x86_64-apple-darwin/fd"
+      },
+      "darwin-aarch64": {
+        "url": "https://github.com/sharkdp/fd/releases/download/v10.2.0/fd-v10.2.0-aarch64-apple-darwin.tar.gz",
+        "archive": "tar.gz",
+        "extract": "fd-v10.2.0-aarch64-apple-darwin/fd"
+      },
+      "windows-x86_64": {
+        "url": "https://github.com/sharkdp/fd/releases/download/v10.2.0/fd-v10.2.0-x86_64-pc-windows-msvc.zip",
+        "archive": "zip",
+        "extract": "fd-v10.2.0-x86_64-pc-windows-msvc/fd.exe"
+      }
     },
     "binName": "fd",
     "internal": true
@@ -576,15 +616,30 @@
     "installer": "binary",
     "label": "JSON",
     "capabilities": "Command-line JSON processor: query, filter, transform, format JSON streams",
-    "description": "JSON pipeline tool. Usage: `cat x.json | jq '.field'`, `jq -r` raw output, `jq '.[] | select(.k==\"v\")'`, `jq -s` slurp array. Pairs well with curl/rg.",
+    "description": "",
     "versionCmd": "jq --version 2>/dev/null | head -1",
     "preinstallCloud": true,
     "binary": {
-      "linux-x86_64":    { "url": "https://github.com/jqlang/jq/releases/download/jq-1.7.1/jq-linux-amd64",     "archive": "raw" },
-      "linux-aarch64":   { "url": "https://github.com/jqlang/jq/releases/download/jq-1.7.1/jq-linux-arm64",     "archive": "raw" },
-      "darwin-x86_64":   { "url": "https://github.com/jqlang/jq/releases/download/jq-1.7.1/jq-macos-amd64",     "archive": "raw" },
-      "darwin-aarch64":  { "url": "https://github.com/jqlang/jq/releases/download/jq-1.7.1/jq-macos-arm64",     "archive": "raw" },
-      "windows-x86_64":  { "url": "https://github.com/jqlang/jq/releases/download/jq-1.7.1/jq-windows-amd64.exe", "archive": "raw" }
+      "linux-x86_64": {
+        "url": "https://github.com/jqlang/jq/releases/download/jq-1.7.1/jq-linux-amd64",
+        "archive": "raw"
+      },
+      "linux-aarch64": {
+        "url": "https://github.com/jqlang/jq/releases/download/jq-1.7.1/jq-linux-arm64",
+        "archive": "raw"
+      },
+      "darwin-x86_64": {
+        "url": "https://github.com/jqlang/jq/releases/download/jq-1.7.1/jq-macos-amd64",
+        "archive": "raw"
+      },
+      "darwin-aarch64": {
+        "url": "https://github.com/jqlang/jq/releases/download/jq-1.7.1/jq-macos-arm64",
+        "archive": "raw"
+      },
+      "windows-x86_64": {
+        "url": "https://github.com/jqlang/jq/releases/download/jq-1.7.1/jq-windows-amd64.exe",
+        "archive": "raw"
+      }
     },
     "binName": "jq",
     "internal": true
@@ -596,7 +651,7 @@
     "preinstallCloud": true,
     "label": "Apply Diff",
     "capabilities": "Apply unified/context diff patches to files; reverse, dry-run, fuzzy matching",
-    "description": "Apply diffs. Usage: `patch -p1 < changes.diff` (strip 1 leading path component), `--dry-run` to preview, `-R` to reverse, `-N` skip already-applied. Reads unified (`diff -u`) or context diffs.",
+    "description": "",
     "versionCmd": "patch --version 2>/dev/null | head -1",
     "binName": "patch",
     "internal": true
@@ -608,7 +663,7 @@
     "preinstallCloud": true,
     "label": "Replace Text",
     "capabilities": "Stream editor: in-place text substitution, line filtering, scripted edits",
-    "description": "Non-interactive text transformation. Usage: `sed 's/old/new/g' file`, `-i` edit in place (`-i ''` on macOS), `-n '5,10p'` print line range, `-E` extended regex. Pair with `rg -l` to bulk-rewrite matched files.",
+    "description": "",
     "versionCmd": "sed --version 2>/dev/null | head -1",
     "binName": "sed",
     "internal": true
@@ -620,7 +675,7 @@
     "preinstallCloud": true,
     "label": "Search Text",
     "capabilities": "Search plain text for lines matching a regex: recursive, fixed-string, context, invert, count",
-    "description": "Line-based text search. Usage: `grep <pattern> file`, `-r` recursive, `-i` case-insensitive, `-n` line numbers, `-E` extended regex, `-F` fixed strings, `-v` invert, `-C N` context, `-l` files only. For large code searches prefer `rg`.",
+    "description": "",
     "versionCmd": "grep --version 2>/dev/null | head -1",
     "binName": "grep",
     "internal": true
