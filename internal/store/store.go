@@ -64,6 +64,7 @@ type Identity struct {
 	UserID      string
 	Role        string // "admin" | "user"
 	IsAnonymous bool
+	ScopeUserID string // admin-only: narrow a List to one user ("" = all)
 }
 
 func (i Identity) IsAdmin() bool { return i.Role == "admin" }

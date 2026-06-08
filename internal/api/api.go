@@ -116,14 +116,9 @@ func (s *Server) get(w http.ResponseWriter, r *http.Request, id store.Identity) 
 
 func (s *Server) list(w http.ResponseWriter, r *http.Request, id store.Identity) {
 	// Admin can scope to one user via ?user_id= (the backend's idempotent
-	// list-then-create). Narrowing the identity also runs the per-user
-	// liveness correction in Service.List (admins otherwise get the raw,
-	// uncorrected full set).
+	// list-then-create) without giving up admin identity.
 	if id.IsAdmin() {
-		if uid := r.URL.Query().Get("user_id"); uid != "" {
-			id.Role = "user"
-			id.UserID = uid
-		}
+		id.ScopeUserID = r.URL.Query().Get("user_id")
 	}
 	list, err := s.svc.List(r.Context(), id)
 	if err != nil {
