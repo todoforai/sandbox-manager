@@ -110,6 +110,22 @@ func (m *Manager) Create(ctx context.Context, s Spec) (*Created, error) {
 	if s.EnrollToken != "" {
 		env = append(env, "ENROLL_TOKEN="+s.EnrollToken)
 	}
+	// Tell the in-VM bridge which Noise backend to enroll against. Unset in
+	// prod (bridge uses its built-in default); set in dev to the host's CNI
+	// gateway so the VM redeems against the local backend, not prod.
+	if m.cfg.NoiseBackendHost != "" {
+		env = append(env, "NOISE_BACKEND_HOST="+m.cfg.NoiseBackendHost)
+	}
+	if m.cfg.NoiseBackendPort != "" {
+		env = append(env, "NOISE_BACKEND_PORT="+m.cfg.NoiseBackendPort)
+	}
+	// The daemon's WS port defaults to 80 for any non-localhost host, but the
+	// dev backend serves WS on 4000. NOISE_BACKEND_HOST=10.88.0.1 is not
+	// recognized as localhost, so without this the daemon hits :80 → 404 and
+	// the device never comes online. Unset in prod (bridge default :80 is right).
+	if m.cfg.BridgePort != "" {
+		env = append(env, "BRIDGE_PORT="+m.cfg.BridgePort)
+	}
 
 	// Networking FIRST: create the netns + run CNI in it, then boot the VM
 	// inside that netns. Proven on the spike box — the reverse (CNI on the
