@@ -171,7 +171,22 @@ func (s *Service) List(ctx context.Context, id store.Identity) ([]*store.Sandbox
 	if id.IsAdmin() {
 		return s.store.List(ctx, "")
 	}
-	return s.store.List(ctx, id.UserID)
+	list, err := s.store.List(ctx, id.UserID)
+	if err != nil {
+		return nil, err
+	}
+	// Reflect VM liveness in the reported state: a record may say running/
+	// creating while its VM has actually died (reconcile hasn't run yet). The
+	// backend's tier sync keys off state to decide "is my cloud alive?", so a
+	// stale "running" makes it no-op instead of recovering. Surface dead VMs as
+	// error here (read-only — teardown stays in Reconcile/reconcileUserSlot) so
+	// the backend re-creates and Create heals the held slot.
+	for _, sb := range list {
+		if s.staleDead(ctx, sb) {
+			sb.State = store.StateError
+		}
+	}
+	return list, nil
 }
 
 func (s *Service) Exec(ctx context.Context, id store.Identity, sandboxID string, argv []string) ([]byte, error) {
@@ -205,12 +220,28 @@ func (s *Service) Delete(ctx context.Context, id store.Identity, sandboxID strin
 	return s.store.ReleaseUserSlot(ctx, sb.UserID, sandboxID)
 }
 
-// reconcileUserSlot heals a single user's sandbox slot on the "Recover hosted
-// desktop" path: any of their active sandboxes whose VM is not live is torn
-// down (best-effort) and its quota slot released, so a retry of ReserveUserSlot
-// can succeed. Unlike Reconcile this is on-demand for one user and skips the
-// creating/terminating grace window — the caller is explicitly asking to
-// recover, and a live VM is still preserved (IsLive check below).
+// staleDead reports whether an active sandbox record's VM is actually gone and
+// the record is safe to reconcile. It honours the creating/terminating grace
+// window so an in-flight create (VM not booted yet → IsLive false) or delete
+// isn't torn down out from under itself. Shared by List (read-only state fix),
+// reconcileUserSlot, and Reconcile so they agree on "dead".
+func (s *Service) staleDead(ctx context.Context, sb *store.Sandbox) bool {
+	if !sb.IsActive() {
+		return false
+	}
+	if sb.State == store.StateCreating || sb.State == store.StateTerminating {
+		if store.NowMillis()-sb.LastActivity < reconcileGraceMillis {
+			return false
+		}
+	}
+	return !s.vm.IsLive(ctx, sb.ID)
+}
+
+// reconcileUserSlot heals a single user's sandbox slot on the create/recover
+// path: any of their active sandboxes whose VM is dead (staleDead) is torn down
+// and its quota slot deleted, so a retry of ReserveUserSlot can succeed. The
+// grace window in staleDead protects a concurrent in-flight create whose VM
+// hasn't booted yet.
 func (s *Service) reconcileUserSlot(ctx context.Context, userID string) {
 	all, err := s.store.List(ctx, userID)
 	if err != nil {
@@ -218,15 +249,20 @@ func (s *Service) reconcileUserSlot(ctx context.Context, userID string) {
 		return
 	}
 	for _, sb := range all {
-		if !sb.IsActive() || s.vm.IsLive(ctx, sb.ID) {
+		if !s.staleDead(ctx, sb) {
 			continue
 		}
 		s.vm.Delete(ctx, sb.ID)
 		if sb.DeviceID != "" {
 			s.backend.DeleteDevice(ctx, sb.UserID, sb.DeviceID)
 		}
-		s.store.Delete(ctx, sb.ID)
-		s.store.ReleaseUserSlot(ctx, sb.UserID, sb.ID)
+		if err := s.store.Delete(ctx, sb.ID); err != nil {
+			log.Printf("reconcileUserSlot delete %s: %v", sb.ID, err)
+			continue // keep the slot held rather than leak a stale record
+		}
+		if err := s.store.ReleaseUserSlot(ctx, sb.UserID, sb.ID); err != nil {
+			log.Printf("reconcileUserSlot release slot %s: %v", sb.UserID, err)
+		}
 	}
 }
 
@@ -240,20 +276,9 @@ func (s *Service) Reconcile(ctx context.Context) error {
 		return err
 	}
 	for _, sb := range all {
-		if !sb.IsActive() {
-			continue
-		}
-		// Never touch a sandbox mid-create/mid-delete: an in-flight Create
-		// hasn't booted the VM yet (IsLive would be false → we'd wrongly free
-		// its quota and delete its resources out from under it), and a Delete
-		// is already cleaning up. Only reconcile these if they've been stuck
-		// past a grace window (a crashed operation that left the record).
-		if sb.State == store.StateCreating || sb.State == store.StateTerminating {
-			if store.NowMillis()-sb.LastActivity < reconcileGraceMillis {
-				continue
-			}
-		}
-		if s.vm.IsLive(ctx, sb.ID) {
+		// staleDead honours the creating/terminating grace window so an
+		// in-flight Create (VM not booted yet) or Delete isn't torn down.
+		if !s.staleDead(ctx, sb) {
 			continue
 		}
 		// Dead VM still marked active: clean up leftover container/netns/

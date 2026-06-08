@@ -83,12 +83,19 @@ func (s *Server) templates(w http.ResponseWriter, r *http.Request, _ store.Ident
 
 func (s *Server) create(w http.ResponseWriter, r *http.Request, id store.Identity) {
 	var req struct {
+		UserID   string `json:"user_id"`
 		Template string `json:"template"`
 		Size     string `json:"size"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		httpErr(w, http.StatusBadRequest, "invalid JSON body")
 		return
+	}
+	// Admin (the backend's admin API key) provisions on a user's behalf: the
+	// body's user_id is the real owner. Without this the sandbox would be
+	// reserved/created under the admin identity, not the target user.
+	if id.IsAdmin() && req.UserID != "" {
+		id.UserID = req.UserID
 	}
 	sb, err := s.svc.Create(r.Context(), id, req.Template, req.Size)
 	if err != nil {
@@ -108,6 +115,16 @@ func (s *Server) get(w http.ResponseWriter, r *http.Request, id store.Identity) 
 }
 
 func (s *Server) list(w http.ResponseWriter, r *http.Request, id store.Identity) {
+	// Admin can scope to one user via ?user_id= (the backend's idempotent
+	// list-then-create). Narrowing the identity also runs the per-user
+	// liveness correction in Service.List (admins otherwise get the raw,
+	// uncorrected full set).
+	if id.IsAdmin() {
+		if uid := r.URL.Query().Get("user_id"); uid != "" {
+			id.Role = "user"
+			id.UserID = uid
+		}
+	}
 	list, err := s.svc.List(r.Context(), id)
 	if err != nil {
 		httpErr(w, http.StatusInternalServerError, err.Error())
