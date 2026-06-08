@@ -168,10 +168,11 @@ func (s *Service) AttachDevice(ctx context.Context, id store.Identity, sandboxID
 }
 
 func (s *Service) List(ctx context.Context, id store.Identity) ([]*store.Sandbox, error) {
+	userID := id.UserID
 	if id.IsAdmin() {
-		return s.store.List(ctx, "")
+		userID = id.ScopeUserID // "" = all users
 	}
-	list, err := s.store.List(ctx, id.UserID)
+	list, err := s.store.List(ctx, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -180,10 +181,13 @@ func (s *Service) List(ctx context.Context, id store.Identity) ([]*store.Sandbox
 	// backend's tier sync keys off state to decide "is my cloud alive?", so a
 	// stale "running" makes it no-op instead of recovering. Surface dead VMs as
 	// error here (read-only — teardown stays in Reconcile/reconcileUserSlot) so
-	// the backend re-creates and Create heals the held slot.
-	for _, sb := range list {
+	// the backend re-creates and Create heals the held slot. Copy-on-mutate so
+	// we never touch the store's own object.
+	for i, sb := range list {
 		if s.staleDead(ctx, sb) {
-			sb.State = store.StateError
+			cp := *sb
+			cp.State = store.StateError
+			list[i] = &cp
 		}
 	}
 	return list, nil
@@ -206,6 +210,7 @@ func (s *Service) Delete(ctx context.Context, id store.Identity, sandboxID strin
 	// fails, the sandbox stays terminating/active — the user can't create
 	// another while a VM may still be running.
 	sb.State = store.StateTerminating
+	sb.LastActivity = store.NowMillis() // refresh so the grace window covers this delete
 	s.store.Put(ctx, sb)
 
 	if err := s.vm.Delete(ctx, sandboxID); err != nil {
