@@ -2,6 +2,8 @@ package service
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"log"
@@ -9,7 +11,6 @@ import (
 
 	"github.com/todoforai/sandbox-manager/internal/backend"
 	"github.com/todoforai/sandbox-manager/internal/config"
-	"github.com/todoforai/sandbox-manager/internal/sandbox"
 	"github.com/todoforai/sandbox-manager/internal/store"
 	"github.com/todoforai/sandbox-manager/internal/userhome"
 	"github.com/todoforai/sandbox-manager/internal/vm"
@@ -41,7 +42,7 @@ func New(cfg *config.Config, st *store.Store, mgr *vm.Manager, homes *userhome.S
 // Create enforces quota (one active sandbox per user) and anonymity, mints an
 // enrollment token, ensures the user's home.img, boots the microVM, and
 // records it. The whole flow is linear because containerd owns recovery.
-func (s *Service) Create(ctx context.Context, id store.Identity, template, size string) (*sandbox.Sandbox, error) {
+func (s *Service) Create(ctx context.Context, id store.Identity, template, size string) (*store.Sandbox, error) {
 	if id.IsAnonymous {
 		return nil, ErrAnonymous
 	}
@@ -59,7 +60,18 @@ func (s *Service) Create(ctx context.Context, id store.Identity, template, size 
 		return nil, err
 	}
 	if !ok {
-		return nil, ErrQuota
+		// Slot is held. Self-heal the common "Recover hosted desktop" case:
+		// the holder may be a dead sandbox (VM died, reconcile hasn't run, or
+		// it's stuck in creating/terminating) — a real quota only counts a
+		// LIVE VM. Reconcile any non-live holders (delete + release), then
+		// retry the reservation once. Only a genuinely live VM yields ErrQuota.
+		s.reconcileUserSlot(ctx, id.UserID)
+		if ok, err = s.store.ReserveUserSlot(ctx, id.UserID, sid); err != nil {
+			return nil, err
+		}
+		if !ok {
+			return nil, ErrQuota
+		}
 	}
 	release := func() { s.store.ReleaseUserSlot(ctx, id.UserID, sid) }
 
@@ -78,16 +90,16 @@ func (s *Service) Create(ctx context.Context, id store.Identity, template, size 
 		return nil, fmt.Errorf("mint enroll token: %w", err)
 	}
 
-	sb := &sandbox.Sandbox{
+	sb := &store.Sandbox{
 		ID:           sid,
 		UserID:       id.UserID,
 		Template:     template,
 		Size:         size,
 		Kind:         "vm",
-		State:        sandbox.StateCreating,
+		State:        store.StateCreating,
 		CostPerMin:   costPerMinute(size),
-		CreatedAt:    sandbox.NowMillis(),
-		LastActivity: sandbox.NowMillis(),
+		CreatedAt:    store.NowMillis(),
+		LastActivity: store.NowMillis(),
 	}
 	if err := s.store.Put(ctx, sb); err != nil {
 		release()
@@ -99,16 +111,16 @@ func (s *Service) Create(ctx context.Context, id store.Identity, template, size 
 		EnrollToken: token, HomeImg: homeImg, DeviceName: deviceName,
 	})
 	if err != nil {
-		sb.State = sandbox.StateError
+		sb.State = store.StateError
 		sb.Error = err.Error()
 		s.store.Put(ctx, sb)
 		release()
 		return nil, err
 	}
 
-	sb.State = sandbox.StateRunning
+	sb.State = store.StateRunning
 	sb.IPAddress = created.IP
-	sb.LastActivity = sandbox.NowMillis()
+	sb.LastActivity = store.NowMillis()
 	if err := s.store.Put(ctx, sb); err != nil {
 		// We have a running VM we can't record — don't leak it. Tear it down
 		// best-effort and free the slot, then surface the error.
@@ -120,7 +132,7 @@ func (s *Service) Create(ctx context.Context, id store.Identity, template, size 
 	return sb, nil
 }
 
-func (s *Service) Get(ctx context.Context, id store.Identity, sandboxID string) (*sandbox.Sandbox, error) {
+func (s *Service) Get(ctx context.Context, id store.Identity, sandboxID string) (*store.Sandbox, error) {
 	sb, err := s.store.Get(ctx, sandboxID)
 	if err != nil {
 		return nil, err
@@ -151,11 +163,11 @@ func (s *Service) AttachDevice(ctx context.Context, id store.Identity, sandboxID
 		return ErrNotFound
 	}
 	sb.DeviceID = deviceID
-	sb.LastActivity = sandbox.NowMillis()
+	sb.LastActivity = store.NowMillis()
 	return s.store.Put(ctx, sb)
 }
 
-func (s *Service) List(ctx context.Context, id store.Identity) ([]*sandbox.Sandbox, error) {
+func (s *Service) List(ctx context.Context, id store.Identity) ([]*store.Sandbox, error) {
 	if id.IsAdmin() {
 		return s.store.List(ctx, "")
 	}
@@ -178,7 +190,7 @@ func (s *Service) Delete(ctx context.Context, id store.Identity, sandboxID strin
 	// free the record + slot AFTER the VM is actually gone. If vm.Delete
 	// fails, the sandbox stays terminating/active — the user can't create
 	// another while a VM may still be running.
-	sb.State = sandbox.StateTerminating
+	sb.State = store.StateTerminating
 	s.store.Put(ctx, sb)
 
 	if err := s.vm.Delete(ctx, sandboxID); err != nil {
@@ -191,6 +203,31 @@ func (s *Service) Delete(ctx context.Context, id store.Identity, sandboxID strin
 		return err
 	}
 	return s.store.ReleaseUserSlot(ctx, sb.UserID, sandboxID)
+}
+
+// reconcileUserSlot heals a single user's sandbox slot on the "Recover hosted
+// desktop" path: any of their active sandboxes whose VM is not live is torn
+// down (best-effort) and its quota slot released, so a retry of ReserveUserSlot
+// can succeed. Unlike Reconcile this is on-demand for one user and skips the
+// creating/terminating grace window — the caller is explicitly asking to
+// recover, and a live VM is still preserved (IsLive check below).
+func (s *Service) reconcileUserSlot(ctx context.Context, userID string) {
+	all, err := s.store.List(ctx, userID)
+	if err != nil {
+		log.Printf("reconcileUserSlot list %s: %v", userID, err)
+		return
+	}
+	for _, sb := range all {
+		if !sb.IsActive() || s.vm.IsLive(ctx, sb.ID) {
+			continue
+		}
+		s.vm.Delete(ctx, sb.ID)
+		if sb.DeviceID != "" {
+			s.backend.DeleteDevice(ctx, sb.UserID, sb.DeviceID)
+		}
+		s.store.Delete(ctx, sb.ID)
+		s.store.ReleaseUserSlot(ctx, sb.UserID, sb.ID)
+	}
 }
 
 // Reconcile re-syncs persisted state against containerd reality at startup.
@@ -211,8 +248,8 @@ func (s *Service) Reconcile(ctx context.Context) error {
 		// its quota and delete its resources out from under it), and a Delete
 		// is already cleaning up. Only reconcile these if they've been stuck
 		// past a grace window (a crashed operation that left the record).
-		if sb.State == sandbox.StateCreating || sb.State == sandbox.StateTerminating {
-			if sandbox.NowMillis()-sb.LastActivity < reconcileGraceMillis {
+		if sb.State == store.StateCreating || sb.State == store.StateTerminating {
+			if store.NowMillis()-sb.LastActivity < reconcileGraceMillis {
 				continue
 			}
 		}
@@ -222,7 +259,7 @@ func (s *Service) Reconcile(ctx context.Context) error {
 		// Dead VM still marked active: clean up leftover container/netns/
 		// direct-volume (best effort), mark error, free the quota slot.
 		s.vm.Delete(ctx, sb.ID)
-		sb.State = sandbox.StateError
+		sb.State = store.StateError
 		sb.Error = "vm not running at reconcile"
 		s.store.Put(ctx, sb)
 		s.store.ReleaseUserSlot(ctx, sb.UserID, sb.ID)
@@ -269,4 +306,26 @@ func (s *Service) Stats(ctx context.Context) (map[string]any, error) {
 		}
 	}
 	return map[string]any{"total_created": total, "active": active}, nil
+}
+
+// VM tier pricing (USD/min), ported from the old vm/size.rs. Lite is gone.
+func costPerMinute(size string) float64 {
+	switch size {
+	case "small":
+		return 0.0025
+	case "medium":
+		return 0.005
+	case "large":
+		return 0.01
+	case "xlarge":
+		return 0.02
+	default:
+		return 0.005
+	}
+}
+
+func newID() string {
+	b := make([]byte, 16)
+	rand.Read(b)
+	return hex.EncodeToString(b)
 }

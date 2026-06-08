@@ -2,11 +2,17 @@ package vm
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/base64"
+	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 
@@ -15,6 +21,7 @@ import (
 	"github.com/containerd/containerd/v2/pkg/cio"
 	"github.com/containerd/containerd/v2/pkg/namespaces"
 	"github.com/containerd/containerd/v2/pkg/oci"
+	gocni "github.com/containerd/go-cni"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
 
 	"github.com/todoforai/sandbox-manager/internal/config"
@@ -303,4 +310,205 @@ func killFirecracker(id string) {
 			syscall.Kill(pid, syscall.SIGKILL)
 		}
 	}
+}
+
+// --- networking (go-cni) ---
+
+// Network wraps go-cni. Replaces the old 352-line hand-rolled ioctl
+// TAP/bridge/IP code in network.rs. The conflist at
+// /etc/cni/net.d/10-sandbox.conflist (bridge + host-local IPAM + firewall)
+// declares everything; go-cni applies it into a per-sandbox netns.
+//
+// Proven flow on the spike box (NOT the old run-CNI-on-the-VM-PID approach):
+//
+//  1. create a netns
+//  2. run CNI ADD in it  -> veth eth0 with 10.88.x.x + default route
+//  3. boot the Kata VM *inside* that netns (OCI spec NetworkNamespace)
+//
+// Kata's internetworking_model=tcfilter then redirects the veth to the
+// Firecracker TAP automatically — so the conflist must NOT include
+// tc-redirect-tap (it would collide with Kata's own qdisc setup).
+type Network struct {
+	cni gocni.CNI
+}
+
+func NewNetwork(binDir, confDir string) (*Network, error) {
+	c, err := gocni.New(
+		gocni.WithPluginDir([]string{binDir}),
+		gocni.WithPluginConfDir(confDir),
+		gocni.WithDefaultConf, // loads 10-sandbox.conflist
+	)
+	if err != nil {
+		return nil, err
+	}
+	return &Network{cni: c}, nil
+}
+
+func netnsPath(id string) string { return "/var/run/netns/" + id }
+
+// Setup creates a netns named after the sandbox, wires CNI into it, and returns
+// the netns path (to put on the OCI spec) and the allocated IPv4. Call BEFORE
+// creating the container.
+func (n *Network) Setup(ctx context.Context, id string) (nsPath, ip string, err error) {
+	if out, err := exec.Command("ip", "netns", "add", id).CombinedOutput(); err != nil {
+		return "", "", fmt.Errorf("netns add: %v: %s", err, out)
+	}
+	nsPath = netnsPath(id)
+	res, err := n.cni.Setup(ctx, id, nsPath)
+	if err != nil {
+		// CNI may have partially allocated (IPAM lease, host veth, fw rules)
+		// before failing — run Remove to release it, then drop the netns.
+		n.cni.Remove(ctx, id, nsPath)
+		exec.Command("ip", "netns", "del", id).Run()
+		return "", "", fmt.Errorf("cni setup: %w", err)
+	}
+	for _, iface := range res.Interfaces {
+		for _, ipc := range iface.IPConfigs {
+			if ip4 := ipc.IP.To4(); ip4 != nil {
+				return nsPath, ip4.String(), nil
+			}
+		}
+	}
+	return nsPath, "", nil // attached but no IPv4 surfaced; non-fatal
+}
+
+// Teardown removes CNI config and the netns. Idempotent (best-effort on delete).
+func (n *Network) Teardown(ctx context.Context, id string) {
+	_ = n.cni.Remove(ctx, id, netnsPath(id))
+	_ = exec.Command("ip", "netns", "del", id).Run()
+}
+
+// --- home disk (Kata direct-volume) ---
+
+// homeDisk attaches a user's persistent home.img to a microVM as /root.
+//
+// Firecracker can't bind-mount a host directory into the guest (no shared FS),
+// and bind-mounting the raw .img *file* fails ("Is a directory"). The working
+// path — proven live on the spike box — is a real block device fed through
+// Kata's direct-volume API:
+//
+//  1. losetup the .img            -> /dev/loopN (a real block device)
+//  2. kata-runtime direct-volume add --volume-path <P> --mount-info {block,...}
+//  3. the container bind-mounts <P> -> /root; Kata hot-plugs the disk as
+//     virtio-blk and the guest mounts its ext4 there.
+//
+// Detach reverses it. The .img is a standalone, durable artifact: destroy the
+// VM, keep the home; re-attach the same .img to a new (or bigger) VM and the
+// files are intact — that's sandbox migration.
+type homeDisk struct {
+	kataRuntime string // path to kata-runtime (direct-volume add/remove)
+	volRoot     string // base dir for per-sandbox volume paths
+}
+
+func newHomeDisk(kataRuntime, volRoot string) *homeDisk {
+	return &homeDisk{kataRuntime: kataRuntime, volRoot: volRoot}
+}
+
+// volumePath is the stable per-sandbox mount source Kata keys its metadata on.
+func (h *homeDisk) volumePath(sandboxID string) string {
+	return filepath.Join(h.volRoot, sandboxID)
+}
+
+// Attach loop-mounts img, registers it as a Kata direct-volume, and returns the
+// volume path to bind to /root. Safe on retries: a stale registration/loop for
+// this sandbox is cleared first.
+func (h *homeDisk) Attach(sandboxID, img string) (string, error) {
+	vp := h.volumePath(sandboxID)
+	h.Detach(sandboxID) // clear any stale loop/registration from a crash
+
+	if err := os.MkdirAll(vp, 0o755); err != nil {
+		return "", fmt.Errorf("mkdir volume path: %w", err)
+	}
+	out, err := exec.Command("losetup", "--find", "--show", img).Output()
+	if err != nil {
+		return "", fmt.Errorf("losetup %s: %w", img, err)
+	}
+	loop := strings.TrimSpace(string(out))
+	// Record the loop device ourselves so Detach doesn't depend on Kata's
+	// private direct-volume metadata layout (which could change between
+	// versions). The Kata readback stays as a fallback.
+	os.WriteFile(filepath.Join(vp, "loop"), []byte(loop), 0o644)
+
+	mountInfo, _ := json.Marshal(map[string]any{
+		"volume-type": "block",
+		"device":      loop,
+		"fstype":      "ext4",
+		"metadata":    map[string]any{},
+		"options":     []string{},
+	})
+	if out, err := exec.Command(h.kataRuntime, "direct-volume", "add",
+		"--volume-path", vp, "--mount-info", string(mountInfo)).CombinedOutput(); err != nil {
+		// Add can fail after writing partial metadata; undo everything so the
+		// caller (which installs its detach hook only after Attach returns)
+		// isn't left with a leaked loop / stale registration / volume dir.
+		exec.Command("losetup", "-d", loop).Run()
+		exec.Command(h.kataRuntime, "direct-volume", "remove", "--volume-path", vp).Run()
+		os.RemoveAll(vp)
+		return "", fmt.Errorf("direct-volume add: %v: %s", err, out)
+	}
+	return vp, nil
+}
+
+// Detach releases everything Attach set up, given only the sandbox id: it reads
+// the loop device back from Kata's mountInfo.json, detaches it, removes the
+// registration, and deletes the volume dir. Best effort — every step no-ops if
+// already gone (partial-create cleanup, double delete).
+func (h *homeDisk) Detach(sandboxID string) {
+	vp := h.volumePath(sandboxID)
+	if loop := h.recordedLoop(vp); loop != "" {
+		exec.Command("losetup", "-d", loop).Run()
+	}
+	exec.Command(h.kataRuntime, "direct-volume", "remove", "--volume-path", vp).Run()
+	os.RemoveAll(vp)
+}
+
+// recordedLoop returns the loop device backing this volume. Prefers our own
+// record (written at Attach); falls back to Kata's direct-volume metadata
+// (keyed by base64(volumePath)) for sandboxes attached before this existed.
+func (h *homeDisk) recordedLoop(volPath string) string {
+	if b, err := os.ReadFile(filepath.Join(volPath, "loop")); err == nil {
+		if loop := strings.TrimSpace(string(b)); loop != "" {
+			return loop
+		}
+	}
+	key := base64.StdEncoding.EncodeToString([]byte(volPath))
+	data, err := os.ReadFile(filepath.Join(
+		"/run/kata-containers/shared/direct-volumes", key, "mountInfo.json"))
+	if err != nil {
+		return ""
+	}
+	var info struct {
+		Device string `json:"device"`
+	}
+	json.Unmarshal(data, &info)
+	return info.Device
+}
+
+// --- exec output capture & helpers ---
+
+// outputBuffer is a tiny thread-safe io.Writer for capturing exec output.
+type outputBuffer struct {
+	mu  sync.Mutex
+	buf []byte
+}
+
+func (b *outputBuffer) Write(p []byte) (int, error) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	b.buf = append(b.buf, p...)
+	return len(p), nil
+}
+
+func (b *outputBuffer) Bytes() []byte {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	out := make([]byte, len(b.buf))
+	copy(out, b.buf)
+	return out
+}
+
+func randHex(n int) string {
+	b := make([]byte, n)
+	rand.Read(b)
+	return hex.EncodeToString(b)
 }
