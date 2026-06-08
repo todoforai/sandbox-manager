@@ -63,6 +63,48 @@
     "description": "Use to send WhatsApp messages/files/media/locations/polls from CLI. QR-code login via `mudslide login`.",
     "versionCmd": "mudslide --version 2>/dev/null | head -1"
   },
+  "slack": {
+    "category": "messaging",
+    "pkg": "slack-cli",
+    "installer": "binary",
+    "label": "Slack",
+    "statusCmd": "slack auth list 2>&1 | grep -q 'Team' && echo authenticated",
+    "loginCmd": "slack login",
+    "credentialPaths": [
+      "~/.slack/credentials.json"
+    ],
+    "capabilities": "Build & deploy Slack apps, manage workspaces & triggers, run datastore queries, tail logs — official Slack CLI.",
+    "description": "Use for Slack platform development: scaffold/run/deploy Slack apps, manage triggers and datastores, manage workspace auth. `slack login` to authenticate.",
+    "versionCmd": "slack version 2>/dev/null | head -1",
+    "binName": "slack",
+    "binary": {
+      "linux-x86_64": {
+        "url": "https://github.com/slackapi/slack-cli/releases/download/v4.2.0/slack_cli_4.2.0_linux_amd64.tar.gz",
+        "archive": "tar.gz",
+        "extract": "bin/slack"
+      },
+      "linux-aarch64": {
+        "url": "https://github.com/slackapi/slack-cli/releases/download/v4.2.0/slack_cli_4.2.0_linux_arm64.tar.gz",
+        "archive": "tar.gz",
+        "extract": "bin/slack"
+      },
+      "darwin-x86_64": {
+        "url": "https://github.com/slackapi/slack-cli/releases/download/v4.2.0/slack_cli_4.2.0_macOS_amd64.tar.gz",
+        "archive": "tar.gz",
+        "extract": "bin/slack"
+      },
+      "darwin-aarch64": {
+        "url": "https://github.com/slackapi/slack-cli/releases/download/v4.2.0/slack_cli_4.2.0_macOS_arm64.tar.gz",
+        "archive": "tar.gz",
+        "extract": "bin/slack"
+      },
+      "windows-x86_64": {
+        "url": "https://github.com/slackapi/slack-cli/releases/download/v4.2.0/slack_cli_4.2.0_windows_64-bit.zip",
+        "archive": "zip",
+        "extract": "bin/slack.exe"
+      }
+    }
+  },
   "telegram-send": {
     "category": "messaging",
     "pkg": "telegram-send",
