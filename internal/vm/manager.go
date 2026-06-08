@@ -89,6 +89,18 @@ func (m *Manager) Create(ctx context.Context, s Spec) (*Created, error) {
 		}
 	}
 
+	// A locally-imported image keeps its content+manifest across reboots, but
+	// its devmapper snapshot chain does not survive (loop-backed pool). Without
+	// the unpacked layers, NewContainer fails with "parent snapshot ... does
+	// not exist". Unpack on demand so the first create after a reboot heals it.
+	if unpacked, uerr := image.IsUnpacked(ctx, m.cfg.Snapshotter); uerr != nil {
+		return nil, fmt.Errorf("check unpacked %s: %w", m.cfg.RootfsImage, uerr)
+	} else if !unpacked {
+		if uerr := image.Unpack(ctx, m.cfg.Snapshotter); uerr != nil {
+			return nil, fmt.Errorf("unpack %s into %s: %w", m.cfg.RootfsImage, m.cfg.Snapshotter, uerr)
+		}
+	}
+
 	// The bridge is the image entrypoint; we only inject env + the home disk.
 	// home.img attaches as a real block device via Kata direct-volume (see
 	// homedisk.go) — the volume path is what we bind to /root, and Kata
