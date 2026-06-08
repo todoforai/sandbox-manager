@@ -83,6 +83,7 @@ func (s *Service) Create(ctx context.Context, id store.Identity, template, size 
 		UserID:       id.UserID,
 		Template:     template,
 		Size:         size,
+		Kind:         "vm",
 		State:        sandbox.StateCreating,
 		CostPerMin:   costPerMinute(size),
 		CreatedAt:    sandbox.NowMillis(),
@@ -131,6 +132,27 @@ func (s *Service) Get(ctx context.Context, id store.Identity, sandboxID string) 
 		return nil, ErrForbidden
 	}
 	return sb, nil
+}
+
+// AttachDevice records the bridge's enrolled device on the sandbox. Called by
+// the backend (admin) right after a successful enroll redeem; persisting via
+// store.Put republishes the record on sandbox:events:<userId> so the backend's
+// SandboxEventSubscriber can promote the device to the user's primary. The
+// device_id is also what Delete uses to cascade the Device row cleanup.
+func (s *Service) AttachDevice(ctx context.Context, id store.Identity, sandboxID, deviceID string) error {
+	if !id.IsAdmin() {
+		return ErrForbidden
+	}
+	sb, err := s.store.Get(ctx, sandboxID)
+	if err != nil {
+		return err
+	}
+	if sb == nil {
+		return ErrNotFound
+	}
+	sb.DeviceID = deviceID
+	sb.LastActivity = sandbox.NowMillis()
+	return s.store.Put(ctx, sb)
 }
 
 func (s *Service) List(ctx context.Context, id store.Identity) ([]*sandbox.Sandbox, error) {

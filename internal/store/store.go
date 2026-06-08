@@ -136,6 +136,13 @@ func (s *Store) Get(ctx context.Context, id string) (*sandbox.Sandbox, error) {
 	if err := json.Unmarshal(js, &sb); err != nil {
 		return nil, err
 	}
+	// Backfill kind for records persisted before the field existed. This
+	// manager is VM-only, so a missing kind is always "vm" — without it the
+	// backend's tier alignment (`kind === 'vm'`) never matches an existing VM
+	// and loops creating new ones (quota 409).
+	if sb.Kind == "" {
+		sb.Kind = "vm"
+	}
 	return &sb, nil
 }
 

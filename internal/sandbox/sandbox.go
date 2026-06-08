@@ -19,20 +19,27 @@ const (
 // SandboxInfo so the backend's subscriber needs no change.
 //
 // Dropped vs the old model: pid (containerd owns the process), ip allocation
-// internals (CNI owns it; we keep the resolved IP only), kind/Lite (VM-only
-// now), pause/balloon. `device_id` stays for backend Device cleanup.
+// internals (CNI owns it; we keep the resolved IP only), Lite (VM-only now),
+// pause/balloon. `device_id` stays for backend Device cleanup. `kind` is kept
+// (always "vm") because the backend's tier alignment still keys off it.
 type Sandbox struct {
-	ID           string `json:"id"`
-	UserID       string `json:"user_id"`
-	Template     string `json:"template"`
-	Size         string `json:"size"`
-	State        State  `json:"state"`
-	IPAddress    string `json:"ip_address,omitempty"`
+	ID       string `json:"id"`
+	UserID   string `json:"user_id"`
+	Template string `json:"template"`
+	Size     string `json:"size"`
+	// Kind is always "vm": this manager is VM-only (Lite was dropped in the Go
+	// rewrite). The backend still distinguishes vm/lite in its tier alignment
+	// (`syncToTier` matches `kind === 'vm'`), so we must emit it — a missing
+	// kind makes the backend never recognise an existing VM as aligned and it
+	// loops creating new ones (→ 409 "user already has an active sandbox").
+	Kind         string  `json:"kind"`
+	State        State   `json:"state"`
+	IPAddress    string  `json:"ip_address,omitempty"`
 	CostPerMin   float64 `json:"cost_per_minute"`
-	Error        string `json:"error,omitempty"`
-	DeviceID     string `json:"device_id,omitempty"`
-	CreatedAt    int64  `json:"created_at"`
-	LastActivity int64  `json:"last_activity"`
+	Error        string  `json:"error,omitempty"`
+	DeviceID     string  `json:"device_id,omitempty"`
+	CreatedAt    int64   `json:"created_at"`
+	LastActivity int64   `json:"last_activity"`
 }
 
 // IsActive reports whether the sandbox holds resources / counts against quota.

@@ -27,6 +27,7 @@ func NewServer(st *store.Store, svc *service.Service) http.Handler {
 	mux.HandleFunc("GET /sandbox/{id}", s.auth(s.get))
 	mux.HandleFunc("DELETE /sandbox/{id}", s.auth(s.delete))
 	mux.HandleFunc("POST /sandbox/{id}/exec", s.auth(s.exec))
+	mux.HandleFunc("POST /sandbox/{id}/attach-device", s.auth(s.attachDevice))
 	mux.HandleFunc("GET /stats", s.auth(s.stats))
 	mux.HandleFunc("GET /templates", s.auth(s.templates))
 
@@ -141,6 +142,25 @@ func (s *Server) exec(w http.ResponseWriter, r *http.Request, id store.Identity)
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]string{"output": string(out)})
+}
+
+func (s *Server) attachDevice(w http.ResponseWriter, r *http.Request, id store.Identity) {
+	var req struct {
+		DeviceID string `json:"device_id"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		httpErr(w, http.StatusBadRequest, "invalid JSON body")
+		return
+	}
+	if req.DeviceID == "" {
+		httpErr(w, http.StatusBadRequest, "device_id is required")
+		return
+	}
+	if err := s.svc.AttachDevice(r.Context(), id, r.PathValue("id"), req.DeviceID); err != nil {
+		writeServiceErr(w, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
 }
 
 func (s *Server) stats(w http.ResponseWriter, r *http.Request, _ store.Identity) {
