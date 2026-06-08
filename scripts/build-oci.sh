@@ -62,4 +62,16 @@ docker build \
 
 echo ">> built $IMAGE"
 [ "${PUSH:-0}" = "1" ] && { echo ">> docker push $IMAGE"; docker push "$IMAGE"; }
+
+# Dev / air-gapped: with no registry to pull from, load the image straight into
+# containerd's namespace so the manager's GetImage finds it (it pulls from
+# Docker Hub otherwise → "pull access denied"). Tag must match
+# SANDBOX_ROOTFS_IMAGE; the manager defaults to docker.io/library/<IMAGE>.
+if [ "${IMPORT:-0}" = "1" ]; then
+    NS="${CONTAINERD_NAMESPACE:-default}"
+    REF="docker.io/library/$IMAGE"
+    echo ">> importing $REF into containerd ns=$NS (needs root)"
+    docker save "$REF" | sudo ctr -n "$NS" images import -
+    echo ">> imported. The manager unpacks it into devmapper on first create."
+fi
 echo "done."

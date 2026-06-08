@@ -34,11 +34,15 @@ guest kernel, so there's nothing else to build. The image bundles the toolset
 (jq, rg, fd, gh, vault, bun, …), the tfa-* catalog CLIs, and the bridge.
 
 ```sh
-scripts/build-oci.sh                                   # -> sandbox-rootfs:dev
+IMPORT=1 scripts/build-oci.sh                          # -> sandbox-rootfs:dev, loaded into containerd
 IMAGE=registry/foo/sandbox-rootfs:v1 PUSH=1 scripts/build-oci.sh
 ```
 
-Point the service at it with `SANDBOX_ROOTFS_IMAGE`.
+In dev there's no registry, so the manager can't pull `sandbox-rootfs:dev`
+(it would hit Docker Hub → "pull access denied"). `IMPORT=1` loads the freshly
+built image straight into containerd's namespace, which is where the manager
+looks. For prod, `PUSH=1` to a registry and point the service at it with
+`SANDBOX_ROOTFS_IMAGE`.
 
 ## Prereqs (host)
 
@@ -48,6 +52,7 @@ On a fresh machine, run these once (both idempotent):
 sudo ./scripts/spike-kata-fc.sh   # Kata + Firecracker, CNI, devmapper pool,
                                   # registers io.containerd.kata-fc.v2
 ./scripts/setup-host.sh           # NOPASSWD sudoers rule + /data/user-homes
+IMPORT=1 ./scripts/build-oci.sh   # build sandbox-rootfs:dev + load into containerd
 ```
 
 `setup-host.sh` is what makes the box reproducible: the service must run as

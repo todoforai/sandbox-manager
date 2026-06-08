@@ -181,6 +181,18 @@ echo "kata fc config: $KATA_FC_CFG"
 log "4. Patch $CONTAINERD_CFG (backup -> ${CONTAINERD_CFG}.spike-bak)"
 [ -f "${CONTAINERD_CFG}.spike-bak" ] || cp "$CONTAINERD_CFG" "${CONTAINERD_CFG}.spike-bak"
 
+# containerd 1.x defaults to the legacy v1 config schema, under which the
+# [plugins.'io.containerd...'] blocks below are silently ignored ("devmapper
+# not configured"). Force schema v2 so they're honored. Under v2,
+# disabled_plugins must use full URIs, so a bare ["cri"] (the stock Ubuntu
+# default) fails to parse — normalize it to [] (kata-fc is registered under
+# CRI anyway; the manager drives containerd directly, so enabling CRI is inert).
+if ! grep -q "^version" "$CONTAINERD_CFG"; then
+    sed -i '1i version = 2' "$CONTAINERD_CFG"
+    echo "set containerd config version = 2"
+fi
+sed -i 's/^disabled_plugins = \["cri"\]/disabled_plugins = []/' "$CONTAINERD_CFG"
+
 # Append our blocks only if absent. We keep it additive + idempotent so a
 # re-run never duplicates. (TOML append is crude but safe for a spike; the
 # Go service will own a clean generated config later.)
@@ -211,8 +223,15 @@ systemctl restart containerd
 sleep 2
 ctr version >/dev/null || die "containerd not responding after restart"
 echo "containerd back up"
-# Confirm the devmapper snapshotter actually loaded (commonest failure point).
-ctr plugin ls 2>/dev/null | grep -i devmapper || echo "WARN: devmapper plugin not listed — check 'ctr plugin ls' for error"
+# Confirm the devmapper snapshotter actually LOADED (commonest failure point).
+# `ctr plugins ls` lists it as ok/skip/error; "skip" means containerd ignored
+# our config (e.g. missing version = 2). Fail hard — a skipped snapshotter
+# means every sandbox create later dies with "snapshotter not loaded".
+if ! ctr plugins ls 2>/dev/null | grep -E 'devmapper\s+linux/amd64\s+ok' >/dev/null; then
+    ctr plugins ls 2>/dev/null | grep -i devmapper || true
+    die "devmapper snapshotter did not load (status != ok) — check containerd config version/$CONTAINERD_CFG"
+fi
+echo "devmapper snapshotter: ok"
 
 # ===========================================================================
 # 5. THE PROOF — boot a Firecracker microVM via Kata, with CNI + home.img
