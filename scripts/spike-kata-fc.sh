@@ -183,15 +183,22 @@ log "4. Patch $CONTAINERD_CFG (backup -> ${CONTAINERD_CFG}.spike-bak)"
 
 # containerd 1.x defaults to the legacy v1 config schema, under which the
 # [plugins.'io.containerd...'] blocks below are silently ignored ("devmapper
-# not configured"). Force schema v2 so they're honored. Under v2,
-# disabled_plugins must use full URIs, so a bare ["cri"] (the stock Ubuntu
-# default) fails to parse — normalize it to [] (kata-fc is registered under
-# CRI anyway; the manager drives containerd directly, so enabling CRI is inert).
-if ! grep -q "^version" "$CONTAINERD_CFG"; then
-    sed -i '1i version = 2' "$CONTAINERD_CFG"
-    echo "set containerd config version = 2"
+# not configured"). Force schema v2 on 1.x so they're honored. containerd 2.x
+# uses schema v3 (honors plugins by default), so leave its config alone — never
+# downgrade it to v2. Under v2, disabled_plugins must use full URIs, so a bare
+# ["cri"] (the stock Ubuntu default) fails to parse — normalize it to []
+# (kata-fc is registered under CRI; the manager drives containerd directly, so
+# enabling CRI is inert).
+CTRD_MAJOR="$(containerd --version 2>/dev/null | grep -oE 'v[0-9]+' | head -1 | tr -d v)"
+if [ "${CTRD_MAJOR:-1}" -lt 2 ]; then
+    if grep -qE '^version *=' "$CONTAINERD_CFG"; then
+        sed -i 's/^version *=.*/version = 2/' "$CONTAINERD_CFG"   # fix an explicit v1
+    else
+        sed -i '1i version = 2' "$CONTAINERD_CFG"
+    fi
+    echo "set containerd config version = 2 (containerd ${CTRD_MAJOR}.x)"
+    sed -i 's/^disabled_plugins = \["cri"\]/disabled_plugins = []/' "$CONTAINERD_CFG"
 fi
-sed -i 's/^disabled_plugins = \["cri"\]/disabled_plugins = []/' "$CONTAINERD_CFG"
 
 # Append our blocks only if absent. We keep it additive + idempotent so a
 # re-run never duplicates. (TOML append is crude but safe for a spike; the

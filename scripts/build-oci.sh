@@ -65,11 +65,15 @@ echo ">> built $IMAGE"
 
 # Dev / air-gapped: with no registry to pull from, load the image straight into
 # containerd's namespace so the manager's GetImage finds it (it pulls from
-# Docker Hub otherwise → "pull access denied"). Tag must match
-# SANDBOX_ROOTFS_IMAGE; the manager defaults to docker.io/library/<IMAGE>.
+# Docker Hub otherwise → "pull access denied"). The imported ref + namespace
+# MUST match the manager's SANDBOX_ROOTFS_IMAGE + CONTAINERD_NAMESPACE — for a
+# bare IMAGE like sandbox-rootfs:dev, docker tags it docker.io/library/<IMAGE>,
+# which is what .env.development's SANDBOX_ROOTFS_IMAGE points at. The NS
+# default here mirrors .env.development (default), NOT the manager's built-in
+# default (sandbox); override CONTAINERD_NAMESPACE if your env differs.
 if [ "${IMPORT:-0}" = "1" ]; then
     NS="${CONTAINERD_NAMESPACE:-default}"
-    REF="docker.io/library/$IMAGE"
+    case "$IMAGE" in */*) REF="$IMAGE" ;; *) REF="docker.io/library/$IMAGE" ;; esac
     echo ">> importing $REF into containerd ns=$NS (needs root)"
     docker save "$REF" | sudo ctr -n "$NS" images import -
     echo ">> imported. The manager unpacks it into devmapper on first create."

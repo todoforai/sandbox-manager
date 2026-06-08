@@ -31,7 +31,7 @@ REPO="git@github.com:todoforai/sandbox-manager.git"
 BRANCH="prod"
 KEEP_RELEASES=5
 PORT=8200
-GO_VERSION="1.26.4"   # keep >= go.mod's toolchain
+GO_VERSION="1.25.6"   # keep >= go.mod's toolchain
 RESTART_CMD='NODE_ENV=production pm2 startOrReload ecosystem.config.js --env production && pm2 save --force'
 
 # Host prerequisites the running service needs. The deploy aborts if any are
