@@ -61,10 +61,18 @@ fi
 log "1. devmapper thin-pool ($POOL_NAME)"
 mkdir -p "$DM_DIR"
 if dmsetup info "$POOL_NAME" &>/dev/null; then
-    echo "pool $POOL_NAME already exists, skipping"
+    # Existing pool is NOT resized — if it was created at the old 50G default it
+    # still caps at ~25 VMs. Surface the backing size so an undersized pool from
+    # a prior run is visible instead of silently limiting scale.
+    EXISTING_GB=$(( $(stat -c%s "$DM_DIR/data.img" 2>/dev/null || echo 0) / 1073741824 ))
+    echo "pool $POOL_NAME already exists (data.img ~${EXISTING_GB}G), skipping create"
+    [ "$EXISTING_GB" -lt 200 ] && echo "  WARN: existing pool is small (~${EXISTING_GB}G ≈ $((EXISTING_GB/2)) VMs) — recreate it for more capacity (dmsetup remove $POOL_NAME, delete $DM_DIR/data.img, rerun)"
 else
-    DATA_SIZE_GB=50
-    META_SIZE_MB=128
+    # rootfs snapshots live here (~2GB each, thin/sparse). 50G capped us at
+    # ~25 VMs; size the pool for the target VM count. Override via env for a
+    # real NVMe-backed deployment (DATA_SIZE_GB=2000 etc).
+    DATA_SIZE_GB="${DATA_SIZE_GB:-1000}"
+    META_SIZE_MB="${META_SIZE_MB:-1024}"
     [ -f "$DM_DIR/data.img" ] || truncate -s "${DATA_SIZE_GB}G" "$DM_DIR/data.img"
     [ -f "$DM_DIR/meta.img" ] || truncate -s "${META_SIZE_MB}M" "$DM_DIR/meta.img"
     DATA_LOOP=$(losetup --find --show "$DM_DIR/data.img")
@@ -159,6 +167,13 @@ ln -sf "$KATA_DIR/bin/containerd-shim-kata-v2" /usr/local/bin/containerd-shim-ka
 KATA_FC_CFG="$KATA_DIR/share/defaults/kata-containers/configuration-fc.toml"
 [ -f "$KATA_FC_CFG" ] || die "kata fc config not found at $KATA_FC_CFG (tarball layout changed?)"
 echo "kata fc config: $KATA_FC_CFG"
+# NOTE: memory elasticity for idle VMs (virtio-balloon / virtio-mem / free-page
+# reporting) is NOT available on this Kata-fc path — Kata 3.10.1 exposes
+# enable_virtio_mem only under [hypervisor.qemu], and the Firecracker config has
+# no balloon/reclaim keys. Reclaiming RAM from idle running VMs therefore needs
+# the direct-Firecracker controller (snapshot/restore), tracked in
+# backend/docs/VM_OPTIMIZATION_PLAN.md. Do not add balloon keys here — they are
+# silently ignored by the fc hypervisor and give a false sense of elasticity.
 
 # ===========================================================================
 # 4. Register devmapper snapshotter + kata-fc runtime in containerd

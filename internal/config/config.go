@@ -67,9 +67,9 @@ type Config struct {
 	CNIBinDir  string // default /opt/cni/bin
 	CNIConfDir string // default /etc/cni/net.d
 
-	// Per-user persistent home (home.img lives at <UserHomesDir>/<userId>/home.img)
-	UserHomesDir    string
-	UserDiskSizeMiB uint64 // ceiling for a freshly-created home.img
+	// Per-user persistent home (home.img lives at <UserHomesDir>/<userId>/home.img).
+	// The per-tier disk ceiling lives in service.diskSizeMiBForTier.
+	UserHomesDir string
 }
 
 func env(key, def string) string {
@@ -100,7 +100,6 @@ func Load() (*Config, error) {
 		CNIBinDir:        env("CNI_BIN_DIR", "/opt/cni/bin"),
 		CNIConfDir:       env("CNI_CONF_DIR", "/etc/cni/net.d"),
 		UserHomesDir:     env("USER_HOMES_DIR", "/data/user-homes"),
-		UserDiskSizeMiB:  20 * 1024,
 	}
 	for k, v := range map[string]string{
 		"DRAGONFLY_URL":         c.DragonflyURL,

@@ -75,7 +75,7 @@ func (s *Service) Create(ctx context.Context, id store.Identity, template, size 
 	}
 	release := func() { s.store.ReleaseUserSlot(ctx, id.UserID, sid) }
 
-	homeImg, err := s.homes.EnsureDisk(id.UserID, s.cfg.UserDiskSizeMiB)
+	homeImg, err := s.homes.EnsureDisk(id.UserID, diskSizeMiBForTier(size))
 	if err != nil {
 		release()
 		return nil, fmt.Errorf("ensure home disk: %w", err)
@@ -321,6 +321,24 @@ func costPerMinute(size string) float64 {
 		return 0.02
 	default:
 		return 0.005
+	}
+}
+
+// VM tier persistent-home size (MiB). The home.img is sparse, so this is a
+// ceiling/quota — a fresh disk costs ~nothing on host storage until filled.
+// Never shrinks an existing disk (EnsureDisk leaves an existing image as-is).
+func diskSizeMiBForTier(size string) uint64 {
+	switch size {
+	case "small":
+		return 500
+	case "medium":
+		return 2 * 1024
+	case "large":
+		return 8 * 1024
+	case "xlarge":
+		return 20 * 1024
+	default:
+		return 2 * 1024
 	}
 }
 

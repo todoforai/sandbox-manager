@@ -62,8 +62,33 @@ chown "$RUN_USER:$RUN_USER" "$DATA_DIR" "$USER_HOMES_DIR" 2>/dev/null || \
     chown "$RUN_USER:$RUN_USER" "$USER_HOMES_DIR"
 ok "ready"
 
-# 3. verify heavy prerequisites (installed by spike-kata-fc.sh) ---------------
-log "3. checking host prerequisites"
+# 3. raise the loop-device ceiling -------------------------------------------
+# Each running VM pins one loop device for its home.img (vm.homeDisk.Attach).
+# The kernel default (8) hard-caps concurrent VMs at ~8. Raise it to 4096 so
+# the manager can run thousands. `loop` may be built-in (no module param to
+# set) — in that case the boot-time max_loop= cmdline governs; we set the
+# modprobe option for the module case and surface the current ceiling.
+log "3. loop-device ceiling (one per running VM)"
+echo "options loop max_loop=4096" > /etc/modprobe.d/sandbox-loop.conf
+ok "persisted /etc/modprobe.d/sandbox-loop.conf (max_loop=4096)"
+if modprobe -r loop 2>/dev/null && modprobe loop max_loop=4096 2>/dev/null; then
+    ok "reloaded loop module with max_loop=4096"
+else
+    warn "could not reload loop module (in use or built-in) — if built-in, add 'max_loop=4096' to the kernel cmdline and reboot"
+fi
+# Surface the EFFECTIVE ceiling — the modprobe.d file only takes effect on a
+# fresh module load, so an already-loaded/built-in loop driver may still be low.
+# Each running VM pins one loop device (plus 2 for the devmapper backing files),
+# so a low value here is a hard cap on concurrent VMs.
+CUR_MAX_LOOP="$(cat /sys/module/loop/parameters/max_loop 2>/dev/null || echo 0)"
+if [ "$CUR_MAX_LOOP" -ge 4096 ] 2>/dev/null; then
+    ok "effective max_loop=$CUR_MAX_LOOP"
+else
+    warn "effective max_loop=$CUR_MAX_LOOP (< 4096) — concurrent VMs are capped at ~this many; reboot or set kernel cmdline 'max_loop=4096' to apply"
+fi
+
+# 4. verify heavy prerequisites (installed by spike-kata-fc.sh) ---------------
+log "4. checking host prerequisites"
 [ -e /dev/kvm ] && ok "/dev/kvm present" || warn "/dev/kvm missing — KVM required for Firecracker"
 [ -S /run/containerd/containerd.sock ] && ok "containerd socket present" \
     || warn "containerd socket missing — run scripts/spike-kata-fc.sh"
