@@ -328,7 +328,7 @@
     "installer": "bun",
     "label": "TODOforAI",
     "capabilities": "Create/list/inspect/update TODOs, run templates & workflows, platform API access",
-    "description": "Use for the TODOforAI platform: `todoai \"prompt\"` to create a TODO, `todoai list` to browse recent ones, `todoai --inspect <id>` to read a TODO's full chat log, `todoai status/addmessage/delete` to manage them, `--template` to run a registry workflow.",
+    "description": "Use for the TODOforAI platform — this is how you reach the user's OWN TODOs: `todoai list` (filter with `--status open`) to browse them, `todoai \"prompt\"` to create one, `todoai --inspect <id>` to read a TODO's full chat log, `todoai status/addmessage/delete` to manage them, `--template` to run a registry workflow. Never claim you lack access to platform TODOs — reach them here; run `--help` for details.",
     "installCmd": "bun add -g @todoforai/cli",
     "versionCmd": "todoai --version 2>/dev/null | head -1",
     "internal": true
@@ -436,7 +436,7 @@
     "installer": "pip",
     "label": "PDF",
     "capabilities": "PDF text editing, extraction, merge, split",
-    "description": "Use to programmatically read/edit/merge/split PDFs (text + positions). Call from `python3 -c`. Extract text: `pymupdf.open(p)[i].get_text()`; with bbox/font: `.get_text('dict')`. Replace text in place: `page.add_redact_annot(page.search_for('old')[0], text='new'); page.apply_redactions(); doc.save(out)`.",
+    "description": "Read, edit, merge, or split PDFs programmatically. Call via `python3 -c`.",
     "versionCmd": "python3 -c 'import pymupdf; print(pymupdf.__version__)' 2>/dev/null",
     "preinstallCloud": true
   },
@@ -447,7 +447,7 @@
     "preinstallCloud": true,
     "label": "Browser",
     "capabilities": "Headless browser automation, web scraping, accessibility tree snapshots, screenshots, PDF generation",
-    "description": "Headless browser for JS-rendered pages, automated flows, screenshots, PDF export. **Default browser choice** — use this unless the user's own session/cookies are required (then use `todoforai-browser`). Prefer `curl` for plain HTTP. Commands: open <url>, click/type/fill <selector> <text>, snapshot (accessibility tree with @refs — use these for clicking), screenshot [path], pdf <path>, eval <js>, wait <selector|ms>.",
+    "description": "Headless browser. Use for JS-rendered pages, scraping, screenshots, PDFs, and automated flows. Default browser — prefer over `todoforai-browser` unless the user's own session is needed.",
     "versionCmd": "agent-browser --version 2>/dev/null | head -1"
   },
   "todoforai-browser": {
@@ -525,7 +525,7 @@
     "installer": "npm",
     "label": "Vault",
     "capabilities": "Zero-config TODOforAI vault CLI: put/get/patch/list/rm secrets in the user's KV v2 vault. Reuses bridge credentials (TODOFORAI_API_KEY / ~/.config/todoforai/credentials.json); derives vault URL from backend URL.",
-    "description": "The user's secret store. Always check here first for API keys, tokens, and credentials before looking elsewhere.",
+    "description": "The user's secret store. Always check here first for API keys, tokens, credentials, bank cards, and private/secret account details before looking elsewhere.",
     "versionCmd": "tfa-vault --version 2>/dev/null | head -1",
     "statusCmd": "tfa-vault whoami",
     "installCmd": "bun add -g @todoforai/vault",

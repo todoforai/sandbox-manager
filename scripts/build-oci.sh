@@ -20,6 +20,15 @@ ASSETS_DIR="$ROOT/assets"
 IMAGE="${IMAGE:-sandbox-rootfs:dev}"
 TOOL_CATALOG_JSON="${TOOL_CATALOG_JSON:-$ASSETS_DIR/tool_catalog.json}"
 
+# Drift guard: when the monorepo source is present (dev), the vendored copy must
+# match it — otherwise we'd build a stale catalog. No-op in the standalone prod
+# clone, where the source is absent (that's the whole point of vendoring).
+CATALOG_SRC="$(dirname "$ROOT")/packages/shared-fbe/src/tool_catalog.json"
+if [ -f "$CATALOG_SRC" ] && ! diff -q "$CATALOG_SRC" "$TOOL_CATALOG_JSON" >/dev/null 2>&1; then
+    echo "ERROR: assets/tool_catalog.json is stale — run scripts/sync-vendor.sh catalog and commit." >&2
+    exit 1
+fi
+
 # --- bridge binary: reuse sync-vendor.sh's resolution (build or pinned release).
 echo ">> resolving bridge binary..."
 BRIDGE_BIN="${BRIDGE_BIN:-$("$SCRIPT_DIR/sync-vendor.sh" bridge)}"
