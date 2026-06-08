@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"syscall"
 	"time"
 
 	"github.com/todoforai/sandbox-manager/internal/backend"
@@ -21,9 +22,14 @@ var (
 	ErrAnonymous = errors.New("anonymous users cannot create VM sandboxes")
 	ErrNotFound  = errors.New("sandbox not found")
 	ErrForbidden = errors.New("forbidden")
+	ErrDiskFull  = errors.New("host disk capacity reached")
 )
 
 const enrollTTLSec = 300
+
+// maxDiskPercent is the data-filesystem usage at/above which Create is refused,
+// leaving headroom so the host never fills (which corrupts home.img writes).
+const maxDiskPercent = 90
 
 // Service is the transport-agnostic business logic: auth/quota decisions,
 // then delegate VM lifecycle to vm.Manager and persistence to store.Store.
@@ -45,6 +51,16 @@ func New(cfg *config.Config, st *store.Store, mgr *vm.Manager, homes *userhome.S
 func (s *Service) Create(ctx context.Context, id store.Identity, template, size string) (*store.Sandbox, error) {
 	if id.IsAnonymous {
 		return nil, ErrAnonymous
+	}
+	// Refuse new VMs once the data filesystem is ≥90% full, so provisioning
+	// stops before the host fills (a full disk corrupts in-flight home.img
+	// writes and wedges every VM). Fail closed — a safety cap that can't read
+	// the disk shouldn't wave creates through. Checked before reserving the
+	// slot so a rejected create leaves no state behind.
+	if used, err := diskUsagePercent(s.cfg.UserHomesDir); err != nil {
+		return nil, fmt.Errorf("%w: %v", ErrDiskFull, err)
+	} else if used >= maxDiskPercent {
+		return nil, fmt.Errorf("%w: %d%% used", ErrDiskFull, used)
 	}
 	if size == "" {
 		size = "medium"
@@ -376,4 +392,21 @@ func newID() string {
 	b := make([]byte, 16)
 	rand.Read(b)
 	return hex.EncodeToString(b)
+}
+
+// diskUsagePercent returns the used percentage (0–100) of the filesystem
+// containing path, rounded up so we trip the cap a hair early rather than late.
+// Uses available-to-unprivileged blocks (Bavail) for "free" — matching what df
+// reports and what actually constrains writes once reserved blocks kick in.
+func diskUsagePercent(path string) (int, error) {
+	var st syscall.Statfs_t
+	if err := syscall.Statfs(path, &st); err != nil {
+		return 0, err
+	}
+	total := st.Blocks
+	if total == 0 {
+		return 0, fmt.Errorf("statfs reported zero blocks for %s", path)
+	}
+	used := st.Blocks - st.Bavail
+	return int((used*100 + total - 1) / total), nil
 }

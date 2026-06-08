@@ -204,6 +204,8 @@ func writeServiceErr(w http.ResponseWriter, err error) {
 		httpErr(w, http.StatusForbidden, err.Error())
 	case errors.Is(err, service.ErrQuota), errors.Is(err, service.ErrAnonymous):
 		httpErr(w, http.StatusConflict, err.Error())
+	case errors.Is(err, service.ErrDiskFull):
+		httpErr(w, http.StatusServiceUnavailable, err.Error())
 	default:
 		httpErr(w, http.StatusInternalServerError, err.Error())
 	}
