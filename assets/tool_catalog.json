@@ -533,7 +533,6 @@
     "description": "Explore a codebase with a read-only sub-agent. Streams findings live.",
     "versionCmd": "tfa-explore --version 2>/dev/null | head -1",
     "installCmd": "bun add -g @todoforai/tfa-explore",
-    "preinstall": true,
     "preinstallCloud": true,
     "internal": true
   },
@@ -546,7 +545,6 @@
     "description": "Review a git diff with a read-only sub-agent.",
     "versionCmd": "tfa-review --version 2>/dev/null | head -1",
     "installCmd": "bun add -g @todoforai/tfa-review",
-    "preinstall": true,
     "preinstallCloud": true,
     "internal": true
   },
@@ -571,7 +569,6 @@
     "versionCmd": "tfa-vault --version 2>/dev/null | head -1",
     "statusCmd": "tfa-vault whoami",
     "installCmd": "bun add -g @todoforai/vault",
-    "preinstall": true,
     "preinstallCloud": true
   },
   "ripgrep": {
