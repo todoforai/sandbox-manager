@@ -17,11 +17,15 @@
 # wins. With no token (e.g. a plain reboot) we keep saved creds and reconnect.
 set -eu
 
+# NOTE: on success `login` falls through INTO the daemon (it does not return),
+# so the exec below only runs on the no-token path or after a login failure.
+# Both invocations therefore need the log redirect (see comment at exec).
 if [ -n "${ENROLL_TOKEN:-}" ]; then
     /usr/local/bin/todoforai-bridge logout >/dev/null 2>&1 || true
     /usr/local/bin/todoforai-bridge login \
         ${DEVICE_NAME:+--device-name "$DEVICE_NAME"} \
         --token "$ENROLL_TOKEN" \
+        >>/var/log/todoforai-bridge.log 2>&1 \
         || echo "enroll: login --token failed (continuing; daemon may start without creds)" >&2
 fi
 
