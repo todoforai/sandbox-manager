@@ -64,19 +64,19 @@
     "versionCmd": "mudslide --version 2>/dev/null | head -1"
   },
   "slack": {
-    "category": "messaging",
+    "category": "development",
     "pkg": "slack-cli",
     "installer": "binary",
     "label": "Slack",
-    "statusCmd": "slack auth list 2>&1 | grep -q 'Team' && echo authenticated",
-    "loginCmd": "slack login",
+    "statusCmd": "slack-cli auth list 2>&1 | grep -q 'Team' && echo authenticated",
+    "loginCmd": "slack-cli login",
     "credentialPaths": [
       "~/.slack/credentials.json"
     ],
     "capabilities": "Build & deploy Slack apps, manage workspaces & triggers, run datastore queries, tail logs — official Slack CLI.",
-    "description": "Use for Slack platform development: scaffold/run/deploy Slack apps, manage triggers and datastores, manage workspace auth. `slack login` to authenticate.",
-    "versionCmd": "slack version 2>/dev/null | head -1",
-    "binName": "slack",
+    "description": "Use for Slack platform development: scaffold/run/deploy Slack apps, manage triggers and datastores, manage workspace auth. `slack-cli login` to authenticate. Invoked as `slack-cli` to avoid colliding with the Slack desktop app's `slack` binary.",
+    "versionCmd": "slack-cli version 2>/dev/null | head -1",
+    "binName": "slack-cli",
     "binary": {
       "linux-x86_64": {
         "url": "https://github.com/slackapi/slack-cli/releases/download/v4.2.0/slack_cli_4.2.0_linux_amd64.tar.gz",
