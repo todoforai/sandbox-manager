@@ -18,10 +18,10 @@ import (
 
 	runtimeoptions "github.com/containerd/containerd/api/types/runtimeoptions/v1"
 	containerd "github.com/containerd/containerd/v2/client"
-	"github.com/containerd/errdefs"
 	"github.com/containerd/containerd/v2/pkg/cio"
 	"github.com/containerd/containerd/v2/pkg/namespaces"
 	"github.com/containerd/containerd/v2/pkg/oci"
+	"github.com/containerd/errdefs"
 	gocni "github.com/containerd/go-cni"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
 

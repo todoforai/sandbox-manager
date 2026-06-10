@@ -96,6 +96,40 @@ deploy() {
         echo "Updating current symlink..."
         ln -sfn "$REL_DIR" "$DEPLOY_PATH/current"
 
+        # Boot-time devmapper thin-pool restore: loop attachments + the dm
+        # target don't survive reboot, so containerd's devmapper plugin fails
+        # to load and the first createSandbox 500s. Install/refresh the oneshot
+        # unit on every deploy so a host is never left without it (mirrors
+        # scripts/setup-host.sh for the dev box). ExecStart goes through the
+        # 'current' symlink so release rotation can't orphan the script path.
+        echo "Installing sandbox-pool.service (boot-time thin-pool restore)..."
+        chmod +x "$REL_DIR/scripts/sandbox-pool-up.sh"
+        cat > /etc/systemd/system/sandbox-pool.service <<UNIT
+# Managed by sandbox-manager/deploy.sh — do not edit by hand.
+[Unit]
+Description=Restore devmapper sandbox-pool (loopback thin-pool) before containerd
+DefaultDependencies=no
+After=local-fs.target systemd-udev-settle.service
+Before=containerd.service
+RequiresMountsFor=/data/devmapper
+ConditionPathExists=/data/devmapper/data.img
+ConditionPathExists=/data/devmapper/meta.img
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=$DEPLOY_PATH/current/scripts/sandbox-pool-up.sh
+
+[Install]
+# RequiredBy (not WantedBy): a failed restore blocks containerd instead of
+# letting it start with a broken devmapper snapshotter.
+RequiredBy=containerd.service
+UNIT
+        systemctl daemon-reload
+        systemctl enable sandbox-pool.service >/dev/null 2>&1 \
+            && echo "✅ sandbox-pool.service enabled" \
+            || echo "⚠️  could not enable sandbox-pool.service"
+
         echo "Reloading sandbox-manager under pm2..."
         cd "$DEPLOY_PATH/current"
         # One-shot migration off the Rust blue/green instances. The Go
