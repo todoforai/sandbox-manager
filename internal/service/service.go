@@ -66,7 +66,10 @@ func (s *Service) Create(ctx context.Context, id store.Identity, template, size 
 		size = "medium"
 	}
 	sid := newID()
-	deviceName := "vm-" + sid[:8]
+	// `vm_` (not `vm-`): the device name doubles as a tool-call alias suffix
+	// (`bash_<name>`) backend-side, so `_` keeps the displayed name identical
+	// to the alias.
+	deviceName := "vm_" + sid[:8]
 
 	// Atomic one-per-user gate. If the user already holds the slot, reject
 	// before doing any expensive work. Released on every failure path below

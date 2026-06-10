@@ -104,7 +104,7 @@ type Spec struct {
 	Size        string // stamped as a container label
 	EnrollToken string // injected as ENROLL_TOKEN env — bridge redeems it
 	HomeImg     string // host path to the user's home.img (attached as /root)
-	DeviceName  string // friendly bridge device name (vm-<id8>)
+	DeviceName  string // friendly bridge device name (vm_<id8>)
 }
 
 // Created reports the live network address of a started microVM.
