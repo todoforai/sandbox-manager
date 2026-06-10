@@ -26,4 +26,11 @@ if [ -n "${ENROLL_TOKEN:-}" ]; then
 fi
 
 # Hand off to the daemon (no subcommand → loads saved creds and connects).
-exec /usr/local/bin/todoforai-bridge
+#
+# Output MUST be redirected: the manager creates this task with cio.NullIO, so
+# the container's stdout/stderr pipes have no reader. After ~64KB of daemon
+# logs the pipe buffer fills and the bridge blocks forever in pipe_write —
+# device goes "offline" while the VM looks healthy (live-debugged on prod).
+# A guest-local log file both avoids the deadlock and keeps logs inspectable
+# via exec.
+exec /usr/local/bin/todoforai-bridge >>/var/log/todoforai-bridge.log 2>&1
