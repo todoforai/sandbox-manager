@@ -87,8 +87,49 @@ else
     warn "effective max_loop=$CUR_MAX_LOOP (< 4096) — concurrent VMs are capped at ~this many; reboot or set kernel cmdline 'max_loop=4096' to apply"
 fi
 
-# 4. verify heavy prerequisites (installed by spike-kata-fc.sh) ---------------
-log "4. checking host prerequisites"
+# 4. boot-time thin-pool restore unit ----------------------------------------
+# The loopback thin-pool's kernel state (loop attachments + dm target) does not
+# survive reboot, so containerd's devmapper plugin fails to load and the first
+# createSandbox 500s. This oneshot re-attaches the pool BEFORE containerd starts.
+POOL_UNIT="/etc/systemd/system/sandbox-pool.service"
+log "4. boot-time pool restore -> $POOL_UNIT"
+cat > "$POOL_UNIT" <<EOF
+# Managed by sandbox-manager/scripts/setup-host.sh — do not edit by hand.
+[Unit]
+Description=Restore devmapper sandbox-pool (loopback thin-pool) before containerd
+DefaultDependencies=no
+After=local-fs.target systemd-udev-settle.service
+Before=containerd.service
+# RequiresMountsFor pulls in (and orders after) whatever mount backs /data, so
+# this still works when /data is a separate/late/nofail mount — local-fs.target
+# alone wouldn't guarantee it. ConditionPathExists keeps it a no-op if the pool
+# was never provisioned.
+RequiresMountsFor=$DATA_DIR/devmapper
+ConditionPathExists=$DATA_DIR/devmapper/data.img
+ConditionPathExists=$DATA_DIR/devmapper/meta.img
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=$REPO_DIR/scripts/sandbox-pool-up.sh
+
+[Install]
+# RequiredBy (not WantedBy): make containerd HARD-depend on the pool restore.
+# WantedBy=/Before= alone would let containerd start anyway if restore fails,
+# leaving the exact "devmapper not loaded" bug. RequiredBy means a failed
+# restore blocks containerd, so the failure is loud and at the right layer
+# instead of surfacing as a 500 on the first createSandbox. Also covers a
+# manual 'systemctl restart containerd' (plain Before= would not pull us in).
+RequiredBy=containerd.service
+EOF
+chmod 0644 "$POOL_UNIT"
+chmod +x "$REPO_DIR/scripts/sandbox-pool-up.sh"
+systemctl daemon-reload
+systemctl enable sandbox-pool.service >/dev/null 2>&1 && ok "enabled (runs before containerd, incl. manual restart)" \
+    || warn "could not enable sandbox-pool.service"
+
+# 5. verify heavy prerequisites (installed by spike-kata-fc.sh) ---------------
+log "5. checking host prerequisites"
 [ -e /dev/kvm ] && ok "/dev/kvm present" || warn "/dev/kvm missing — KVM required for Firecracker"
 [ -S /run/containerd/containerd.sock ] && ok "containerd socket present" \
     || warn "containerd socket missing — run scripts/spike-kata-fc.sh"

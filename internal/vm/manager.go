@@ -18,6 +18,7 @@ import (
 
 	runtimeoptions "github.com/containerd/containerd/api/types/runtimeoptions/v1"
 	containerd "github.com/containerd/containerd/v2/client"
+	"github.com/containerd/errdefs"
 	"github.com/containerd/containerd/v2/pkg/cio"
 	"github.com/containerd/containerd/v2/pkg/namespaces"
 	"github.com/containerd/containerd/v2/pkg/oci"
@@ -47,7 +48,45 @@ func NewManager(cfg *config.Config) (*Manager, error) {
 		return nil, fmt.Errorf("cni init: %w", err)
 	}
 	home := newHomeDisk(cfg.KataRuntimeBin, "/run/sandbox-manager/home-volumes")
-	return &Manager{client: client, cfg: cfg, net: net, home: home}, nil
+	m := &Manager{client: client, cfg: cfg, net: net, home: home}
+	// Fail loud at startup if the rootfs snapshotter isn't loaded, instead of
+	// serving HTTP "healthy" and 500ing on the first createSandbox. The usual
+	// cause is the loopback devmapper thin-pool missing after a reboot — see
+	// scripts/sandbox-pool-up.sh (the boot-time restore unit). Retry briefly so
+	// a manager started a hair before containerd finished loading its plugins
+	// (PM2 has no ordering guarantee vs containerd) waits it out instead of
+	// crash-looping on a transient.
+	var lastErr error
+	for i := 0; i < 10; i++ {
+		if lastErr = m.checkSnapshotter(context.Background()); lastErr == nil {
+			break
+		}
+		if i < 9 {
+			time.Sleep(time.Second)
+		}
+	}
+	if lastErr != nil {
+		return nil, lastErr
+	}
+	return m, nil
+}
+
+// checkSnapshotter probes the configured snapshotter so a broken one surfaces
+// at boot. A *loaded* snapshotter returns NotFound for the empty key — that's
+// the one success case. Any other error (snapshotter not loaded, socket down,
+// permission denied, namespace issues) is fatal: better a crash-loop that names
+// the cause than a "healthy" process that 500s on the first createSandbox. The
+// usual culprit is the devmapper thin-pool missing after a reboot.
+func (m *Manager) checkSnapshotter(ctx context.Context) error {
+	_, err := m.client.SnapshotService(m.cfg.Snapshotter).Stat(m.ctx(ctx), "")
+	if err == nil || errdefs.IsNotFound(err) {
+		return nil
+	}
+	hint := ""
+	if strings.Contains(err.Error(), "snapshotter not loaded") {
+		hint = " — devmapper thin-pool likely missing after reboot; run scripts/sandbox-pool-up.sh and restart containerd"
+	}
+	return fmt.Errorf("snapshotter %q unavailable: %w%s", m.cfg.Snapshotter, err, hint)
 }
 
 func (m *Manager) Close() error { return m.client.Close() }
