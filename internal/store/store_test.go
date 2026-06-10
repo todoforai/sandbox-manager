@@ -33,7 +33,9 @@ func TestSandboxWireFormat(t *testing.T) {
 		t.Fatal(err)
 	}
 	var m map[string]any
-	json.Unmarshal(js, &m)
+	if err := json.Unmarshal(js, &m); err != nil {
+		t.Fatal(err)
+	}
 	for _, key := range []string{
 		"id", "user_id", "template", "size", "kind", "state", "ip_address",
 		"cost_per_minute", "error", "device_id", "created_at", "last_activity",

@@ -100,10 +100,12 @@ deploy() {
         # target don't survive reboot, so containerd's devmapper plugin fails
         # to load and the first createSandbox 500s. Install/refresh the oneshot
         # unit on every deploy so a host is never left without it (mirrors
-        # scripts/setup-host.sh for the dev box). ExecStart goes through the
-        # 'current' symlink so release rotation can't orphan the script path.
+        # scripts/setup-host.sh for the dev box). The script is COPIED to a
+        # stable path — pointing ExecStart into a release dir (even via the
+        # 'current' symlink) would brick containerd at boot after a rollback
+        # to a release that predates the script (203/EXEC + RequiredBy).
         echo "Installing sandbox-pool.service (boot-time thin-pool restore)..."
-        chmod +x "$REL_DIR/scripts/sandbox-pool-up.sh"
+        install -m 0755 "$REL_DIR/scripts/sandbox-pool-up.sh" /usr/local/sbin/sandbox-pool-up.sh
         cat > /etc/systemd/system/sandbox-pool.service <<UNIT
 # Managed by sandbox-manager/deploy.sh — do not edit by hand.
 [Unit]
@@ -118,7 +120,7 @@ ConditionPathExists=/data/devmapper/meta.img
 [Service]
 Type=oneshot
 RemainAfterExit=yes
-ExecStart=$DEPLOY_PATH/current/scripts/sandbox-pool-up.sh
+ExecStart=/usr/local/sbin/sandbox-pool-up.sh
 
 [Install]
 # RequiredBy (not WantedBy): a failed restore blocks containerd instead of
@@ -126,9 +128,11 @@ ExecStart=$DEPLOY_PATH/current/scripts/sandbox-pool-up.sh
 RequiredBy=containerd.service
 UNIT
         systemctl daemon-reload
-        systemctl enable sandbox-pool.service >/dev/null 2>&1 \
+        # Fatal: a deploy that leaves the unit unenabled regresses to the
+        # "snapshotter not loaded after reboot" bug this exists to fix.
+        systemctl enable sandbox-pool.service \
             && echo "✅ sandbox-pool.service enabled" \
-            || echo "⚠️  could not enable sandbox-pool.service"
+            || { echo "❌ could not enable sandbox-pool.service"; exit 1; }
 
         echo "Reloading sandbox-manager under pm2..."
         cd "$DEPLOY_PATH/current"
