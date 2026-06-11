@@ -565,7 +565,7 @@
     "installer": "npm",
     "label": "Vault",
     "capabilities": "Zero-config TODOforAI vault CLI: put/get/patch/list/rm secrets in the user's KV v2 vault. Reuses bridge credentials (TODOFORAI_API_KEY / ~/.config/todoforai/credentials.json); derives vault URL from backend URL.",
-    "description": "The user's secret store. Always check here first for API keys, tokens, credentials, bank cards, and private/secret account details before looking elsewhere.",
+    "description": "The user's secret store. Always check here first for API keys, tokens, credentials, bank cards, and private/secret account details before looking elsewhere. Also write here: whenever you obtain, generate, acquire, renew, rotate, or reset any secret (API key, token, stream/access/refresh/OAuth token, password, connection string, private key, recovery code, etc.) and it isn't already saved, store it with `tfa-vault put <path> field=value` (use `patch` to add fields without clobbering). On rotation/reset, overwrite the old value so the vault stays the source of truth. Use a clear namespaced path and descriptive field names; verify with `tfa-vault get <path>` and avoid needlessly reprinting the secret.",
     "versionCmd": "tfa-vault --version 2>/dev/null | head -1",
     "statusCmd": "tfa-vault whoami",
     "installCmd": "bun add -g @todoforai/vault",
