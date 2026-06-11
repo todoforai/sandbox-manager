@@ -17,6 +17,11 @@
 # wins. With no token (e.g. a plain reboot) we keep saved creds and reconnect.
 set -eu
 
+# Guest-local bridge log (see comment at exec). Truncate at boot so it can't
+# grow across restarts; the rootfs snapshot is small and ephemeral.
+BRIDGE_LOG=/var/log/todoforai-bridge.log
+: > "$BRIDGE_LOG"
+
 # NOTE: on success `login` falls through INTO the daemon (it does not return),
 # so the exec below only runs on the no-token path or after a login failure.
 # Both invocations therefore need the log redirect (see comment at exec).
@@ -25,7 +30,7 @@ if [ -n "${ENROLL_TOKEN:-}" ]; then
     /usr/local/bin/todoforai-bridge login \
         ${DEVICE_NAME:+--device-name "$DEVICE_NAME"} \
         --token "$ENROLL_TOKEN" \
-        >>/var/log/todoforai-bridge.log 2>&1 \
+        >>"$BRIDGE_LOG" 2>&1 \
         || echo "enroll: login --token failed (continuing; daemon may start without creds)" >&2
 fi
 
@@ -37,4 +42,4 @@ fi
 # device goes "offline" while the VM looks healthy (live-debugged on prod).
 # A guest-local log file both avoids the deadlock and keeps logs inspectable
 # via exec.
-exec /usr/local/bin/todoforai-bridge >>/var/log/todoforai-bridge.log 2>&1
+exec /usr/local/bin/todoforai-bridge >>"$BRIDGE_LOG" 2>&1

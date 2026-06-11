@@ -220,7 +220,9 @@ func (m *Manager) Create(ctx context.Context, s Spec) (*Created, error) {
 			oci.WithImageConfig(image),
 			oci.WithEnv(env),
 			oci.WithMounts(mounts),
-			oci.WithHostname(s.DeviceName),
+			// DeviceName uses `vm_` (tool-alias suffix), but underscores are
+			// invalid in RFC 1123 hostnames — keep the guest hostname DNS-safe.
+			oci.WithHostname(strings.ReplaceAll(s.DeviceName, "_", "-")),
 			oci.WithLinuxNamespace(specs.LinuxNamespace{
 				Type: specs.NetworkNamespace,
 				Path: nsPath,
