@@ -489,7 +489,7 @@
     "preinstallCloud": true,
     "label": "Browser",
     "capabilities": "Headless browser automation, web scraping, accessibility tree snapshots, screenshots, PDF generation",
-    "description": "Headless browser. Use for JS-rendered pages, scraping, screenshots, PDFs, and automated flows. Default browser — prefer over `todoforai-browser` unless the user's own session is needed.",
+    "description": "Headless browser. Use for JS-rendered pages, scraping, screenshots, PDFs, and automated flows. Default browser — prefer over `todoforai-browser` unless the user's own session is needed. On a PC with a display, prefer a visible window the user can watch and interact with (needed for CAPTCHA/MFA/login): launch a separate Chrome with `google-chrome --remote-debugging-port=9222 --user-data-dir=$HOME/.config/google-chrome-cdp >/tmp/chrome-cdp.log 2>&1 &` (own data-dir, leaves the user's running Chrome untouched), then attach with `agent-browser --cdp 9222 <command>`. Use headless only on the cloud or when no display is available.",
     "versionCmd": "agent-browser --version 2>/dev/null | head -1"
   },
   "todoforai-browser": {
