@@ -9,25 +9,17 @@
 
 FROM ubuntu:24.04
 
-ARG PACKAGES="iproute2 ca-certificates bash coreutils util-linux curl wget jq gnupg unzip openssh-client socat sudo ripgrep fd-find patch rclone gh vault"
+ARG PACKAGES="iproute2 ca-certificates bash coreutils util-linux curl wget jq unzip openssh-client socat sudo ripgrep fd-find patch rclone gh"
 
 ENV DEBIAN_FRONTEND=noninteractive LC_ALL=C HOME=/root
 
-# HashiCorp repo for `vault` (not in default Ubuntu repos), then the toolset.
 RUN apt-get update \
- && apt-get install -y --no-install-recommends curl gnupg ca-certificates \
- && install -d -m 0755 /etc/apt/keyrings \
- && curl -fsSL https://apt.releases.hashicorp.com/gpg | gpg --dearmor -o /etc/apt/keyrings/hashicorp-archive-keyring.gpg \
- && chmod 0644 /etc/apt/keyrings/hashicorp-archive-keyring.gpg \
- && CODENAME=$(. /etc/os-release && echo $VERSION_CODENAME) \
- && echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $CODENAME main" > /etc/apt/sources.list.d/hashicorp.list \
- && apt-get update \
  && apt-get install -y --no-install-recommends $PACKAGES \
  && ( [ -x /usr/bin/fdfind ] && ln -sf /usr/bin/fdfind /usr/local/bin/fd || true ) \
  && apt-get clean \
  && rm -rf /var/lib/apt/lists/* /usr/share/man/* /usr/share/doc/* /usr/share/info/*
 
-# bun: runtime + package manager for the tfa-* catalog CLIs.
+# bun: runtime + package manager for npm catalog CLIs (agent-browser, tfa-vault).
 RUN export BUN_INSTALL=/usr/local \
  && curl -fsSL https://bun.sh/install | bash \
  && ln -sf /usr/local/bin/bun /usr/local/bin/bunx \

@@ -409,7 +409,6 @@
     "category": "security",
     "pkg": "vault",
     "installer": "binary",
-    "preinstallCloud": true,
     "label": "HashiCorp Vault",
     "statusCmd": "vault token lookup >/dev/null 2>&1 && echo authenticated",
     "loginCmd": "vault login",
@@ -511,52 +510,6 @@
     "description": "Spawn a sub-agent for a focused task. Pipe context via stdin.",
     "versionCmd": "todoforai-subagent --version 2>/dev/null | head -1",
     "installCmd": "bun add -g @todoforai/subagent",
-    "internal": true
-  },
-  "todoforai-summary": {
-    "category": "development",
-    "pkg": "@todoforai/summary",
-    "installer": "npm",
-    "label": "Summarize (Lite)",
-    "capabilities": "Summarize files or piped input via a sub-agent",
-    "description": "Summarize files or piped content via a sub-agent.",
-    "versionCmd": "todoforai-summary --version 2>/dev/null | head -1",
-    "installCmd": "bun add -g @todoforai/summary",
-    "internal": true
-  },
-  "tfa-explore": {
-    "category": "development",
-    "pkg": "@todoforai/tfa-explore",
-    "installer": "npm",
-    "label": "Explore",
-    "capabilities": "Explore a codebase as a real TODO: read-only agent maps structure, surfaces relevant files, streams findings to terminal",
-    "description": "Explore a codebase with a read-only sub-agent. Streams findings live.",
-    "versionCmd": "tfa-explore --version 2>/dev/null | head -1",
-    "installCmd": "bun add -g @todoforai/tfa-explore",
-    "preinstallCloud": true,
-    "internal": true
-  },
-  "tfa-review": {
-    "category": "development",
-    "pkg": "@todoforai/tfa-review",
-    "installer": "npm",
-    "label": "Review",
-    "capabilities": "Review a git diff as a real TODO: read-only agent assesses goal, finds issues, suggests simpler approaches",
-    "description": "Review a git diff with a read-only sub-agent.",
-    "versionCmd": "tfa-review --version 2>/dev/null | head -1",
-    "installCmd": "bun add -g @todoforai/tfa-review",
-    "preinstallCloud": true,
-    "internal": true
-  },
-  "tfa-summary": {
-    "category": "development",
-    "pkg": "@todoforai/tfa-summary",
-    "installer": "npm",
-    "label": "Summarize",
-    "capabilities": "Summarize files or piped input as a real TODO with no-tools sub-agent",
-    "description": "Summarize files or piped content as a visible TODO.",
-    "versionCmd": "tfa-summary --version 2>/dev/null | head -1",
-    "installCmd": "bun add -g @todoforai/tfa-summary",
     "internal": true
   },
   "tfa-vault": {
