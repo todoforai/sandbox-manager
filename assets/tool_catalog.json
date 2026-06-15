@@ -10,8 +10,9 @@
       "~/.zele/sqlite.db"
     ],
     "capabilities": "Read inbox, search/send/reply email, email addresses — multi-account Gmail, OAuth browser login for setup.",
-    "description": "Use for anything Gmail: reading the user's inbox, searching mail, sending or replying to email. Multi-account, OAuth login via `zele login`.",
-    "versionCmd": "zele --version 2>/dev/null | head -1"
+    "description": "Multi-account; OAuth login via `zele login`.",
+    "versionCmd": "zele --version 2>/dev/null | head -1",
+    "routing": "read/search/send/reply email, inbox, \"my mail\" → use `zele`."
   },
   "xurl": {
     "category": "social",
@@ -24,8 +25,9 @@
       "~/.xurl"
     ],
     "capabilities": "Post tweets, reply & quote, read timelines, search tweets, like & repost, follow/unfollow, DMs, media uploads",
-    "description": "Use to interact with X/Twitter: post/reply/quote tweets, search, read timelines, like/repost, follow, DMs, media upload. Authenticated raw API access via `xurl <method> <path>`.",
-    "versionCmd": "xurl --version 2>/dev/null | head -1"
+    "description": "Authenticated raw X API access via `xurl <method> <path>`; login `xurl auth oauth2`.",
+    "versionCmd": "xurl --version 2>/dev/null | head -1",
+    "routing": "post/reply/quote tweets, read X/Twitter timelines, search, DMs → use `xurl`."
   },
   "tiktok-uploader": {
     "category": "social",
@@ -37,8 +39,8 @@
       "~/.tiktok/cookies.txt"
     ],
     "capabilities": "Upload videos, batch uploads, schedule posts, custom covers, hashtags & mentions",
-    "description": "Upload videos to TikTok, schedule posts, set covers and hashtags.",
-    "versionCmd": "pip show tiktok-uploader 2>/dev/null | grep -oP 'Version: \\K.*'"
+    "versionCmd": "pip show tiktok-uploader 2>/dev/null | grep -oP 'Version: \\K.*'",
+    "routing": "upload or schedule a video to TikTok → use `tiktok-uploader`."
   },
   "instagrapi": {
     "category": "social",
@@ -46,8 +48,8 @@
     "installer": "pip",
     "label": "Instagram",
     "capabilities": "Upload photos & reels, post stories, send DMs, like & comment, manage followers",
-    "description": "Instagram automation: upload photos/reels, stories, DMs, likes, follower management.",
-    "versionCmd": "pip show instagrapi 2>/dev/null | grep -oP 'Version: \\K.*'"
+    "versionCmd": "pip show instagrapi 2>/dev/null | grep -oP 'Version: \\K.*'",
+    "routing": "Instagram upload/reels/stories/DMs/follower management → use `instagrapi`."
   },
   "mudslide": {
     "category": "messaging",
@@ -60,8 +62,9 @@
       "~/.local/share/mudslide"
     ],
     "capabilities": "Send messages, send images & files, send locations & polls, group management, QR code login",
-    "description": "Use to send WhatsApp messages/files/media/locations/polls from CLI. QR-code login via `mudslide login`.",
-    "versionCmd": "mudslide --version 2>/dev/null | head -1"
+    "description": "QR-code login via `mudslide login`.",
+    "versionCmd": "mudslide --version 2>/dev/null | head -1",
+    "routing": "send a WhatsApp message/file/media/location/poll → use `mudslide`."
   },
   "slack": {
     "category": "development",
@@ -74,7 +77,7 @@
       "~/.slack/credentials.json"
     ],
     "capabilities": "Build & deploy Slack apps, manage workspaces & triggers, run datastore queries, tail logs — official Slack CLI.",
-    "description": "Use for Slack platform development: scaffold/run/deploy Slack apps, manage triggers and datastores, manage workspace auth. `slack-cli login` to authenticate. Invoked as `slack-cli` to avoid colliding with the Slack desktop app's `slack` binary.",
+    "description": "`slack-cli login` to auth. Invoked as `slack-cli` to avoid colliding with the Slack desktop app's `slack` binary.",
     "versionCmd": "slack-cli version 2>/dev/null | head -1",
     "binName": "slack-cli",
     "binary": {
@@ -103,7 +106,8 @@
         "archive": "zip",
         "extract": "bin/slack.exe"
       }
-    }
+    },
+    "routing": "Slack app dev: scaffold/run/deploy apps, triggers, datastores → use `slack-cli`."
   },
   "telegram-send": {
     "category": "messaging",
@@ -115,8 +119,8 @@
       "~/.config/telegram-send/telegram-send.conf"
     ],
     "capabilities": "Send messages, send files & images, send video & audio, Markdown/HTML formatting, channel & group support",
-    "description": "Send Telegram messages and files from CLI via a bot.",
-    "versionCmd": "telegram-send --version 2>/dev/null | head -1"
+    "versionCmd": "telegram-send --version 2>/dev/null | head -1",
+    "routing": "send a Telegram message or file → use `telegram-send`."
   },
   "apollo-api": {
     "category": "marketing",
@@ -124,8 +128,9 @@
     "installer": "npm",
     "label": "Apollo",
     "capabilities": "Lead search & enrichment, email sequences, CRM sync",
-    "description": "Use for B2B prospecting: search Apollo's people/company DB, enrich leads with emails/titles/companies, manage sequences and CRM data. Needs APOLLO_API_KEY.",
-    "versionCmd": "apollo-api --version 2>/dev/null | head -1"
+    "description": "Needs APOLLO_API_KEY.",
+    "versionCmd": "apollo-api --version 2>/dev/null | head -1",
+    "routing": "B2B prospecting: find people/company emails, enrich leads, sequences → use `apollo-api`."
   },
   "meta-ads": {
     "category": "marketing",
@@ -134,8 +139,8 @@
     "label": "Meta Ads",
     "statusCmd": "meta auth status 2>&1",
     "capabilities": "Meta/Facebook & Instagram ad campaigns: campaigns/adsets/ads CRUD, insights & reporting, catalog/product-feed/product-set/product-item, ad creatives, datasets (pixels), pages — Marketing API via the official `meta` CLI.",
-    "description": "Manage Meta/Facebook & Instagram ad campaigns, insights, creatives, and catalogs.",
-    "versionCmd": "meta --version 2>/dev/null | head -1"
+    "versionCmd": "meta --version 2>/dev/null | head -1",
+    "routing": "manage Meta/Facebook/Instagram ad campaigns, insights, creatives, catalogs → use `meta`."
   },
   "elevenlabs-api": {
     "category": "media",
@@ -143,8 +148,9 @@
     "installer": "npm",
     "label": "ElevenLabs",
     "capabilities": "Text-to-speech, voice cloning, multiple languages",
-    "description": "Use to generate speech audio from text, clone voices, or list voices. Needs ELEVENLABS_API_KEY.",
-    "versionCmd": "elevenlabs-api --version 2>/dev/null | head -1"
+    "description": "Needs ELEVENLABS_API_KEY.",
+    "versionCmd": "elevenlabs-api --version 2>/dev/null | head -1",
+    "routing": "text-to-speech, clone/list voices → use `elevenlabs-api`."
   },
   "codex-imagegen-api": {
     "category": "media",
@@ -152,8 +158,8 @@
     "installer": "npm",
     "label": "Image Gen",
     "capabilities": "AI image generation & editing via TODOFORAI backend (gpt-image)",
-    "description": "Generate or edit images with AI.",
-    "versionCmd": "codex-imagegen-api --version 2>/dev/null | head -1"
+    "versionCmd": "codex-imagegen-api --version 2>/dev/null | head -1",
+    "routing": "generate or edit an image → use `codex-imagegen-api`."
   },
   "suno-api": {
     "category": "media",
@@ -161,8 +167,9 @@
     "installer": "npm",
     "label": "Suno",
     "capabilities": "AI music generation, custom lyrics, multiple genres",
-    "description": "Use to generate music/songs from a prompt or custom lyrics. Needs SUNO_API_KEY.",
-    "versionCmd": "suno-api --version 2>/dev/null | head -1"
+    "description": "Needs SUNO_API_KEY.",
+    "versionCmd": "suno-api --version 2>/dev/null | head -1",
+    "routing": "generate music/song from a prompt or lyrics → use `suno-api`."
   },
   "ntn": {
     "category": "utility",
@@ -175,8 +182,8 @@
       "~/.config/notion"
     ],
     "capabilities": "Official Notion CLI: workspace-wide OAuth login, raw API calls (`ntn api <path>`), page/datasource management, file uploads, Workers deploy.",
-    "description": "Read, create, and update Notion pages and databases.",
-    "versionCmd": "ntn --version 2>/dev/null | head -1"
+    "versionCmd": "ntn --version 2>/dev/null | head -1",
+    "routing": "read/create/update Notion pages or databases → use `ntn`."
   },
   "perplexity-api": {
     "category": "utility",
@@ -184,8 +191,8 @@
     "installer": "npm",
     "label": "Perplexity",
     "capabilities": "AI-powered web search, chat completions, async chat, embeddings and agent runs",
-    "description": "Web-grounded AI search with citations. Use when you need fresh information beyond training cutoff.",
-    "versionCmd": "perplexity-api --version 2>/dev/null | head -1"
+    "versionCmd": "perplexity-api --version 2>/dev/null | head -1",
+    "routing": "need fresh / web-grounded info with citations beyond training cutoff → use `perplexity-api`."
   },
   "gh": {
     "category": "development",
@@ -199,8 +206,9 @@
       "~/.config/gh/hosts.yml"
     ],
     "capabilities": "Repos, PRs & issues, actions & releases, gists & SSH keys",
-    "description": "Use for any GitHub operation: create/list/merge PRs, file issues, manage releases, trigger/inspect Actions, clone/fork repos, gists. Prefer `gh` over raw GitHub API calls.",
-    "versionCmd": "gh --version 2>/dev/null | head -1"
+    "description": "Prefer `gh` over raw GitHub API calls.",
+    "versionCmd": "gh --version 2>/dev/null | head -1",
+    "routing": "any GitHub action (PRs, issues, releases, Actions, clone/fork, gists) → use `gh`, not raw API."
   },
   "glab": {
     "category": "development",
@@ -213,8 +221,9 @@
       "~/.config/glab-cli/config.yml"
     ],
     "capabilities": "Repos, MRs & issues, CI/CD pipelines, releases",
-    "description": "Use for any GitLab operation: MRs, issues, pipelines, releases, repo management. GitLab equivalent of `gh`.",
-    "versionCmd": "glab --version 2>/dev/null | head -1"
+    "description": "GitLab equivalent of `gh`.",
+    "versionCmd": "glab --version 2>/dev/null | head -1",
+    "routing": "any GitLab action (MRs, issues, pipelines, releases, repo) → use `glab`."
   },
   "vercel": {
     "category": "deployment",
@@ -227,8 +236,9 @@
       "~/.local/share/com.vercel.cli/auth.json"
     ],
     "capabilities": "Deploy & preview, environment variables, domain management",
-    "description": "Use to deploy a project to Vercel (`vercel deploy`), manage env vars, domains, and preview URLs.",
-    "versionCmd": "vercel --version 2>/dev/null | head -1"
+    "description": "`vercel deploy`; manage env vars, domains, preview URLs.",
+    "versionCmd": "vercel --version 2>/dev/null | head -1",
+    "routing": "deploy a project to Vercel → use `vercel` (check auth first)."
   },
   "netlify": {
     "category": "deployment",
@@ -241,8 +251,9 @@
       "~/.netlify/config.json"
     ],
     "capabilities": "Deploy & preview, serverless functions, forms & identity",
-    "description": "Use to deploy sites/functions to Netlify, manage env vars, forms, identity. `netlify deploy --prod` for production.",
-    "versionCmd": "netlify --version 2>/dev/null | head -1"
+    "description": "`netlify deploy --prod` for production; manage env vars, forms, identity.",
+    "versionCmd": "netlify --version 2>/dev/null | head -1",
+    "routing": "deploy a site/function to Netlify → use `netlify` (check auth first)."
   },
   "firebase": {
     "category": "deployment",
@@ -255,8 +266,9 @@
       "~/.config/configstore/firebase-tools.json"
     ],
     "capabilities": "Hosting & deploy, Firestore & Realtime DB, auth & functions",
-    "description": "Use for Firebase: deploy hosting/functions, manage Firestore/Realtime DB rules and data, auth users, emulators.",
-    "versionCmd": "firebase --version 2>/dev/null | head -1"
+    "description": "Deploy hosting/functions, manage Firestore/RTDB rules and data, auth users, emulators.",
+    "versionCmd": "firebase --version 2>/dev/null | head -1",
+    "routing": "deploy to Firebase (hosting/functions/firestore) → use `firebase` (check auth first)."
   },
   "wrangler": {
     "category": "deployment",
@@ -269,8 +281,9 @@
       "~/.config/.wrangler/config/default.toml"
     ],
     "capabilities": "Workers & Pages deploy, KV & D1 storage, R2 & Queues",
-    "description": "Use for Cloudflare developer platform: deploy Workers/Pages, manage KV/D1/R2/Queues, tail logs. Use `cloudflared` for tunnels.",
-    "versionCmd": "wrangler --version 2>/dev/null | head -1"
+    "description": "Tail logs with `wrangler tail`. Use `cloudflared` for tunnels.",
+    "versionCmd": "wrangler --version 2>/dev/null | head -1",
+    "routing": "deploy Cloudflare Workers/Pages, manage KV/D1/R2/Queues → use `wrangler` (check auth first)."
   },
   "stripe": {
     "category": "payments",
@@ -283,8 +296,9 @@
       "~/.config/stripe/config.toml"
     ],
     "capabilities": "Payments & subscriptions, webhook testing, invoice management",
-    "description": "Use for Stripe: inspect/create customers, charges, subscriptions, invoices, webhooks. `stripe listen` to forward webhooks locally; `stripe get/post /v1/...` for raw API.",
-    "versionCmd": "stripe --version 2>/dev/null | head -1"
+    "description": "`stripe listen` forwards webhooks locally; `stripe get/post /v1/...` for raw API.",
+    "versionCmd": "stripe --version 2>/dev/null | head -1",
+    "routing": "Stripe customers/charges/subscriptions/invoices/webhooks → use `stripe`."
   },
   "flyctl": {
     "category": "cloud",
@@ -297,8 +311,9 @@
       "~/.fly/config.yml"
     ],
     "capabilities": "Deploy containers globally, Postgres & volumes, auto-scaling",
-    "description": "Use to deploy apps/containers to Fly.io edge, manage Postgres/volumes/machines/secrets. `flyctl deploy` from app dir.",
-    "versionCmd": "flyctl version 2>/dev/null | head -1"
+    "description": "`flyctl deploy` from app dir; manage Postgres/volumes/machines/secrets.",
+    "versionCmd": "flyctl version 2>/dev/null | head -1",
+    "routing": "deploy an app/container to Fly.io → use `flyctl` (check auth first)."
   },
   "supabase": {
     "category": "cloud",
@@ -311,8 +326,9 @@
       "~/.config/supabase/access-token"
     ],
     "capabilities": "Postgres database, auth & storage, edge functions",
-    "description": "Use for Supabase projects: run/migrate local Postgres, deploy edge functions, manage auth/storage, link to cloud project.",
-    "versionCmd": "supabase --version 2>/dev/null | head -1"
+    "description": "Link to cloud project; runs/migrates local Postgres.",
+    "versionCmd": "supabase --version 2>/dev/null | head -1",
+    "routing": "Supabase project: migrate Postgres, deploy edge functions, manage auth/storage → use `supabase`."
   },
   "railway": {
     "category": "cloud",
@@ -325,8 +341,9 @@
       "~/.railway/config.json"
     ],
     "capabilities": "Deploy apps & databases, environment management, auto-scaling",
-    "description": "Use to deploy apps/services to Railway, provision databases, manage env vars and environments. `railway up` to deploy current dir.",
-    "versionCmd": "railway --version 2>/dev/null | head -1"
+    "description": "`railway up` to deploy current dir.",
+    "versionCmd": "railway --version 2>/dev/null | head -1",
+    "routing": "deploy an app/service to Railway, provision a database → use `railway` (check auth first)."
   },
   "shopify": {
     "category": "ecommerce",
@@ -338,8 +355,17 @@
       "~/.config/shopify/config.json"
     ],
     "capabilities": "Theme development, app scaffolding, store management",
-    "description": "Use for Shopify dev: scaffold/develop themes and apps, push/pull themes, run dev server against a store.",
-    "versionCmd": "shopify version 2>/dev/null | head -1"
+    "versionCmd": "shopify version 2>/dev/null | head -1",
+    "routing": "Shopify theme/app dev: scaffold, push/pull themes, run dev server against a store → use `shopify`."
+  },
+  "shop-app": {
+    "category": "ecommerce",
+    "pkg": "@todoforai/shop-app",
+    "installer": "npm",
+    "label": "Shop",
+    "capabilities": "Product search & price comparison across Shopify stores",
+    "description": "Shop.app product search across Shopify stores (no auth). `shop-app search '<query>' --ships-to HU -n 10` returns products with price, rating, URL, variants. `shop-app similar <variantId>` for lookalikes.",
+    "versionCmd": "shop-app --version 2>/dev/null | head -1"
   },
   "datadog-ci": {
     "category": "monitoring",
@@ -347,8 +373,9 @@
     "installer": "npm",
     "label": "Datadog",
     "capabilities": "CI test visibility, sourcemap uploads, deployment tracking",
-    "description": "Use in CI to upload test results/sourcemaps/coverage to Datadog and mark deployments. Needs DATADOG_API_KEY.",
-    "versionCmd": "datadog-ci version 2>/dev/null | head -1"
+    "description": "Needs DATADOG_API_KEY.",
+    "versionCmd": "datadog-ci version 2>/dev/null | head -1",
+    "routing": "upload test results/sourcemaps/coverage to Datadog, mark deploys (CI) → use `datadog-ci`."
   },
   "sentry-cli": {
     "category": "monitoring",
@@ -361,8 +388,9 @@
       "~/.sentryclirc"
     ],
     "capabilities": "Release management, sourcemap uploads, error monitoring",
-    "description": "Use to create Sentry releases, upload sourcemaps/debug-symbols, associate commits, send events. `sentry-cli releases new <version>`.",
-    "versionCmd": "sentry-cli --version 2>/dev/null | head -1"
+    "description": "`sentry-cli releases new <version>`.",
+    "versionCmd": "sentry-cli --version 2>/dev/null | head -1",
+    "routing": "create a Sentry release, upload sourcemaps/debug symbols, associate commits → use `sentry-cli`."
   },
   "todoai": {
     "category": "utility",
@@ -370,10 +398,11 @@
     "installer": "bun",
     "label": "TODOforAI",
     "capabilities": "Create/list/inspect/update TODOs, run templates & workflows, platform API access",
-    "description": "Use for the TODOforAI platform — this is how you reach the user's OWN TODOs: `todoai list` (filter with `--status open`) to browse them, `todoai \"prompt\"` to create one, `todoai --inspect <id>` to read a TODO's full chat log, `todoai status/addmessage/delete` to manage them, `--template` to run a registry workflow. Never claim you lack access to platform TODOs — reach them here; run `--help` for details.",
+    "description": "`todoai list` (`--status open`) to browse, `todoai \"prompt\"` to create, `--inspect <id>` to read a chat log, `status/addmessage/delete` to manage, `--template` for registry workflows.",
     "installCmd": "bun add -g @todoforai/cli",
     "versionCmd": "todoai --version 2>/dev/null | head -1",
-    "internal": true
+    "internal": true,
+    "routing": "the user's own TODOs / tasks / \"my todos\" → use `todoai` (never claim you cannot reach platform TODOs)."
   },
   "newman": {
     "category": "testing",
@@ -381,8 +410,9 @@
     "installer": "npm",
     "label": "Postman",
     "capabilities": "Run API test collections, CI/CD integration, HTML reports",
-    "description": "Use to run Postman collections from CLI (API smoke tests, CI checks). `newman run <collection.json> -e <env.json>`.",
-    "versionCmd": "newman --version 2>/dev/null | head -1"
+    "description": "`newman run <collection.json> -e <env.json>`.",
+    "versionCmd": "newman --version 2>/dev/null | head -1",
+    "routing": "run a Postman collection (API smoke test / CI check) → use `newman`."
   },
   "curl": {
     "category": "networking",
@@ -402,8 +432,9 @@
     "installer": "binary",
     "label": "Tunnel",
     "capabilities": "Tunnel to localhost, expose local services, zero-trust access",
-    "description": "Use to expose a local port to the public internet via a Cloudflare tunnel. Quick: `cloudflared tunnel --url http://localhost:<port>` prints a public https URL.",
-    "versionCmd": "cloudflared --version 2>/dev/null | head -1"
+    "description": "`cloudflared tunnel --url http://localhost:<port>` prints a public https URL.",
+    "versionCmd": "cloudflared --version 2>/dev/null | head -1",
+    "routing": "expose a local port publicly / get a public URL for localhost → use `cloudflared`."
   },
   "vault": {
     "category": "security",
@@ -416,8 +447,9 @@
       "~/.vault-token"
     ],
     "capabilities": "Secrets management, dynamic credentials",
-    "description": "HashiCorp Vault CLI — only for Terraform/vals/ecosystem integrations that expect it. For all credential read/write tasks use `tfa-vault` instead. Needs VAULT_ADDR + VAULT_TOKEN.",
-    "versionCmd": "vault --version 2>/dev/null | head -1"
+    "description": "Needs VAULT_ADDR + VAULT_TOKEN.",
+    "versionCmd": "vault --version 2>/dev/null | head -1",
+    "routing": "Terraform / vals / ecosystem integration that expects HashiCorp Vault → use `vault`; for any credential read/write use `tfa-vault` instead."
   },
   "rclone": {
     "category": "cloud",
@@ -431,7 +463,7 @@
       "~/.config/rclone/rclone.conf"
     ],
     "capabilities": "Access Google Drive, OneDrive, Dropbox, S3 and 40+ cloud providers. List, copy, sync, move, mount files as virtual filesystem (FUSE). Use 'rclone config create <name> <provider>' to connect (opens browser for OAuth).",
-    "description": "Access cloud storage (Google Drive, OneDrive, Dropbox, S3, 40+ providers). List, copy, sync, or mount files.",
+    "description": "List, copy, sync, or mount files.",
     "subProviders": {
       "gdrive": {
         "label": "Google Drive",
@@ -469,7 +501,8 @@
         "rcloneType": "s3"
       }
     },
-    "versionCmd": "rclone version 2>/dev/null | head -1"
+    "versionCmd": "rclone version 2>/dev/null | head -1",
+    "routing": "access cloud storage (Google Drive, OneDrive, Dropbox, S3, 40+ providers) → use `rclone`."
   },
   "pymupdf": {
     "category": "utility",
@@ -477,9 +510,10 @@
     "installer": "pip",
     "label": "PDF",
     "capabilities": "PDF text editing, extraction, merge, split",
-    "description": "Read, edit, merge, or split PDFs programmatically. Call via `python3 -c`.",
+    "description": "Call via `python3 -c`.",
     "versionCmd": "python3 -c 'import pymupdf; print(pymupdf.__version__)' 2>/dev/null",
-    "preinstallCloud": true
+    "preinstallCloud": true,
+    "routing": "read/edit/merge/split a PDF → use `pymupdf`."
   },
   "agent-browser": {
     "category": "development",
@@ -488,8 +522,9 @@
     "preinstallCloud": true,
     "label": "Browser",
     "capabilities": "Headless browser automation, web scraping, accessibility tree snapshots, screenshots, PDF generation",
-    "description": "Headless browser. Use for JS-rendered pages, scraping, screenshots, PDFs, and automated flows. Default browser — prefer over `todoforai-browser` unless the user's own session is needed. On a PC with a display, prefer a visible window the user can watch and interact with (needed for CAPTCHA/MFA/login): launch a separate Chrome with `google-chrome --remote-debugging-port=9222 --user-data-dir=$HOME/.config/google-chrome-cdp >/tmp/chrome-cdp.log 2>&1 &` (own data-dir, leaves the user's running Chrome untouched), then attach with `agent-browser --cdp 9222 <command>`. Use headless only on the cloud or when no display is available.",
-    "versionCmd": "agent-browser --version 2>/dev/null | head -1"
+    "description": "Default browser. On a PC with a display prefer a visible window the user can watch/interact with (needed for CAPTCHA/MFA/login): launch a separate Chrome with `google-chrome --remote-debugging-port=9222 --user-data-dir=$HOME/.config/google-chrome-cdp >/tmp/chrome-cdp.log 2>&1 &` (own data-dir, leaves the user's Chrome untouched), then attach with `agent-browser --cdp 9222 <command>`. Use headless only on the cloud or when no display is available.",
+    "versionCmd": "agent-browser --version 2>/dev/null | head -1",
+    "routing": "JS-rendered page, scrape, screenshot, PDF, browser automation → use `agent-browser` (use `todoforai-browser` only when the user's own logged-in session/cookies/MFA are needed)."
   },
   "todoforai-browser": {
     "category": "development",
@@ -497,9 +532,9 @@
     "installer": "npm",
     "label": "Browser (Extension)",
     "capabilities": "Browser automation via extension (non-headless), web scraping, accessibility tree snapshots, screenshots, PDF generation",
-    "description": "Drives the user's real browser via the extension. Use when the task needs the user's actual logged-in session, cookies, or MFA.",
     "versionCmd": "node -p \"require(require('child_process').execSync('which todoforai-browser',{encoding:'utf8'}).trim().replace(/\\/dist\\/index\\.js$/, '/package.json')).version\" 2>/dev/null",
-    "internal": true
+    "internal": true,
+    "routing": "task needs the user's real logged-in browser session, cookies, or MFA → use `todoforai-browser`."
   },
   "todoforai-subagent": {
     "category": "development",
@@ -507,9 +542,21 @@
     "installer": "npm",
     "label": "Sub-agent",
     "capabilities": "Spawn a TODO for AI sub-agent (FluidAgent) from the CLI; pipe stdin in, get an answer out",
-    "description": "Spawn a sub-agent for a focused task. Pipe context via stdin.",
+    "description": "Pipe context via stdin.",
     "versionCmd": "todoforai-subagent --version 2>/dev/null | head -1",
     "installCmd": "bun add -g @todoforai/subagent",
+    "internal": true,
+    "routing": "delegate a focused, isolated task → use `todoforai-subagent`."
+  },
+  "tfa-handoff": {
+    "category": "development",
+    "pkg": "@todoforai/tfa-handoff",
+    "installer": "npm",
+    "label": "Handoff",
+    "capabilities": "Compact a conversation into a handoff document as a hidden TODO; pipe filter for `todoai --inspect … | tfa-handoff … | todoai`",
+    "description": "Compact a conversation into a handoff document for a fresh agent.",
+    "versionCmd": "tfa-handoff --version 2>/dev/null | head -1",
+    "installCmd": "bun add -g @todoforai/tfa-handoff",
     "internal": true
   },
   "tfa-vault": {
@@ -518,11 +565,12 @@
     "installer": "npm",
     "label": "Vault",
     "capabilities": "Zero-config TODOforAI vault CLI: put/get/patch/list/rm secrets in the user's KV v2 vault. Reuses bridge credentials (TODOFORAI_API_KEY / ~/.config/todoforai/credentials.json); derives vault URL from backend URL.",
-    "description": "The user's secret store. Always check here first for API keys, tokens, credentials, bank cards, and private/secret account details before looking elsewhere. Also write here: whenever you obtain, generate, acquire, renew, rotate, or reset any secret (API key, token, stream/access/refresh/OAuth token, password, connection string, private key, recovery code, etc.) and it isn't already saved, store it with `tfa-vault put <path> field=value` (use `patch` to add fields without clobbering). On rotation/reset, overwrite the old value so the vault stays the source of truth. Use a clear namespaced path and descriptive field names; verify with `tfa-vault get <path>` and avoid needlessly reprinting the secret.",
+    "description": "This is the user's own vault and the `whoami` transcript shows you're authorized to it, so reading and using the secrets it holds is the intended workflow. Read side: when a task needs a secret the user owns (API key, token, password, account), run `tfa-vault list` to find it, `tfa-vault get <path>` to fetch it, and use the value to do the work — call the API, log in, query the service. There's no need to ask the user for a value the vault already holds. Treat fetched values as sensitive: pass them into commands or env vars rather than echoing them back. Write side: when you obtain, generate, or rotate a secret and it isn't saved, store it with `tfa-vault put <path> field=value` (use `patch` to add fields without clobbering; overwrite on rotation so the vault stays source of truth). Use a clear namespaced path and descriptive field names, and verify with `tfa-vault get <path>`.",
     "versionCmd": "tfa-vault --version 2>/dev/null | head -1",
     "statusCmd": "tfa-vault whoami",
     "installCmd": "bun add -g @todoforai/vault",
-    "preinstallCloud": true
+    "preinstallCloud": true,
+    "routing": "credential / password / API key / token / secret / \"my X account\" / bank card → these are the user's own authorized secrets in their vault. Run `tfa-vault list`, then `tfa-vault get <path>` to fetch the value, then use it to do the requested work — call the API, log in, query the service. The vault is your access; there's no need to say you can't retrieve it. Pass values into commands or env vars rather than echoing them."
   },
   "ripgrep": {
     "category": "development",
