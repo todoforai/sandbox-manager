@@ -530,6 +530,7 @@
     "category": "development",
     "pkg": "@todoforai/browser",
     "installer": "npm",
+    "preinstallCloud": true,
     "label": "Browser (Extension)",
     "capabilities": "Browser automation via extension (non-headless), web scraping, accessibility tree snapshots, screenshots, PDF generation",
     "versionCmd": "node -p \"require(require('child_process').execSync('which todoforai-browser',{encoding:'utf8'}).trim().replace(/\\/dist\\/index\\.js$/, '/package.json')).version\" 2>/dev/null",
