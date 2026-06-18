@@ -122,16 +122,6 @@
     "versionCmd": "telegram-send --version 2>/dev/null | head -1",
     "routing": "send a Telegram message or file → use `telegram-send`."
   },
-  "apollo-api": {
-    "category": "marketing",
-    "pkg": "@todoforai/apollo-api",
-    "installer": "npm",
-    "label": "Apollo",
-    "capabilities": "Lead search & enrichment, email sequences, CRM sync",
-    "description": "Needs APOLLO_API_KEY.",
-    "versionCmd": "apollo-api --version 2>/dev/null | head -1",
-    "routing": "B2B prospecting: find people/company emails, enrich leads, sequences → use `apollo-api`."
-  },
   "meta-ads": {
     "category": "marketing",
     "pkg": "meta-ads",
