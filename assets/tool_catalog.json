@@ -29,6 +29,21 @@
     "versionCmd": "xurl --version 2>/dev/null | head -1",
     "routing": "post/reply/quote tweets, read X/Twitter timelines, search, DMs → use `xurl`."
   },
+  "linkedin-api": {
+    "category": "social",
+    "pkg": "@todoforai/linkedin-api",
+    "installer": "npm",
+    "label": "LinkedIn",
+    "statusCmd": "linkedin-api whoami 2>/dev/null | grep -oP '\"publicId\":\\s*\"\\K[^\"]+' | head -1",
+    "loginCmd": "linkedin-api auth",
+    "credentialPaths": [
+      "~/.config/linkedin-api/credentials.json"
+    ],
+    "capabilities": "Read profiles, list & read conversations, send DMs, send connection requests — raw LinkedIn Voyager API via cookie auth",
+    "description": "Authenticated LinkedIn Voyager API CLI. Cookie auth: `linkedin-api auth <li_at> <jsessionid>` (from browser DevTools).",
+    "versionCmd": "linkedin-api --version 2>/dev/null | head -1",
+    "routing": "read LinkedIn profiles, list/read conversations, send DMs, send connection requests → use `linkedin-api`."
+  },
   "tiktok-uploader": {
     "category": "social",
     "pkg": "tiktok-uploader",
