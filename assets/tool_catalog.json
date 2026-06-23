@@ -403,7 +403,7 @@
     "installer": "bun",
     "label": "TODOforAI",
     "capabilities": "Create/list/inspect/update TODOs, run templates & workflows, platform API access",
-    "description": "`todoai list` (`--status open`) to browse, `todoai \"prompt\"` to create, `--inspect <id>` to read a chat log, `status/addmessage/delete` to manage, `--template` for registry workflows.",
+    "description": "`todoai list` (`--status open`) to browse, `todoai \"prompt\"` to create, `todoai --inspect <id>[:<msg-id>]` to fetch a TODO with all its messages/data (read-only), `status/addmessage/delete` to manage, `--template` for registry workflows.",
     "installCmd": "bun add -g @todoforai/cli",
     "versionCmd": "todoai --version 2>/dev/null | head -1",
     "internal": true,
