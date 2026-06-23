@@ -81,7 +81,7 @@
     "versionCmd": "mudslide --version 2>/dev/null | head -1",
     "routing": "send a WhatsApp message/file/media/location/poll → use `mudslide`."
   },
-  "slack": {
+  "slack-cli": {
     "category": "development",
     "pkg": "slack-cli",
     "installer": "binary",
