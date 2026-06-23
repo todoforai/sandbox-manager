@@ -246,7 +246,7 @@ func (s *Service) Delete(ctx context.Context, id store.Identity, sandboxID strin
 
 // staleDead reports whether an active sandbox record's VM is actually gone and
 // the record is safe to reconcile. It honours the creating/terminating grace
-// window so an in-flight create (VM not booted yet → IsLive false) or delete
+// window so an in-flight create (VM not booted yet → IsLive LiveNo) or delete
 // isn't torn down out from under itself. Shared by List (read-only state fix),
 // reconcileUserSlot, and Reconcile so they agree on "dead".
 func (s *Service) staleDead(ctx context.Context, sb *store.Sandbox) bool {
@@ -258,7 +258,11 @@ func (s *Service) staleDead(ctx context.Context, sb *store.Sandbox) bool {
 			return false
 		}
 	}
-	return !s.vm.IsLive(ctx, sb.ID)
+	// Only a definitive "not found" counts as dead. LiveUnknown (containerd
+	// unreachable, shim slow, manager mid-restart) must NOT authorize teardown
+	// — treating it as dead would cascade-delete a healthy VM's Device row on a
+	// transient blip and strand the user's primary device.
+	return s.vm.IsLive(ctx, sb.ID) == vm.LiveNo
 }
 
 // reconcileUserSlot heals a single user's sandbox slot on the create/recover
@@ -292,8 +296,8 @@ func (s *Service) reconcileUserSlot(ctx context.Context, userID string) {
 
 // Reconcile re-syncs persisted state against containerd reality at startup.
 // containerd owns process liveness across our restarts; this just catches the
-// drift: an "active" record whose VM died while we were down is marked error
-// and its quota slot released. Cheap — iterates only the active set.
+// drift: an "active" record whose VM died while we were down is fully torn
+// down and its quota slot released. Cheap — iterates only the active set.
 func (s *Service) Reconcile(ctx context.Context) error {
 	all, err := s.store.List(ctx, "")
 	if err != nil {
@@ -305,13 +309,23 @@ func (s *Service) Reconcile(ctx context.Context) error {
 		if !s.staleDead(ctx, sb) {
 			continue
 		}
-		// Dead VM still marked active: clean up leftover container/netns/
-		// direct-volume (best effort), mark error, free the quota slot.
+		// Dead VM still marked active: tear it down the same way Delete and
+		// reconcileUserSlot do — kill leftover container/netns/direct-volume,
+		// cascade-delete the Device row, drop the record, free the slot. An
+		// "error" tombstone left in the index instead would leak forever (one
+		// per dead VM) and strand the user's primaryDeviceId on a deleted
+		// device, so keep the three teardown paths identical.
 		s.vm.Delete(ctx, sb.ID)
-		sb.State = store.StateError
-		sb.Error = "vm not running at reconcile"
-		s.store.Put(ctx, sb)
-		s.store.ReleaseUserSlot(ctx, sb.UserID, sb.ID)
+		if sb.DeviceID != "" {
+			s.backend.DeleteDevice(ctx, sb.UserID, sb.DeviceID)
+		}
+		if err := s.store.Delete(ctx, sb.ID); err != nil {
+			log.Printf("reconcile delete %s: %v", sb.ID, err)
+			continue // keep the slot held rather than leak a stale record
+		}
+		if err := s.store.ReleaseUserSlot(ctx, sb.UserID, sb.ID); err != nil {
+			log.Printf("reconcile release slot %s: %v", sb.UserID, err)
+		}
 	}
 	return nil
 }

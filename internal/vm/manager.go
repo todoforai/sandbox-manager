@@ -294,23 +294,46 @@ func (m *Manager) Exec(ctx context.Context, id string, argv []string) ([]byte, e
 	return out, nil
 }
 
+// Liveness is the result of IsLive: a VM is either definitively Live, known
+// Dead (container/task gone, or task present but not Running), or Unknown when
+// the query itself failed (socket down, shim slow, manager mid-restart).
+// Reconcile must only tear down on a definitive Dead — treating Unknown as dead
+// would delete a healthy VM's Device row on a transient blip.
+type Liveness int
+
+const (
+	LiveUnknown Liveness = iota
+	LiveYes
+	LiveNo
+)
+
 // IsLive reports whether a sandbox still has a running task under containerd.
-// Used by startup reconciliation to detect VMs that died while we were down.
-func (m *Manager) IsLive(ctx context.Context, id string) bool {
+// It distinguishes "not found" (definitively dead) from a failed query
+// (unknown) so callers never tear down a VM they merely couldn't reach.
+func (m *Manager) IsLive(ctx context.Context, id string) Liveness {
 	ctx = m.ctx(ctx)
 	container, err := m.client.LoadContainer(ctx, id)
 	if err != nil {
-		return false
+		if errdefs.IsNotFound(err) {
+			return LiveNo
+		}
+		return LiveUnknown
 	}
 	task, err := container.Task(ctx, nil)
 	if err != nil {
-		return false
+		if errdefs.IsNotFound(err) {
+			return LiveNo
+		}
+		return LiveUnknown
 	}
 	st, err := task.Status(ctx)
 	if err != nil {
-		return false
+		return LiveUnknown
 	}
-	return st.Status == containerd.Running
+	if st.Status == containerd.Running {
+		return LiveYes
+	}
+	return LiveNo
 }
 
 // Delete tears down a microVM: kill task, delete container + snapshot, then
