@@ -10,9 +10,7 @@
       "~/.zele/sqlite.db"
     ],
     "capabilities": "Read inbox, search/send/reply email, email addresses — multi-account Gmail, OAuth browser login for setup.",
-    "description": "Multi-account; OAuth login via `zele login`.",
-    "versionCmd": "zele --version 2>/dev/null | head -1",
-    "routing": "read/search/send/reply email, inbox, \"my mail\" → use `zele`."
+    "versionCmd": "zele --version 2>/dev/null | head -1"
   },
   "xurl": {
     "category": "social",
@@ -26,8 +24,7 @@
     ],
     "capabilities": "Post tweets, reply & quote, read timelines, search tweets, like & repost, follow/unfollow, DMs, media uploads",
     "description": "Authenticated raw X API access via `xurl <method> <path>`; login `xurl auth oauth2`.",
-    "versionCmd": "xurl --version 2>/dev/null | head -1",
-    "routing": "post/reply/quote tweets, read X/Twitter timelines, search, DMs → use `xurl`."
+    "versionCmd": "xurl --version 2>/dev/null | head -1"
   },
   "linkedin-api": {
     "category": "social",
@@ -41,8 +38,7 @@
     ],
     "capabilities": "Read profiles, list & read conversations, send DMs, send connection requests — raw LinkedIn Voyager API via cookie auth",
     "description": "Authenticated LinkedIn Voyager API CLI. Cookie auth: `linkedin-api auth <li_at> <jsessionid>` (from browser DevTools).",
-    "versionCmd": "linkedin-api --version 2>/dev/null | head -1",
-    "routing": "read LinkedIn profiles, list/read conversations, send DMs, send connection requests → use `linkedin-api`."
+    "versionCmd": "linkedin-api --version 2>/dev/null | head -1"
   },
   "tiktok-uploader": {
     "category": "social",
@@ -54,8 +50,7 @@
       "~/.tiktok/cookies.txt"
     ],
     "capabilities": "Upload videos, batch uploads, schedule posts, custom covers, hashtags & mentions",
-    "versionCmd": "pip show tiktok-uploader 2>/dev/null | grep -oP 'Version: \\K.*'",
-    "routing": "upload or schedule a video to TikTok → use `tiktok-uploader`."
+    "versionCmd": "pip show tiktok-uploader 2>/dev/null | grep -oP 'Version: \\K.*'"
   },
   "instagrapi": {
     "category": "social",
@@ -63,8 +58,7 @@
     "installer": "pip",
     "label": "Instagram",
     "capabilities": "Upload photos & reels, post stories, send DMs, like & comment, manage followers",
-    "versionCmd": "pip show instagrapi 2>/dev/null | grep -oP 'Version: \\K.*'",
-    "routing": "Instagram upload/reels/stories/DMs/follower management → use `instagrapi`."
+    "versionCmd": "pip show instagrapi 2>/dev/null | grep -oP 'Version: \\K.*'"
   },
   "mudslide": {
     "category": "messaging",
@@ -77,9 +71,7 @@
       "~/.local/share/mudslide"
     ],
     "capabilities": "Send messages, send images & files, send locations & polls, group management, QR code login",
-    "description": "QR-code login via `mudslide login`.",
-    "versionCmd": "mudslide --version 2>/dev/null | head -1",
-    "routing": "send a WhatsApp message/file/media/location/poll → use `mudslide`."
+    "versionCmd": "mudslide --version 2>/dev/null | head -1"
   },
   "slack-cli": {
     "category": "development",
@@ -121,8 +113,7 @@
         "archive": "zip",
         "extract": "bin/slack.exe"
       }
-    },
-    "routing": "Slack app dev: scaffold/run/deploy apps, triggers, datastores → use `slack-cli`."
+    }
   },
   "telegram-send": {
     "category": "messaging",
@@ -134,8 +125,7 @@
       "~/.config/telegram-send/telegram-send.conf"
     ],
     "capabilities": "Send messages, send files & images, send video & audio, Markdown/HTML formatting, channel & group support",
-    "versionCmd": "telegram-send --version 2>/dev/null | head -1",
-    "routing": "send a Telegram message or file → use `telegram-send`."
+    "versionCmd": "telegram-send --version 2>/dev/null | head -1"
   },
   "meta-ads": {
     "category": "marketing",
@@ -144,18 +134,15 @@
     "label": "Meta Ads",
     "statusCmd": "meta auth status 2>&1",
     "capabilities": "Meta/Facebook & Instagram ad campaigns: campaigns/adsets/ads CRUD, insights & reporting, catalog/product-feed/product-set/product-item, ad creatives, datasets (pixels), pages — Marketing API via the official `meta` CLI.",
-    "versionCmd": "meta --version 2>/dev/null | head -1",
-    "routing": "manage Meta/Facebook/Instagram ad campaigns, insights, creatives, catalogs → use `meta`."
+    "versionCmd": "meta --version 2>/dev/null | head -1"
   },
   "elevenlabs-api": {
     "category": "media",
     "pkg": "@todoforai/elevenlabs-api",
     "installer": "npm",
     "label": "ElevenLabs",
-    "capabilities": "Text-to-speech, voice cloning, multiple languages",
-    "description": "Needs ELEVENLABS_API_KEY.",
-    "versionCmd": "elevenlabs-api --version 2>/dev/null | head -1",
-    "routing": "text-to-speech, clone/list voices → use `elevenlabs-api`."
+    "capabilities": "Text-to-speech, voice cloning, multiple languages. Needs ELEVENLABS_API_KEY.",
+    "versionCmd": "elevenlabs-api --version 2>/dev/null | head -1"
   },
   "codex-imagegen-api": {
     "category": "media",
@@ -163,18 +150,15 @@
     "installer": "npm",
     "label": "Image Gen",
     "capabilities": "AI image generation & editing via TODOFORAI backend (gpt-image)",
-    "versionCmd": "codex-imagegen-api --version 2>/dev/null | head -1",
-    "routing": "generate or edit an image → use `codex-imagegen-api`."
+    "versionCmd": "codex-imagegen-api --version 2>/dev/null | head -1"
   },
   "suno-api": {
     "category": "media",
     "pkg": "@todoforai/suno-api",
     "installer": "npm",
     "label": "Suno",
-    "capabilities": "AI music generation, custom lyrics, multiple genres",
-    "description": "Needs SUNO_API_KEY.",
-    "versionCmd": "suno-api --version 2>/dev/null | head -1",
-    "routing": "generate music/song from a prompt or lyrics → use `suno-api`."
+    "capabilities": "AI music generation, custom lyrics, multiple genres. Needs SUNO_API_KEY.",
+    "versionCmd": "suno-api --version 2>/dev/null | head -1"
   },
   "ntn": {
     "category": "utility",
@@ -187,8 +171,7 @@
       "~/.config/notion"
     ],
     "capabilities": "Official Notion CLI: workspace-wide OAuth login, raw API calls (`ntn api <path>`), page/datasource management, file uploads, Workers deploy.",
-    "versionCmd": "ntn --version 2>/dev/null | head -1",
-    "routing": "read/create/update Notion pages or databases → use `ntn`."
+    "versionCmd": "ntn --version 2>/dev/null | head -1"
   },
   "perplexity-api": {
     "category": "utility",
@@ -196,8 +179,7 @@
     "installer": "npm",
     "label": "Perplexity",
     "capabilities": "AI-powered web search, chat completions, async chat, embeddings and agent runs",
-    "versionCmd": "perplexity-api --version 2>/dev/null | head -1",
-    "routing": "need fresh / web-grounded info with citations beyond training cutoff → use `perplexity-api`."
+    "versionCmd": "perplexity-api --version 2>/dev/null | head -1"
   },
   "gh": {
     "category": "development",
@@ -212,8 +194,7 @@
     ],
     "capabilities": "Repos, PRs & issues, actions & releases, gists & SSH keys",
     "description": "Prefer `gh` over raw GitHub API calls.",
-    "versionCmd": "gh --version 2>/dev/null | head -1",
-    "routing": "any GitHub action (PRs, issues, releases, Actions, clone/fork, gists) → use `gh`, not raw API."
+    "versionCmd": "gh --version 2>/dev/null | head -1"
   },
   "glab": {
     "category": "development",
@@ -227,8 +208,7 @@
     ],
     "capabilities": "Repos, MRs & issues, CI/CD pipelines, releases",
     "description": "GitLab equivalent of `gh`.",
-    "versionCmd": "glab --version 2>/dev/null | head -1",
-    "routing": "any GitLab action (MRs, issues, pipelines, releases, repo) → use `glab`."
+    "versionCmd": "glab --version 2>/dev/null | head -1"
   },
   "vercel": {
     "category": "deployment",
@@ -242,8 +222,7 @@
     ],
     "capabilities": "Deploy & preview, environment variables, domain management",
     "description": "`vercel deploy`; manage env vars, domains, preview URLs.",
-    "versionCmd": "vercel --version 2>/dev/null | head -1",
-    "routing": "deploy a project to Vercel → use `vercel` (check auth first)."
+    "versionCmd": "vercel --version 2>/dev/null | head -1"
   },
   "netlify": {
     "category": "deployment",
@@ -257,8 +236,7 @@
     ],
     "capabilities": "Deploy & preview, serverless functions, forms & identity",
     "description": "`netlify deploy --prod` for production; manage env vars, forms, identity.",
-    "versionCmd": "netlify --version 2>/dev/null | head -1",
-    "routing": "deploy a site/function to Netlify → use `netlify` (check auth first)."
+    "versionCmd": "netlify --version 2>/dev/null | head -1"
   },
   "firebase": {
     "category": "deployment",
@@ -272,8 +250,7 @@
     ],
     "capabilities": "Hosting & deploy, Firestore & Realtime DB, auth & functions",
     "description": "Deploy hosting/functions, manage Firestore/RTDB rules and data, auth users, emulators.",
-    "versionCmd": "firebase --version 2>/dev/null | head -1",
-    "routing": "deploy to Firebase (hosting/functions/firestore) → use `firebase` (check auth first)."
+    "versionCmd": "firebase --version 2>/dev/null | head -1"
   },
   "wrangler": {
     "category": "deployment",
@@ -287,8 +264,7 @@
     ],
     "capabilities": "Workers & Pages deploy, KV & D1 storage, R2 & Queues",
     "description": "Tail logs with `wrangler tail`. Use `cloudflared` for tunnels.",
-    "versionCmd": "wrangler --version 2>/dev/null | head -1",
-    "routing": "deploy Cloudflare Workers/Pages, manage KV/D1/R2/Queues → use `wrangler` (check auth first)."
+    "versionCmd": "wrangler --version 2>/dev/null | head -1"
   },
   "stripe": {
     "category": "payments",
@@ -302,8 +278,7 @@
     ],
     "capabilities": "Payments & subscriptions, webhook testing, invoice management",
     "description": "`stripe listen` forwards webhooks locally; `stripe get/post /v1/...` for raw API.",
-    "versionCmd": "stripe --version 2>/dev/null | head -1",
-    "routing": "Stripe customers/charges/subscriptions/invoices/webhooks → use `stripe`."
+    "versionCmd": "stripe --version 2>/dev/null | head -1"
   },
   "flyctl": {
     "category": "cloud",
@@ -317,8 +292,7 @@
     ],
     "capabilities": "Deploy containers globally, Postgres & volumes, auto-scaling",
     "description": "`flyctl deploy` from app dir; manage Postgres/volumes/machines/secrets.",
-    "versionCmd": "flyctl version 2>/dev/null | head -1",
-    "routing": "deploy an app/container to Fly.io → use `flyctl` (check auth first)."
+    "versionCmd": "flyctl version 2>/dev/null | head -1"
   },
   "supabase": {
     "category": "cloud",
@@ -332,8 +306,7 @@
     ],
     "capabilities": "Postgres database, auth & storage, edge functions",
     "description": "Link to cloud project; runs/migrates local Postgres.",
-    "versionCmd": "supabase --version 2>/dev/null | head -1",
-    "routing": "Supabase project: migrate Postgres, deploy edge functions, manage auth/storage → use `supabase`."
+    "versionCmd": "supabase --version 2>/dev/null | head -1"
   },
   "railway": {
     "category": "cloud",
@@ -347,8 +320,7 @@
     ],
     "capabilities": "Deploy apps & databases, environment management, auto-scaling",
     "description": "`railway up` to deploy current dir.",
-    "versionCmd": "railway --version 2>/dev/null | head -1",
-    "routing": "deploy an app/service to Railway, provision a database → use `railway` (check auth first)."
+    "versionCmd": "railway --version 2>/dev/null | head -1"
   },
   "shopify": {
     "category": "ecommerce",
@@ -360,8 +332,7 @@
       "~/.config/shopify/config.json"
     ],
     "capabilities": "Theme development, app scaffolding, store management",
-    "versionCmd": "shopify version 2>/dev/null | head -1",
-    "routing": "Shopify theme/app dev: scaffold, push/pull themes, run dev server against a store → use `shopify`."
+    "versionCmd": "shopify version 2>/dev/null | head -1"
   },
   "shop-app": {
     "category": "ecommerce",
@@ -377,10 +348,8 @@
     "pkg": "@datadog/datadog-ci",
     "installer": "npm",
     "label": "Datadog",
-    "capabilities": "CI test visibility, sourcemap uploads, deployment tracking",
-    "description": "Needs DATADOG_API_KEY.",
-    "versionCmd": "datadog-ci version 2>/dev/null | head -1",
-    "routing": "upload test results/sourcemaps/coverage to Datadog, mark deploys (CI) → use `datadog-ci`."
+    "capabilities": "CI test visibility, sourcemap uploads, deployment tracking. Needs DATADOG_API_KEY.",
+    "versionCmd": "datadog-ci version 2>/dev/null | head -1"
   },
   "sentry-cli": {
     "category": "monitoring",
@@ -394,20 +363,19 @@
     ],
     "capabilities": "Release management, sourcemap uploads, error monitoring",
     "description": "`sentry-cli releases new <version>`.",
-    "versionCmd": "sentry-cli --version 2>/dev/null | head -1",
-    "routing": "create a Sentry release, upload sourcemaps/debug symbols, associate commits → use `sentry-cli`."
+    "versionCmd": "sentry-cli --version 2>/dev/null | head -1"
   },
   "todoai": {
     "category": "utility",
     "pkg": "@todoforai/cli",
     "installer": "bun",
     "label": "TODOforAI",
+    "binName": "todoforai-cli",
     "capabilities": "Create/list/inspect/update TODOs, run templates & workflows, platform API access",
-    "description": "`todoai list` (`--status open`) to browse, `todoai \"prompt\"` to create, `todoai --inspect <id>[:<msg-id>]` to fetch a TODO with all its messages/data (read-only), `status/addmessage/delete` to manage, `--template` for registry workflows.",
+    "description": "Reach the user's OWN TODOforAI tasks — NOT code `// TODO` comments. Use whenever the user asks about their tasks/todos/account on the platform: `todoforai-cli list` (`--status open`) to browse, `todoforai-cli \"prompt\"` to create, `todoforai-cli --inspect <id>[:<msg-id>]` to read a TODO's full chat/data (read-only), `status/addmessage/delete` to manage, `--template` for registry workflows. Never claim you lack access to platform TODOs — they're reachable here.",
     "installCmd": "bun add -g @todoforai/cli",
-    "versionCmd": "todoai --version 2>/dev/null | head -1",
-    "internal": true,
-    "routing": "the user's own TODOs / tasks / \"my todos\" → use `todoai` (never claim you cannot reach platform TODOs)."
+    "versionCmd": "todoforai-cli --version 2>/dev/null | head -1",
+    "internal": true
   },
   "newman": {
     "category": "testing",
@@ -416,8 +384,7 @@
     "label": "Postman",
     "capabilities": "Run API test collections, CI/CD integration, HTML reports",
     "description": "`newman run <collection.json> -e <env.json>`.",
-    "versionCmd": "newman --version 2>/dev/null | head -1",
-    "routing": "run a Postman collection (API smoke test / CI check) → use `newman`."
+    "versionCmd": "newman --version 2>/dev/null | head -1"
   },
   "curl": {
     "category": "networking",
@@ -438,8 +405,7 @@
     "label": "Tunnel",
     "capabilities": "Tunnel to localhost, expose local services, zero-trust access",
     "description": "`cloudflared tunnel --url http://localhost:<port>` prints a public https URL.",
-    "versionCmd": "cloudflared --version 2>/dev/null | head -1",
-    "routing": "expose a local port publicly / get a public URL for localhost → use `cloudflared`."
+    "versionCmd": "cloudflared --version 2>/dev/null | head -1"
   },
   "vault": {
     "category": "security",
@@ -451,10 +417,8 @@
     "credentialPaths": [
       "~/.vault-token"
     ],
-    "capabilities": "Secrets management, dynamic credentials",
-    "description": "Needs VAULT_ADDR + VAULT_TOKEN.",
-    "versionCmd": "vault --version 2>/dev/null | head -1",
-    "routing": "Terraform / vals / ecosystem integration that expects HashiCorp Vault → use `vault`; for any credential read/write use `tfa-vault` instead."
+    "capabilities": "Secrets management, dynamic credentials. Needs VAULT_ADDR + VAULT_TOKEN; for credential read/write use `tfa-vault` instead.",
+    "versionCmd": "vault --version 2>/dev/null | head -1"
   },
   "rclone": {
     "category": "cloud",
@@ -468,7 +432,6 @@
       "~/.config/rclone/rclone.conf"
     ],
     "capabilities": "Access Google Drive, OneDrive, Dropbox, S3 and 40+ cloud providers. List, copy, sync, move, mount files as virtual filesystem (FUSE). Use 'rclone config create <name> <provider>' to connect (opens browser for OAuth).",
-    "description": "List, copy, sync, or mount files.",
     "subProviders": {
       "gdrive": {
         "label": "Google Drive",
@@ -506,19 +469,30 @@
         "rcloneType": "s3"
       }
     },
-    "versionCmd": "rclone version 2>/dev/null | head -1",
-    "routing": "access cloud storage (Google Drive, OneDrive, Dropbox, S3, 40+ providers) → use `rclone`."
+    "versionCmd": "rclone version 2>/dev/null | head -1"
+  },
+  "rdt": {
+    "category": "social",
+    "pkg": "rdt-cli",
+    "installer": "pip",
+    "label": "Reddit",
+    "statusCmd": "rdt status 2>&1 | grep -oP 'username\":\\s*\"\\K[^\"]+' | head -1",
+    "loginCmd": "rdt login",
+    "credentialPaths": [
+      "~/.config/rdt-cli/credential.json"
+    ],
+    "capabilities": "Search & browse subreddits, read posts & comments, post comments, upvote & save, view user profiles & comments, export results — Reddit in your terminal.",
+    "description": "Reddit CLI. Read/research: `rdt search \"<query>\" -r <sub> --json -c`, `rdt sub <name>`, `rdt read <postId>`, `rdt user-comments <user>`. Write (needs login): `rdt comment <postId> \"<text>\"`, `rdt upvote`, `rdt save`. `rdt status` for auth. Cookie auth via `rdt login` (extracts browser cookies).",
+    "versionCmd": "rdt --version 2>/dev/null | head -1"
   },
   "pymupdf": {
     "category": "utility",
     "pkg": "pymupdf",
     "installer": "pip",
     "label": "PDF",
-    "capabilities": "PDF text editing, extraction, merge, split",
-    "description": "Call via `python3 -c`.",
+    "capabilities": "PDF text editing, extraction, merge, split. Call via `python3 -c`.",
     "versionCmd": "python3 -c 'import pymupdf; print(pymupdf.__version__)' 2>/dev/null",
-    "preinstallCloud": true,
-    "routing": "read/edit/merge/split a PDF → use `pymupdf`."
+    "preinstallCloud": true
   },
   "agent-browser": {
     "category": "development",
@@ -528,8 +502,42 @@
     "label": "Browser",
     "capabilities": "Headless browser automation, web scraping, accessibility tree snapshots, screenshots, PDF generation",
     "description": "Default browser. On a PC with a display prefer a visible window the user can watch/interact with (needed for CAPTCHA/MFA/login): launch a separate Chrome with `google-chrome --remote-debugging-port=9222 --user-data-dir=$HOME/.config/google-chrome-cdp >/tmp/chrome-cdp.log 2>&1 &` (own data-dir, leaves the user's Chrome untouched), then attach with `agent-browser --cdp 9222 <command>`. Use headless only on the cloud or when no display is available.",
-    "versionCmd": "agent-browser --version 2>/dev/null | head -1",
-    "routing": "JS-rendered page, scrape, screenshot, PDF, browser automation → use `agent-browser` (use `todoforai-browser` only when the user's own logged-in session/cookies/MFA are needed)."
+    "versionCmd": "agent-browser --version 2>/dev/null | head -1"
+  },
+  "browser-manager-cli": {
+    "category": "development",
+    "pkg": "browser-manager-cli",
+    "installer": "binary",
+    "binName": "browser-manager-cli",
+    "preinstallCloud": true,
+    "label": "Browser Manager",
+    "statusCmd": "browser-manager-cli whoami",
+    "loginCmd": "browser-manager-cli login",
+    "capabilities": "On-demand cloud Chromium sessions exposed as CDP endpoints for agent-browser; create/list/get/delete sessions, hibernate/restore, health",
+    "description": "Spawns on-demand cloud Chromium sessions and exposes each as a CDP WebSocket for agent-browser to drive. Reuses the bridge login (zero-config, same creds as the daemon). Flow: `browser-manager-cli create` → prints a session with a cdpUrl; `browser-manager-cli connect <id> --exec` connects agent-browser to that session (runs `agent-browser connect '<cdp_url>'`), then drive it with normal agent-browser commands (open/click/snapshot/...). `browser-manager-cli list` shows your sessions, `whoami` the logged-in user, `delete <id>` / `delete-all` to clean up, `hibernate`/`restore` to pause/resume. Use this on the cloud VM instead of launching a local browser.",
+    "versionCmd": "browser-manager-cli version 2>/dev/null | head -1",
+    "binary": {
+      "linux-x86_64": {
+        "url": "https://github.com/todoforai/browser-manager/releases/download/cli-v0.1.0/browser-manager-cli-linux-x86_64",
+        "archive": "raw"
+      },
+      "linux-aarch64": {
+        "url": "https://github.com/todoforai/browser-manager/releases/download/cli-v0.1.0/browser-manager-cli-linux-aarch64",
+        "archive": "raw"
+      },
+      "darwin-x86_64": {
+        "url": "https://github.com/todoforai/browser-manager/releases/download/cli-v0.1.0/browser-manager-cli-darwin-x86_64",
+        "archive": "raw"
+      },
+      "darwin-aarch64": {
+        "url": "https://github.com/todoforai/browser-manager/releases/download/cli-v0.1.0/browser-manager-cli-darwin-aarch64",
+        "archive": "raw"
+      },
+      "windows-x86_64": {
+        "url": "https://github.com/todoforai/browser-manager/releases/download/cli-v0.1.0/browser-manager-cli-windows-x86_64.exe",
+        "archive": "raw"
+      }
+    }
   },
   "todoforai-browser": {
     "category": "development",
@@ -539,8 +547,7 @@
     "label": "Browser (Extension)",
     "capabilities": "Browser automation via extension (non-headless), web scraping, accessibility tree snapshots, screenshots, PDF generation",
     "versionCmd": "node -p \"require(require('child_process').execSync('which todoforai-browser',{encoding:'utf8'}).trim().replace(/\\/dist\\/index\\.js$/, '/package.json')).version\" 2>/dev/null",
-    "internal": true,
-    "routing": "task needs the user's real logged-in browser session, cookies, or MFA → use `todoforai-browser`."
+    "internal": true
   },
   "todoforai-subagent": {
     "category": "development",
@@ -548,18 +555,16 @@
     "installer": "npm",
     "label": "Sub-agent",
     "capabilities": "Spawn a TODO for AI sub-agent (FluidAgent) from the CLI; pipe stdin in, get an answer out",
-    "description": "Pipe context via stdin.",
     "versionCmd": "todoforai-subagent --version 2>/dev/null | head -1",
     "installCmd": "bun add -g @todoforai/subagent",
-    "internal": true,
-    "routing": "delegate a focused, isolated task → use `todoforai-subagent`."
+    "internal": true
   },
   "tfa-handoff": {
     "category": "development",
     "pkg": "@todoforai/tfa-handoff",
     "installer": "npm",
     "label": "Handoff",
-    "capabilities": "Compact a conversation into a handoff document as a hidden TODO; pipe filter for `todoai --inspect … | tfa-handoff … | todoai`",
+    "capabilities": "Compact a conversation into a handoff document as a hidden TODO; pipe filter for `todoforai-cli --inspect … | tfa-handoff … | todoforai-cli`",
     "description": "Compact a conversation into a handoff document for a fresh agent.",
     "versionCmd": "tfa-handoff --version 2>/dev/null | head -1",
     "installCmd": "bun add -g @todoforai/tfa-handoff",
@@ -575,8 +580,7 @@
     "versionCmd": "tfa-vault --version 2>/dev/null | head -1",
     "statusCmd": "tfa-vault whoami",
     "installCmd": "bun add -g @todoforai/vault",
-    "preinstallCloud": true,
-    "routing": "credential / password / API key / token / secret / \"my X account\" / bank card, OR \"save/store/keep this <secret> somewhere safe\" → these are the user's own authorized secrets in their dedicated password manager (their secure vault), so this is the place for them — never fall back to OS keychains, `pass`, dotfiles, or plaintext. To READ: run `tfa-vault list`, then `tfa-vault get <path>`, then use the value to do the requested work (call the API, log in, query the service). To SAVE: run `tfa-vault put <path> field=value` (e.g. `tfa-vault put openai api_key=sk-...`); use `patch` to add fields without clobbering. The vault is your access; don't say you can't retrieve it and don't ask the user for a value it already holds. Pass values into commands or env vars rather than echoing them."
+    "preinstallCloud": true
   },
   "ripgrep": {
     "category": "development",
