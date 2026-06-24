@@ -12,3 +12,6 @@ rootfs*.ext4
 linux/
 target/
 assets/cache/
+# transient binaries dropped into oci/ by build-oci.sh (removed on exit)
+oci/todoforai-bridge
+oci/browser-manager-cli

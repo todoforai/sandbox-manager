@@ -48,6 +48,29 @@ if [ -f "$TOOL_CATALOG_JSON" ] && command -v jq >/dev/null 2>&1; then
 fi
 echo "   preinstall: ${BUN_PREINSTALL:-(none)}"
 
+# --- browser-manager-cli: a static C binary (not bun/npm, not in apt), so bake
+# it in like the bridge. URL comes from the catalog (single source of truth).
+# Best-effort: if the release isn't published yet the image still builds without
+# it (the edge auto-installer fetches it lazily on first use as a fallback).
+rm -f "$OCI_DIR/browser-manager-cli"
+if [ -f "$TOOL_CATALOG_JSON" ] && command -v jq >/dev/null 2>&1; then
+    BMCLI_ARCH="${BMCLI_ARCH:-x86_64}"
+    BMCLI_URL=$(jq -r --arg k "linux-$BMCLI_ARCH" '."browser-manager-cli".binary[$k].url // empty' "$TOOL_CATALOG_JSON")
+    if [ -n "$BMCLI_URL" ]; then
+        echo ">> fetching browser-manager-cli: $BMCLI_URL"
+        if curl -fsSL "$BMCLI_URL" -o "$OCI_DIR/browser-manager-cli"; then
+            chmod 0755 "$OCI_DIR/browser-manager-cli"
+            echo "   browser-manager-cli: $(ls -lh "$OCI_DIR/browser-manager-cli" | awk '{print $5}')"
+        else
+            echo "   WARN: browser-manager-cli download failed (release not published yet?) — skipping bake-in" >&2
+            rm -f "$OCI_DIR/browser-manager-cli"
+        fi
+    fi
+fi
+# An empty placeholder keeps the Dockerfile COPY valid when the fetch is skipped.
+[ -f "$OCI_DIR/browser-manager-cli" ] || : > "$OCI_DIR/browser-manager-cli"
+trap 'rm -f "$OCI_DIR/todoforai-bridge" "$OCI_DIR/browser-manager-cli"' EXIT
+
 echo ">> docker build $IMAGE"
 # --provenance/--sbom=false: keep it a single-manifest image. The buildx
 # attestation manifest makes the result a manifest *list*, which containerd's

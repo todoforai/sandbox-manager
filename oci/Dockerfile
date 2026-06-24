@@ -37,6 +37,17 @@ COPY todoforai-bridge /usr/local/bin/todoforai-bridge
 COPY entrypoint.sh /usr/local/bin/sandbox-entrypoint
 RUN chmod +x /usr/local/bin/todoforai-bridge /usr/local/bin/sandbox-entrypoint
 
+# browser-manager-cli — static C binary fetched by build-oci.sh from the catalog
+# release URL. Best-effort: build-oci.sh may leave a 0-byte placeholder if the
+# release isn't published yet, in which case we drop it so the edge auto-installer
+# fetches it lazily on first use instead of shadowing PATH with an empty file.
+COPY browser-manager-cli /usr/local/bin/browser-manager-cli
+RUN if [ -s /usr/local/bin/browser-manager-cli ]; then \
+        chmod +x /usr/local/bin/browser-manager-cli; \
+    else \
+        rm -f /usr/local/bin/browser-manager-cli; \
+    fi
+
 # Self-classify as a sandbox device at enroll time (bridge reads this).
 RUN touch /etc/todoforai-sandbox
 
