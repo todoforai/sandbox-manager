@@ -9,7 +9,7 @@
 
 FROM ubuntu:24.04
 
-ARG PACKAGES="iproute2 ca-certificates bash coreutils util-linux curl wget jq unzip openssh-client socat sudo ripgrep fd-find patch rclone gh"
+ARG PACKAGES="iproute2 ca-certificates bash coreutils util-linux curl wget jq unzip openssh-client socat sudo ripgrep fd-find patch rclone gh git"
 
 ENV DEBIAN_FRONTEND=noninteractive LC_ALL=C HOME=/root
 
