@@ -16,6 +16,8 @@ import (
 )
 
 func main() {
+	raiseFileLimit()
+
 	cfg, err := config.Load()
 	if err != nil {
 		log.Fatalf("config: %v", err)
