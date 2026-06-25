@@ -30,6 +30,29 @@ RUN export BUN_INSTALL=/usr/local \
 ARG BUN_PREINSTALL=""
 RUN if [ -n "$BUN_PREINSTALL" ]; then export BUN_INSTALL=/usr/local && bun add -g $BUN_PREINSTALL; fi
 
+# agent-browser is only a CDP client — it needs a real Chrome to drive. Its own
+# `install` fetches Chrome for Testing (Google's automation channel, version-
+# matched to the tool) + the Linux shared-lib deps. It writes Chrome under
+# ~/.agent-browser, but at runtime the manager bind-mounts a per-user home.img
+# over /root (see internal/vm/manager.go) — which would SHADOW a browser baked
+# at /root and force a ~380 MB re-download onto every user's disk. So relocate
+# it to a system path baked into the shared rootfs and point the tool there via
+# AGENT_BROWSER_EXECUTABLE_PATH, so all sessions reuse one copy. No install-dir
+# flag exists, hence the install-then-move. (--with-deps shells out to sudo
+# apt-get, which is why `sudo` must be in $PACKAGES above.)
+ENV AGENT_BROWSER_EXECUTABLE_PATH=/opt/agent-browser/chrome/chrome
+RUN if printf '%s' "$BUN_PREINSTALL" | grep -qw agent-browser; then \
+      export BUN_INSTALL=/usr/local \
+   && agent-browser install --with-deps \
+   && CHROME_BIN="$(find /root/.agent-browser/browsers -maxdepth 2 -name chrome -type f | head -1)" \
+   && test -n "$CHROME_BIN" \
+   && mkdir -p /opt/agent-browser \
+   && mv "$(dirname "$CHROME_BIN")" /opt/agent-browser/chrome \
+   && rm -rf /root/.agent-browser \
+   && test -x "$AGENT_BROWSER_EXECUTABLE_PATH" \
+   && apt-get clean && rm -rf /var/lib/apt/lists/*; \
+    fi
+
 # The bridge binary — built/fetched by build-oci.sh and dropped next to this
 # Dockerfile as `todoforai-bridge`. The entrypoint redeems ENROLL_TOKEN then
 # execs the daemon (see oci/entrypoint.sh).
