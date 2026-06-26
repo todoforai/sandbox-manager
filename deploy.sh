@@ -32,7 +32,7 @@ BRANCH="prod"
 KEEP_RELEASES=5
 PORT=8200
 GO_VERSION="1.25.6"   # keep >= go.mod's toolchain
-RESTART_CMD='NODE_ENV=production pm2 startOrReload ecosystem.config.js --env production && pm2 save --force'
+RESTART_CMD='pm2 delete sandbox-manager 2>/dev/null || true; NODE_ENV=production pm2 start ecosystem.config.js --env production && pm2 save --force'
 
 # Host prerequisites the running service needs. The deploy aborts if any are
 # missing — they come from scripts/spike-kata-fc.sh (run once per host), and a
@@ -148,9 +148,11 @@ UNIT
             fi
         done
         # ecosystem.config.js runs the prebuilt ./sandbox-manager via sudo as a
-        # single fork instance. startOrReload starts it (first deploy) or
-        # gracefully reloads in place (subsequent). NODE_ENV picks .env.
-        NODE_ENV=production pm2 startOrReload ecosystem.config.js --env production
+        # single fork instance. `pm2 startOrReload` can leave sudo-launched
+        # processes in a stale "online / pid N/A" state after the binary path
+        # changes between releases, so replace the single instance explicitly.
+        pm2 delete sandbox-manager 2>/dev/null || true
+        NODE_ENV=production pm2 start ecosystem.config.js --env production
         pm2 save --force
 
         echo "Waiting for health on :$PORT..."
