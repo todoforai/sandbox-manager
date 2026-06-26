@@ -5,12 +5,13 @@
     "installer": "npm",
     "label": "Gmail",
     "statusCmd": "zele whoami",
-    "loginCmd": "zele login",
+    "loginCmd": "zele login --method google",
     "credentialPaths": [
       "~/.zele/sqlite.db"
     ],
     "capabilities": "Read inbox, search/send/reply email, email addresses — multi-account Gmail, OAuth browser login for setup.",
-    "versionCmd": "zele --version 2>/dev/null | head -1"
+    "versionCmd": "zele --version 2>/dev/null | head -1",
+    "preinstallCloud": true
   },
   "xurl": {
     "category": "social",
