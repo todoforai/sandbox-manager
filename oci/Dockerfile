@@ -9,7 +9,7 @@
 
 FROM ubuntu:24.04
 
-ARG PACKAGES="iproute2 ca-certificates bash coreutils util-linux curl wget jq unzip openssh-client socat sudo ripgrep fd-find patch rclone gh git"
+ARG PACKAGES="iproute2 ca-certificates bash coreutils util-linux curl wget jq unzip openssh-client socat sudo ripgrep fd-find patch rclone gh git xvfb"
 
 ENV DEBIAN_FRONTEND=noninteractive LC_ALL=C HOME=/root
 
@@ -58,7 +58,11 @@ RUN if printf '%s' "$BUN_PREINSTALL" | grep -qw agent-browser; then \
 # execs the daemon (see oci/entrypoint.sh).
 COPY todoforai-bridge /usr/local/bin/todoforai-bridge
 COPY entrypoint.sh /usr/local/bin/sandbox-entrypoint
-RUN chmod +x /usr/local/bin/todoforai-bridge /usr/local/bin/sandbox-entrypoint
+# tfa-screencast — VM-side helper for the remote-Chrome OAuth popup (runs
+# Xvfb + headed Chrome, screencasts frames to the backend relay WS, applies CDP
+# input). Driven from the frontend via deviceExec; see frontend/docs/browser-stream.md.
+COPY tfa-screencast /usr/local/bin/tfa-screencast
+RUN chmod +x /usr/local/bin/todoforai-bridge /usr/local/bin/sandbox-entrypoint /usr/local/bin/tfa-screencast
 
 # browser-manager-cli — static C binary fetched by build-oci.sh from the catalog
 # release URL. Best-effort: build-oci.sh may leave a 0-byte placeholder if the

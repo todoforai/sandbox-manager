@@ -1,0 +1,251 @@
+#!/usr/local/bin/bun
+// tfa-screencast — VM-side helper for the remote-Chrome OAuth popup.
+//
+// The frontend drives this purely through one-shot `deviceExec` shell calls and
+// one long-running `stream` call. There is no edge function here — the bridge VM
+// only runs shell commands. The live picture and the user's clicks/keystrokes
+// travel over a dedicated backend relay WS (/ws/v2/screencast), NOT over the
+// deviceExec request/response channel.
+//
+//   tfa-screencast setup  <toolKey> <sessionId>   (one-shot; prints JSON)
+//       Start Xvfb + a HEADED Chrome (under the virtual display so Google does
+//       not flag a headless browser), run the tool's loginCmd to capture the
+//       OAuth URL, and navigate Chrome to it. State lives under
+//       /tmp/oauth-stream/<sessionId>.
+//
+//   tfa-screencast stream <sessionId>             (long-running; via deviceExec stream)
+//       Connect to the relay WS as role=vm, push JPEG frames (CDP screenshots)
+//       to the frontend, and apply CDP input the frontend sends back. Runs until
+//       the socket closes or `stop` removes the session.
+//
+//   tfa-screencast stop   <sessionId>             (one-shot)
+//       Kill Chrome + Xvfb for the session and remove its state dir.
+//
+// Why headed-under-Xvfb (not --headless): the Google consent entry page renders
+// fine headless, but the password step frequently refuses headless Chrome
+// ("this browser may not be secure"). A real X display + normal UA avoids that.
+
+import { spawn, spawnSync } from "child_process";
+import fs from "fs";
+import path from "path";
+import net from "net";
+
+const STATE_ROOT = "/tmp/screencast";
+const DISPLAY_BASE = 99; // Xvfb display :<DISPLAY_BASE + portOffset>
+
+const OAUTH_URL_PATTERN: Record<string, RegExp> = {
+  zele: /(https:\/\/accounts\.google\.com\S+)/,
+};
+// loginCmd per tool — kept here so the VM helper is self-contained (the catalog
+// lives in TS elsewhere; these are the cloud-OAuth tools that use the popup).
+const LOGIN_CMD: Record<string, string> = {
+  zele: "zele login --method google",
+};
+
+const CHROME_CANDIDATES = [
+  "/opt/agent-browser/chrome/chrome",
+  process.env.AGENT_BROWSER_EXECUTABLE_PATH || "",
+  "/usr/bin/google-chrome",
+  "/usr/bin/chromium",
+];
+
+function die(msg: string): never { console.log(JSON.stringify({ ok: false, error: msg })); process.exit(1); }
+function findChrome(): string { const b = CHROME_CANDIDATES.find((p) => p && fs.existsSync(p)); if (!b) die("no chrome binary"); return b; }
+function stateDir(sessionId: string): string { return path.join(STATE_ROOT, sessionId.replace(/[^a-zA-Z0-9_-]/g, "")); }
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+// A genuinely free loopback port: bind :0, read the assigned port, release it
+// for Chrome. (Tiny race window, fine for our one-at-a-time setup.)
+function freePort(): Promise<number> {
+  return new Promise((resolve, reject) => {
+    const srv = net.createServer();
+    srv.once("error", reject);
+    srv.listen(0, "127.0.0.1", () => { const port = (srv.address() as net.AddressInfo).port; srv.close(() => resolve(port)); });
+  });
+}
+// A free X display number: probe for an unused /tmp/.X11-unix/X<n> lock.
+function freeDisplay(): number {
+  for (let n = DISPLAY_BASE; n < DISPLAY_BASE + 100; n++) {
+    if (!fs.existsSync(`/tmp/.X11-unix/X${n}`)) return n;
+  }
+  return DISPLAY_BASE + (process.pid % 100);
+}
+
+async function cdpWsUrl(port: number): Promise<string | null> {
+  // curl, not bun fetch (bun localhost connect bug on some builds).
+  const r = spawnSync("curl", ["-s", `http://127.0.0.1:${port}/json/version`], { encoding: "utf-8", timeout: 4000 });
+  const m = r.stdout?.match(/"webSocketDebuggerUrl":\s*"([^"]+)"/);
+  return m ? m[1].replace("localhost", "127.0.0.1") : null;
+}
+
+// ── Minimal CDP client over the browser-level WS ────────────────────────────
+class Cdp {
+  ws!: WebSocket;
+  id = 0;
+  sessionId?: string;
+  pending = new Map<number, { resolve: (v: any) => void; reject: (e: Error) => void; t: any }>();
+  onFrame?: (dataB64: string, w: number, h: number) => void;
+
+  async connect(wsUrl: string) {
+    this.ws = new WebSocket(wsUrl);
+    await new Promise<void>((res, rej) => { this.ws.addEventListener("open", () => res()); this.ws.addEventListener("error", () => rej(new Error("cdp ws error"))); });
+    this.ws.addEventListener("message", (ev) => {
+      const m = JSON.parse(ev.data as string);
+      if (m.id && this.pending.has(m.id)) { const p = this.pending.get(m.id)!; clearTimeout(p.t); this.pending.delete(m.id); m.error ? p.reject(new Error(m.error.message)) : p.resolve(m.result); return; }
+      // With flatten:true the TARGET session id is on the top-level message
+      // (m.sessionId). params.sessionId is the per-frame ack token — a different
+      // value — so route on m.sessionId and ack with the frame's own token.
+      if (m.method === "Page.screencastFrame" && m.sessionId === this.sessionId) {
+        this.onFrame?.(m.params.data, m.params.metadata?.deviceWidth ?? 1280, m.params.metadata?.deviceHeight ?? 720);
+        this.send("Page.screencastFrameAck", { sessionId: m.params.sessionId }).catch(() => {});
+      }
+    });
+  }
+  send(method: string, params: Record<string, any> = {}, timeoutMs = 8000): Promise<any> {
+    return new Promise((resolve, reject) => {
+      if (this.ws.readyState !== WebSocket.OPEN) return reject(new Error("cdp closed"));
+      const id = ++this.id;
+      const t = setTimeout(() => { this.pending.delete(id); reject(new Error(`cdp ${method} timeout`)); }, timeoutMs);
+      this.pending.set(id, { resolve, reject, t });
+      this.ws.send(JSON.stringify({ id, method, params, ...(this.sessionId ? { sessionId: this.sessionId } : {}) }));
+    });
+  }
+}
+
+// ── setup ───────────────────────────────────────────────────────────────────
+async function setup(toolKey: string, sessionId: string) {
+  const pattern = OAUTH_URL_PATTERN[toolKey];
+  const loginCmd = LOGIN_CMD[toolKey];
+  if (!pattern || !loginCmd) die(`unsupported tool ${toolKey}`);
+  const dir = stateDir(sessionId);
+  fs.mkdirSync(dir, { recursive: true });
+
+  const port = await freePort();
+  const display = freeDisplay();
+  fs.writeFileSync(path.join(dir, "meta.json"), JSON.stringify({ toolKey, port, display }));
+  // Any failure past this point must not leak Xvfb/Chrome/login.
+  const failClean = (msg: string): never => { try { stop(sessionId, true); } catch {} die(msg); };
+
+  // Virtual X display so Chrome runs headed (avoids Google headless block).
+  const xvfb = spawn("Xvfb", [`:${display}`, "-screen", "0", "1280x720x24", "-nolisten", "tcp"], { detached: true, stdio: "ignore" });
+  xvfb.unref();
+  fs.writeFileSync(path.join(dir, "xvfb.pid"), String(xvfb.pid));
+  await sleep(700);
+
+  const profileDir = path.join(dir, "profile");
+  const chrome = spawn(findChrome(), [
+    `--remote-debugging-port=${port}`, `--user-data-dir=${profileDir}`,
+    "--no-sandbox", "--disable-dev-shm-usage", "--no-first-run", "--no-default-browser-check",
+    "--window-size=1280,720", "--window-position=0,0", "about:blank",
+  ], { detached: true, stdio: "ignore", env: { ...process.env, DISPLAY: `:${display}` } });
+  chrome.unref();
+  fs.writeFileSync(path.join(dir, "chrome.pid"), String(chrome.pid));
+
+  // Wait for CDP.
+  let wsUrl: string | null = null;
+  for (let i = 0; i < 30 && !wsUrl; i++) { await sleep(400); wsUrl = await cdpWsUrl(port); }
+  if (!wsUrl) failClean("chrome CDP did not come up");
+
+  // Run loginCmd (xdg-open shimmed so it can't open a real browser) and capture
+  // the consent URL it prints.
+  const logFile = path.join(dir, "login.out");
+  fs.rmSync(logFile, { force: true });
+  const login = spawn("bash", ["-c",
+    `tmpd=$(mktemp -d); ln -s /usr/bin/true "$tmpd/xdg-open"; export PATH="$tmpd:$PATH"; { ${loginCmd}; } >${logFile} 2>&1`,
+  ], { detached: true, stdio: "ignore", env: process.env });
+  login.unref();
+  fs.writeFileSync(path.join(dir, "login.pid"), String(login.pid));
+
+  let oauthUrl: string | null = null;
+  for (let i = 0; i < 20 && !oauthUrl; i++) { await sleep(1000); try { oauthUrl = fs.readFileSync(logFile, "utf-8").match(pattern)?.[1] ?? null; } catch {} }
+  if (!oauthUrl) failClean("could not capture OAuth URL from loginCmd");
+
+  // Navigate the live Chrome tab to the consent URL.
+  const cdp = new Cdp();
+  await cdp.connect(wsUrl);
+  const targets = await cdp.send("Target.getTargets");
+  const pageTarget = targets.targetInfos?.find((t: any) => t.type === "page");
+  const attached = await cdp.send("Target.attachToTarget", { targetId: pageTarget.targetId, flatten: true });
+  cdp.sessionId = attached.sessionId;
+  await cdp.send("Page.enable");
+  await cdp.send("Page.navigate", { url: oauthUrl });
+  cdp.ws.close();
+
+  console.log(JSON.stringify({ ok: true, width: 1280, height: 720 }));
+}
+
+// ── stream ────────────────────────────────────────────────────────────────-
+function wsBase(): string {
+  const api = process.env.TODOFORAI_API_URL || "http://127.0.0.1:4000";
+  return api.replace(/^http/, "ws");
+}
+
+async function stream(sessionId: string) {
+  const dir = stateDir(sessionId);
+  const meta = JSON.parse(fs.readFileSync(path.join(dir, "meta.json"), "utf-8")) as { port: number };
+  const wsUrl = await cdpWsUrl(meta.port);
+  if (!wsUrl) die("chrome not running");
+
+  const cdp = new Cdp();
+  await cdp.connect(wsUrl);
+  const targets = await cdp.send("Target.getTargets");
+  const pageTarget = targets.targetInfos?.find((t: any) => t.type === "page");
+  const attached = await cdp.send("Target.attachToTarget", { targetId: pageTarget.targetId, flatten: true });
+  cdp.sessionId = attached.sessionId;
+  await cdp.send("Page.enable");
+
+  // No token: the relay authenticates the FRONTEND side and binds the userId;
+  // the VM side just joins by the (unguessable) sessionId it was handed.
+  const relayUrl = `${wsBase()}/ws/v2/screencast?sessionId=${encodeURIComponent(sessionId)}&role=vm`;
+  const relay = new WebSocket(relayUrl);
+
+  let frameN = 0;
+  let stopped = false;
+  const sendFrame = (dataB64: string, w: number, h: number) => {
+    if (relay.readyState === WebSocket.OPEN) relay.send(JSON.stringify({ t: "frame", data: dataB64, w, h, n: ++frameN }));
+  };
+  cdp.onFrame = sendFrame;
+
+  relay.addEventListener("open", async () => {
+    await cdp.send("Page.startScreencast", { format: "jpeg", quality: 60, maxWidth: 1280, maxHeight: 720, everyNthFrame: 1 });
+  });
+  // Frontend -> VM: CDP input.
+  relay.addEventListener("message", async (ev) => {
+    let m: any; try { m = JSON.parse(ev.data as string); } catch { return; }
+    if (m.t !== "input") return;
+    try {
+      if (m.kind === "mouse") await cdp.send("Input.dispatchMouseEvent", { type: m.type, x: m.x, y: m.y, button: m.button ?? "left", clickCount: m.clickCount ?? 1, buttons: m.buttons ?? 0 });
+      else if (m.kind === "wheel") await cdp.send("Input.dispatchMouseEvent", { type: "mouseWheel", x: m.x, y: m.y, deltaX: m.deltaX ?? 0, deltaY: m.deltaY ?? 0 });
+      else if (m.kind === "key") await cdp.send("Input.dispatchKeyEvent", { type: m.type, key: m.key, code: m.code, text: m.text, windowsVirtualKeyCode: m.keyCode });
+    } catch {}
+  });
+  const end = () => { if (stopped) return; stopped = true; try { cdp.ws.close(); } catch {} process.exit(0); };
+  relay.addEventListener("close", end);
+  relay.addEventListener("error", end);
+
+  // Force a frame every 2s so a static screen still paints, and detect a stop.
+  while (!stopped) {
+    await sleep(2000);
+    if (!fs.existsSync(dir)) end();
+    try { const shot = await cdp.send("Page.captureScreenshot", { format: "jpeg", quality: 50 }); if (shot?.data) sendFrame(shot.data, 1280, 720); } catch {}
+  }
+}
+
+// ── stop ──────────────────────────────────────────────────────────────────-
+function killPidFile(dir: string, name: string) {
+  try { const pid = parseInt(fs.readFileSync(path.join(dir, name), "utf-8"), 10); if (pid) { try { process.kill(-pid, "SIGKILL"); } catch { try { process.kill(pid, "SIGKILL"); } catch {} } } } catch {}
+}
+function stop(sessionId: string, quiet = false) {
+  const dir = stateDir(sessionId);
+  killPidFile(dir, "login.pid");
+  killPidFile(dir, "chrome.pid");
+  killPidFile(dir, "xvfb.pid");
+  try { fs.rmSync(dir, { recursive: true, force: true }); } catch {}
+  if (!quiet) console.log(JSON.stringify({ ok: true }));
+}
+
+const [cmd, a, b] = process.argv.slice(2);
+if (cmd === "setup") await setup(a, b);
+else if (cmd === "stream") await stream(a);
+else if (cmd === "stop") stop(a);
+else die(`usage: tfa-screencast setup|stream|stop`);
