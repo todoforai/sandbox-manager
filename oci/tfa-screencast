@@ -7,11 +7,12 @@
 // travel over a dedicated backend relay WS (/ws/v2/screencast), NOT over the
 // deviceExec request/response channel.
 //
-//   tfa-screencast setup  <toolKey> <sessionId>   (one-shot; prints JSON)
+//   tfa-screencast setup  <toolKey> <sessionId> [email]   (one-shot; prints JSON)
 //       Start Xvfb + a HEADED Chrome (under the virtual display so Google does
 //       not flag a headless browser), run the tool's loginCmd to capture the
-//       OAuth URL, and navigate Chrome to it. State lives under
-//       /tmp/oauth-stream/<sessionId>.
+//       OAuth URL, and navigate Chrome to it. When [email] is given it's added
+//       as Google's `login_hint`, so the consent screen pre-fills that account.
+//       State lives under /tmp/screencast/<sessionId>.
 //
 //   tfa-screencast stream <sessionId>             (long-running; via deviceExec stream)
 //       Connect to the relay WS as role=vm, push JPEG frames (CDP screenshots)
@@ -113,7 +114,7 @@ class Cdp {
 }
 
 // ── setup ───────────────────────────────────────────────────────────────────
-async function setup(toolKey: string, sessionId: string) {
+async function setup(toolKey: string, sessionId: string, email?: string) {
   const pattern = OAUTH_URL_PATTERN[toolKey];
   const loginCmd = LOGIN_CMD[toolKey];
   if (!pattern || !loginCmd) die(`unsupported tool ${toolKey}`);
@@ -159,6 +160,15 @@ async function setup(toolKey: string, sessionId: string) {
   let oauthUrl: string | null = null;
   for (let i = 0; i < 20 && !oauthUrl; i++) { await sleep(1000); try { oauthUrl = fs.readFileSync(logFile, "utf-8").match(pattern)?.[1] ?? null; } catch {} }
   if (!oauthUrl) failClean("could not capture OAuth URL from loginCmd");
+
+  // Pre-fill the target account on Google's consent screen (zele itself doesn't
+  // emit login_hint, so we set it on the captured URL).
+  if (email && /@/.test(email)) {
+    try {
+      const u = new URL(oauthUrl);
+      if (!u.searchParams.has("login_hint")) { u.searchParams.set("login_hint", email); oauthUrl = u.toString(); }
+    } catch {}
+  }
 
   // Navigate the live Chrome tab to the consent URL.
   const cdp = new Cdp();
@@ -244,8 +254,8 @@ function stop(sessionId: string, quiet = false) {
   if (!quiet) console.log(JSON.stringify({ ok: true }));
 }
 
-const [cmd, a, b] = process.argv.slice(2);
-if (cmd === "setup") await setup(a, b);
+const [cmd, a, b, c] = process.argv.slice(2);
+if (cmd === "setup") await setup(a, b, c);
 else if (cmd === "stream") await stream(a);
 else if (cmd === "stop") stop(a);
-else die(`usage: tfa-screencast setup|stream|stop`);
+else die(`usage: tfa-screencast setup <tool> <session> [email]|stream <session>|stop <session>`);
