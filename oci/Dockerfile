@@ -19,6 +19,10 @@ RUN apt-get update \
  && apt-get clean \
  && rm -rf /var/lib/apt/lists/* /usr/share/man/* /usr/share/doc/* /usr/share/info/*
 
+# websocat: WebSocket client (Ubuntu apt doesn't ship it; grab the static musl binary).
+RUN curl -fsSL https://github.com/vi/websocat/releases/download/v1.14.1/websocat.x86_64-unknown-linux-musl \
+ -o /usr/local/bin/websocat && chmod +x /usr/local/bin/websocat
+
 # bun: runtime + package manager for npm catalog CLIs (agent-browser, tfa-vault).
 RUN export BUN_INSTALL=/usr/local \
  && curl -fsSL https://bun.sh/install | bash \
