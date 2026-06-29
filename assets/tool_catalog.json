@@ -41,6 +41,20 @@
     "description": "Authenticated LinkedIn Voyager API CLI. Cookie auth: `linkedin-api auth <li_at> <jsessionid>` (from browser DevTools).",
     "versionCmd": "linkedin-api --version 2>/dev/null | head -1"
   },
+  "figma-api": {
+    "category": "development",
+    "pkg": "@todoforai/figma-api",
+    "installer": "npm",
+    "label": "Figma",
+    "statusCmd": "figma-api me 2>/dev/null | grep -oP '\"email\":\\s*\"\\K[^\"]+' | head -1",
+    "loginCmd": "figma-api auth",
+    "credentialPaths": [
+      "~/.config/figma-api/credentials.json"
+    ],
+    "capabilities": "Read+write Figma REST API: files/nodes JSON, render images (png/svg/pdf), comments & reactions, components/styles/variables, dev resources, webhooks, projects, library analytics — full subcommand-per-endpoint CLI.",
+    "description": "Authenticated Figma REST API CLI. Auth: `figma-api auth <token>` (PAT from figma.com/settings). File commands take a file key or Figma URL. Read files/nodes/images/comments/components/styles/variables; write comments/dev-resources/webhooks. Canvas writes (frames/text/shapes) use `figma-api run` via the plugin bridge. Run `figma-api <cmd> --help` for params/scopes.",
+    "versionCmd": "figma-api --version 2>/dev/null | head -1"
+  },
   "tiktok-uploader": {
     "category": "social",
     "pkg": "tiktok-uploader",
