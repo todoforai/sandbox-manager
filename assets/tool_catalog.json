@@ -526,7 +526,7 @@
     "binName": "browser-manager-cli",
     "preinstallCloud": true,
     "label": "Browser Manager",
-    "statusCmd": "browser-manager-cli whoami",
+    "statusCmd": "browser-manager-cli status",
     "loginCmd": "browser-manager-cli login",
     "capabilities": "On-demand cloud Chromium sessions exposed as CDP endpoints for agent-browser; create/list/get/delete sessions, hibernate/restore, health",
     "description": "Spawns on-demand cloud Chromium sessions and exposes each as a CDP WebSocket for agent-browser to drive. Reuses the bridge login (zero-config, same creds as the daemon). Flow: `browser-manager-cli create` → prints a session with a cdpUrl; `browser-manager-cli connect <id> --exec` connects agent-browser to that session (runs `agent-browser connect '<cdp_url>'`), then drive it with normal agent-browser commands (open/click/snapshot/...). `browser-manager-cli list` shows your sessions, `whoami` the logged-in user, `delete <id>` / `delete-all` to clean up, `hibernate`/`restore` to pause/resume. Use this on the cloud VM instead of launching a local browser.",
