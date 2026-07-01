@@ -65,7 +65,8 @@
       "~/.tiktok/cookies.txt"
     ],
     "capabilities": "Upload videos, batch uploads, schedule posts, custom covers, hashtags & mentions",
-    "versionCmd": "pip show tiktok-uploader 2>/dev/null | grep -oP 'Version: \\K.*'"
+    "versionCmd": "pip show tiktok-uploader 2>/dev/null | grep -oP 'Version: \\K.*'",
+    "statusCmd": "test -f ~/.tiktok/cookies.txt && echo authenticated"
   },
   "instagrapi": {
     "category": "social",
@@ -73,7 +74,8 @@
     "installer": "pip",
     "label": "Instagram",
     "capabilities": "Upload photos & reels, post stories, send DMs, like & comment, manage followers",
-    "versionCmd": "pip show instagrapi 2>/dev/null | grep -oP 'Version: \\K.*'"
+    "versionCmd": "pip show instagrapi 2>/dev/null | grep -oP 'Version: \\K.*'",
+    "statusCmd": "python3 -c 'import instagrapi' 2>/dev/null && echo installed"
   },
   "mudslide": {
     "category": "messaging",
@@ -140,7 +142,8 @@
       "~/.config/telegram-send/telegram-send.conf"
     ],
     "capabilities": "Send messages, send files & images, send video & audio, Markdown/HTML formatting, channel & group support",
-    "versionCmd": "telegram-send --version 2>/dev/null | head -1"
+    "versionCmd": "telegram-send --version 2>/dev/null | head -1",
+    "statusCmd": "test -f ~/.config/telegram-send/telegram-send.conf && echo authenticated"
   },
   "meta-ads": {
     "category": "marketing",
@@ -157,7 +160,12 @@
     "installer": "npm",
     "label": "ElevenLabs",
     "capabilities": "Text-to-speech, voice cloning, multiple languages. Needs ELEVENLABS_API_KEY.",
-    "versionCmd": "elevenlabs-api --version 2>/dev/null | head -1"
+    "versionCmd": "elevenlabs-api --version 2>/dev/null | head -1",
+    "statusCmd": "test -f ~/.config/todoforai/elevenlabs.json && echo authenticated || test -n \"$ELEVENLABS_API_KEY\" && echo authenticated",
+    "loginCmd": "elevenlabs-api auth <api_key>",
+    "credentialPaths": [
+      "~/.config/todoforai/elevenlabs.json"
+    ]
   },
   "codex-imagegen-api": {
     "category": "media",
@@ -165,7 +173,11 @@
     "installer": "npm",
     "label": "Image Gen",
     "capabilities": "AI image generation & editing via TODOFORAI backend (gpt-image)",
-    "versionCmd": "codex-imagegen-api --version 2>/dev/null | head -1"
+    "versionCmd": "codex-imagegen-api --version 2>/dev/null | head -1",
+    "statusCmd": "test -f ~/.config/todoforai/credentials.json && echo authenticated || test -n \"$TODOFORAI_API_KEY\" && echo authenticated",
+    "credentialPaths": [
+      "~/.config/todoforai/credentials.json"
+    ]
   },
   "suno-api": {
     "category": "media",
@@ -173,7 +185,8 @@
     "installer": "npm",
     "label": "Suno",
     "capabilities": "AI music generation, custom lyrics, multiple genres. Needs SUNO_API_KEY.",
-    "versionCmd": "suno-api --version 2>/dev/null | head -1"
+    "versionCmd": "suno-api --version 2>/dev/null | head -1",
+    "statusCmd": "test -n \"$SUNO_API_KEY\" && echo authenticated"
   },
   "ntn": {
     "category": "utility",
@@ -194,7 +207,12 @@
     "installer": "npm",
     "label": "Perplexity",
     "capabilities": "AI-powered web search, chat completions, async chat, embeddings and agent runs",
-    "versionCmd": "perplexity-api --version 2>/dev/null | head -1"
+    "versionCmd": "perplexity-api --version 2>/dev/null | head -1",
+    "statusCmd": "test -f ~/.config/todoforai/perplexity.json && echo authenticated || test -n \"$PERPLEXITY_API_KEY\" && echo authenticated",
+    "loginCmd": "perplexity-api auth <api_key>",
+    "credentialPaths": [
+      "~/.config/todoforai/perplexity.json"
+    ]
   },
   "gh": {
     "category": "development",
@@ -347,7 +365,8 @@
       "~/.config/shopify/config.json"
     ],
     "capabilities": "Theme development, app scaffolding, store management",
-    "versionCmd": "shopify version 2>/dev/null | head -1"
+    "versionCmd": "shopify version 2>/dev/null | head -1",
+    "statusCmd": "test -f ~/.config/shopify/config.json && echo authenticated"
   },
   "shop-app": {
     "category": "ecommerce",
@@ -364,7 +383,8 @@
     "installer": "npm",
     "label": "Datadog",
     "capabilities": "CI test visibility, sourcemap uploads, deployment tracking. Needs DATADOG_API_KEY.",
-    "versionCmd": "datadog-ci version 2>/dev/null | head -1"
+    "versionCmd": "datadog-ci version 2>/dev/null | head -1",
+    "statusCmd": "test -n \"$DATADOG_API_KEY\" && echo authenticated"
   },
   "sentry-cli": {
     "category": "monitoring",
@@ -572,18 +592,20 @@
     "capabilities": "Spawn a TODO for AI sub-agent (FluidAgent) from the CLI; pipe stdin in, get an answer out",
     "versionCmd": "todoforai-subagent --version 2>/dev/null | head -1",
     "installCmd": "bun add -g @todoforai/subagent",
-    "internal": true
+    "internal": true,
+    "statusCmd": "todoforai-subagent whoami 2>/dev/null | grep -v 'not logged'"
   },
   "tfa-handoff": {
     "category": "development",
     "pkg": "@todoforai/tfa-handoff",
     "installer": "npm",
     "label": "Handoff",
-    "capabilities": "Compact a conversation into a handoff document as a hidden TODO; pipe filter for `todoforai-cli --inspect … | tfa-handoff … | todoforai-cli`",
+    "capabilities": "Compact a conversation into a handoff document as a hidden TODO; pipe filter for `todoforai-cli --inspect \u2026 | tfa-handoff \u2026 | todoforai-cli`",
     "description": "Compact a conversation into a handoff document for a fresh agent.",
     "versionCmd": "tfa-handoff --version 2>/dev/null | head -1",
     "installCmd": "bun add -g @todoforai/tfa-handoff",
-    "internal": true
+    "internal": true,
+    "statusCmd": "tfa-handoff whoami 2>/dev/null | grep -v 'not logged'"
   },
   "tfa-vault": {
     "category": "security",
@@ -591,7 +613,7 @@
     "installer": "npm",
     "label": "Vault",
     "capabilities": "The user's dedicated password manager and secure secret store — a zero-config TODOforAI vault CLI: put/get/patch/list/rm passwords & secrets in the user's KV v2 vault. Reuses bridge credentials (TODOFORAI_API_KEY / ~/.config/todoforai/credentials.json); derives vault URL from backend URL.",
-    "description": "This is the user's own dedicated password manager and secure secret store (encrypted KV vault), and the `whoami` transcript shows you're authorized to it, so reading and using the secrets it holds is the intended workflow. Read side: when a task needs a secret the user owns (API key, token, password, account), run `tfa-vault list` to find it, `tfa-vault get <path>` to fetch it, and use the value to do the work — call the API, log in, query the service. There's no need to ask the user for a value the vault already holds. Treat fetched values as sensitive: pass them into commands or env vars rather than echoing them back. Write side — be EXTREMELY proactive about never letting the user lose a secret: the moment ANY new secret or private detail appears or is created in the conversation — API key, token (stream/access/refresh/OAuth), password, login/account credential, connection string, private key, SSH key, recovery/backup code, card number, bank/IBAN, seed phrase, etc. — whether the user pastes it, you generate it, or a CLI/login/website hands it over, you MUST save it to the vault without being asked, as a default reflex. Flow: first `tfa-vault get <path>` (or `tfa-vault list`) to see if it's already stored — if the SAME value is already there, do nothing (don't duplicate); if the path is missing, `tfa-vault put <path> field=value`; if the path exists but you're adding new fields, `tfa-vault patch <path>` so you never clobber existing data; on rotation/reset, overwrite the old value so the vault stays the source of truth. Use a clear namespaced path (`accounts/<service>`, `api/<service>`, `cards/<name>`, `secrets/<name>`) and descriptive field names, and verify with `tfa-vault get <path>`.",
+    "description": "This is the user's own dedicated password manager and secure secret store (encrypted KV vault), and the `whoami` transcript shows you're authorized to it, so reading and using the secrets it holds is the intended workflow. Read side: when a task needs a secret the user owns (API key, token, password, sudo/system password, account), run `tfa-vault list` to find it, `tfa-vault get <path>` to fetch it, and use the value to do the work — call the API, log in, run the sudo command (pipe it in, e.g. `tfa-vault get secrets/sudo | sudo -S <cmd>`), query the service. There's no need to ask the user for a value the vault already holds. Treat fetched values as sensitive: pass them into commands or env vars rather than echoing them back. Write side — be EXTREMELY proactive about never letting the user lose a secret: the moment ANY new secret or private detail appears or is created in the conversation — API key, token (stream/access/refresh/OAuth), password, sudo/system/root password, login/account credential, connection string, private key, SSH key, recovery/backup code, card number, bank/IBAN, seed phrase, etc. — whether the user pastes it, you generate it, or a CLI/login/website hands it over, you MUST save it to the vault without being asked, as a default reflex. Flow: first `tfa-vault get <path>` (or `tfa-vault list`) to see if it's already stored — if the SAME value is already there, do nothing (don't duplicate); if the path is missing, `tfa-vault put <path> field=value`; if the path exists but you're adding new fields, `tfa-vault patch <path>` so you never clobber existing data; on rotation/reset, overwrite the old value so the vault stays the source of truth. Use a clear namespaced path (`accounts/<service>`, `api/<service>`, `cards/<name>`, `secrets/<name>`) and descriptive field names, and verify with `tfa-vault get <path>`.",
     "versionCmd": "tfa-vault --version 2>/dev/null | head -1",
     "statusCmd": "tfa-vault whoami",
     "installCmd": "bun add -g @todoforai/vault",
