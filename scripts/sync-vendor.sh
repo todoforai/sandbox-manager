@@ -48,6 +48,29 @@ bridge_fetch() {
     echo "$cache"
 }
 
+# Fetch the pinned slim rclone release (todoforai backend only) into
+# vendor/cache/ (idempotent) and print its path on stdout. Same fetch+verify
+# pattern as bridge_fetch. Tag: RCLONE_TAG env > vendor/rclone.tag.
+rclone_fetch() {
+    local tag asset cache base tmp expected actual
+    tag="${RCLONE_TAG:-$(cat "$ASSETS_DIR/rclone.tag" 2>/dev/null || true)}"
+    [ -n "$tag" ] || { echo "ERROR: no rclone tag (vendor/rclone.tag or RCLONE_TAG)" >&2; return 1; }
+    asset="rclone-sandbox-linux-${RCLONE_ARCH:-x64}"
+    cache="$ASSETS_DIR/cache/${tag}-${asset}"
+    if [ ! -f "$cache" ]; then
+        base="https://github.com/todoforai/rclone-backend/releases/download/$tag"
+        tmp="$(mktemp -d)"; trap 'rm -rf "$tmp"' RETURN
+        curl -fsSL "$base/$asset"        -o "$tmp/bin" || { echo "ERROR: download failed: $base/$asset" >&2; return 1; }
+        curl -fsSL "$base/$asset.sha256" -o "$tmp/sha" || { echo "ERROR: sha256 fetch failed" >&2; return 1; }
+        expected="$(awk '{print $1}' "$tmp/sha")"
+        actual="$(sha256sum "$tmp/bin" | awk '{print $1}')"
+        [ "$expected" = "$actual" ] || { echo "ERROR: sha256 mismatch ($asset $tag): want $expected got $actual" >&2; return 1; }
+        mkdir -p "$ASSETS_DIR/cache"; chmod 0755 "$tmp/bin"; mv "$tmp/bin" "$cache"
+        echo "fetched $asset $tag (verified)" >&2
+    fi
+    echo "$cache"
+}
+
 catalog_sync() {
     [ -f "$CATALOG_SRC" ] || { echo "ERROR: catalog not found: $CATALOG_SRC" >&2; return 1; }
     mkdir -p "$ASSETS_DIR"
@@ -57,6 +80,7 @@ catalog_sync() {
 
 case "${1:-all}" in
     bridge)  bridge_fetch ;;
+    rclone)  rclone_fetch ;;
     catalog) catalog_sync; echo "Commit vendor/tool_catalog.json so the standalone clone is self-sufficient." ;;
     --check)
         diff -q "$CATALOG_SRC" "$ASSETS_DIR/tool_catalog.json" >/dev/null 2>&1 \
@@ -67,6 +91,12 @@ case "${1:-all}" in
         catalog_sync
         bridge_fetch >/dev/null
         echo "✓ bridge $(cat "$ASSETS_DIR/bridge.tag") cached under vendor/cache/"
+        # rclone is best-effort: the slim asset may not be published yet, and a
+        # missing mount binary only disables the cloud FUSE mount (entrypoint is
+        # tolerant) — it must not block a rootfs build.
+        rclone_fetch >/dev/null 2>&1 \
+            && echo "✓ rclone $(cat "$ASSETS_DIR/rclone.tag") cached under vendor/cache/" \
+            || echo "… rclone $(cat "$ASSETS_DIR/rclone.tag" 2>/dev/null) not fetchable yet (cloud mount disabled until published)"
         echo "Commit vendor/tool_catalog.json so the standalone clone is self-sufficient." ;;
-    *) echo "usage: $0 [all|catalog|bridge|--check]" >&2; exit 2 ;;
+    *) echo "usage: $0 [all|catalog|bridge|rclone|--check]" >&2; exit 2 ;;
 esac

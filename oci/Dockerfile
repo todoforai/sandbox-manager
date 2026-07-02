@@ -9,7 +9,7 @@
 
 FROM ubuntu:24.04
 
-ARG PACKAGES="iproute2 ca-certificates bash coreutils util-linux curl wget jq unzip openssh-client socat sudo ripgrep fd-find patch rclone gh git xvfb ffmpeg xdotool x11-utils"
+ARG PACKAGES="iproute2 ca-certificates bash coreutils util-linux fuse3 curl wget jq unzip openssh-client socat sudo ripgrep fd-find patch gh git xvfb ffmpeg xdotool x11-utils"
 
 ENV DEBIAN_FRONTEND=noninteractive LC_ALL=C HOME=/root
 
@@ -73,6 +73,18 @@ RUN if [ -s /usr/local/bin/browser-manager-cli ]; then \
         chmod +x /usr/local/bin/browser-manager-cli; \
     else \
         rm -f /usr/local/bin/browser-manager-cli; \
+    fi
+
+# Slim rclone (todoforai backend only) — fetched by build-oci.sh from the
+# rclone-backend release and dropped next to this Dockerfile as `rclone`. The
+# guest entrypoint uses it to FUSE-mount the user's cloud workspace. Best-effort:
+# build-oci.sh may leave a 0-byte placeholder if the release isn't published yet,
+# in which case we drop it so the entrypoint's mount step simply no-ops.
+COPY rclone /usr/local/bin/rclone
+RUN if [ -s /usr/local/bin/rclone ]; then \
+        chmod +x /usr/local/bin/rclone; \
+    else \
+        rm -f /usr/local/bin/rclone; \
     fi
 
 # Self-classify as a sandbox device at enroll time (bridge reads this).
