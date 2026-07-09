@@ -536,7 +536,7 @@
     "preinstallCloud": true,
     "label": "Browser",
     "capabilities": "Headless browser automation, web scraping, accessibility tree snapshots, screenshots, PDF generation",
-    "description": "Default browser. On a PC with a display prefer a visible window the user can watch/interact with (needed for CAPTCHA/MFA/login): launch a separate Chrome with `google-chrome --remote-debugging-port=9222 --user-data-dir=$HOME/.config/google-chrome-cdp >/tmp/chrome-cdp.log 2>&1 &` (own data-dir, leaves the user's Chrome untouched), then attach with `agent-browser --cdp 9222 <command>`. Use headless only on the cloud or when no display is available.",
+    "description": "Default browser. On a PC with a display prefer a visible window the user can watch/interact with (needed for CAPTCHA/MFA/login): launch a separate Chrome with `google-chrome --remote-debugging-port=9222 --user-data-dir=$HOME/.config/google-chrome-cdp >/tmp/chrome-cdp.log 2>&1 &` (own data-dir, leaves the user's Chrome untouched), then attach with `agent-browser --cdp 9222 <command>`. Use headless only on the cloud or when no display is available. When driving a browser-manager/CloakBrowser session, connect to its exact cdpUrl (the :8620 CDP proxy) — hitting the Chrome debug port directly fails with a 403 '--remote-allow-origins' error. After connecting, VERIFY you're on the intended browser (check navigator.webdriver / navigator.userAgent): a stale/cached connection silently drives or measures the WRONG browser, which looks like the stealth failing when it isn't.",
     "versionCmd": "agent-browser --version 2>/dev/null | head -1"
   },
   "browser-manager-cli": {
