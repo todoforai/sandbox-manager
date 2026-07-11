@@ -304,6 +304,19 @@ func (s *Service) Reconcile(ctx context.Context) error {
 		return err
 	}
 	for _, sb := range all {
+		// GC error tombstones (failed creates, legacy records): keep them
+		// visible briefly for debugging, then drop record + set membership.
+		// They hold no VM resources and no quota slot, so plain Delete is
+		// enough — without this they accumulate forever (one per failed
+		// create) and bloat every List.
+		if sb.State == store.StateError {
+			if store.NowMillis()-sb.LastActivity > errorGCMillis {
+				if err := s.store.Delete(ctx, sb.ID); err != nil {
+					log.Printf("reconcile gc error record %s: %v", sb.ID, err)
+				}
+			}
+			continue
+		}
 		// staleDead honours the creating/terminating grace window so an
 		// in-flight Create (VM not booted yet) or Delete isn't torn down.
 		if !s.staleDead(ctx, sb) {
@@ -334,6 +347,11 @@ func (s *Service) Reconcile(ctx context.Context) error {
 // before reconcile assumes the operation crashed and cleans it up. Comfortably
 // longer than a worst-case create (pull + boot).
 const reconcileGraceMillis = 5 * 60 * 1000
+
+// errorGCMillis is how long error tombstones stay around before reconcile
+// garbage-collects them. Long enough to inspect a failed create; short enough
+// that they don't pile up per user.
+const errorGCMillis = 24 * 60 * 60 * 1000
 
 // ReconcileLoop runs Reconcile on startup and then every interval until ctx is
 // cancelled. containerd owns lifecycle truth; this keeps the Redis projection
