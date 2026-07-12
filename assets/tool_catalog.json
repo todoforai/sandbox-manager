@@ -167,13 +167,13 @@
       "~/.config/todoforai/elevenlabs.json"
     ]
   },
-  "codex-imagegen-api": {
+  "todoforai-imagegen": {
     "category": "media",
-    "pkg": "@todoforai/codex-imagegen-api",
+    "pkg": "@todoforai/imagegen",
     "installer": "npm",
     "label": "Image Gen",
     "capabilities": "AI image generation & editing via TODOFORAI backend (gpt-image)",
-    "versionCmd": "codex-imagegen-api --version 2>/dev/null | head -1",
+    "versionCmd": "todoforai-imagegen --version 2>/dev/null | head -1",
     "statusCmd": "test -f ~/.config/todoforai/credentials.json && echo authenticated || test -n \"$TODOFORAI_API_KEY\" && echo authenticated",
     "credentialPaths": [
       "~/.config/todoforai/credentials.json"
