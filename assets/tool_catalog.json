@@ -607,6 +607,18 @@
     "internal": true,
     "statusCmd": "tfa-handoff whoami 2>/dev/null | grep -v 'not logged'"
   },
+  "tfa-wait": {
+    "category": "development",
+    "pkg": "@todoforai/tfa-wait",
+    "installer": "npm",
+    "label": "Wait",
+    "capabilities": "Schedule a future wake-up or wait for external events; the result arrives as a message in this conversation: `tfa-wait in 3h \"msg\"`, `at <time>`, `on <key> --timeout 7d \"msg with {{payload.x}}\"` (webhook URL printed); `list`/`cancel <id>`/`emit <key> [json]`. Combine on+timeout = whichever first; `--stream` keeps listening; max horizon 30 days.",
+    "description": "Schedule wake-ups and wait for webhooks/events \u2014 results return into the conversation.",
+    "versionCmd": "tfa-wait --version 2>/dev/null | head -1",
+    "installCmd": "bun add -g @todoforai/tfa-wait",
+    "internal": true,
+    "statusCmd": "test -n \"$TODOFORAI_API_TOKEN\" && echo authenticated"
+  },
   "tfa-vault": {
     "category": "security",
     "pkg": "@todoforai/vault",
