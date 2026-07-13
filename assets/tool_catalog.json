@@ -9,9 +9,23 @@
     "credentialPaths": [
       "~/.zele/sqlite.db"
     ],
-    "capabilities": "Read inbox, search/send/reply email, email addresses — multi-account Gmail, OAuth browser login for setup.",
+    "capabilities": "Read inbox, search/send/reply email, email addresses — multi-account Gmail, OAuth browser login for setup. Also Google Calendar via `zele cal` (see zele-calendar).",
     "versionCmd": "zele --version 2>/dev/null | head -1",
     "preinstallCloud": true
+  },
+  "zele-calendar": {
+    "category": "utility",
+    "pkg": "zele",
+    "installer": "npm",
+    "binName": "zele",
+    "label": "Google Calendar",
+    "statusCmd": "zele whoami",
+    "loginCmd": "zele login --method google",
+    "credentialPaths": [
+      "~/.zele/sqlite.db"
+    ],
+    "capabilities": "Google Calendar via `zele cal`: list calendars & events (--today/--week/--days), create/update/delete events with Google Meet links, recurrence & reminders, respond to invites, free/busy — same Google login as Gmail (zele).",
+    "versionCmd": "zele --version 2>/dev/null | head -1"
   },
   "xurl": {
     "category": "social",
@@ -167,13 +181,13 @@
       "~/.config/todoforai/elevenlabs.json"
     ]
   },
-  "todoforai-imagegen": {
+  "codex-imagegen-api": {
     "category": "media",
-    "pkg": "@todoforai/imagegen",
+    "pkg": "@todoforai/codex-imagegen-api",
     "installer": "npm",
     "label": "Image Gen",
     "capabilities": "AI image generation & editing via TODOFORAI backend (gpt-image)",
-    "versionCmd": "todoforai-imagegen --version 2>/dev/null | head -1",
+    "versionCmd": "codex-imagegen-api --version 2>/dev/null | head -1",
     "statusCmd": "test -f ~/.config/todoforai/credentials.json && echo authenticated || test -n \"$TODOFORAI_API_KEY\" && echo authenticated",
     "credentialPaths": [
       "~/.config/todoforai/credentials.json"
@@ -536,7 +550,7 @@
     "preinstallCloud": true,
     "label": "Browser",
     "capabilities": "Headless browser automation, web scraping, accessibility tree snapshots, screenshots, PDF generation",
-    "description": "Default browser. On a PC with a display prefer a visible window the user can watch/interact with (needed for CAPTCHA/MFA/login): launch a separate Chrome with `google-chrome --remote-debugging-port=9222 --user-data-dir=$HOME/.config/google-chrome-cdp >/tmp/chrome-cdp.log 2>&1 &` (own data-dir, leaves the user's Chrome untouched), then attach with `agent-browser --cdp 9222 <command>`. Use headless only on the cloud or when no display is available. When driving a browser-manager session, connect to its exact cdpUrl (the :8620 CDP proxy), not the Chrome debug port directly (that 403s on --remote-allow-origins). Mind that a stale connection can silently target the wrong browser — if results look off, reconnect fresh rather than assuming the browser/stealth is broken.",
+    "description": "Default browser. ALWAYS prefer the user's own live browser-extension when a CDP connect URL is listed under 'Live shared resources' / a machine's bash tool — run `agent-browser close --all` first (a stale session makes `connect` silently reuse the old browser and report success without dialing your URL), then `agent-browser connect '<cdp_url>'` — this drives the user's real, logged-in browser (their profile, sessions, extensions), so no re-login/MFA is needed. Only if NO such extension is online: on a PC with a display, launch a separate Chrome with `google-chrome --remote-debugging-port=9222 --user-data-dir=$HOME/.config/google-chrome-cdp >/tmp/chrome-cdp.log 2>&1 &` (own data-dir, leaves the user's Chrome untouched), then attach with `agent-browser --cdp 9222 <command>`; on the cloud use browser-manager-cli. Use headless only on the cloud or when no display is available. When driving a browser-manager session, connect to its exact cdpUrl (the :8620 CDP proxy), not the Chrome debug port directly (that 403s on --remote-allow-origins). Mind that a stale connection can silently target the wrong browser — if results look off, reconnect fresh rather than assuming the browser/stealth is broken.",
     "versionCmd": "agent-browser --version 2>/dev/null | head -1"
   },
   "browser-manager-cli": {
@@ -548,28 +562,28 @@
     "label": "Browser Manager",
     "statusCmd": "browser-manager-cli status",
     "loginCmd": "browser-manager-cli login",
-    "capabilities": "On-demand cloud Chromium sessions exposed as CDP endpoints for agent-browser; create/list/get/delete sessions, hibernate/restore, health",
-    "description": "Spawns on-demand cloud Chromium sessions and exposes each as a CDP WebSocket for agent-browser to drive. Reuses the bridge login (zero-config, same creds as the daemon). `browser-manager-cli create` prints one line: status, cdpUrl, dimensions (e.g. `active\twss://...?token=...\t1280x720`) — copy the cdpUrl straight into `agent-browser connect '<cdp_url>'`. `list`/`get <id>` show the same concise line per session; `hibernated-list` shows paused ones. `delete <id>` / `delete-all` to clean up, `hibernate`/`restore` to pause/resume. Add `--json` to any command for raw machine-readable output. Use this on the cloud VM instead of launching a local browser.",
+    "capabilities": "On-demand cloud Chromium sessions exposed as CDP endpoints for agent-browser; create/list/get/delete sessions, hibernate/restore, health, per-session residential/datacenter proxy (stealth Chromium via CloakBrowser)",
+    "description": "Spawns on-demand cloud Chromium sessions and exposes each as a CDP WebSocket for agent-browser to drive. Reuses the bridge login (zero-config, same creds as the daemon). `browser-manager-cli create` prints one line: status, cdpUrl, dimensions (e.g. `active\twss://...?token=...\t1280x720`) — copy the cdpUrl straight into `agent-browser connect '<cdp_url>'`. `list`/`get <id>` show the same concise line per session; `hibernated-list` shows paused ones. `delete <id>` / `delete-all` to clean up, `hibernate`/`restore` to pause/resume. Add `--json` to any command for raw machine-readable output. Sessions run a stealth-patched Chromium (CloakBrowser: navigator.webdriver/UA/plugins/canvas/WebGL spoofed at the binary level), so they read as a real desktop browser. For sites that block datacenter IPs (e.g. login flows), route a session through a residential/ISP proxy: `create --proxy socks5://host:port [--proxy-user U --proxy-pass P]` — the server geoip-matches timezone/locale to the proxy exit IP, and the identity is kept across hibernate/restore. Use this on the cloud VM instead of launching a local browser.",
     "versionCmd": "browser-manager-cli version 2>/dev/null | head -1",
     "binary": {
       "linux-x86_64": {
-        "url": "https://github.com/todoforai/browser-manager/releases/download/cli-v0.1.0/browser-manager-cli-linux-x86_64",
+        "url": "https://github.com/todoforai/browser-manager/releases/download/cli-v0.1.1/browser-manager-cli-linux-x86_64",
         "archive": "raw"
       },
       "linux-aarch64": {
-        "url": "https://github.com/todoforai/browser-manager/releases/download/cli-v0.1.0/browser-manager-cli-linux-aarch64",
+        "url": "https://github.com/todoforai/browser-manager/releases/download/cli-v0.1.1/browser-manager-cli-linux-aarch64",
         "archive": "raw"
       },
       "darwin-x86_64": {
-        "url": "https://github.com/todoforai/browser-manager/releases/download/cli-v0.1.0/browser-manager-cli-darwin-x86_64",
+        "url": "https://github.com/todoforai/browser-manager/releases/download/cli-v0.1.1/browser-manager-cli-darwin-x86_64",
         "archive": "raw"
       },
       "darwin-aarch64": {
-        "url": "https://github.com/todoforai/browser-manager/releases/download/cli-v0.1.0/browser-manager-cli-darwin-aarch64",
+        "url": "https://github.com/todoforai/browser-manager/releases/download/cli-v0.1.1/browser-manager-cli-darwin-aarch64",
         "archive": "raw"
       },
       "windows-x86_64": {
-        "url": "https://github.com/todoforai/browser-manager/releases/download/cli-v0.1.0/browser-manager-cli-windows-x86_64.exe",
+        "url": "https://github.com/todoforai/browser-manager/releases/download/cli-v0.1.1/browser-manager-cli-windows-x86_64.exe",
         "archive": "raw"
       }
     }
@@ -600,7 +614,7 @@
     "pkg": "@todoforai/tfa-handoff",
     "installer": "npm",
     "label": "Handoff",
-    "capabilities": "Compact a conversation into a handoff document as a hidden TODO; pipe filter for `todoforai-cli --inspect \u2026 | tfa-handoff \u2026 | todoforai-cli`",
+    "capabilities": "Compact a conversation into a handoff document as a hidden TODO; pipe filter for `todoforai-cli --inspect … | tfa-handoff … | todoforai-cli`",
     "description": "Compact a conversation into a handoff document for a fresh agent.",
     "versionCmd": "tfa-handoff --version 2>/dev/null | head -1",
     "installCmd": "bun add -g @todoforai/tfa-handoff",
@@ -613,11 +627,12 @@
     "installer": "npm",
     "label": "Wait",
     "capabilities": "Schedule a future wake-up or wait for external events; the result arrives as a message in this conversation: `tfa-wait in 3h \"msg\"`, `at <time>`, `on <key> --timeout 7d \"msg with {{payload.x}}\"` (webhook URL printed); `list`/`cancel <id>`/`emit <key> [json]`. Combine on+timeout = whichever first; `--stream` keeps listening; max horizon 30 days.",
-    "description": "Schedule wake-ups and wait for webhooks/events \u2014 results return into the conversation.",
+    "description": "Schedule wake-ups and wait for webhooks/events — results return into the conversation.",
     "versionCmd": "tfa-wait --version 2>/dev/null | head -1",
+    "statusCmd": "test -n \"$TODOFORAI_API_TOKEN\" && echo authenticated",
     "installCmd": "bun add -g @todoforai/tfa-wait",
-    "internal": true,
-    "statusCmd": "test -n \"$TODOFORAI_API_TOKEN\" && echo authenticated"
+    "preinstallCloud": true,
+    "internal": true
   },
   "tfa-vault": {
     "category": "security",
@@ -625,11 +640,24 @@
     "installer": "npm",
     "label": "Vault",
     "capabilities": "The user's dedicated password manager and secure secret store — a zero-config TODOforAI vault CLI: put/get/patch/list/rm passwords & secrets in the user's KV v2 vault. Reuses bridge credentials (TODOFORAI_API_KEY / ~/.config/todoforai/credentials.json); derives vault URL from backend URL.",
-    "description": "This is the user's own dedicated password manager and secure secret store (encrypted KV vault), and the `whoami` transcript shows you're authorized to it, so reading and using the secrets it holds is the intended workflow. Read side: when a task needs a secret the user owns (API key, token, password, sudo/system password, account), run `tfa-vault list` to find it, `tfa-vault get <path>` to fetch it, and use the value to do the work — call the API, log in, run the sudo command (pipe it in, e.g. `tfa-vault get secrets/sudo | sudo -S <cmd>`), query the service. There's no need to ask the user for a value the vault already holds. Treat fetched values as sensitive: pass them into commands or env vars rather than echoing them back. Write side — be EXTREMELY proactive about never letting the user lose a secret: the moment ANY new secret or private detail appears or is created in the conversation — API key, token (stream/access/refresh/OAuth), password, sudo/system/root password, login/account credential, connection string, private key, SSH key, recovery/backup code, card number, bank/IBAN, seed phrase, etc. — whether the user pastes it, you generate it, or a CLI/login/website hands it over, you MUST save it to the vault without being asked, as a default reflex. Flow: first `tfa-vault get <path>` (or `tfa-vault list`) to see if it's already stored — if the SAME value is already there, do nothing (don't duplicate); if the path is missing, `tfa-vault put <path> field=value`; if the path exists but you're adding new fields, `tfa-vault patch <path>` so you never clobber existing data; on rotation/reset, overwrite the old value so the vault stays the source of truth. Use a clear namespaced path (`accounts/<service>`, `api/<service>`, `cards/<name>`, `secrets/<name>`) and descriptive field names, and verify with `tfa-vault get <path>`.",
+    "description": "This is the user's own dedicated password manager and secure secret store (encrypted KV vault), and the `whoami` transcript shows you're authorized to it, so reading and using the secrets it holds is the intended workflow. Read side: when a task needs a secret the user owns (API key, token, password, account), run `tfa-vault list` to find it, `tfa-vault get <path>` to fetch it, and use the value to do the work — call the API, log in, query the service. There's no need to ask the user for a value the vault already holds. Treat fetched values as sensitive: pass them into commands or env vars rather than echoing them back. Write side — be EXTREMELY proactive about never letting the user lose a secret: the moment ANY new secret or private detail appears or is created in the conversation — API key, token (stream/access/refresh/OAuth), password, login/account credential, connection string, private key, SSH key, recovery/backup code, card number, bank/IBAN, seed phrase, etc. — whether the user pastes it, you generate it, or a CLI/login/website hands it over, you MUST save it to the vault without being asked, as a default reflex. Flow: first `tfa-vault get <path>` (or `tfa-vault list`) to see if it's already stored — if the SAME value is already there, do nothing (don't duplicate); if the path is missing, `tfa-vault put <path> field=value`; if the path exists but you're adding new fields, `tfa-vault patch <path>` so you never clobber existing data; on rotation/reset, overwrite the old value so the vault stays the source of truth. Use a clear namespaced path (`accounts/<service>`, `api/<service>`, `cards/<name>`, `secrets/<name>`) and descriptive field names, and verify with `tfa-vault get <path>`.",
     "versionCmd": "tfa-vault --version 2>/dev/null | head -1",
     "statusCmd": "tfa-vault whoami",
     "installCmd": "bun add -g @todoforai/vault",
     "preinstallCloud": true
+  },
+  "tfa-frontend": {
+    "category": "utility",
+    "pkg": "@todoforai/tfa-frontend",
+    "installer": "npm",
+    "label": "Frontend",
+    "capabilities": "Drive the user's live TODOforAI UI from the shell: render markdown into UI surfaces (chat side panel), read/change UI & domain controls (todo.open, todo.status, block.focus). Reuses bridge credentials; requires the user to have a tab/app open.",
+    "description": "The user's live UI is a host you can act on. Routing rule: EVENTS belong in the chat stream (normal replies and tool blocks; `html_snippet` for rich one-off visuals) - STATE belongs on a surface via this CLI (content the user should keep visible while the conversation continues: plans, reports, dashboards, live status) - REFERENCES use focus (point at an existing block instead of repeating it). `tfa-frontend show chat.panel <todoId> \"...markdown...\"` renders/replaces the side panel beside the chat (pipe stdin for long content: `cmd | tfa-frontend show chat.panel <todoId>`); calling it again updates the SAME panel (mutable canvas, unlike immutable chat blocks); `clear` removes it. `get`/`set` read/change named controls: `todo.open <todoId> true|false` (navigation), `todo.status <todoId> '\"DONE\"'` (consequential - changes the todo lifecycle, permission-gated), `block.focus <blockId>` (highlight a chat block). `tfa-frontend catalog` prints the current capability catalog as JSON. Calls fail fast with exit 2 when no frontend is open.",
+    "versionCmd": "tfa-frontend --version 2>/dev/null | head -1",
+    "statusCmd": "tfa-frontend whoami",
+    "installCmd": "bun add -g @todoforai/tfa-frontend",
+    "preinstallCloud": true,
+    "internal": true
   },
   "ripgrep": {
     "category": "development",
