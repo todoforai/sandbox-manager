@@ -210,6 +210,38 @@ func (s *Store) Delete(ctx context.Context, id string) error {
 	return err
 }
 
+// PurgeUserIndexes removes residual membership/quota keys after all user's
+// sandboxes have been deleted. It is idempotent and heals partial prior cleanup.
+func (s *Store) PurgeUserIndexes(ctx context.Context, userID string) error {
+	return s.rdb.Del(ctx, "sandbox:user:"+userID, "sandbox:user-slot:"+userID).Err()
+}
+
+// ListByUserScan finds user sandboxes from authoritative records as a fallback
+// when the sandbox:user index is stale or missing.
+func (s *Store) ListByUserScan(ctx context.Context, userID string) ([]*Sandbox, error) {
+	var cursor uint64
+	var out []*Sandbox
+	for {
+		keys, next, err := s.rdb.Scan(ctx, cursor, "sandbox:*", 200).Result()
+		if err != nil {
+			return nil, err
+		}
+		for _, key := range keys {
+			if strings.HasPrefix(key, "sandbox:user:") || key == "sandbox:active" {
+				continue
+			}
+			id := strings.TrimPrefix(key, "sandbox:")
+			if sb, err := s.Get(ctx, id); err == nil && sb != nil && sb.UserID == userID {
+				out = append(out, sb)
+			}
+		}
+		cursor = next
+		if cursor == 0 {
+			return out, nil
+		}
+	}
+}
+
 // List returns a user's sandboxes, or all sandboxes when userID == "" (admin).
 func (s *Store) List(ctx context.Context, userID string) ([]*Sandbox, error) {
 	var ids []string

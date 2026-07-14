@@ -20,6 +20,15 @@ type Store struct {
 
 func New(root string) *Store { return &Store{root: root} }
 
+// Delete permanently removes a user's persistent home image and directory.
+func (s *Store) Delete(userID string) error {
+	dir, err := s.dir(userID)
+	if err != nil {
+		return err
+	}
+	return os.RemoveAll(dir)
+}
+
 var validID = regexp.MustCompile(`^[A-Za-z0-9_.-]+$`)
 
 func (s *Store) dir(userID string) (string, error) {

@@ -38,6 +38,7 @@ func NewServer(st *store.Store, svc *service.Service) http.Handler {
 	mux.HandleFunc("GET /admin/api/sandbox", s.admin(s.list))
 	mux.HandleFunc("GET /admin/api/sandbox/{id}", s.admin(s.get))
 	mux.HandleFunc("DELETE /admin/api/sandbox/{id}", s.admin(s.delete))
+	mux.HandleFunc("DELETE /admin/api/users/{userId}/data", s.admin(s.deleteUserData))
 	mux.HandleFunc("GET /admin/api/stats", s.admin(s.stats))
 	return mux
 }
@@ -130,6 +131,14 @@ func (s *Server) list(w http.ResponseWriter, r *http.Request, id store.Identity)
 
 func (s *Server) delete(w http.ResponseWriter, r *http.Request, id store.Identity) {
 	if err := s.svc.Delete(r.Context(), id, r.PathValue("id")); err != nil {
+		writeServiceErr(w, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (s *Server) deleteUserData(w http.ResponseWriter, r *http.Request, id store.Identity) {
+	if err := s.svc.DeleteUserData(r.Context(), id, r.PathValue("userId")); err != nil {
 		writeServiceErr(w, err)
 		return
 	}

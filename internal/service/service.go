@@ -219,6 +219,27 @@ func (s *Service) Exec(ctx context.Context, id store.Identity, sandboxID string,
 	return s.vm.Exec(ctx, sandboxID, argv)
 }
 
+// DeleteUserData permanently removes every sandbox and the persistent home.img
+// for one user. The API exposes this only behind the admin role gate.
+func (s *Service) DeleteUserData(ctx context.Context, id store.Identity, userID string) error {
+	if !id.IsAdmin() {
+		return ErrForbidden
+	}
+	all, err := s.store.ListByUserScan(ctx, userID)
+	if err != nil {
+		return err
+	}
+	for _, sb := range all {
+		if err := s.Delete(ctx, id, sb.ID); err != nil && !errors.Is(err, ErrNotFound) {
+			return err
+		}
+	}
+	if err := s.store.PurgeUserIndexes(ctx, userID); err != nil {
+		return err
+	}
+	return s.homes.Delete(userID)
+}
+
 func (s *Service) Delete(ctx context.Context, id store.Identity, sandboxID string) error {
 	sb, err := s.Get(ctx, id, sandboxID)
 	if err != nil {
