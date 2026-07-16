@@ -8,19 +8,34 @@
 #                  credentials.json, which lives on the persistent home.img.
 #   DEVICE_NAME   (optional) — friendly name for the Device row.
 #
-# A fresh ENROLL_TOKEN always means "enroll as a new device": the manager mints
-# one per create, and the device it points at is the one the backend expects to
-# come online. The home.img is persistent and may carry credentials from a
-# previous device that the backend has since deleted/rotated — those would make
-# the daemon fail with 4401. `login --token` refuses to overwrite existing
-# creds ("Already logged in"), so we `logout` first to guarantee the new token
-# wins. With no token (e.g. a plain reboot) we keep saved creds and reconnect.
+# A fresh ENROLL_TOKEN always means "re-enroll": the manager mints one per
+# create. Thanks to the persistent machine-id below, the redeem upserts onto
+# the user's existing Device row (same device id, rotated secret) — but the
+# rotation invalidates any credentials.json left on the home.img, which would
+# make the daemon fail with 4401. `login --token` refuses to overwrite
+# existing creds ("Already logged in"), so we `logout` first to guarantee the
+# new token wins. With no token (e.g. a plain reboot) we keep saved creds and
+# reconnect.
 set -eu
 
 # Guest-local bridge log (see comment at exec). Truncate at boot so it can't
 # grow across restarts; the rootfs snapshot is small and ephemeral.
 BRIDGE_LOG=/var/log/todoforai-bridge.log
 : > "$BRIDGE_LOG"
+
+# Stable device identity: the rootfs (and its /etc/machine-id) is shared by
+# every VM, but the home.img is per-user and persistent. Keep a machine-id
+# there and install it as /etc/machine-id each boot, so the bridge's
+# identity.machine_id is stable across stop→wake cycles and the backend
+# re-enrolls onto the SAME Device row (device ids in agentSettings stay valid).
+MID_FILE=${HOME:-/root}/.todoforai/machine-id
+if ! grep -Eqs '^[0-9a-f]{32}$' "$MID_FILE"; then
+    # Missing or corrupt (e.g. crash mid-write) — regenerate atomically.
+    mkdir -p "$(dirname "$MID_FILE")"
+    tr -d '-' < /proc/sys/kernel/random/uuid > "$MID_FILE.tmp"
+    mv "$MID_FILE.tmp" "$MID_FILE"
+fi
+cat "$MID_FILE" > /etc/machine-id || echo "machine-id: could not install to /etc" >&2
 
 # NOTE: on success `login` falls through INTO the daemon (it does not return),
 # so the exec below only runs on the no-token path or after a login failure.

@@ -169,7 +169,7 @@ func (s *Service) Get(ctx context.Context, id store.Identity, sandboxID string) 
 // the backend (admin) right after a successful enroll redeem; persisting via
 // store.Put republishes the record on sandbox:events:<userId> so the backend's
 // SandboxEventSubscriber can promote the device to the user's primary. The
-// device_id is also what Delete uses to cascade the Device row cleanup.
+// device_id also lets the backend find the VM that belongs to a device.
 func (s *Service) AttachDevice(ctx context.Context, id store.Identity, sandboxID, deviceID string) error {
 	if !id.IsAdmin() {
 		return ErrForbidden
@@ -256,9 +256,10 @@ func (s *Service) Delete(ctx context.Context, id store.Identity, sandboxID strin
 	if err := s.vm.Delete(ctx, sandboxID); err != nil {
 		return err
 	}
-	if sb.DeviceID != "" {
-		s.backend.DeleteDevice(ctx, sb.UserID, sb.DeviceID)
-	}
+	// The Device row is intentionally kept: the VM's machine-id persists on
+	// the home.img, so the next boot re-enrolls as the SAME device (stable id
+	// across stop→wake). Explicit device revocation is backend-initiated and
+	// deletes the row there.
 	if err := s.store.Delete(ctx, sandboxID); err != nil {
 		return err
 	}
@@ -281,8 +282,7 @@ func (s *Service) staleDead(ctx context.Context, sb *store.Sandbox) bool {
 	}
 	// Only a definitive "not found" counts as dead. LiveUnknown (containerd
 	// unreachable, shim slow, manager mid-restart) must NOT authorize teardown
-	// — treating it as dead would cascade-delete a healthy VM's Device row on a
-	// transient blip and strand the user's primary device.
+	// — treating it as dead would tear down a healthy VM on a transient blip.
 	return s.vm.IsLive(ctx, sb.ID) == vm.LiveNo
 }
 
@@ -302,9 +302,6 @@ func (s *Service) reconcileUserSlot(ctx context.Context, userID string) {
 			continue
 		}
 		s.vm.Delete(ctx, sb.ID)
-		if sb.DeviceID != "" {
-			s.backend.DeleteDevice(ctx, sb.UserID, sb.DeviceID)
-		}
 		if err := s.store.Delete(ctx, sb.ID); err != nil {
 			log.Printf("reconcileUserSlot delete %s: %v", sb.ID, err)
 			continue // keep the slot held rather than leak a stale record
@@ -345,14 +342,11 @@ func (s *Service) Reconcile(ctx context.Context) error {
 		}
 		// Dead VM still marked active: tear it down the same way Delete and
 		// reconcileUserSlot do — kill leftover container/netns/direct-volume,
-		// cascade-delete the Device row, drop the record, free the slot. An
-		// "error" tombstone left in the index instead would leak forever (one
-		// per dead VM) and strand the user's primaryDeviceId on a deleted
-		// device, so keep the three teardown paths identical.
+		// drop the record, free the slot. An "error" tombstone left in the
+		// index instead would leak forever (one per dead VM), so keep the
+		// three teardown paths identical. The Device row survives — the next
+		// VM re-enrolls onto it via the persistent machine-id.
 		s.vm.Delete(ctx, sb.ID)
-		if sb.DeviceID != "" {
-			s.backend.DeleteDevice(ctx, sb.UserID, sb.DeviceID)
-		}
 		if err := s.store.Delete(ctx, sb.ID); err != nil {
 			log.Printf("reconcile delete %s: %v", sb.ID, err)
 			continue // keep the slot held rather than leak a stale record

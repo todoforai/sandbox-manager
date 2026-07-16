@@ -59,20 +59,3 @@ func (c *Client) MintEnrollToken(ctx context.Context, userID, sandboxID string, 
 	return out.Token, nil
 }
 
-// DeleteDevice removes a Device row by id. Idempotent (404 => nil).
-func (c *Client) DeleteDevice(ctx context.Context, userID, deviceID string) error {
-	req, _ := http.NewRequestWithContext(ctx, http.MethodDelete,
-		c.baseURL+"/admin/v1/devices/"+deviceID, nil)
-	req.Header.Set("X-API-Key", c.apiKey)
-	req.Header.Set("X-User-Id", userID)
-	resp, err := c.http.Do(req)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode/100 != 2 && resp.StatusCode != 404 {
-		b, _ := io.ReadAll(resp.Body)
-		return fmt.Errorf("delete_device failed: %d %s", resp.StatusCode, b)
-	}
-	return nil
-}
