@@ -550,7 +550,7 @@
     "preinstallCloud": true,
     "label": "Browser",
     "capabilities": "Headless browser automation, web scraping, accessibility tree snapshots, screenshots, PDF generation",
-    "description": "Default browser. ALWAYS prefer the user's own live browser-extension when a CDP connect URL is listed under 'Live shared resources' / a machine's bash tool — run `agent-browser close --all` first (a stale session makes `connect` silently reuse the old browser and report success without dialing your URL), then `agent-browser connect '<cdp_url>'` — this drives the user's real, logged-in browser (their profile, sessions, extensions), so no re-login/MFA is needed. Only if NO such extension is online: on a PC with a display, launch a separate Chrome with `google-chrome --remote-debugging-port=9222 --user-data-dir=$HOME/.config/google-chrome-cdp >/tmp/chrome-cdp.log 2>&1 &` (own data-dir, leaves the user's Chrome untouched), then attach with `agent-browser --cdp 9222 <command>`; on the cloud use browser-manager-cli. Use headless only on the cloud or when no display is available. When driving a browser-manager session, connect to its exact cdpUrl (the :8620 CDP proxy), not the Chrome debug port directly (that 403s on --remote-allow-origins). Mind that a stale connection can silently target the wrong browser — if results look off, reconnect fresh rather than assuming the browser/stealth is broken.",
+    "description": "Default browser. When a CDP connect URL is listed under 'Live shared resources' / a machine's bash tool / Available Machines, that IS the browsing path: PREFER the user's own live browser-extension over launching anything else. Run `agent-browser close --all` first (a stale session makes `connect` silently reuse the old browser and report success without dialing your URL), then `agent-browser connect '<cdp_url>'` using EXACTLY that listed URL (never invent a port or your own Chrome) — this drives the user's real, logged-in browser (their profile, sessions, extensions), so no re-login/MFA is needed. FALLBACKS — ONLY when NO connect URL is listed anywhere: on a PC with a display, launch a separate Chrome with `google-chrome --remote-debugging-port=9222 --user-data-dir=$HOME/.config/google-chrome-cdp >/tmp/chrome-cdp.log 2>&1 &` (own data-dir, leaves the user's Chrome untouched), then attach with `agent-browser --cdp 9222 <command>`; on the cloud use browser-manager-cli. Use headless only on the cloud or when no display is available. When driving a browser-manager session, connect to its exact cdpUrl (the :8620 CDP proxy), not the Chrome debug port directly (that 403s on --remote-allow-origins). Mind that a stale connection can silently target the wrong browser — if results look off, reconnect fresh rather than assuming the browser/stealth is broken.",
     "versionCmd": "agent-browser --version 2>/dev/null | head -1"
   },
   "browser-manager-cli": {
@@ -645,6 +645,19 @@
     "statusCmd": "tfa-vault whoami",
     "installCmd": "bun add -g @todoforai/vault",
     "preinstallCloud": true
+  },
+  "todoregistry-cli": {
+    "category": "development",
+    "pkg": "@todoforai/todoregistry-cli",
+    "installer": "npm",
+    "label": "TODO Registry",
+    "capabilities": "Search/browse the public TODO registry (200+ proven business-growth task templates) and create todos from them (or custom ones) in the user's project: `todoregistry-cli search <query>` / `list [category]` / `get <id>` / `categories` (public, no auth); `create --template <id> --next` or `create --name … --system … --content … --next` (auth via bridge credentials). `--next` creates the todo PAUSED in the board's Next column so the user reviews before it runs.",
+    "description": "TODO Registry CLI — a public catalog of proven, reusable business-growth task templates (SEO, email, CRM, ads, social, monitoring, …). Read side needs no auth: `todoregistry-cli search \"reddit leads\"` to find templates, `get <id>` to read a template's full prompt body, `list [category]`/`categories` to browse. Write side reuses bridge credentials: `todoregistry-cli create --template <id> --next` instantiates a template as a todo in the user's project; `create --name <agent> --system <prompt|@file> --content <task|@file> --next` creates a fully custom one. Prefer `--next` (creates it PAUSED in the Next column for user review) over immediate start; add `--project <id>` when the user has several projects and `--business <id>` to attach a business context.",
+    "versionCmd": "todoregistry-cli --version 2>/dev/null | head -1",
+    "statusCmd": "todoregistry-cli whoami 2>/dev/null | grep -v 'not authenticated'",
+    "installCmd": "bun add -g @todoforai/todoregistry-cli",
+    "preinstallCloud": true,
+    "internal": true
   },
   "tfa-frontend": {
     "category": "utility",
