@@ -10,6 +10,8 @@
 # Usage:
 #   scripts/build-oci.sh                         # build sandbox-rootfs:dev
 #   IMAGE=registry/foo/sandbox-rootfs:v1 PUSH=1 scripts/build-oci.sh
+#   NO_CACHE=1 scripts/build-oci.sh              # force fresh layers (e.g. unpinned
+#                                                # bun packages published a new version)
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -91,6 +93,7 @@ echo ">> docker build $IMAGE"
 # `image import` rejects ("no unpack platforms defined") when loading into the
 # devmapper snapshotter for Kata.
 docker build \
+    ${NO_CACHE:+--no-cache} \
     --provenance=false --sbom=false \
     --build-arg BUN_PREINSTALL="$BUN_PREINSTALL" \
     -t "$IMAGE" \
