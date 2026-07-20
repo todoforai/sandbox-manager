@@ -23,6 +23,14 @@ RUN apt-get update \
 RUN curl -fsSL https://github.com/vi/websocat/releases/download/v1.14.1/websocat.x86_64-unknown-linux-musl \
  -o /usr/local/bin/websocat && chmod +x /usr/local/bin/websocat
 
+# ast-grep: AST structural search/rewrite (not in apt; ships as a zip). Complements
+# ripgrep — rg for literal search, ast-grep for structural usages/patterns/codemods.
+RUN curl -fsSL https://github.com/ast-grep/ast-grep/releases/download/0.44.1/app-x86_64-unknown-linux-gnu.zip \
+ -o /tmp/ast-grep.zip \
+ && unzip -q -o /tmp/ast-grep.zip -d /tmp/ast-grep \
+ && install -m 0755 /tmp/ast-grep/ast-grep /usr/local/bin/ast-grep \
+ && rm -rf /tmp/ast-grep.zip /tmp/ast-grep
+
 # bun: runtime + package manager for npm catalog CLIs (agent-browser, tfa-vault).
 RUN export BUN_INSTALL=/usr/local \
  && curl -fsSL https://bun.sh/install | bash \
