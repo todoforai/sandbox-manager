@@ -31,7 +31,11 @@ RUN export BUN_INSTALL=/usr/local \
 
 # Catalog CLIs tagged preinstallCloud (passed in as a space-separated build arg
 # so the package list stays the single source of truth in tool_catalog.json).
+# BUN_CACHE_BUST invalidates this layer on each rootfs rebuild so unpinned
+# packages (e.g. @todoforai/cli) resolve to latest at deploy time rather than
+# reusing a stale docker layer from a previous build.
 ARG BUN_PREINSTALL=""
+ARG BUN_CACHE_BUST=""
 RUN if [ -n "$BUN_PREINSTALL" ]; then export BUN_INSTALL=/usr/local && bun add -g $BUN_PREINSTALL; fi
 
 # agent-browser is only a CDP client — it needs a real Chrome to drive. Its own

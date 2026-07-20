@@ -174,6 +174,39 @@ UNIT
         TPL=$(curl -sf "http://127.0.0.1:$PORT/templates" || echo '[]')
         [ "$TPL" = "[]" ] && echo "⚠️  templates registry empty" || echo "✅ templates: $TPL"
 
+        # Rebuild the guest rootfs from the pinned bridge.tag + current catalog
+        # and import it into containerd. Without this, bumping assets/bridge.tag
+        # (or adding preinstallCloud tools) never reaches VMs — they keep the
+        # image that was last manually imported. New/recreated VMs then pick up
+        # the fresh bridge + @todoforai/cli (etc.) automatically.
+        # SKIP_ROOTFS=1 to skip (binary-only rollouts). Needs docker + ctr.
+        if [ "${SKIP_ROOTFS:-0}" != "1" ]; then
+            # Match the manager's image ref + namespace from shared/.env so the
+            # import lands where GetImage looks (not a silent wrong-NS miss).
+            set -a
+            # shellcheck disable=SC1091
+            [ -f "$DEPLOY_PATH/shared/.env" ] && . "$DEPLOY_PATH/shared/.env"
+            set +a
+            ROOTFS_IMAGE="${SANDBOX_ROOTFS_IMAGE:-docker.io/library/sandbox-rootfs:dev}"
+            # build-oci tags bare names; docker then stores them as docker.io/library/<name>.
+            case "$ROOTFS_IMAGE" in
+                docker.io/library/*) ROOTFS_TAG="${ROOTFS_IMAGE#docker.io/library/}" ;;
+                *)                   ROOTFS_TAG="$ROOTFS_IMAGE" ;;
+            esac
+            NS="${CONTAINERD_NAMESPACE:-sandbox}"
+            echo "Building sandbox rootfs (bridge $(cat assets/bridge.tag 2>/dev/null || echo '?'), image=$ROOTFS_TAG, ns=$NS)..."
+            if command -v docker >/dev/null 2>&1 && command -v ctr >/dev/null 2>&1; then
+                IMAGE="$ROOTFS_TAG" IMPORT=1 CONTAINERD_NAMESPACE="$NS" \
+                    ./scripts/build-oci.sh \
+                    && echo "✅ rootfs imported: $ROOTFS_TAG (ns=$NS)" \
+                    || { echo "❌ rootfs build/import failed"; exit 1; }
+            else
+                echo "⚠️  docker/ctr missing — skipping rootfs rebuild (VMs keep current image)"
+            fi
+        else
+            echo "… SKIP_ROOTFS=1 — leaving containerd rootfs untouched"
+        fi
+
         echo "Cleaning old releases (keep $KEEP)..."
         cd "$DEPLOY_PATH/releases" && ls -t | tail -n +$((KEEP + 1)) | xargs -r rm -rf
         echo "Done! Deployed: $RELEASE"

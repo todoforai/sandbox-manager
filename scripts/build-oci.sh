@@ -87,7 +87,13 @@ fi
 [ -f "$OCI_DIR/browser-manager-cli" ] || : > "$OCI_DIR/browser-manager-cli"
 trap 'rm -f "$OCI_DIR/todoforai-bridge" "$OCI_DIR/browser-manager-cli" "$OCI_DIR/rclone"' EXIT
 
-echo ">> docker build $IMAGE"
+# Bust the bun-preinstall layer each build by default so unpinned catalog
+# packages (todoforai-cli, tfa-vault, …) land at latest. Set BUN_CACHE_BUST=0
+# to reuse the layer; NO_CACHE=1 still rebuilds everything.
+BUN_CACHE_BUST="${BUN_CACHE_BUST:-$(date -u +%Y%m%d%H%M%S)}"
+[ "$BUN_CACHE_BUST" = "0" ] && BUN_CACHE_BUST=""
+
+echo ">> docker build $IMAGE (bridge=$(cat "$ASSETS_DIR/bridge.tag" 2>/dev/null || echo '?'), bun_bust=${BUN_CACHE_BUST:-none})"
 # --provenance/--sbom=false: keep it a single-manifest image. The buildx
 # attestation manifest makes the result a manifest *list*, which containerd's
 # `image import` rejects ("no unpack platforms defined") when loading into the
@@ -96,6 +102,7 @@ docker build \
     ${NO_CACHE:+--no-cache} \
     --provenance=false --sbom=false \
     --build-arg BUN_PREINSTALL="$BUN_PREINSTALL" \
+    --build-arg BUN_CACHE_BUST="$BUN_CACHE_BUST" \
     -t "$IMAGE" \
     -f "$OCI_DIR/Dockerfile" \
     "$OCI_DIR"

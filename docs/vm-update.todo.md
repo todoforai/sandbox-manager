@@ -2,35 +2,35 @@
 
 ## TL;DR
 There is **no in-place self-update inside a running VM** — and that's by design.
-A VM gets a new bridge by being **recreated** onto a freshly-built rootfs. The
-recreate path is already automatic and safe; nothing extra is needed.
+A VM gets a new bridge (and preinstalled CLIs like `@todoforai/cli`) by being
+**deleted + recreated** onto a freshly-built rootfs. Guest `reboot` alone is
+NOT enough — it keeps the old containerd snapshot.
 
 ## The chain
 1. The bridge binary is **baked into the rootfs** at image-build time:
    `assets/bridge.tag` → `scripts/sync-vendor.sh` (fetch + sha256 verify from
    `github.com/todoforai/bridge` releases) → `scripts/build-oci.sh` →
    `oci/Dockerfile` (`COPY todoforai-bridge`).
-2. The guest entrypoint ends in `exec /usr/local/bin/todoforai-bridge`
+2. Preinstall CLIs (`preinstallCloud: true` in `tool_catalog.json`, e.g.
+   `todoforai-cli`) are `bun add -g`'d into the same image. Each rootfs rebuild
+   busts the bun layer (`BUN_CACHE_BUST`) so unpinned packages resolve latest.
+3. `deploy.sh` (on every prod deploy) runs `build-oci.sh` with `IMPORT=1` so
+   containerd gets the new image. `SKIP_ROOTFS=1` skips for binary-only rollouts.
+4. The guest entrypoint ends in `exec /usr/local/bin/todoforai-bridge`
    (`oci/entrypoint.sh`), so the bridge **is** the guest's pid 1 — no in-guest
-   supervisor, hence no `kill -TERM`-based self-update (that mechanism in the
-   bridge assumes a systemd/launchd/shell-loop parent that this sandbox
-   intentionally dropped).
+   supervisor, hence no `kill -TERM`-based self-update.
 
-## Why a running VM still heals
-- `Manager.IsLive` (`internal/vm/manager.go`) reports a VM dead when its
-  containerd task isn't `Running`.
-- `Service.staleDead` + `Reconcile`/`ReconcileLoop` (every 30s,
-  `cmd/sandbox-manager/main.go`) mark a dead-but-active record `error` and
-  release its quota slot. `List` also surfaces dead VMs as `error`
-  (read-only).
-- **The backend owns recreate**: it reacts to `error`/`List` and calls the
-  manager's `Create` again, which boots a fresh VM on the **current** rootfs.
-  The manager deliberately does NOT auto-restart/recreate — that would
-  duplicate the backend's policy ownership.
+## How a running VM picks up the new image
+- **Explicit update**: backend `DeviceService.updateBridge` for a sandbox device
+  calls `CloudDeviceService.recreateCloudVm` → delete sandbox + `ensureCloudVm({wake:true})`.
+  home.img + Device row persist; machine-id re-enrolls onto the same device.
+- **Death / idle reaper / revoke**: manager marks dead slots `error`, backend
+  `ensureCloudVm` creates a fresh VM on the **current** rootfs.
+- Guest `reboot` does **not** swap the rootfs snapshot — do not use it for updates.
 
-So: bump `assets/bridge.tag` → merge to `prod` (CI `deploy.yml` rebuilds the
-rootfs) → existing VMs pick up the new bridge on their **next recreate**
-(death/reboot/backend-driven re-create). No manager change required.
+So: bump `assets/bridge.tag` (or catalog) → merge to `prod` (deploy rebuilds +
+imports rootfs) → call device update (or wait for next natural recreate) on
+each VM. New VMs always get the current image.
 
 ## Deliberately rejected alternatives
 - **Manager-side restart/recreate** — wrong layer; recreate is the backend's

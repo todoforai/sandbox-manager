@@ -424,6 +424,7 @@
     "description": "Reach the user's OWN TODOforAI tasks — NOT code `// TODO` comments. Use whenever the user asks about their tasks/todos/account on the platform: `todoforai-cli list` (`--status open`) to browse, `todoforai-cli \"prompt\"` to create, `todoforai-cli --inspect <id>[:<msg-id>]` to read a TODO's full chat/data (read-only), `status/addmessage/delete` to manage, `--template` for registry workflows. Never claim you lack access to platform TODOs — they're reachable here.",
     "installCmd": "bun add -g @todoforai/cli",
     "versionCmd": "todoforai-cli --version 2>/dev/null | head -1",
+    "preinstallCloud": true,
     "internal": true
   },
   "newman": {
@@ -550,7 +551,7 @@
     "preinstallCloud": true,
     "label": "Browser",
     "capabilities": "Headless browser automation, web scraping, accessibility tree snapshots, screenshots, PDF generation",
-    "description": "Browser automation over CDP (`open`/`snapshot`/`click`/`type`/`fill`/`read`/`screenshot`/`eval`). To drive a shared browser, use a connect URL listed under 'Live shared resources' (below) — that block tells you which one to prefer. Always `agent-browser close --all` before `connect '<url>'` (a stale session silently reuses the old browser), and use the URL EXACTLY as listed (never invent a port). After connecting, VERIFY it took — a `connect` can report success without dialing through, so run a cheap check (`snapshot` or read the URL); if it hangs/errors/looks empty, `close --all` and reconnect once before assuming anything's broken. FALLBACK when no connect URL exists anywhere: on the cloud use browser-manager-cli; on a PC with a display, launch your own Chrome (`google-chrome --remote-debugging-port=9222 --user-data-dir=$HOME/.config/google-chrome-cdp &`) and attach with `--cdp 9222`. Headless only on the cloud / no display.",
+    "description": "Browser automation over CDP (`open`/`snapshot`/`click`/`type`/`fill`/`read`/`screenshot`/`eval`). If a live browser to drive is listed right below this entry (a `→ Live browser to drive:` line with a connect URL), that's the one — prefer the user's real browser over a proxy. Always `agent-browser close --all` before `connect '<url>'` (a stale session silently reuses the old browser), and use the URL EXACTLY as listed (never invent a port). After connecting, VERIFY it took — a `connect` can report success without dialing through, so run a cheap check (`snapshot` or read the URL); if it hangs/errors/looks empty, `close --all` and reconnect once before assuming anything's broken. FALLBACK when no connect URL is listed: on the cloud use browser-manager-cli; on a PC with a display, launch your own Chrome (`google-chrome --remote-debugging-port=9222 --user-data-dir=$HOME/.config/google-chrome-cdp &`) and attach with `--cdp 9222`. Headless only on the cloud / no display.",
     "versionCmd": "agent-browser --version 2>/dev/null | head -1"
   },
   "browser-manager-cli": {
