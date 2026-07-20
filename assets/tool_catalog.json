@@ -711,6 +711,45 @@
     "binName": "rg",
     "internal": true
   },
+  "ast-grep": {
+    "category": "development",
+    "pkg": "ast-grep",
+    "installer": "binary",
+    "label": "Structural Search",
+    "capabilities": "AST-based structural code search & rewrite via tree-sitter: match/replace by syntax (e.g. 'foo($$$)'), find real call sites ignoring strings/comments",
+    "description": "Structural search/rewrite that understands syntax, not just text. Use when regex can't: 'ast-grep -p \"foo($$$)\" -l ts' finds real call sites of foo (ignores comments/strings/defs); 'ast-grep -p \"useEffect($$$, [])\"' matches structural patterns; add '--rewrite \"...\"' for safe codemods; 'ast-grep run -p PATTERN -l LANG PATH'. Prefer plain rg for literal/token search; reach for ast-grep for usages, patterns, and rewrites.",
+    "versionCmd": "ast-grep --version 2>/dev/null | head -1",
+    "preinstallCloud": true,
+    "binary": {
+      "linux-x86_64": {
+        "url": "https://github.com/ast-grep/ast-grep/releases/download/0.44.1/app-x86_64-unknown-linux-gnu.zip",
+        "archive": "zip",
+        "extract": "ast-grep"
+      },
+      "linux-aarch64": {
+        "url": "https://github.com/ast-grep/ast-grep/releases/download/0.44.1/app-aarch64-unknown-linux-gnu.zip",
+        "archive": "zip",
+        "extract": "ast-grep"
+      },
+      "darwin-x86_64": {
+        "url": "https://github.com/ast-grep/ast-grep/releases/download/0.44.1/app-x86_64-apple-darwin.zip",
+        "archive": "zip",
+        "extract": "ast-grep"
+      },
+      "darwin-aarch64": {
+        "url": "https://github.com/ast-grep/ast-grep/releases/download/0.44.1/app-aarch64-apple-darwin.zip",
+        "archive": "zip",
+        "extract": "ast-grep"
+      },
+      "windows-x86_64": {
+        "url": "https://github.com/ast-grep/ast-grep/releases/download/0.44.1/app-x86_64-pc-windows-msvc.zip",
+        "archive": "zip",
+        "extract": "ast-grep.exe"
+      }
+    },
+    "binName": "ast-grep",
+    "internal": true
+  },
   "fd": {
     "category": "development",
     "pkg": "fd-find",
