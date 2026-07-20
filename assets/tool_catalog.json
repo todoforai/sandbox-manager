@@ -24,7 +24,7 @@
     "credentialPaths": [
       "~/.zele/sqlite.db"
     ],
-    "capabilities": "Google Calendar via `zele cal`: list calendars & events (--today/--week/--days), create/update/delete events with Google Meet links, recurrence & reminders, respond to invites, free/busy — same Google login as Gmail (zele).",
+    "capabilities": "Google Calendar via `zele cal`: list calendars and events, create/update/delete events with Google Meet links, recurrence and reminders, respond to invites, free/busy.",
     "versionCmd": "zele --version 2>/dev/null | head -1"
   },
   "xurl": {
@@ -38,7 +38,7 @@
       "~/.xurl"
     ],
     "capabilities": "Post tweets, reply & quote, read timelines, search tweets, like & repost, follow/unfollow, DMs, media uploads",
-    "description": "Authenticated raw X API access via `xurl <method> <path>`; login `xurl auth oauth2`.",
+    "description": "Raw X API access via `xurl <method> <path>`.",
     "versionCmd": "xurl --version 2>/dev/null | head -1"
   },
   "linkedin-api": {
@@ -51,8 +51,8 @@
     "credentialPaths": [
       "~/.config/linkedin-api/credentials.json"
     ],
-    "capabilities": "Read profiles, list & read conversations, send DMs, send connection requests — raw LinkedIn Voyager API via cookie auth",
-    "description": "Authenticated LinkedIn Voyager API CLI. Cookie auth: `linkedin-api auth <li_at> <jsessionid>` (from browser DevTools).",
+    "capabilities": "Read profiles, list/read conversations, send DMs and connection requests — LinkedIn Voyager API.",
+    "description": "LinkedIn Voyager API CLI for profiles, conversations, DMs, and connections.",
     "versionCmd": "linkedin-api --version 2>/dev/null | head -1"
   },
   "figma-api": {
@@ -65,8 +65,8 @@
     "credentialPaths": [
       "~/.config/figma-api/credentials.json"
     ],
-    "capabilities": "Read+write Figma REST API: files/nodes JSON, render images (png/svg/pdf), comments & reactions, components/styles/variables, dev resources, webhooks, projects, library analytics — full subcommand-per-endpoint CLI.",
-    "description": "Authenticated Figma REST API CLI. Auth: `figma-api auth <token>` (PAT from figma.com/settings). File commands take a file key or Figma URL. Read files/nodes/images/comments/components/styles/variables; write comments/dev-resources/webhooks. Canvas writes (frames/text/shapes) use `figma-api run` via the plugin bridge. Run `figma-api <cmd> --help` for params/scopes.",
+    "capabilities": "Read+write Figma REST API: files/nodes JSON, render images (png/svg/pdf), comments, components/styles/variables, dev resources, webhooks — subcommand per endpoint.",
+    "description": "Figma REST API CLI. File commands take a file key or Figma URL. Canvas writes (frames/text/shapes) use `figma-api run` via the plugin bridge. Run `figma-api <cmd> --help` for params.",
     "versionCmd": "figma-api --version 2>/dev/null | head -1"
   },
   "tiktok-uploader": {
@@ -115,7 +115,7 @@
       "~/.slack/credentials.json"
     ],
     "capabilities": "Build & deploy Slack apps, manage workspaces & triggers, run datastore queries, tail logs — official Slack CLI.",
-    "description": "`slack-cli login` to auth. Invoked as `slack-cli` to avoid colliding with the Slack desktop app's `slack` binary.",
+    "description": "Invoked as `slack-cli` to avoid colliding with the Slack desktop app’s `slack` binary.",
     "versionCmd": "slack-cli version 2>/dev/null | head -1",
     "binName": "slack-cli",
     "binary": {
@@ -173,7 +173,7 @@
     "pkg": "@todoforai/elevenlabs-api",
     "installer": "npm",
     "label": "ElevenLabs",
-    "capabilities": "Text-to-speech, voice cloning, multiple languages. Needs ELEVENLABS_API_KEY.",
+    "capabilities": "Text-to-speech, voice cloning, multiple languages.",
     "versionCmd": "elevenlabs-api --version 2>/dev/null | head -1",
     "statusCmd": "test -f ~/.config/todoforai/elevenlabs.json && echo authenticated || test -n \"$ELEVENLABS_API_KEY\" && echo authenticated",
     "loginCmd": "elevenlabs-api auth <api_key>",
@@ -198,7 +198,7 @@
     "pkg": "@todoforai/suno-api",
     "installer": "npm",
     "label": "Suno",
-    "capabilities": "AI music generation, custom lyrics, multiple genres. Needs SUNO_API_KEY.",
+    "capabilities": "AI music generation, custom lyrics, multiple genres.",
     "versionCmd": "suno-api --version 2>/dev/null | head -1",
     "statusCmd": "test -n \"$SUNO_API_KEY\" && echo authenticated"
   },
@@ -212,7 +212,7 @@
     "credentialPaths": [
       "~/.config/notion"
     ],
-    "capabilities": "Official Notion CLI: workspace-wide OAuth login, raw API calls (`ntn api <path>`), page/datasource management, file uploads, Workers deploy.",
+    "capabilities": "Official Notion CLI: raw API calls (`ntn api <path>`), page/data-source management, file uploads, Workers deploy.",
     "versionCmd": "ntn --version 2>/dev/null | head -1"
   },
   "perplexity-api": {
@@ -388,7 +388,7 @@
     "installer": "npm",
     "label": "Shop",
     "capabilities": "Product search & price comparison across Shopify stores",
-    "description": "Shop.app product search across Shopify stores (no auth). `shop-app search '<query>' --ships-to HU -n 10` returns products with price, rating, URL, variants. `shop-app similar <variantId>` for lookalikes.",
+    "description": "Shop.app product search across Shopify stores. `shop-app search '<query>' --ships-to HU -n 10` returns products with price, rating, URL, and variants. `shop-app similar <variantId>` finds lookalikes.",
     "versionCmd": "shop-app --version 2>/dev/null | head -1"
   },
   "datadog-ci": {
@@ -396,7 +396,7 @@
     "pkg": "@datadog/datadog-ci",
     "installer": "npm",
     "label": "Datadog",
-    "capabilities": "CI test visibility, sourcemap uploads, deployment tracking. Needs DATADOG_API_KEY.",
+    "capabilities": "CI test visibility, sourcemap uploads, deployment tracking.",
     "versionCmd": "datadog-ci version 2>/dev/null | head -1",
     "statusCmd": "test -n \"$DATADOG_API_KEY\" && echo authenticated"
   },
@@ -421,7 +421,7 @@
     "label": "TODOforAI",
     "binName": "todoforai-cli",
     "capabilities": "Create/list/inspect/update TODOs, run templates & workflows, platform API access",
-    "description": "Reach the user's OWN TODOforAI tasks — NOT code `// TODO` comments. Use whenever the user asks about their tasks/todos/account on the platform: `todoforai-cli list` (`--status open`) to browse, `todoforai-cli \"prompt\"` to create, `todoforai-cli --inspect <id>[:<msg-id>]` to read a TODO's full chat/data (read-only), `status/addmessage/delete` to manage, `--template` for registry workflows. Never claim you lack access to platform TODOs — they're reachable here.",
+    "description": "Reach the user's OWN TODOforAI tasks — NOT code `// TODO` comments. `todoforai-cli list` (`--status open`) to browse, `todoforai-cli \"prompt\"` to create, `todoforai-cli --inspect <id>[:<msg-id>]` to read a TODO's chat/data (read-only), `status`/`addmessage`/`delete` to manage, `--template` for registry workflows.",
     "installCmd": "bun add -g @todoforai/cli",
     "versionCmd": "todoforai-cli --version 2>/dev/null | head -1",
     "preinstallCloud": true,
@@ -467,7 +467,7 @@
     "credentialPaths": [
       "~/.vault-token"
     ],
-    "capabilities": "Secrets management, dynamic credentials. Needs VAULT_ADDR + VAULT_TOKEN; for credential read/write use `tfa-vault` instead.",
+    "capabilities": "HashiCorp Vault secrets management and dynamic credentials.",
     "versionCmd": "vault --version 2>/dev/null | head -1"
   },
   "rclone": {
@@ -481,7 +481,7 @@
     "credentialPaths": [
       "~/.config/rclone/rclone.conf"
     ],
-    "capabilities": "Access Google Drive, OneDrive, Dropbox, S3 and 40+ cloud providers. List, copy, sync, move, mount files as virtual filesystem (FUSE). Use 'rclone config create <name> <provider>' to connect (opens browser for OAuth).",
+    "capabilities": "Access Google Drive, OneDrive, Dropbox, S3, and 40+ cloud providers. List, copy, sync, move, and mount files; use `rclone config create <name> <provider>` to connect.",
     "subProviders": {
       "gdrive": {
         "label": "Google Drive",
@@ -531,8 +531,8 @@
     "credentialPaths": [
       "~/.config/rdt-cli/credential.json"
     ],
-    "capabilities": "Search & browse subreddits, read posts & comments, post comments, upvote & save, view user profiles & comments, export results — Reddit in your terminal.",
-    "description": "Reddit CLI. Read/research: `rdt search \"<query>\" -r <sub> --json -c`, `rdt sub <name>`, `rdt read <postId>`, `rdt user-comments <user>`. Write (needs login): `rdt comment <postId> \"<text>\"`, `rdt upvote`, `rdt save`. `rdt status` for auth. Cookie auth via `rdt login` (extracts browser cookies).",
+    "capabilities": "Search & browse subreddits, read posts & comments, post comments, upvote & save, view user profiles — Reddit in your terminal.",
+    "description": "Reddit CLI. Read: `rdt search \"<query>\" -r <sub> --json -c`, `rdt sub <name>`, `rdt read <postId>`, `rdt user-comments <user>`. Write: `rdt comment <postId> \"<text>\"`, `rdt upvote`, `rdt save`.",
     "versionCmd": "rdt --version 2>/dev/null | head -1"
   },
   "pymupdf": {
@@ -551,7 +551,7 @@
     "preinstallCloud": true,
     "label": "Browser",
     "capabilities": "Headless browser automation, web scraping, accessibility tree snapshots, screenshots, PDF generation",
-    "description": "Browser automation over CDP (`open`/`snapshot`/`click`/`type`/`fill`/`read`/`screenshot`/`eval`). If a live browser to drive is listed right below this entry (a `→ Live browser to drive:` line with a connect URL), that's the one — prefer the user's real browser over a proxy. Always `agent-browser close --all` before `connect '<url>'` (a stale session silently reuses the old browser), and use the URL EXACTLY as listed (never invent a port). After connecting, VERIFY it took — a `connect` can report success without dialing through, so run a cheap check (`snapshot` or read the URL); if it hangs/errors/looks empty, `close --all` and reconnect once before assuming anything's broken. FALLBACK when no connect URL is listed: on the cloud use browser-manager-cli; on a PC with a display, launch your own Chrome (`google-chrome --remote-debugging-port=9222 --user-data-dir=$HOME/.config/google-chrome-cdp &`) and attach with `--cdp 9222`. Headless only on the cloud / no display.",
+    "description": "Browser automation over CDP (`open`/`snapshot`/`click`/`type`/`fill`/`read`/`screenshot`/`eval`). If a live browser to drive is listed right below this entry (a `→ Live browser to drive:` line with a connect URL), prefer it over a proxy. Always `agent-browser close --all` before `connect '<url>'` (a stale session silently reuses the old browser). After connecting, verify it took (`snapshot` or read the URL); if it hangs or looks empty, `close --all` and reconnect once. Fallback when no connect URL is listed: on the cloud use browser-manager-cli; on a PC with a display, launch your own Chrome on `--remote-debugging-port=9222` and attach with `--cdp 9222`. Headless only on the cloud / no display.",
     "versionCmd": "agent-browser --version 2>/dev/null | head -1"
   },
   "browser-manager-cli": {
@@ -563,8 +563,8 @@
     "label": "Browser Manager",
     "statusCmd": "browser-manager-cli status",
     "loginCmd": "browser-manager-cli login",
-    "capabilities": "On-demand cloud Chromium sessions exposed as CDP endpoints for agent-browser; create/list/get/delete sessions, hibernate/restore, health, per-session residential/datacenter proxy (stealth Chromium via CloakBrowser)",
-    "description": "Spawns on-demand cloud Chromium sessions and exposes each as a CDP WebSocket for agent-browser to drive. Reuses the bridge login (zero-config, same creds as the daemon). `browser-manager-cli create` prints one line: status, cdpUrl, dimensions (e.g. `active\twss://...?token=...\t1280x720`) — copy the cdpUrl straight into `agent-browser connect '<cdp_url>'`. `list`/`get <id>` show the same concise line per session; `hibernated-list` shows paused ones. `delete <id>` / `delete-all` to clean up, `hibernate`/`restore` to pause/resume. Add `--json` to any command for raw machine-readable output. Sessions run a stealth-patched Chromium (CloakBrowser: navigator.webdriver/UA/plugins/canvas/WebGL spoofed at the binary level), so they read as a real desktop browser. For sites that block datacenter IPs (e.g. login flows), route a session through a residential/ISP proxy: `create --proxy socks5://host:port [--proxy-user U --proxy-pass P]` — the server geoip-matches timezone/locale to the proxy exit IP, and the identity is kept across hibernate/restore. Use this on the cloud VM instead of launching a local browser. When driving a session, `agent-browser connect` its exact cdpUrl (the :8620 CDP proxy), not the Chrome debug port directly (that 403s on --remote-allow-origins).",
+    "capabilities": "On-demand cloud Chromium sessions exposed as CDP endpoints for agent-browser; create/list/get/delete, hibernate/restore, per-session proxy (stealth Chromium).",
+    "description": "Spawns cloud Chromium sessions, each exposed as a CDP WebSocket for agent-browser to drive. `create` prints one line ending in a cdpUrl — pass it straight to `agent-browser connect '<cdpUrl>'` (connect the cdpUrl, not the Chrome debug port). `list`/`get <id>`, `delete <id>`/`delete-all`, `hibernate`/`restore`. Sessions run stealth Chromium that reads as a real desktop browser. For sites that block datacenter IPs, route through a proxy: `create --proxy socks5://host:port [--proxy-user U --proxy-pass P]`. Use this on the cloud VM instead of launching a local browser.",
     "versionCmd": "browser-manager-cli version 2>/dev/null | head -1",
     "binary": {
       "linux-x86_64": {
@@ -627,7 +627,7 @@
     "pkg": "@todoforai/tfa-wait",
     "installer": "npm",
     "label": "Wait",
-    "capabilities": "Schedule a future wake-up or wait for external events; the result arrives as a message in this conversation: `tfa-wait in 3h \"msg\"`, `at <time>`, `on <key> --timeout 7d \"msg with {{payload.x}}\"` (webhook URL printed); `list`/`cancel <id>`/`emit <key> [json]`. Combine on+timeout = whichever first; `--stream` keeps listening; max horizon 30 days.",
+    "capabilities": "Schedule a future wake-up or wait for external events; result returns as a message in this conversation: `tfa-wait in 3h \"msg\"`, `at <time>`, `on <key> --timeout 7d \"msg with {{payload.x}}\"` (webhook URL printed); `list`/`cancel`/`emit`.",
     "description": "Schedule wake-ups and wait for webhooks/events — results return into the conversation.",
     "versionCmd": "tfa-wait --version 2>/dev/null | head -1",
     "statusCmd": "test -n \"$TODOFORAI_API_TOKEN\" && echo authenticated",
@@ -640,8 +640,8 @@
     "pkg": "@todoforai/vault",
     "installer": "npm",
     "label": "Vault",
-    "capabilities": "The user's dedicated password manager and secure secret store — a zero-config TODOforAI vault CLI: put/get/patch/list/rm passwords & secrets in the user's KV v2 vault. Reuses bridge credentials (TODOFORAI_API_KEY / ~/.config/todoforai/credentials.json); derives vault URL from backend URL.",
-    "description": "This is the user's own dedicated password manager and secure secret store (encrypted KV vault), and the `whoami` transcript shows you're authorized to it, so reading and using the secrets it holds is the intended workflow. Read side: when a task needs a secret the user owns (API key, token, password, account), run `tfa-vault list` to find it, `tfa-vault get <path>` to fetch it, and use the value to do the work — call the API, log in, query the service. There's no need to ask the user for a value the vault already holds. Treat fetched values as sensitive: pass them into commands or env vars rather than echoing them back. Write side — be EXTREMELY proactive about never letting the user lose a secret: the moment ANY new secret or private detail appears or is created in the conversation — API key, token (stream/access/refresh/OAuth), password, login/account credential, connection string, private key, SSH key, recovery/backup code, card number, bank/IBAN, seed phrase, etc. — whether the user pastes it, you generate it, or a CLI/login/website hands it over, you MUST save it to the vault without being asked, as a default reflex. Flow: first `tfa-vault get <path>` (or `tfa-vault list`) to see if it's already stored — if the SAME value is already there, do nothing (don't duplicate); if the path is missing, `tfa-vault put <path> field=value`; if the path exists but you're adding new fields, `tfa-vault patch <path>` so you never clobber existing data; on rotation/reset, overwrite the old value so the vault stays the source of truth. Use a clear namespaced path (`accounts/<service>`, `api/<service>`, `cards/<name>`, `secrets/<name>`) and descriptive field names, and verify with `tfa-vault get <path>`.",
+    "capabilities": "The user's dedicated password manager and secret store — zero-config TODOforAI KV vault. Commands: put/get/patch/list/rm.",
+    "description": "The user's own encrypted secret vault; reading and using its secrets is the intended workflow. READ: when a task needs a secret the user owns (API key, token, password, account), `tfa-vault list` to find it and `tfa-vault get <path>` to fetch it, then use the value (call the API, log in) — don't ask the user for what the vault already holds; treat values as sensitive (pass into commands/env, don't echo). WRITE (do this proactively, unasked): whenever a new secret appears in the conversation — pasted, generated, or handed over by a CLI/login — save it: `get`/`list` first (skip if the same value is already stored), `put <path> field=value` if missing, `patch <path>` to add fields without clobbering, overwrite on rotation. Use namespaced paths (`accounts/<svc>`, `api/<svc>`, `cards/<name>`, `secrets/<name>`).",
     "versionCmd": "tfa-vault --version 2>/dev/null | head -1",
     "statusCmd": "tfa-vault whoami",
     "installCmd": "bun add -g @todoforai/vault",
@@ -652,8 +652,8 @@
     "pkg": "@todoforai/todoregistry-cli",
     "installer": "npm",
     "label": "TODO Registry",
-    "capabilities": "Browse the public TODO registry (200+ proven business-growth task templates) and create new ones: `todoregistry-cli search <query>` / `list [category]` / `get <id>` / `categories` (read-only, no context), and `todoregistry-cli create --name ... --description ... --body @prompt.md` (auth via `TODOFORAI_API_TOKEN`) which prints a new template id. To surface a template as a reviewable NEXT-column card, don't create a todo directly — use `todoforai-cli recommend --template <id> --project <projectId>` (references the template; the user accepts it to start a real todo).",
-    "description": "TODO Registry CLI — browse and create reusable business-growth task templates (SEO, email, CRM, ads, social, monitoring, …). `todoregistry-cli search \"reddit leads\"` / `get <id>` / `list [category]`/`categories` are read-only and need no auth. `todoregistry-cli create --name ... --description ... --body @prompt.md` (auth via `TODOFORAI_API_TOKEN`) adds a new template and prints its id. The registry never touches user projects: to recommend a template into a project's NEXT column, use `todoforai-cli recommend --template <id> --project <projectId> --business-context <id>` — it adds a reference the user reviews and accepts before any credits are spent.",
+    "capabilities": "Browse the public TODO registry (200+ proven business-growth task templates) and create new ones: search/list/get/categories, create.",
+    "description": "TODO Registry CLI — browse and create proven, reusable business-growth task templates (SEO, email, CRM, ads, social, monitoring, …). `search <query>` / `get <id>` / `list [category]` / `categories` browse the registry. `create --name ... --description ... --body @prompt.md` prints a new template id. To surface a template as a reviewable NEXT-column card, don’t create a todo directly — use `todoforai-cli recommend --template <id> --project <projectId>`; the user accepts it to start a real todo.",
     "versionCmd": "todoregistry-cli --version 2>/dev/null | head -1",
     "statusCmd": "todoregistry-cli --version >/dev/null 2>&1 && echo ok",
     "installCmd": "bun add -g @todoforai/todoregistry-cli",
@@ -665,8 +665,8 @@
     "pkg": "@todoforai/tfa-frontend",
     "installer": "npm",
     "label": "Frontend",
-    "capabilities": "Drive the user's live TODOforAI UI from the shell: render markdown into UI surfaces (chat side panel), read/change UI & domain controls (todo.open, todo.status, block.focus). Reuses bridge credentials; requires the user to have a tab/app open.",
-    "description": "The user's live UI is a host you can act on. Routing rule: EVENTS belong in the chat stream (normal replies and tool blocks; `html_snippet` for rich one-off visuals) - STATE belongs on a surface via this CLI (content the user should keep visible while the conversation continues: plans, reports, dashboards, live status) - REFERENCES use focus (point at an existing block instead of repeating it). `tfa-frontend show chat.panel <todoId> \"...markdown...\"` renders/replaces the side panel beside the chat (pipe stdin for long content: `cmd | tfa-frontend show chat.panel <todoId>`); calling it again updates the SAME panel (mutable canvas, unlike immutable chat blocks); `clear` removes it. `get`/`set` read/change named controls: `todo.open <todoId> true|false` (navigation), `todo.status <todoId> '\"DONE\"'` (consequential - changes the todo lifecycle, permission-gated), `block.focus <blockId>` (highlight a chat block). `tfa-frontend catalog` prints the current capability catalog as JSON. Calls fail fast with exit 2 when no frontend is open.",
+    "capabilities": "Drive the user's live TODOFORAI UI from the shell: render markdown into UI surfaces, read/change UI and domain controls (todo.open, todo.status, block.focus). Requires an open tab/app.",
+    "description": "The user's live UI is a host you can act on. Routing rule: EVENTS go in the chat stream (normal replies, tool blocks, `html_snippet` for one-off visuals); STATE goes on a surface via this CLI — content the user should keep visible (plans, reports, dashboards, live status). `tfa-frontend show chat.panel <todoId> \"...markdown...\"` renders/replaces the side panel (pipe stdin for long content); calling it again updates the SAME panel (mutable, unlike chat blocks); `clear` removes it. `set` changes controls: `todo.open <todoId> true|false`, `todo.status <todoId> '\"DONE\"'` (permission-gated), `block.focus <blockId>`. Fails fast with exit 2 when no frontend is open.",
     "versionCmd": "tfa-frontend --version 2>/dev/null | head -1",
     "statusCmd": "tfa-frontend whoami",
     "installCmd": "bun add -g @todoforai/tfa-frontend",
@@ -716,8 +716,8 @@
     "pkg": "ast-grep",
     "installer": "binary",
     "label": "Structural Search",
-    "capabilities": "AST-based structural code search & rewrite via tree-sitter: match/replace by syntax (e.g. 'foo($$$)'), find real call sites ignoring strings/comments",
-    "description": "Structural search/rewrite that understands syntax, not just text. Use when regex can't: 'ast-grep -p \"foo($$$)\" -l ts' finds real call sites of foo (ignores comments/strings/defs); 'ast-grep -p \"useEffect($$$, [])\"' matches structural patterns; add '--rewrite \"...\"' for safe codemods; 'ast-grep run -p PATTERN -l LANG PATH'. Prefer plain rg for literal/token search; reach for ast-grep for usages, patterns, and rewrites.",
+    "capabilities": "AST-based structural code search and rewrite: match syntax, find real call sites, and make safe codemods.",
+    "description": "Use when regex cannot distinguish syntax from text: `ast-grep -p \"foo($$$)\" -l ts` finds real calls while ignoring strings and comments; add `--rewrite \"...\"` for codemods. Prefer `rg` for literal or token search.",
     "versionCmd": "ast-grep --version 2>/dev/null | head -1",
     "preinstallCloud": true,
     "binary": {
