@@ -647,6 +647,18 @@
     "installCmd": "bun add -g @todoforai/vault",
     "preinstallCloud": true
   },
+  "tfa-memory": {
+    "category": "productivity",
+    "pkg": "@todoforai/tfa-memory",
+    "installer": "npm",
+    "label": "Memory",
+    "capabilities": "The user's persistent memory store — addressable text rows (source/ref) with full-text and semantic search. Commands: add/search/ls/get/rm/sources.",
+    "description": "The user's long-term memory: notes, procedures, docs, learned facts — addressed as source/ref (e.g. deploy-notes/rollback). READ: before re-deriving knowledge the user likely stored, `tfa-memory search \"<topic>\"` (add --semantic for meaning-based recall) and `tfa-memory get <source/ref>` for full content. WRITE (do this proactively): when durable knowledge appears in the conversation — a procedure, decision, config fact, preference — save it with `tfa-memory add <source>/<ref> \"text\"` (re-adding the same address updates in place; identical content is skipped). Use short factual source names (deploy-notes, acme, preferences). `tfa-memory sources` lists what exists.",
+    "versionCmd": "tfa-memory --version 2>/dev/null | head -1",
+    "statusCmd": "tfa-memory whoami",
+    "installCmd": "bun add -g @todoforai/tfa-memory",
+    "preinstallCloud": true
+  },
   "todoregistry-cli": {
     "category": "development",
     "pkg": "@todoforai/todoregistry-cli",
