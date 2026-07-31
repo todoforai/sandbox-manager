@@ -11,7 +11,8 @@
     ],
     "capabilities": "Read inbox, search/send/reply email, email addresses — multi-account Gmail, OAuth browser login for setup. Also Google Calendar via `zele cal` (see zele-calendar).",
     "versionCmd": "zele --version 2>/dev/null | head -1",
-    "preinstallCloud": true
+    "preinstallCloud": true,
+    "preinstallJarvis": true
   },
   "zele-calendar": {
     "category": "utility",
@@ -25,7 +26,8 @@
       "~/.zele/sqlite.db"
     ],
     "capabilities": "Google Calendar via `zele cal`: list calendars and events, create/update/delete events with Google Meet links, recurrence and reminders, respond to invites, free/busy.",
-    "versionCmd": "zele --version 2>/dev/null | head -1"
+    "versionCmd": "zele --version 2>/dev/null | head -1",
+    "preinstallJarvis": true
   },
   "xurl": {
     "category": "social",
@@ -39,7 +41,9 @@
     ],
     "capabilities": "Post tweets, reply & quote, read timelines, search tweets, like & repost, follow/unfollow, DMs, media uploads",
     "description": "Raw X API access via `xurl <method> <path>`.",
-    "versionCmd": "xurl --version 2>/dev/null | head -1"
+    "versionCmd": "xurl --version 2>/dev/null | head -1",
+    "preinstallJarvis": true,
+    "preinstallCloud": true
   },
   "linkedin-api": {
     "category": "social",
@@ -226,7 +230,9 @@
     "loginCmd": "perplexity-api auth <api_key>",
     "credentialPaths": [
       "~/.config/todoforai/perplexity.json"
-    ]
+    ],
+    "preinstallJarvis": true,
+    "preinstallCloud": true
   },
   "gh": {
     "category": "development",
@@ -241,7 +247,8 @@
     ],
     "capabilities": "Repos, PRs & issues, actions & releases, gists & SSH keys",
     "description": "Prefer `gh` over raw GitHub API calls.",
-    "versionCmd": "gh --version 2>/dev/null | head -1"
+    "versionCmd": "gh --version 2>/dev/null | head -1",
+    "preinstallJarvis": true
   },
   "glab": {
     "category": "development",
@@ -425,7 +432,8 @@
     "installCmd": "bun add -g @todoforai/cli",
     "versionCmd": "todoforai-cli --version 2>/dev/null | head -1",
     "preinstallCloud": true,
-    "internal": true
+    "internal": true,
+    "preinstallJarvis": true
   },
   "newman": {
     "category": "testing",
@@ -446,7 +454,8 @@
     "description": "",
     "versionCmd": "curl --version 2>/dev/null | head -1",
     "preinstallCloud": true,
-    "internal": true
+    "internal": true,
+    "preinstallJarvis": true
   },
   "cloudflared": {
     "category": "networking",
@@ -645,7 +654,8 @@
     "versionCmd": "tfa-vault --version 2>/dev/null | head -1",
     "statusCmd": "tfa-vault whoami",
     "installCmd": "bun add -g @todoforai/vault",
-    "preinstallCloud": true
+    "preinstallCloud": true,
+    "preinstallJarvis": true
   },
   "tfa-memory": {
     "category": "productivity",
@@ -657,7 +667,8 @@
     "versionCmd": "tfa-memory --version 2>/dev/null | head -1",
     "statusCmd": "tfa-memory whoami",
     "installCmd": "bun add -g @todoforai/tfa-memory",
-    "preinstallCloud": true
+    "preinstallCloud": true,
+    "preinstallJarvis": true
   },
   "todoregistry-cli": {
     "category": "development",
@@ -670,7 +681,8 @@
     "statusCmd": "todoregistry-cli --version >/dev/null 2>&1 && echo ok",
     "installCmd": "bun add -g @todoforai/todoregistry-cli",
     "preinstallCloud": true,
-    "internal": true
+    "internal": true,
+    "preinstallJarvis": true
   },
   "tfa-frontend": {
     "category": "utility",
@@ -721,7 +733,8 @@
       }
     },
     "binName": "rg",
-    "internal": true
+    "internal": true,
+    "preinstallJarvis": true
   },
   "ast-grep": {
     "category": "development",
@@ -799,7 +812,8 @@
       }
     },
     "binName": "fd",
-    "internal": true
+    "internal": true,
+    "preinstallJarvis": true
   },
   "jq": {
     "category": "development",
@@ -833,7 +847,8 @@
       }
     },
     "binName": "jq",
-    "internal": true
+    "internal": true,
+    "preinstallJarvis": true
   },
   "patch": {
     "category": "development",
