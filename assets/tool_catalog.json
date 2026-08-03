@@ -45,6 +45,16 @@
     "preinstallJarvis": true,
     "preinstallCloud": true
   },
+  "bird": {
+    "category": "social",
+    "pkg": "@steipete/bird",
+    "installer": "npm",
+    "label": "X (bird)",
+    "statusCmd": "bird whoami 2>/dev/null | grep -oP '@\\K[A-Za-z0-9_]+' | head -1",
+    "capabilities": "Post tweets & replies, read tweets/threads/timelines, search, mentions, bookmarks, follow/unfollow, likes, trending — via Twitter GraphQL with browser cookies",
+    "description": "Fast X CLI via browser-cookie auth: `bird tweet <text>`, `bird read <url>`, `bird search <query>`, `bird thread <url>`, `bird home`. Prefer over xurl for everyday X workflows; auth via AUTH_TOKEN env or --chrome-profile cookies.",
+    "versionCmd": "bird --version 2>/dev/null | head -1"
+  },
   "linkedin-api": {
     "category": "social",
     "pkg": "@todoforai/linkedin-api",
@@ -560,7 +570,7 @@
     "preinstallCloud": true,
     "label": "Browser",
     "capabilities": "Headless browser automation, web scraping, accessibility tree snapshots, screenshots, PDF generation",
-    "description": "Browser automation over CDP (`open`/`snapshot`/`click`/`type`/`fill`/`read`/`screenshot`/`eval`). If a live browser to drive is listed right below this entry (a `→ Live browser to drive:` line with a connect URL), prefer it over a proxy. Always `agent-browser close --all` before `connect '<url>'` (a stale session silently reuses the old browser). After connecting, verify it took (`snapshot` or read the URL); if it hangs or looks empty, `close --all` and reconnect once. Fallback when no connect URL is listed: on the cloud use browser-manager-cli; on a PC with a display, launch your own Chrome on `--remote-debugging-port=9222` and attach with `--cdp 9222`. Headless only on the cloud / no display.",
+    "description": "Browser automation over CDP (`open`/`snapshot`/`click`/`type`/`fill`/`read`/`screenshot`/`eval`). If a live browser to drive is listed right below this entry (a `→ Live browser to drive:` line with a connect URL), prefer it over a proxy. Just `connect '<url>'` — a changed connect URL is detected and reattached automatically. After connecting, verify it took (`snapshot` or read the URL); if it hangs or looks empty, `close` (clears your session only) and reconnect once. Never `close --all` even though `--help` offers it — it kills every session on the machine, including other agents'. When several agents share one real browser, open your own tab (`tab new`) and `tab <id>` back to it before each command — the remote browser's active tab is shared. Fallback when no connect URL is listed: on the cloud use browser-manager-cli; on a PC with a display, launch your own Chrome on `--remote-debugging-port=9222` and attach with `--cdp 9222`. Headless only on the cloud / no display.",
     "versionCmd": "agent-browser --version 2>/dev/null | head -1"
   },
   "browser-manager-cli": {
