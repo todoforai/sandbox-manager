@@ -45,7 +45,8 @@ type Service struct {
 	vm               *vm.Manager
 	homes            *userhome.Store
 	backend          *backend.Client
-	admissionMu      sync.Mutex
+	admissionMu      sync.Mutex // guards pendingCreates and the admission check
+	pendingCreates   int        // admitted creates whose VM hasn't finished booting
 	capacityRejected atomic.Uint64
 }
 
@@ -71,23 +72,27 @@ func (s *Service) Create(ctx context.Context, id store.Identity, template, size 
 		return nil, fmt.Errorf("%w: %d%% used", ErrDiskFull, used)
 	}
 
-	// Serialize admission + VM boot: otherwise simultaneous creates can all
-	// observe the same free capacity and oversubscribe the host. Reconcile first
-	// so STOPPED Kata tasks/orphaned Firecracker VMMs are reclaimed before we
-	// reject useful work. Existing RUNNING VMs are never killed under pressure.
-	s.admissionMu.Lock()
-	defer s.admissionMu.Unlock()
-	if err := s.Reconcile(ctx); err != nil {
-		s.capacityRejected.Add(1)
-		return nil, fmt.Errorf("%w: reconcile before admission: %v", ErrCapacity, err)
-	}
-	if _, err := s.vm.CleanupStopped(ctx); err != nil {
-		s.capacityRejected.Add(1)
-		return nil, fmt.Errorf("%w: clean stopped VMs: %v", ErrCapacity, err)
-	}
-	if err := s.checkCapacity(ctx); err != nil {
+	// Host-wide admission: the lock covers only the capacity check + pending
+	// reservation, never the VM boot, so one slow/stuck create can't block
+	// every other create. STOPPED-orphan cleanup runs in ReconcileLoop.
+	release, err := s.admit(ctx)
+	if err != nil {
 		s.capacityRejected.Add(1)
 		return nil, err
+	}
+	defer release()
+
+	// Bound the whole boot so a wedged containerd/CNI/pull call can't pin the
+	// pending slot (and a user's quota slot) forever. Comfortably above a
+	// worst-case cold-pull create. Cleanup on the error paths must still run
+	// after this deadline fires (or the client disconnects), so it gets its
+	// own short context detached from the create's cancellation — otherwise a
+	// timed-out create could fail to release the user's quota slot, leaking it
+	// with no sandbox record for reconcile to find.
+	ctx, cancel := context.WithTimeout(ctx, createTimeout)
+	defer cancel()
+	cleanupCtx := func() (context.Context, context.CancelFunc) {
+		return context.WithTimeout(context.WithoutCancel(ctx), 30*time.Second)
 	}
 	if size == "" {
 		size = "medium"
@@ -119,11 +124,17 @@ func (s *Service) Create(ctx context.Context, id store.Identity, template, size 
 			return nil, ErrQuota
 		}
 	}
-	release := func() { s.store.ReleaseUserSlot(ctx, id.UserID, sid) }
+	releaseSlot := func() {
+		rctx, rcancel := cleanupCtx()
+		defer rcancel()
+		if err := s.store.ReleaseUserSlot(rctx, id.UserID, sid); err != nil {
+			log.Printf("create %s: release user slot %s: %v", sid, id.UserID, err)
+		}
+	}
 
 	homeImg, err := s.homes.EnsureDisk(id.UserID, diskSizeMiBForTier(size))
 	if err != nil {
-		release()
+		releaseSlot()
 		return nil, fmt.Errorf("ensure home disk: %w", err)
 	}
 	// NOTE: the token has a short TTL (enrollTTLSec) and is minted before
@@ -132,7 +143,7 @@ func (s *Service) Create(ctx context.Context, id store.Identity, template, size 
 	// image before minting. Left simple until a live run shows it matters.
 	token, err := s.backend.MintEnrollToken(ctx, id.UserID, sid, enrollTTLSec)
 	if err != nil {
-		release()
+		releaseSlot()
 		return nil, fmt.Errorf("mint enroll token: %w", err)
 	}
 
@@ -148,7 +159,7 @@ func (s *Service) Create(ctx context.Context, id store.Identity, template, size 
 		LastActivity: store.NowMillis(),
 	}
 	if err := s.store.Put(ctx, sb); err != nil {
-		release()
+		releaseSlot()
 		return nil, err
 	}
 
@@ -159,8 +170,10 @@ func (s *Service) Create(ctx context.Context, id store.Identity, template, size 
 	if err != nil {
 		sb.State = store.StateError
 		sb.Error = err.Error()
-		s.store.Put(ctx, sb)
-		release()
+		rctx, rcancel := cleanupCtx()
+		s.store.Put(rctx, sb)
+		rcancel()
+		releaseSlot()
 		return nil, err
 	}
 
@@ -169,9 +182,12 @@ func (s *Service) Create(ctx context.Context, id store.Identity, template, size 
 	sb.LastActivity = store.NowMillis()
 	if err := s.store.Put(ctx, sb); err != nil {
 		// We have a running VM we can't record — don't leak it. Tear it down
-		// best-effort and free the slot, then surface the error.
-		s.vm.Delete(ctx, sid)
-		release()
+		// best-effort and free the slot, then surface the error. Teardown gets
+		// a fresh context: the create's may already be expired here.
+		rctx, rcancel := context.WithTimeout(context.WithoutCancel(ctx), 60*time.Second)
+		s.vm.Delete(rctx, sid)
+		rcancel()
+		releaseSlot()
 		return nil, fmt.Errorf("persist running sandbox: %w", err)
 	}
 	s.store.IncCreated(ctx)
@@ -402,9 +418,20 @@ func (s *Service) ReconcileLoop(ctx context.Context, interval time.Duration) {
 	t := time.NewTicker(interval)
 	defer t.Stop()
 	for {
-		if err := s.Reconcile(ctx); err != nil {
+		// Bound each pass so one wedged containerd call can't stall the loop
+		// forever — the next tick gets a fresh timeout.
+		tickCtx, cancel := context.WithTimeout(ctx, interval*2)
+		if err := s.Reconcile(tickCtx); err != nil {
 			log.Printf("reconcile: %v", err)
 		}
+		// Reap Redis-less STOPPED orphans (manager/OOM crash leftovers) so
+		// their Firecracker VMMs free memory before the next admission check.
+		if cleaned, err := s.vm.CleanupStopped(tickCtx); err != nil {
+			log.Printf("cleanup stopped: %v", err)
+		} else if cleaned > 0 {
+			log.Printf("cleanup stopped: reaped %d orphan VMs", cleaned)
+		}
+		cancel()
 		select {
 		case <-ctx.Done():
 			return
@@ -413,23 +440,46 @@ func (s *Service) ReconcileLoop(ctx context.Context, interval time.Duration) {
 	}
 }
 
-func (s *Service) checkCapacity(ctx context.Context) error {
+// createTimeout bounds one whole Create (pull + boot + CNI). On expiry the
+// containerd/CNI calls abort, the error path runs, and the pending slot frees.
+const createTimeout = 5 * time.Minute
+
+// admissionTimeout bounds the capacity check itself, so a stalled containerd
+// can't hold admissionMu (and with it every other create) indefinitely.
+const admissionTimeout = 15 * time.Second
+
+// admit reserves a pending-create slot iff running+pending VMs stay under
+// MaxVMs and MemAvailable covers the reserve plus every in-flight VM. Fail
+// closed: an unreadable count/meminfo rejects the create. The returned release
+// MUST be called (success or failure) once the boot attempt is over.
+func (s *Service) admit(ctx context.Context) (release func(), err error) {
+	ctx, cancel := context.WithTimeout(ctx, admissionTimeout)
+	defer cancel()
+	s.admissionMu.Lock()
+	defer s.admissionMu.Unlock()
 	running, err := s.vm.RunningCount(ctx)
 	if err != nil {
-		return fmt.Errorf("%w: count running VMs: %v", ErrCapacity, err)
+		return nil, fmt.Errorf("%w: count running VMs: %v", ErrCapacity, err)
 	}
-	if running >= s.cfg.MaxVMs {
-		return fmt.Errorf("%w: %d/%d VMs running", ErrCapacity, running, s.cfg.MaxVMs)
+	if running+s.pendingCreates >= s.cfg.MaxVMs {
+		return nil, fmt.Errorf("%w: %d running + %d pending of max %d", ErrCapacity, running, s.pendingCreates, s.cfg.MaxVMs)
 	}
 	availableMiB, err := memAvailableMiB("/proc/meminfo")
 	if err != nil {
-		return fmt.Errorf("%w: read host memory: %v", ErrCapacity, err)
+		return nil, fmt.Errorf("%w: read host memory: %v", ErrCapacity, err)
 	}
-	requiredMiB := s.cfg.HostMemoryReserveMiB + s.cfg.VMMemoryMiB
+	// Pending VMs haven't faulted their memory in yet, so MemAvailable doesn't
+	// reflect them — budget each one at full size on top of the reserve.
+	requiredMiB := s.cfg.HostMemoryReserveMiB + uint64(s.pendingCreates+1)*s.cfg.VMMemoryMiB
 	if availableMiB < requiredMiB {
-		return fmt.Errorf("%w: %d MiB available, %d MiB required", ErrCapacity, availableMiB, requiredMiB)
+		return nil, fmt.Errorf("%w: %d MiB available, %d MiB required", ErrCapacity, availableMiB, requiredMiB)
 	}
-	return nil
+	s.pendingCreates++
+	return func() {
+		s.admissionMu.Lock()
+		s.pendingCreates--
+		s.admissionMu.Unlock()
+	}, nil
 }
 
 func memAvailableMiB(path string) (uint64, error) {
@@ -473,10 +523,14 @@ func (s *Service) Stats(ctx context.Context) (map[string]any, error) {
 	if err != nil {
 		return nil, err
 	}
+	s.admissionMu.Lock()
+	pending := s.pendingCreates
+	s.admissionMu.Unlock()
 	return map[string]any{
 		"total_created":        total,
 		"active":               active,
 		"running_vms":          running,
+		"pending_creates":      pending,
 		"max_vms":              s.cfg.MaxVMs,
 		"memory_available_mib": availableMiB,
 		"memory_reserve_mib":   s.cfg.HostMemoryReserveMiB,

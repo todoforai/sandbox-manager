@@ -71,8 +71,9 @@ type Config struct {
 	// The per-tier disk ceiling lives in service.diskSizeMiBForTier.
 	UserHomesDir string
 
-	// Host-wide admission control. Creates are serialized, then admitted only
-	// when both the live-VM and MemAvailable limits leave safe headroom.
+	// Host-wide admission control. Only the admission check is serialized
+	// (VM boot runs concurrently); a create is admitted only when both the
+	// live-VM and MemAvailable limits leave safe headroom.
 	MaxVMs               int
 	HostMemoryReserveMiB uint64
 	VMMemoryMiB          uint64

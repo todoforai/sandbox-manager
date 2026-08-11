@@ -347,9 +347,16 @@ const (
 	LiveNo
 )
 
-// CleanupStopped removes every non-running task/container in our dedicated
-// namespace, including Redis-less orphans left by a manager/OOM crash. It never
-// touches RUNNING tasks. Delete also reaps Kata's orphaned Firecracker VMM.
+// cleanupGrace shields in-flight creates from CleanupStopped: a container with
+// no task (or a not-yet-started task) is a normal mid-boot state, and boot now
+// runs concurrently with the reconcile loop. Longer than a whole create attempt
+// (service.createTimeout), so only genuine orphans are reaped.
+const cleanupGrace = 10 * time.Minute
+
+// CleanupStopped removes non-running tasks/containers in our dedicated
+// namespace older than cleanupGrace, including Redis-less orphans left by a
+// manager/OOM crash. It never touches RUNNING tasks. Delete also reaps Kata's
+// orphaned Firecracker VMM.
 func (m *Manager) CleanupStopped(ctx context.Context) (int, error) {
 	ctx = m.ctx(ctx)
 	containers, err := m.client.Containers(ctx)
@@ -358,6 +365,16 @@ func (m *Manager) CleanupStopped(ctx context.Context) (int, error) {
 	}
 	cleaned := 0
 	for _, container := range containers {
+		info, err := container.Info(ctx)
+		if err != nil {
+			if errdefs.IsNotFound(err) {
+				continue
+			}
+			return cleaned, err
+		}
+		if time.Since(info.CreatedAt) < cleanupGrace {
+			continue
+		}
 		task, err := container.Task(ctx, nil)
 		if err != nil && !errdefs.IsNotFound(err) {
 			return cleaned, err
@@ -380,8 +397,8 @@ func (m *Manager) CleanupStopped(ctx context.Context) (int, error) {
 }
 
 // RunningCount returns the number of live tasks in the sandbox namespace.
-// STOPPED tasks do not consume capacity: Reconcile removes their orphaned
-// Firecracker VMMs before admission is checked.
+// STOPPED tasks do not consume capacity: the reconcile loop reaps their
+// orphaned Firecracker VMMs (see CleanupStopped).
 func (m *Manager) RunningCount(ctx context.Context) (int, error) {
 	ctx = m.ctx(ctx)
 	containers, err := m.client.Containers(ctx)
