@@ -547,7 +547,8 @@
         "rcloneType": "s3"
       }
     },
-    "versionCmd": "rclone version 2>/dev/null | head -1"
+    "versionCmd": "rclone version 2>/dev/null | head -1",
+    "preinstallJarvis": true
   },
   "rdt": {
     "category": "social",
@@ -570,7 +571,20 @@
     "label": "PDF",
     "capabilities": "PDF text editing, extraction, merge, split. Call via `python3 -c`.",
     "versionCmd": "python3 -c 'import pymupdf; print(pymupdf.__version__)' 2>/dev/null",
-    "preinstallCloud": true
+    "preinstallCloud": true,
+    "preinstallJarvis": true
+  },
+  "anydoc": {
+    "category": "utility",
+    "pkg": "@firecrawl/anydoc",
+    "installer": "npm",
+    "binName": "anydoc",
+    "label": "Doc to Markdown",
+    "capabilities": "Convert documents to clean Markdown: doc, docx, pptx, xlsx, odt, ods, odp, rtf, epub, csv. Fully local, no API key.",
+    "description": "Convert office/rich documents to GitHub-Flavored Markdown, entirely local (MIT, no API key, no network). `anydoc report.docx` prints Markdown to stdout; `anydoc slides.pptx -o slides.md` writes a file; `anydoc - --format csv < data.csv` reads stdin. Format is auto-detected from content. Prefer this over raw XML extraction when you need to READ the text of docx/pptx/xlsx/odt/rtf/epub/csv. Not for editing (one-way) and not for scanned/image-only PDFs (needs OCR).",
+    "versionCmd": "anydoc --version 2>/dev/null | head -1",
+    "preinstallCloud": true,
+    "preinstallJarvis": true
   },
   "anydoc": {
     "category": "utility",
@@ -591,7 +605,8 @@
     "label": "Browser",
     "capabilities": "Headless browser automation, web scraping, accessibility tree snapshots, screenshots, PDF generation",
     "description": "Browser automation over CDP (`open`/`snapshot`/`click`/`type`/`fill`/`read`/`screenshot`/`eval`). If a live browser to drive is listed right below this entry (a `→ Live browser to drive:` line with a connect URL), prefer it over a proxy. Just `connect '<url>'` — a changed connect URL is detected and reattached automatically. After connecting, verify it took (`snapshot` or read the URL); if it hangs or looks empty, `close` (clears your session only) and reconnect once. Never `close --all` even though `--help` offers it — it kills every session on the machine, including other agents'. When several agents share one real browser, open your own tab (`tab new`) and `tab <id>` back to it before each command — the remote browser's active tab is shared. Fallback when no connect URL is listed: on the cloud use browser-manager-cli; on a PC with a display, launch your own Chrome on `--remote-debugging-port=9222` and attach with `--cdp 9222`. Headless only on the cloud / no display.",
-    "versionCmd": "agent-browser --version 2>/dev/null | head -1"
+    "versionCmd": "agent-browser --version 2>/dev/null | head -1",
+    "preinstallJarvis": true
   },
   "browser-manager-cli": {
     "category": "development",
@@ -626,7 +641,8 @@
         "url": "https://github.com/todoforai/browser-manager/releases/download/cli-v0.1.1/browser-manager-cli-windows-x86_64.exe",
         "archive": "raw"
       }
-    }
+    },
+    "preinstallJarvis": true
   },
   "todoforai-browser": {
     "category": "development",
@@ -636,7 +652,8 @@
     "label": "Browser (Extension)",
     "capabilities": "Browser automation via extension (non-headless), web scraping, accessibility tree snapshots, screenshots, PDF generation",
     "versionCmd": "node -p \"require(require('child_process').execSync('which todoforai-browser',{encoding:'utf8'}).trim().replace(/\\/dist\\/index\\.js$/, '/package.json')).version\" 2>/dev/null",
-    "internal": true
+    "internal": true,
+    "preinstallJarvis": true
   },
   "todoforai-subagent": {
     "category": "development",
@@ -672,7 +689,8 @@
     "statusCmd": "test -n \"$TODOFORAI_API_TOKEN\" && echo authenticated",
     "installCmd": "bun add -g @todoforai/tfa-wait",
     "preinstallCloud": true,
-    "internal": true
+    "internal": true,
+    "preinstallJarvis": true
   },
   "tfa-vault": {
     "category": "security",
@@ -803,7 +821,8 @@
       }
     },
     "binName": "ast-grep",
-    "internal": true
+    "internal": true,
+    "preinstallJarvis": true
   },
   "fd": {
     "category": "development",
@@ -890,7 +909,8 @@
     "description": "",
     "versionCmd": "patch --version 2>/dev/null | head -1",
     "binName": "patch",
-    "internal": true
+    "internal": true,
+    "preinstallJarvis": true
   },
   "sed": {
     "category": "development",
@@ -902,7 +922,8 @@
     "description": "",
     "versionCmd": "sed --version 2>/dev/null | head -1",
     "binName": "sed",
-    "internal": true
+    "internal": true,
+    "preinstallJarvis": true
   },
   "grep": {
     "category": "development",
@@ -914,6 +935,7 @@
     "description": "",
     "versionCmd": "grep --version 2>/dev/null | head -1",
     "binName": "grep",
-    "internal": true
+    "internal": true,
+    "preinstallJarvis": true
   }
 }
