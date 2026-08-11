@@ -240,9 +240,7 @@
     "loginCmd": "perplexity-api auth <api_key>",
     "credentialPaths": [
       "~/.config/todoforai/perplexity.json"
-    ],
-    "preinstallJarvis": true,
-    "preinstallCloud": true
+    ]
   },
   "gh": {
     "category": "development",
@@ -476,6 +474,17 @@
     "description": "`cloudflared tunnel --url http://localhost:<port>` prints a public https URL.",
     "versionCmd": "cloudflared --version 2>/dev/null | head -1"
   },
+  "mcptools": {
+    "category": "development",
+    "pkg": "github.com/f/mcptools/cmd/mcptools",
+    "installer": "system",
+    "binName": "mcptools",
+    "label": "MCP Client",
+    "capabilities": "MCP (Model Context Protocol) client — discover & call tools/resources/prompts on stdio and remote (HTTP streamable / SSE) MCP servers.",
+    "description": "`mcptools tools <server>` lists, `mcptools call <tool> --params '{\"k\":1}' <server>` invokes. `<server>` = stdio command (`npx -y some-mcp-server`) or URL for hosted servers (`https://host/mcp` or `/sse`).",
+    "versionCmd": "mcptools version 2>/dev/null | head -1",
+    "installCmd": "go install github.com/f/mcptools/cmd/mcptools@latest  # or: brew tap f/mcptools && brew install mcp"
+  },
   "vault": {
     "category": "security",
     "pkg": "vault",
@@ -561,6 +570,17 @@
     "label": "PDF",
     "capabilities": "PDF text editing, extraction, merge, split. Call via `python3 -c`.",
     "versionCmd": "python3 -c 'import pymupdf; print(pymupdf.__version__)' 2>/dev/null",
+    "preinstallCloud": true
+  },
+  "anydoc": {
+    "category": "utility",
+    "pkg": "@firecrawl/anydoc",
+    "installer": "npm",
+    "binName": "anydoc",
+    "label": "Doc to Markdown",
+    "capabilities": "Convert documents to clean Markdown: doc, docx, pptx, xlsx, odt, ods, odp, rtf, epub, csv. Fully local, no API key.",
+    "description": "Convert office/rich documents to GitHub-Flavored Markdown, entirely local (MIT, no API key, no network). `anydoc report.docx` prints Markdown to stdout; `anydoc slides.pptx -o slides.md` writes a file; `anydoc - --format csv < data.csv` reads stdin. Format is auto-detected from content. Prefer this over raw XML extraction when you need to READ the text of docx/pptx/xlsx/odt/rtf/epub/csv. Not for editing (one-way) and not for scanned/image-only PDFs (needs OCR).",
+    "versionCmd": "anydoc --version 2>/dev/null | head -1",
     "preinstallCloud": true
   },
   "agent-browser": {
@@ -686,7 +706,7 @@
     "installer": "npm",
     "label": "TODO Registry",
     "capabilities": "Browse the public TODO registry (200+ proven business-growth task templates) and create new ones: search/list/get/categories, create.",
-    "description": "TODO Registry CLI — browse and create proven, reusable business-growth task templates (SEO, email, CRM, ads, social, monitoring, …). `search <query>` / `get <id>` / `list [category]` / `categories` browse the registry. `create --name ... --description ... --body @prompt.md` prints a new template id. To surface a template as a reviewable NEXT-column card, don’t create a todo directly — use `todoforai-cli recommend --template <id> --project <projectId>`; the user accepts it to start a real todo.",
+    "description": "TODO Registry CLI — browse and create proven, reusable business-growth task templates (SEO, email, CRM, ads, social, monitoring, …). `search <query>` / `get <id>` / `list [category]` / `categories` browse the registry. `create --name ... --description ... --body @prompt.md` prints a new template id. To surface a template as a reviewable recommendation card, don’t create a todo directly — use `todoforai-cli recommend --template <id> --project <projectId>`; the user accepts it to start a real todo.",
     "versionCmd": "todoregistry-cli --version 2>/dev/null | head -1",
     "statusCmd": "todoregistry-cli --version >/dev/null 2>&1 && echo ok",
     "installCmd": "bun add -g @todoforai/todoregistry-cli",
