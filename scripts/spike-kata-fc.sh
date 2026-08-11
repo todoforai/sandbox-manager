@@ -162,10 +162,14 @@ fi
 # The kata-fc shim must be on PATH for containerd to launch it.
 ln -sf "$KATA_DIR/bin/containerd-shim-kata-v2" /usr/local/bin/containerd-shim-kata-fc-v2
 
-# Point Kata's default config at the Firecracker hypervisor. Kata ships a
-# ready-made configuration-fc.toml; we just make sure it's the one selected.
+# The manager sets per-tier Firecracker memory/vCPU through these OCI
+# annotations. Kata rejects hypervisor annotations unless explicitly enabled.
 KATA_FC_CFG="$KATA_DIR/share/defaults/kata-containers/configuration-fc.toml"
 [ -f "$KATA_FC_CFG" ] || die "kata fc config not found at $KATA_FC_CFG (tarball layout changed?)"
+"$(dirname "$0")/configure-kata-fc.sh" "$KATA_FC_CFG"
+
+# Point Kata's default config at the Firecracker hypervisor. Kata ships a
+# ready-made configuration-fc.toml; we just make sure it's the one selected.
 echo "kata fc config: $KATA_FC_CFG"
 # NOTE: memory elasticity for idle VMs (virtio-balloon / virtio-mem / free-page
 # reporting) is NOT available on this Kata-fc path — Kata 3.10.1 exposes

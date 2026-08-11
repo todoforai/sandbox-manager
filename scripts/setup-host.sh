@@ -118,8 +118,14 @@ systemctl daemon-reload
 systemctl enable sandbox-pool.service >/dev/null 2>&1 && ok "enabled (runs before containerd, incl. manual restart)" \
     || warn "could not enable sandbox-pool.service"
 
-# 5. verify heavy prerequisites (installed by spike-kata-fc.sh) ---------------
-log "5. checking host prerequisites"
+# 5. enable per-tier Firecracker resource annotations -------------------------
+log "5. Kata Firecracker resource annotations"
+chmod +x "$REPO_DIR/scripts/configure-kata-fc.sh"
+"$REPO_DIR/scripts/configure-kata-fc.sh"
+ok "per-tier memory/vCPU annotations enabled"
+
+# 6. verify heavy prerequisites (installed by spike-kata-fc.sh) ---------------
+log "6. checking host prerequisites"
 [ -e /dev/kvm ] && ok "/dev/kvm present" || warn "/dev/kvm missing — KVM required for Firecracker"
 [ -S /run/containerd/containerd.sock ] && ok "containerd socket present" \
     || warn "containerd socket missing — run scripts/spike-kata-fc.sh"

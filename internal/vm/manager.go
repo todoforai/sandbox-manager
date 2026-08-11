@@ -96,6 +96,42 @@ func (m *Manager) ctx(ctx context.Context) context.Context {
 	return namespaces.WithNamespace(ctx, m.cfg.Namespace)
 }
 
+const (
+	kataDefaultVCPUsAnnotation    = "io.katacontainers.config.hypervisor.default_vcpus"
+	kataDefaultMaxVCPUsAnnotation = "io.katacontainers.config.hypervisor.default_max_vcpus"
+	kataDefaultMemoryAnnotation   = "io.katacontainers.config.hypervisor.default_memory"
+)
+
+type machineResources struct {
+	memoryMiB uint32
+	vCPUs     uint32
+}
+
+// machineResourcesForSize is the actual Firecracker allocation. Kata 3.10.1
+// rejects VMs below 256 MiB, so small starts at that hard minimum.
+func machineResourcesForSize(size string) machineResources {
+	switch size {
+	case "small":
+		return machineResources{memoryMiB: 256, vCPUs: 1}
+	case "large":
+		return machineResources{memoryMiB: 1024, vCPUs: 2}
+	case "xlarge":
+		return machineResources{memoryMiB: 2048, vCPUs: 4}
+	default: // medium and unknown values
+		return machineResources{memoryMiB: 512, vCPUs: 1}
+	}
+}
+
+func machineResourceAnnotations(size string) map[string]string {
+	resources := machineResourcesForSize(size)
+	vCPUs := strconv.FormatUint(uint64(resources.vCPUs), 10)
+	return map[string]string{
+		kataDefaultVCPUsAnnotation:    vCPUs,
+		kataDefaultMaxVCPUsAnnotation: vCPUs,
+		kataDefaultMemoryAnnotation:   strconv.FormatUint(uint64(resources.memoryMiB), 10),
+	}
+}
+
 // Spec describes a microVM to create.
 type Spec struct {
 	ID          string
@@ -218,6 +254,10 @@ func (m *Manager) Create(ctx context.Context, s Spec) (*Created, error) {
 		}),
 		containerd.WithNewSpec(
 			oci.WithImageConfig(image),
+			// These are hypervisor overrides, not container cgroup limits. With
+			// Kata's static resource management, cgroup limits would be added on
+			// top of the 2 GiB default instead of replacing it.
+			oci.WithAnnotations(machineResourceAnnotations(s.Size)),
 			oci.WithEnv(env),
 			oci.WithMounts(mounts),
 			// DeviceName uses `vm_` (tool-alias suffix), but underscores are

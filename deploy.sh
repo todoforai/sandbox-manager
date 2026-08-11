@@ -46,6 +46,7 @@ preflight() {
         chk "containerd socket"  '[ -S /run/containerd/containerd.sock ]'
         chk "ctr CLI"            'command -v ctr >/dev/null'
         chk "kata-runtime"       '[ -x /opt/kata/bin/kata-runtime ]'
+        chk "Kata FC config"     '[ -f /opt/kata/share/defaults/kata-containers/configuration-fc.toml ]'
         chk "firecracker"        'command -v firecracker >/dev/null'
         chk "CNI bridge plugin"  '[ -x /opt/cni/bin/bridge ]'
         chk "/dev/kvm"           '[ -e /dev/kvm ]'
@@ -95,6 +96,13 @@ deploy() {
 
         echo "Updating current symlink..."
         ln -sfn "$REL_DIR" "$DEPLOY_PATH/current"
+
+        # Allow the manager's per-tier memory/vCPU OCI annotations. The stock
+        # Kata Firecracker config permits only a small annotation allowlist;
+        # without this every VM silently falls back to its 2 GiB default.
+        echo "Enabling Kata Firecracker resource annotations..."
+        chmod +x "$REL_DIR/scripts/configure-kata-fc.sh"
+        "$REL_DIR/scripts/configure-kata-fc.sh"
 
         # Boot-time devmapper thin-pool restore: loop attachments + the dm
         # target don't survive reboot, so containerd's devmapper plugin fails
