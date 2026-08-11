@@ -70,6 +70,12 @@ type Config struct {
 	// Per-user persistent home (home.img lives at <UserHomesDir>/<userId>/home.img).
 	// The per-tier disk ceiling lives in service.diskSizeMiBForTier.
 	UserHomesDir string
+
+	// Host-wide admission control. Creates are serialized, then admitted only
+	// when both the live-VM and MemAvailable limits leave safe headroom.
+	MaxVMs               int
+	HostMemoryReserveMiB uint64
+	VMMemoryMiB          uint64
 }
 
 func env(key, def string) string {
@@ -79,27 +85,51 @@ func env(key, def string) string {
 	return def
 }
 
+func envInt(key string, def int) (int, error) {
+	raw := env(key, fmt.Sprint(def))
+	var value int
+	if _, err := fmt.Sscan(raw, &value); err != nil || value <= 0 {
+		return 0, fmt.Errorf("%s must be a positive integer, got %q", key, raw)
+	}
+	return value, nil
+}
+
 // Load reads config from env, erroring only on the truly required values.
 func Load() (*Config, error) {
 	loadDotEnv()
+	maxVMs, err := envInt("SANDBOX_MAX_VMS", 48)
+	if err != nil {
+		return nil, err
+	}
+	reserveMiB, err := envInt("SANDBOX_HOST_MEMORY_RESERVE_MIB", 24*1024)
+	if err != nil {
+		return nil, err
+	}
+	vmMemoryMiB, err := envInt("SANDBOX_VM_MEMORY_MIB", 2*1024)
+	if err != nil {
+		return nil, err
+	}
 	c := &Config{
-		BindAddr:         env("BIND_ADDR", "0.0.0.0:8200"),
-		DragonflyURL:     os.Getenv("DRAGONFLY_URL"),
-		BackendURL:       os.Getenv("BACKEND_URL"),
-		BackendAPIKey:    os.Getenv("BACKEND_ADMIN_API_KEY"),
-		NoiseBackendHost: os.Getenv("NOISE_BACKEND_HOST"),
-		NoiseBackendPort: os.Getenv("NOISE_BACKEND_PORT"),
-		BridgePort:       os.Getenv("BRIDGE_PORT"),
-		ContainerdSock:   env("CONTAINERD_SOCK", "/run/containerd/containerd.sock"),
-		Namespace:        env("CONTAINERD_NAMESPACE", "sandbox"),
-		Runtime:          env("SANDBOX_RUNTIME", "io.containerd.kata-fc.v2"),
-		RuntimeConfig:    env("SANDBOX_RUNTIME_CONFIG", "/opt/kata/share/defaults/kata-containers/configuration-fc.toml"),
-		KataRuntimeBin:   env("KATA_RUNTIME_BIN", "/opt/kata/bin/kata-runtime"),
-		Snapshotter:      env("SANDBOX_SNAPSHOTTER", "devmapper"),
-		RootfsImage:      env("SANDBOX_ROOTFS_IMAGE", "docker.io/todoforai/sandbox-rootfs:latest"),
-		CNIBinDir:        env("CNI_BIN_DIR", "/opt/cni/bin"),
-		CNIConfDir:       env("CNI_CONF_DIR", "/etc/cni/net.d"),
-		UserHomesDir:     env("USER_HOMES_DIR", "/data/user-homes"),
+		BindAddr:             env("BIND_ADDR", "0.0.0.0:8200"),
+		DragonflyURL:         os.Getenv("DRAGONFLY_URL"),
+		BackendURL:           os.Getenv("BACKEND_URL"),
+		BackendAPIKey:        os.Getenv("BACKEND_ADMIN_API_KEY"),
+		NoiseBackendHost:     os.Getenv("NOISE_BACKEND_HOST"),
+		NoiseBackendPort:     os.Getenv("NOISE_BACKEND_PORT"),
+		BridgePort:           os.Getenv("BRIDGE_PORT"),
+		ContainerdSock:       env("CONTAINERD_SOCK", "/run/containerd/containerd.sock"),
+		Namespace:            env("CONTAINERD_NAMESPACE", "sandbox"),
+		Runtime:              env("SANDBOX_RUNTIME", "io.containerd.kata-fc.v2"),
+		RuntimeConfig:        env("SANDBOX_RUNTIME_CONFIG", "/opt/kata/share/defaults/kata-containers/configuration-fc.toml"),
+		KataRuntimeBin:       env("KATA_RUNTIME_BIN", "/opt/kata/bin/kata-runtime"),
+		Snapshotter:          env("SANDBOX_SNAPSHOTTER", "devmapper"),
+		RootfsImage:          env("SANDBOX_ROOTFS_IMAGE", "docker.io/todoforai/sandbox-rootfs:latest"),
+		CNIBinDir:            env("CNI_BIN_DIR", "/opt/cni/bin"),
+		CNIConfDir:           env("CNI_CONF_DIR", "/etc/cni/net.d"),
+		UserHomesDir:         env("USER_HOMES_DIR", "/data/user-homes"),
+		MaxVMs:               maxVMs,
+		HostMemoryReserveMiB: uint64(reserveMiB),
+		VMMemoryMiB:          uint64(vmMemoryMiB),
 	}
 	for k, v := range map[string]string{
 		"DRAGONFLY_URL":         c.DragonflyURL,

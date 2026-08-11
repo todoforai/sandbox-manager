@@ -1,6 +1,9 @@
 package service
 
-import "testing"
+import (
+	"os"
+	"testing"
+)
 
 func TestCostPerMinute(t *testing.T) {
 	cases := map[string]float64{
@@ -36,6 +39,27 @@ func TestDiskUsagePercent(t *testing.T) {
 	}
 	if _, err := diskUsagePercent("/nonexistent-path-xyz"); err == nil {
 		t.Error("diskUsagePercent on missing path: want error, got nil")
+	}
+}
+
+func TestMemAvailableMiB(t *testing.T) {
+	path := t.TempDir() + "/meminfo"
+	if err := os.WriteFile(path, []byte("MemTotal: 131072000 kB\nMemAvailable: 25165824 kB\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	got, err := memAvailableMiB(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got != 24576 {
+		t.Fatalf("got %d MiB, want 24576", got)
+	}
+
+	if err := os.WriteFile(path, []byte("MemTotal: 1 kB\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := memAvailableMiB(path); err == nil {
+		t.Fatal("missing MemAvailable should fail")
 	}
 }
 

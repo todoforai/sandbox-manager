@@ -7,6 +7,11 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"os"
+	"strconv"
+	"strings"
+	"sync"
+	"sync/atomic"
 	"syscall"
 	"time"
 
@@ -23,6 +28,7 @@ var (
 	ErrNotFound  = errors.New("sandbox not found")
 	ErrForbidden = errors.New("forbidden")
 	ErrDiskFull  = errors.New("host disk capacity reached")
+	ErrCapacity  = errors.New("host VM capacity reached")
 )
 
 const enrollTTLSec = 300
@@ -34,11 +40,13 @@ const maxDiskPercent = 90
 // Service is the transport-agnostic business logic: auth/quota decisions,
 // then delegate VM lifecycle to vm.Manager and persistence to store.Store.
 type Service struct {
-	cfg     *config.Config
-	store   *store.Store
-	vm      *vm.Manager
-	homes   *userhome.Store
-	backend *backend.Client
+	cfg              *config.Config
+	store            *store.Store
+	vm               *vm.Manager
+	homes            *userhome.Store
+	backend          *backend.Client
+	admissionMu      sync.Mutex
+	capacityRejected atomic.Uint64
 }
 
 func New(cfg *config.Config, st *store.Store, mgr *vm.Manager, homes *userhome.Store, be *backend.Client) *Service {
@@ -61,6 +69,25 @@ func (s *Service) Create(ctx context.Context, id store.Identity, template, size 
 		return nil, fmt.Errorf("%w: %v", ErrDiskFull, err)
 	} else if used >= maxDiskPercent {
 		return nil, fmt.Errorf("%w: %d%% used", ErrDiskFull, used)
+	}
+
+	// Serialize admission + VM boot: otherwise simultaneous creates can all
+	// observe the same free capacity and oversubscribe the host. Reconcile first
+	// so STOPPED Kata tasks/orphaned Firecracker VMMs are reclaimed before we
+	// reject useful work. Existing RUNNING VMs are never killed under pressure.
+	s.admissionMu.Lock()
+	defer s.admissionMu.Unlock()
+	if err := s.Reconcile(ctx); err != nil {
+		s.capacityRejected.Add(1)
+		return nil, fmt.Errorf("%w: reconcile before admission: %v", ErrCapacity, err)
+	}
+	if _, err := s.vm.CleanupStopped(ctx); err != nil {
+		s.capacityRejected.Add(1)
+		return nil, fmt.Errorf("%w: clean stopped VMs: %v", ErrCapacity, err)
+	}
+	if err := s.checkCapacity(ctx); err != nil {
+		s.capacityRejected.Add(1)
+		return nil, err
 	}
 	if size == "" {
 		size = "medium"
@@ -386,6 +413,43 @@ func (s *Service) ReconcileLoop(ctx context.Context, interval time.Duration) {
 	}
 }
 
+func (s *Service) checkCapacity(ctx context.Context) error {
+	running, err := s.vm.RunningCount(ctx)
+	if err != nil {
+		return fmt.Errorf("%w: count running VMs: %v", ErrCapacity, err)
+	}
+	if running >= s.cfg.MaxVMs {
+		return fmt.Errorf("%w: %d/%d VMs running", ErrCapacity, running, s.cfg.MaxVMs)
+	}
+	availableMiB, err := memAvailableMiB("/proc/meminfo")
+	if err != nil {
+		return fmt.Errorf("%w: read host memory: %v", ErrCapacity, err)
+	}
+	requiredMiB := s.cfg.HostMemoryReserveMiB + s.cfg.VMMemoryMiB
+	if availableMiB < requiredMiB {
+		return fmt.Errorf("%w: %d MiB available, %d MiB required", ErrCapacity, availableMiB, requiredMiB)
+	}
+	return nil
+}
+
+func memAvailableMiB(path string) (uint64, error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return 0, err
+	}
+	for _, line := range strings.Split(string(data), "\n") {
+		fields := strings.Fields(line)
+		if len(fields) >= 2 && fields[0] == "MemAvailable:" {
+			kib, err := strconv.ParseUint(fields[1], 10, 64)
+			if err != nil {
+				return 0, err
+			}
+			return kib / 1024, nil
+		}
+	}
+	return 0, errors.New("MemAvailable not found")
+}
+
 func (s *Service) Stats(ctx context.Context) (map[string]any, error) {
 	total, err := s.store.TotalCreated(ctx)
 	if err != nil {
@@ -401,7 +465,24 @@ func (s *Service) Stats(ctx context.Context) (map[string]any, error) {
 			active++
 		}
 	}
-	return map[string]any{"total_created": total, "active": active}, nil
+	running, err := s.vm.RunningCount(ctx)
+	if err != nil {
+		return nil, err
+	}
+	availableMiB, err := memAvailableMiB("/proc/meminfo")
+	if err != nil {
+		return nil, err
+	}
+	return map[string]any{
+		"total_created":        total,
+		"active":               active,
+		"running_vms":          running,
+		"max_vms":              s.cfg.MaxVMs,
+		"memory_available_mib": availableMiB,
+		"memory_reserve_mib":   s.cfg.HostMemoryReserveMiB,
+		"vm_memory_mib":        s.cfg.VMMemoryMiB,
+		"capacity_rejected":    s.capacityRejected.Load(),
+	}, nil
 }
 
 // VM tier pricing (USD/min), ported from the old vm/size.rs. Lite is gone.

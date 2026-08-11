@@ -307,6 +307,67 @@ const (
 	LiveNo
 )
 
+// CleanupStopped removes every non-running task/container in our dedicated
+// namespace, including Redis-less orphans left by a manager/OOM crash. It never
+// touches RUNNING tasks. Delete also reaps Kata's orphaned Firecracker VMM.
+func (m *Manager) CleanupStopped(ctx context.Context) (int, error) {
+	ctx = m.ctx(ctx)
+	containers, err := m.client.Containers(ctx)
+	if err != nil {
+		return 0, err
+	}
+	cleaned := 0
+	for _, container := range containers {
+		task, err := container.Task(ctx, nil)
+		if err != nil && !errdefs.IsNotFound(err) {
+			return cleaned, err
+		}
+		if err == nil {
+			status, err := task.Status(ctx)
+			if err != nil {
+				return cleaned, err
+			}
+			if status.Status == containerd.Running {
+				continue
+			}
+		}
+		if err := m.Delete(ctx, container.ID()); err != nil && !errdefs.IsNotFound(err) {
+			return cleaned, err
+		}
+		cleaned++
+	}
+	return cleaned, nil
+}
+
+// RunningCount returns the number of live tasks in the sandbox namespace.
+// STOPPED tasks do not consume capacity: Reconcile removes their orphaned
+// Firecracker VMMs before admission is checked.
+func (m *Manager) RunningCount(ctx context.Context) (int, error) {
+	ctx = m.ctx(ctx)
+	containers, err := m.client.Containers(ctx)
+	if err != nil {
+		return 0, err
+	}
+	running := 0
+	for _, container := range containers {
+		task, err := container.Task(ctx, nil)
+		if err != nil {
+			if errdefs.IsNotFound(err) {
+				continue
+			}
+			return 0, err
+		}
+		status, err := task.Status(ctx)
+		if err != nil {
+			return 0, err
+		}
+		if status.Status == containerd.Running {
+			running++
+		}
+	}
+	return running, nil
+}
+
 // IsLive reports whether a sandbox still has a running task under containerd.
 // It distinguishes "not found" (definitively dead) from a failed query
 // (unknown) so callers never tear down a VM they merely couldn't reach.

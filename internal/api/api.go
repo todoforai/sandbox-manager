@@ -215,6 +215,9 @@ func writeServiceErr(w http.ResponseWriter, err error) {
 		httpErr(w, http.StatusConflict, err.Error())
 	case errors.Is(err, service.ErrDiskFull):
 		httpErr(w, http.StatusServiceUnavailable, err.Error())
+	case errors.Is(err, service.ErrCapacity):
+		w.Header().Set("Retry-After", "60")
+		httpErr(w, http.StatusServiceUnavailable, err.Error())
 	default:
 		httpErr(w, http.StatusInternalServerError, err.Error())
 	}
