@@ -586,17 +586,6 @@
     "preinstallCloud": true,
     "preinstallJarvis": true
   },
-  "anydoc": {
-    "category": "utility",
-    "pkg": "@firecrawl/anydoc",
-    "installer": "npm",
-    "binName": "anydoc",
-    "label": "Doc to Markdown",
-    "capabilities": "Convert documents to clean Markdown: doc, docx, pptx, xlsx, odt, ods, odp, rtf, epub, csv. Fully local, no API key.",
-    "description": "Convert office/rich documents to GitHub-Flavored Markdown, entirely local (MIT, no API key, no network). `anydoc report.docx` prints Markdown to stdout; `anydoc slides.pptx -o slides.md` writes a file; `anydoc - --format csv < data.csv` reads stdin. Format is auto-detected from content. Prefer this over raw XML extraction when you need to READ the text of docx/pptx/xlsx/odt/rtf/epub/csv. Not for editing (one-way) and not for scanned/image-only PDFs (needs OCR).",
-    "versionCmd": "anydoc --version 2>/dev/null | head -1",
-    "preinstallCloud": true
-  },
   "agent-browser": {
     "category": "development",
     "pkg": "agent-browser@0.30.1",
