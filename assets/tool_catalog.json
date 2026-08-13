@@ -721,16 +721,16 @@
     "internal": true,
     "preinstallJarvis": true
   },
-  "tfa-frontend": {
+  "tfa-surface": {
     "category": "utility",
-    "pkg": "@todoforai/tfa-frontend",
+    "pkg": "@todoforai/tfa-surface",
     "installer": "npm",
-    "label": "Frontend",
-    "capabilities": "Drive the user's live TODOFORAI UI from the shell: render markdown into UI surfaces, read/change UI and domain controls (todo.open, todo.status, block.focus). Requires an open tab/app.",
-    "description": "The user's live UI is a host you can act on. Routing rule: EVENTS go in the chat stream (normal replies, tool blocks, `html_snippet` for one-off visuals); STATE goes on a surface via this CLI — content the user should keep visible (plans, reports, dashboards, live status). `tfa-frontend show chat.panel <todoId> \"...markdown...\"` renders/replaces the side panel (pipe stdin for long content); calling it again updates the SAME panel (mutable, unlike chat blocks); `clear` removes it. `set` changes controls: `todo.open <todoId> true|false`, `todo.status <todoId> '\"DONE\"'` (permission-gated), `block.focus <blockId>`. Fails fast with exit 2 when no frontend is open.",
-    "versionCmd": "tfa-frontend --version 2>/dev/null | head -1",
-    "statusCmd": "tfa-frontend whoami",
-    "installCmd": "bun add -g @todoforai/tfa-frontend",
+    "label": "Surface",
+    "capabilities": "See and drive what is shown in the user's live TODOFORAI UI: `describe` (open todos, focus, panels, embedded-browser CDP URL), todo open/focus/close, panel open/close, render markdown into surfaces, get/set controls. Requires an open tab/app.",
+    "description": "The user's live UI, addressable from the shell (CDP mental model: frontend → todo → panel surface). Target = $TODOFORAI_FRONTEND_ID (override per call: `TODOFORAI_FRONTEND_ID=<id> tfa-surface ...`). DISCOVER: `tfa-surface describe` — what's open (todos, focus, panel surfaces, sidebar) plus the embedded browser's CDP URL to drive with `agent-browser connect`; `--json` for scripts. VIEWS: `todo open <todoId> [--popout]` / `todo focus|close <todoId>`; `panel open changes|preview|browser|terminal [--todo <id>] [--url <url>]` / `panel close`. CONTENT: EVENTS go in the chat stream; STATE the user should keep visible (plans, reports, live status) goes on a surface: `show chat.panel <todoId> \"...markdown...\"` (stdin for long content, re-show updates the SAME panel), `clear` removes it; `set todo.status <todoId> '\"DONE\"'` (permission-gated), `set block.focus <blockId>`. Exit 2 = no frontend id / tab not connected.",
+    "versionCmd": "tfa-surface --version 2>/dev/null | head -1",
+    "statusCmd": "tfa-surface whoami",
+    "installCmd": "bun add -g @todoforai/tfa-surface",
     "internal": true
   },
   "ripgrep": {
