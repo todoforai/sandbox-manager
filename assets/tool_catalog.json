@@ -737,21 +737,39 @@
     "category": "development",
     "pkg": "bun",
     "installer": "system",
-    "label": "JavaScript/TypeScript Runtime",
-    "capabilities": "Run JavaScript and TypeScript scripts directly; includes package management and a test runner.",
-    "description": "Use `bun script.ts` or `bun -e '<code>'`; install dependencies with `bun install`/`bun add`, and run tests with `bun test`.",
+    "label": "JS/TS Runtime",
+    "capabilities": "Run JavaScript/TypeScript, install packages, run tests (`bun`, `bunx`).",
     "versionCmd": "bun --version 2>/dev/null",
+    "preinstallCloud": true,
+    "cloudInstallCmd": "export BUN_INSTALL=/usr/local && curl -fsSL https://bun.sh/install | bash && ln -sf /usr/local/bin/bun /usr/local/bin/bunx",
+    "cloudVerifyCmd": "bun --version",
     "internal": true,
     "preinstallJarvis": true
+  },
+  "bunx": {
+    "category": "development",
+    "pkg": "bunx",
+    "installer": "system",
+    "label": "Bun Package Runner",
+    "capabilities": "Run package binaries with Bun.",
+    "versionCmd": "bunx --version 2>/dev/null",
+    "preinstallCloud": true,
+    "cloudVerifyCmd": "bunx --version",
+    "internal": true
   },
   "node": {
     "category": "development",
     "pkg": "node",
     "installer": "system",
     "label": "JavaScript Runtime",
-    "capabilities": "Run JavaScript scripts and Node-compatible tooling.",
-    "description": "Use `node script.js` or `node -e '<code>'`. On cloud sandboxes, `node` is Bun's Node-compatible wrapper; use `bun` when exact runtime identity matters.",
+    "capabilities": "Run Node.js scripts.",
     "versionCmd": "node -p 'process.version' 2>/dev/null",
+    "preinstallCloud": true,
+    "cloudInstallCmd": "curl -fsSL https://deb.nodesource.com/setup_24.x | bash -",
+    "cloudAptPackages": [
+      "nodejs"
+    ],
+    "cloudVerifyCmd": "node --version",
     "internal": true,
     "preinstallJarvis": true
   },
@@ -760,9 +778,13 @@
     "pkg": "python3",
     "installer": "system",
     "label": "Python",
-    "capabilities": "Run Python scripts and short programs for automation, data processing, and file transformations.",
-    "description": "Use `python3 script.py` or `python3 -c '<code>'`. Prefer `python3` over `python` because the latter may not be installed.",
+    "capabilities": "Run Python scripts.",
     "versionCmd": "python3 --version 2>/dev/null",
+    "preinstallCloud": true,
+    "cloudAptPackages": [
+      "python3"
+    ],
+    "cloudVerifyCmd": "python3 --version",
     "internal": true,
     "preinstallJarvis": true
   },
@@ -771,9 +793,10 @@
     "pkg": "npm",
     "installer": "system",
     "label": "Node Package Manager",
-    "capabilities": "Install Node.js packages and run package scripts.",
-    "description": "Use `npm install`, `npm run <script>`, or `npm exec <package>`. Only listed on machines where npm is installed.",
+    "capabilities": "Install Node packages and run package scripts.",
     "versionCmd": "npm --version 2>/dev/null",
+    "preinstallCloud": true,
+    "cloudVerifyCmd": "npm --version",
     "internal": true
   },
   "npx": {
@@ -781,9 +804,10 @@
     "pkg": "npx",
     "installer": "system",
     "label": "Node Package Runner",
-    "capabilities": "Run binaries from local or temporary npm packages.",
-    "description": "Use `npx <package> [args]` for one-off Node.js CLI execution. Only listed on machines where npx is installed.",
+    "capabilities": "Run npm package binaries.",
     "versionCmd": "npx --version 2>/dev/null",
+    "preinstallCloud": true,
+    "cloudVerifyCmd": "npx --version",
     "internal": true
   },
   "pip3": {
@@ -791,8 +815,7 @@
     "pkg": "pip3",
     "installer": "system",
     "label": "Python Package Installer",
-    "capabilities": "Install Python packages for the available Python 3 environment.",
-    "description": "Prefer `python3 -m pip install <package>` when available; use `pip3` directly when needed. Only listed where pip3 is installed.",
+    "capabilities": "Install Python packages.",
     "versionCmd": "pip3 --version 2>/dev/null | head -1",
     "internal": true
   },
@@ -801,9 +824,22 @@
     "pkg": "uv",
     "installer": "system",
     "label": "Python Package Manager",
-    "capabilities": "Fast Python dependency, environment, tool, and script management.",
-    "description": "Use `uv run`, `uv sync`, `uv add`, or `uvx <tool>`. Only listed on machines where uv is installed.",
+    "capabilities": "Manage Python dependencies, environments, tools, and scripts (`uv`, `uvx`).",
     "versionCmd": "uv --version 2>/dev/null",
+    "preinstallCloud": true,
+    "cloudInstallCmd": "curl -LsSf https://astral.sh/uv/0.9.6/install.sh | env UV_INSTALL_DIR=/usr/local/bin sh",
+    "cloudVerifyCmd": "uv --version",
+    "internal": true
+  },
+  "uvx": {
+    "category": "development",
+    "pkg": "uvx",
+    "installer": "system",
+    "label": "Python Tool Runner",
+    "capabilities": "Run Python tools in isolated environments.",
+    "versionCmd": "uvx --version 2>/dev/null",
+    "preinstallCloud": true,
+    "cloudVerifyCmd": "uvx --version",
     "internal": true
   },
   "ripgrep": {

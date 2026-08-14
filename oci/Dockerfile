@@ -31,11 +31,25 @@ RUN curl -fsSL https://github.com/ast-grep/ast-grep/releases/download/0.44.1/app
  && install -m 0755 /tmp/ast-grep/ast-grep /usr/local/bin/ast-grep \
  && rm -rf /tmp/ast-grep.zip /tmp/ast-grep
 
-# bun: runtime + package manager for npm catalog CLIs (agent-browser, tfa-vault).
-RUN export BUN_INSTALL=/usr/local \
- && curl -fsSL https://bun.sh/install | bash \
- && ln -sf /usr/local/bin/bun /usr/local/bin/bunx \
- && ln -sf /usr/local/bin/bun /usr/local/bin/node
+# Generic executor for tools declared `preinstallCloud: true` in the catalog.
+# The Dockerfile contains no per-tool installation logic: build-oci.sh derives
+# setup commands, apt packages, and verification commands from tool_catalog.json.
+# Setup commands run first (e.g. adding NodeSource), then apt installs once.
+# The catalog is trusted build input, vendored and drift-checked by the builder.
+ARG CLOUD_APT_PACKAGES=""
+ARG CLOUD_INSTALL_SCRIPT=""
+ARG CLOUD_VERIFY_SCRIPT=""
+RUN if [ -n "$CLOUD_INSTALL_SCRIPT" ]; then bash -euxo pipefail -c "$CLOUD_INSTALL_SCRIPT"; fi \
+ && if [ -n "$CLOUD_APT_PACKAGES" ]; then \
+      apt-get update \
+      && apt-get install -y --no-install-recommends $CLOUD_APT_PACKAGES \
+      && apt-get clean \
+      && rm -rf /var/lib/apt/lists/*; \
+    fi \
+ && if [ -n "$CLOUD_VERIFY_SCRIPT" ]; then bash -euxo pipefail -c "$CLOUD_VERIFY_SCRIPT"; fi \
+ && if command -v node >/dev/null && command -v bun >/dev/null; then \
+      test "$(readlink -f "$(command -v node)")" != "$(readlink -f "$(command -v bun)")"; \
+    fi
 
 # Catalog CLIs tagged preinstallCloud (passed in as a space-separated build arg
 # so the package list stays the single source of truth in tool_catalog.json).

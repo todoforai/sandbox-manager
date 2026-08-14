@@ -11,9 +11,12 @@ NOT enough — it keeps the old containerd snapshot.
    `assets/bridge.tag` → `scripts/sync-vendor.sh` (fetch + sha256 verify from
    `github.com/todoforai/bridge` releases) → `scripts/build-oci.sh` →
    `oci/Dockerfile` (`COPY todoforai-bridge`).
-2. Preinstall CLIs (`preinstallCloud: true` in `tool_catalog.json`, e.g.
-   `todoforai-cli`) are `bun add -g`'d into the same image. Each rootfs rebuild
-   busts the bun layer (`BUN_CACHE_BUST`) so unpinned packages resolve latest.
+2. Tools with `preinstallCloud: true` in `tool_catalog.json` are installed into
+   the same image. npm/bun package entries are grouped into `bun add -g`; system
+   runtimes can declare `cloudInstallCmd`, `cloudAptPackages`, and
+   `cloudVerifyCmd`. The Dockerfile is a generic executor, not a per-tool list.
+   Each rootfs rebuild busts the bun layer (`BUN_CACHE_BUST`) so unpinned
+   packages resolve latest.
 3. `deploy.sh` (on every prod deploy) runs `build-oci.sh` with `IMPORT=1` so
    containerd gets the new image. `SKIP_ROOTFS=1` skips for binary-only rollouts.
 4. The guest entrypoint ends in `exec /usr/local/bin/todoforai-bridge`

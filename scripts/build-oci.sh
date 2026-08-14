@@ -53,16 +53,38 @@ fi
 # Empty placeholder keeps the Dockerfile COPY valid when the fetch is skipped.
 [ -f "$OCI_DIR/rclone" ] || : > "$OCI_DIR/rclone"
 
-# --- preinstall CLI list from the tool catalog (same query as the old rootfs).
+# --- preinstall data from the tool catalog.
 BUN_PREINSTALL=""
+CLOUD_APT_PACKAGES=""
+CLOUD_INSTALL_SCRIPT=""
+CLOUD_INSTALL_COUNT=0
+CLOUD_VERIFY_SCRIPT=""
 if [ -f "$TOOL_CATALOG_JSON" ] && command -v jq >/dev/null 2>&1; then
     BUN_PREINSTALL=$(jq -r '
         to_entries
         | map(select(.value.preinstallCloud == true and (.value.installer == "bun" or .value.installer == "npm")))
         | map(.value.pkg) | join(" ")
     ' "$TOOL_CATALOG_JSON")
+    CLOUD_APT_PACKAGES=$(jq -r '
+        [to_entries[] | select(.value.preinstallCloud == true) | .value.cloudAptPackages[]?]
+        | unique | join(" ")
+    ' "$TOOL_CATALOG_JSON")
+    CLOUD_INSTALL_SCRIPT=$(jq -r '
+        [to_entries[] | select(.value.preinstallCloud == true) | .value.cloudInstallCmd?]
+        | map(select(length > 0)) | join("\n")
+    ' "$TOOL_CATALOG_JSON")
+    CLOUD_INSTALL_COUNT=$(jq -r '
+        [to_entries[] | select(.value.preinstallCloud == true) | .value.cloudInstallCmd?]
+        | map(select(length > 0)) | length
+    ' "$TOOL_CATALOG_JSON")
+    CLOUD_VERIFY_SCRIPT=$(jq -r '
+        [to_entries[] | select(.value.preinstallCloud == true) | .value.cloudVerifyCmd?]
+        | map(select(length > 0)) | join("\n")
+    ' "$TOOL_CATALOG_JSON")
 fi
-echo "   preinstall: ${BUN_PREINSTALL:-(none)}"
+echo "   bun/npm packages: ${BUN_PREINSTALL:-(none)}"
+echo "   apt packages: ${CLOUD_APT_PACKAGES:-(none)}"
+echo "   catalog install commands: $CLOUD_INSTALL_COUNT"
 
 # --- browser-manager-cli: a static C binary (not bun/npm, not in apt), so bake
 # it in like the bridge. URL comes from the catalog (single source of truth).
@@ -101,6 +123,9 @@ echo ">> docker build $IMAGE (bridge=$(cat "$ASSETS_DIR/bridge.tag" 2>/dev/null 
 docker build \
     ${NO_CACHE:+--no-cache} \
     --provenance=false --sbom=false \
+    --build-arg CLOUD_APT_PACKAGES="$CLOUD_APT_PACKAGES" \
+    --build-arg CLOUD_INSTALL_SCRIPT="$CLOUD_INSTALL_SCRIPT" \
+    --build-arg CLOUD_VERIFY_SCRIPT="$CLOUD_VERIFY_SCRIPT" \
     --build-arg BUN_PREINSTALL="$BUN_PREINSTALL" \
     --build-arg BUN_CACHE_BUST="$BUN_CACHE_BUST" \
     -t "$IMAGE" \

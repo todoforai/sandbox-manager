@@ -31,7 +31,10 @@ on restart. No MMDS, no guest `/init`, no SSH/vsock recovery (use
 
 The guest userland is a normal OCI image (`oci/Dockerfile`) — Kata ships the
 guest kernel, so there's nothing else to build. The image bundles the toolset
-(jq, rg, fd, gh, vault, bun, …), the tfa-* catalog CLIs, and the bridge.
+(jq, rg, fd, gh, vault, Node.js + npm/npx, Bun, Python + uv, …), the tfa-*
+catalog CLIs, and the bridge. Cloud tools are declared in `tool_catalog.json`:
+`preinstallCloud` selects them, while `cloudAptPackages`, `cloudInstallCmd`, and
+`cloudVerifyCmd` drive and verify the image build.
 
 ```sh
 IMPORT=1 scripts/build-oci.sh                          # -> sandbox-rootfs:dev, loaded into containerd
