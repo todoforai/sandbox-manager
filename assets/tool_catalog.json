@@ -733,6 +733,79 @@
     "installCmd": "bun add -g @todoforai/tfa-surface",
     "internal": true
   },
+  "bun": {
+    "category": "development",
+    "pkg": "bun",
+    "installer": "system",
+    "label": "JavaScript/TypeScript Runtime",
+    "capabilities": "Run JavaScript and TypeScript scripts directly; includes package management and a test runner.",
+    "description": "Use `bun script.ts` or `bun -e '<code>'`; install dependencies with `bun install`/`bun add`, and run tests with `bun test`.",
+    "versionCmd": "bun --version 2>/dev/null",
+    "internal": true,
+    "preinstallJarvis": true
+  },
+  "node": {
+    "category": "development",
+    "pkg": "node",
+    "installer": "system",
+    "label": "JavaScript Runtime",
+    "capabilities": "Run JavaScript scripts and Node-compatible tooling.",
+    "description": "Use `node script.js` or `node -e '<code>'`. On cloud sandboxes, `node` is Bun's Node-compatible wrapper; use `bun` when exact runtime identity matters.",
+    "versionCmd": "node -p 'process.version' 2>/dev/null",
+    "internal": true,
+    "preinstallJarvis": true
+  },
+  "python3": {
+    "category": "development",
+    "pkg": "python3",
+    "installer": "system",
+    "label": "Python",
+    "capabilities": "Run Python scripts and short programs for automation, data processing, and file transformations.",
+    "description": "Use `python3 script.py` or `python3 -c '<code>'`. Prefer `python3` over `python` because the latter may not be installed.",
+    "versionCmd": "python3 --version 2>/dev/null",
+    "internal": true,
+    "preinstallJarvis": true
+  },
+  "npm": {
+    "category": "development",
+    "pkg": "npm",
+    "installer": "system",
+    "label": "Node Package Manager",
+    "capabilities": "Install Node.js packages and run package scripts.",
+    "description": "Use `npm install`, `npm run <script>`, or `npm exec <package>`. Only listed on machines where npm is installed.",
+    "versionCmd": "npm --version 2>/dev/null",
+    "internal": true
+  },
+  "npx": {
+    "category": "development",
+    "pkg": "npx",
+    "installer": "system",
+    "label": "Node Package Runner",
+    "capabilities": "Run binaries from local or temporary npm packages.",
+    "description": "Use `npx <package> [args]` for one-off Node.js CLI execution. Only listed on machines where npx is installed.",
+    "versionCmd": "npx --version 2>/dev/null",
+    "internal": true
+  },
+  "pip3": {
+    "category": "development",
+    "pkg": "pip3",
+    "installer": "system",
+    "label": "Python Package Installer",
+    "capabilities": "Install Python packages for the available Python 3 environment.",
+    "description": "Prefer `python3 -m pip install <package>` when available; use `pip3` directly when needed. Only listed where pip3 is installed.",
+    "versionCmd": "pip3 --version 2>/dev/null | head -1",
+    "internal": true
+  },
+  "uv": {
+    "category": "development",
+    "pkg": "uv",
+    "installer": "system",
+    "label": "Python Package Manager",
+    "capabilities": "Fast Python dependency, environment, tool, and script management.",
+    "description": "Use `uv run`, `uv sync`, `uv add`, or `uvx <tool>`. Only listed on machines where uv is installed.",
+    "versionCmd": "uv --version 2>/dev/null",
+    "internal": true
+  },
   "ripgrep": {
     "category": "development",
     "pkg": "ripgrep",
