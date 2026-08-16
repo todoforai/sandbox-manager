@@ -435,13 +435,16 @@
     "installer": "bun",
     "label": "TODOforAI",
     "binName": "todoforai-cli",
-    "capabilities": "Create/list/inspect/update TODOs, show files/URLs in the chat, run templates & workflows, platform API access",
-    "description": "Reach the user's OWN TODOforAI tasks — NOT code `// TODO` comments. `todoforai-cli list` (`--status open`) to browse, `todoforai-cli \"prompt\"` to create, `todoforai-cli --inspect <id>[:<msg-id>]` to read a TODO's chat/data (read-only), `status`/`addmessage`/`delete` to manage, `--template` for registry workflows. Surface a result INTO the chat: `show <file|-> [todo-id]` renders it by mimetype (image/video/pdf/html/text; `-` reads stdin), `open <url> [todo-id]` embeds a live preview. Both take `--title` and `--alias <name>` — re-using an alias UPDATES that block in place instead of appending, so a script can repaint one block (e.g. a progress chart) rather than spamming the chat.",
+    "capabilities": "Delegate work to another TODO: create/list/inspect/update TODOs (real, visible, resumable tasks with their own agent & chat), show files/URLs in the chat, run templates & workflows, platform API access",
+    "description": "Manage the user's OWN TODOforAI tasks — NOT code `// TODO` comments. Aliases: `tfa-cli`, `todoai`. THIS is the tool for delegating/spinning off work: `todoforai-cli \"prompt\"` creates a real TODO the user can see, follow and resume, with its own agent and chat (`-n` run to completion, `--no-watch` fire-and-forget, `--project/--agent/--model` to steer, `--resume <id>`/`-c` to continue, `addmessage <id> \"text\"` to talk to it). Never use `todoforai-subagent` for delegation — that's a throwaway stdin→stdout call with no TODO of its own. Also: `list` (`--status open`), `--inspect <id>[:<msg-id>]` to read a TODO's chat (read-only), `status`/`delete`, `--template` for registry workflows. Surface a result INTO the chat: `show <file|-> [todo-id]` renders by mimetype (`-` reads stdin), `open <url> [todo-id]` embeds a live preview; both take `--title`/`--alias <name>` — re-using an alias UPDATES that block in place instead of appending.",
     "installCmd": "bun add -g @todoforai/cli",
     "versionCmd": "todoforai-cli --version 2>/dev/null | head -1",
     "preinstallCloud": true,
     "internal": true,
-    "preinstallJarvis": true
+    "preinstallJarvis": true,
+    "aliases": [
+      "tfa-cli"
+    ]
   },
   "newman": {
     "category": "testing",
@@ -649,11 +652,12 @@
     "pkg": "@todoforai/subagent",
     "installer": "npm",
     "label": "Sub-agent",
-    "capabilities": "Spawn a TODO for AI sub-agent (FluidAgent) from the CLI; pipe stdin in, get an answer out",
+    "capabilities": "One-shot LLM call from the shell: pipe stdin in, get an answer on stdout. NOT for delegating a task — that's `todoforai-cli`.",
     "versionCmd": "todoforai-subagent --version 2>/dev/null | head -1",
     "installCmd": "bun add -g @todoforai/subagent",
     "internal": true,
-    "statusCmd": "todoforai-subagent whoami 2>/dev/null | grep -v 'not logged'"
+    "statusCmd": "todoforai-subagent whoami 2>/dev/null | grep -v 'not logged'",
+    "description": "Throwaway sub-agent for a single question: pipe text/files in, get the answer on stdout (`curl https://example.com | todoforai-subagent \"what colour is this site?\"`). It leaves NO todo the user can see, track or resume — to delegate real work to another TODO use `todoforai-cli \"prompt\"` instead. `-m` model (default `openai:openai/gpt-5.6-luna`), `-s :review|:explore|:plan|:summarize|@file|text` system message, `-i <path>` attach a file/image, `--tools read,grep,bash`, `--timeout <s>` (default 120, max 900)."
   },
   "tfa-handoff": {
     "category": "development",
@@ -1035,5 +1039,33 @@
     "binName": "grep",
     "internal": true,
     "preinstallJarvis": true
+  },
+  "wordpress-api": {
+    "category": "development",
+    "pkg": "@todoforai/wordpress-api",
+    "installer": "npm",
+    "label": "WordPress",
+    "statusCmd": "wordpress-api whoami 2>/dev/null | grep -m1 -oP '\"slug\":\\s*\"\\K[^\"]+'",
+    "loginCmd": "wordpress-api auth",
+    "credentialPaths": [
+      "~/.config/wordpress-api/credentials.json"
+    ],
+    "capabilities": "List/read/create/update/delete posts, list/read/update pages, browse media and categories — WordPress REST API.",
+    "description": "WordPress REST API CLI. `wordpress-api auth --site https://example.com --user <user> --password '<application password>'` (application password, not the login password). Reading published content needs no auth. `posts list|get|create|update|delete`, `pages`, `media`, `categories`. `posts create` saves a draft unless --status publish. On Elementor/JetEngine sites content.rendered comes back empty — fetch the post's public URL for the body.",
+    "versionCmd": "wordpress-api --version 2>/dev/null | head -1"
+  },
+  "ews-api": {
+    "category": "email",
+    "pkg": "ews-api",
+    "installer": "pip",
+    "label": "Exchange (EWS)",
+    "statusCmd": "ews-api whoami 2>/dev/null | grep -m1 -oP '\"email\":\\s*\"\\K[^\"]+'",
+    "loginCmd": "ews-api auth",
+    "credentialPaths": [
+      "~/.config/ews-api/credentials.json"
+    ],
+    "capabilities": "List/search/read mail, create drafts and replies on an on-premise Exchange server over EWS.",
+    "description": "On-premise Microsoft Exchange CLI over EWS (Exchange Web Services), for servers with no Microsoft 365 tenant — use outlook-api for cloud mailboxes. `ews-api auth --email user@corp.hu --username 'DOMAIN\\\\user' --password ... --server mail.corp.hu` (NTLM; always pass --server, autodiscover is off). `list`, `search <query>`, `read <id>`, `draft`, `reply <id>`. draft/reply save to Drafts by default and only send with --send, so a human approves in Outlook.",
+    "versionCmd": "ews-api --version 2>/dev/null | head -1"
   }
 }
