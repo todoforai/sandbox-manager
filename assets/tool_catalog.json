@@ -70,7 +70,7 @@
     "versionCmd": "linkedin-api --version 2>/dev/null | head -1"
   },
   "figma-api": {
-    "category": "development",
+    "category": "design",
     "pkg": "@todoforai/figma-api",
     "installer": "npm",
     "label": "Figma",
@@ -106,7 +106,7 @@
     "statusCmd": "python3 -c 'import instagrapi' 2>/dev/null && echo installed"
   },
   "mudslide": {
-    "category": "messaging",
+    "category": "social",
     "pkg": "mudslide",
     "installer": "npm",
     "label": "WhatsApp",
@@ -119,7 +119,7 @@
     "versionCmd": "mudslide --version 2>/dev/null | head -1"
   },
   "slack-cli": {
-    "category": "development",
+    "category": "social",
     "pkg": "slack-cli",
     "installer": "binary",
     "label": "Slack",
@@ -161,7 +161,7 @@
     }
   },
   "telegram-send": {
-    "category": "messaging",
+    "category": "social",
     "pkg": "telegram-send",
     "installer": "pip",
     "label": "Telegram",
@@ -1054,6 +1054,20 @@
     "description": "WordPress REST API CLI. `wordpress-api auth --site https://example.com --user <user> --password '<application password>'` (application password, not the login password). Reading published content needs no auth. `posts list|get|create|update|delete`, `pages`, `media`, `categories`. `posts create` saves a draft unless --status publish. On Elementor/JetEngine sites content.rendered comes back empty — fetch the post's public URL for the body.",
     "versionCmd": "wordpress-api --version 2>/dev/null | head -1"
   },
+  "facebook-pages-api": {
+    "category": "social",
+    "pkg": "@todoforai/facebook-pages-api",
+    "installer": "npm",
+    "label": "Facebook Pages",
+    "statusCmd": "facebook-pages-api whoami 2>/dev/null | grep -m1 -oP '\"name\":\\s*\"\\K[^\"]+'",
+    "loginCmd": "facebook-pages-api auth",
+    "credentialPaths": [
+      "~/.config/facebook-pages-api/credentials.json"
+    ],
+    "capabilities": "Post to a Facebook Page (published, unpublished or scheduled), read/reply/hide/delete comments, page and post insights, Page inbox, photo posting — official Meta Graph API.",
+    "description": "Facebook Pages CLI over the official Meta Graph API v21.0. `facebook-pages-api auth --page-id <id> --page-token <token>` (page token from GET /me/accounts; env FB_PAGE_ID / FB_PAGE_TOKEN). `feed list|get|create|delete`, `comments list|get|reply|hide|delete`, `insights page|post`, `conversations list|get`, `media create`. Writes are live — use `feed create --published false` for tests. `comments reply` posts publicly and immediately, so have a human approve the text. Many classic insights metrics (page_impressions, page_fans, post_impressions) were retired and now error; follower totals come from `whoami --fields followers_count,fan_count`. `conversations` needs the pages_messaging permission.",
+    "versionCmd": "facebook-pages-api --version 2>/dev/null | head -1"
+  },
   "ews-api": {
     "category": "email",
     "pkg": "ews-api",
@@ -1067,5 +1081,19 @@
     "capabilities": "List/search/read mail, create drafts and replies on an on-premise Exchange server over EWS.",
     "description": "On-premise Microsoft Exchange CLI over EWS (Exchange Web Services), for servers with no Microsoft 365 tenant — use outlook-api for cloud mailboxes. `ews-api auth --email user@corp.hu --username 'DOMAIN\\\\user' --password ... --server mail.corp.hu` (NTLM; always pass --server, autodiscover is off). `list`, `search <query>`, `read <id>`, `draft`, `reply <id>`. draft/reply save to Drafts by default and only send with --send, so a human approves in Outlook.",
     "versionCmd": "ews-api --version 2>/dev/null | head -1"
+  },
+  "outlook-api": {
+    "category": "email",
+    "pkg": "@todoforai/outlook-api",
+    "installer": "npm",
+    "label": "Outlook (Graph)",
+    "statusCmd": "outlook-api whoami 2>/dev/null | grep -m1 -oP '\"userPrincipalName\":\\s*\"\\K[^\"]+'",
+    "loginCmd": "outlook-api auth",
+    "credentialPaths": [
+      "~/.config/outlook-api/config.json"
+    ],
+    "capabilities": "List/search/read Outlook/Hotmail mail, download attachments, create drafts/replies and send over Microsoft Graph.",
+    "description": "Outlook / Hotmail / Microsoft 365 mail CLI over Microsoft Graph (cloud mailboxes — use ews-api for on-prem Exchange). `outlook-api auth` is a device-code flow with no Azure app registration; personal accounts use --tenant consumers (default), work/school --tenant organizations. list/search/read/attachments are read-only; `draft` and `reply` save to Drafts by default and only send with --send, so a human approves in Outlook; `send <draftId>` sends an existing draft. Raw JSON out; `get` is a raw Graph GET passthrough.",
+    "versionCmd": "outlook-api --version 2>/dev/null | head -1"
   }
 }
