@@ -639,6 +639,7 @@
   "todoforai-browser": {
     "category": "development",
     "pkg": "@todoforai/browser",
+    "aliases": ["tfa-browser"],
     "installer": "npm",
     "preinstallCloud": true,
     "label": "Browser (Extension)",
