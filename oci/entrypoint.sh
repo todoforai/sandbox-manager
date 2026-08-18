@@ -83,18 +83,12 @@ mount_cloud() {
         | jq -r '.token // empty')
     [ -n "$dst" ] || { echo "mount: device token exchange failed" >&2; return; }
 
-    # Reuse a named API key across boots (GET first); create only if missing —
-    # POST is NOT idempotent and would spam one key per boot.
-    key=$(curl -fsS "$api_url/dst/v1/apikeys/rclone-sandbox-mount" \
-        -H "x-api-key: $dst" | jq -r '.id // empty')
-    [ -n "$key" ] || key=$(curl -fsS -X POST "$api_url/dst/v1/apikeys" \
-        -H "x-api-key: $dst" -H 'Content-Type: application/json' \
-        -d '{"name":"rclone-sandbox-mount"}' | jq -r '.id // empty')
-    [ -n "$key" ] || { echo "mount: could not obtain API key" >&2; return; }
-
-    # Non-interactive rclone remote pinned to the same API URL.
+    # Hand rclone the dst_ token itself. It hardcodes /api/v1/resources/*, which
+    # accepts dst_ tokens (RestApi.apiKeyAuthMiddleware) — so no permanent API
+    # key is minted here. That escalation is now blocked outright: a token
+    # readable by every command in the sandbox must not buy forever-access.
     rclone config create todoforai todoforai \
-        api_key="$key" url="$api_url" --non-interactive >/dev/null 2>&1 || {
+        api_key="$dst" url="$api_url" --non-interactive >/dev/null 2>&1 || {
         echo "mount: rclone config failed" >&2; return; }
 
     mnt=$HOME/.todoforai/mnt/todoforai
