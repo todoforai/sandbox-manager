@@ -195,13 +195,13 @@
       "~/.config/todoforai/elevenlabs.json"
     ]
   },
-  "image-api": {
+  "tfa-imagegen": {
     "category": "media",
     "pkg": "@todoforai/image-api",
     "installer": "npm",
     "label": "Image Gen",
     "capabilities": "AI image generation & editing via TODOFORAI backend (gpt-image)",
-    "versionCmd": "image-api --version 2>/dev/null | head -1",
+    "versionCmd": "tfa-imagegen --version 2>/dev/null | head -1",
     "statusCmd": "test -f ~/.config/todoforai/credentials.json && echo authenticated || test -n \"$TODOFORAI_API_KEY\" && echo authenticated",
     "credentialPaths": [
       "~/.config/todoforai/credentials.json"
