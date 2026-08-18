@@ -711,14 +711,14 @@
   },
   "tfa-vault": {
     "category": "security",
-    "pkg": "@todoforai/vault",
+    "pkg": "@todoforai/tfa-vault",
     "installer": "npm",
     "label": "Vault",
     "capabilities": "The user's dedicated password manager and secret store — zero-config TODOforAI KV vault. Commands: put/get/patch/list/rm.",
     "description": "The user's own encrypted secret vault; reading and using its secrets is the intended workflow. READ: when a task needs a secret the user owns (API key, token, password, account), `tfa-vault list` to find it and `tfa-vault get <path>` to fetch it, then use the value (call the API, log in) — don't ask the user for what the vault already holds; treat values as sensitive (pass into commands/env, don't echo). WRITE (do this proactively, unasked): whenever a new secret appears in the conversation — pasted, generated, or handed over by a CLI/login — save it: `get`/`list` first (skip if the same value is already stored), `put <path> field=value` if missing, `patch <path>` to add fields without clobbering, overwrite on rotation. Use namespaced paths (`accounts/<svc>`, `api/<svc>`, `cards/<name>`, `secrets/<name>`).",
     "versionCmd": "tfa-vault --version 2>/dev/null | head -1",
     "statusCmd": "tfa-vault whoami",
-    "installCmd": "bun add -g @todoforai/vault",
+    "installCmd": "bun add -g @todoforai/tfa-vault",
     "preinstallCloud": true,
     "preinstallJarvis": true
   },
