@@ -647,6 +647,42 @@
     "internal": true,
     "preinstallJarvis": true
   },
+  "tfa-explore": {
+    "category": "development",
+    "pkg": "@todoforai/tfa-explore",
+    "installer": "npm",
+    "label": "Explore",
+    "capabilities": "Read-only sub-agent that maps a codebase and answers where/how/what questions as a hidden TODO. Options: --repo, --tools read,grep,list,bash,webfetch, -m/--model, -p/--project.",
+    "description": "Explore a codebase in a separate sub-agent so the file reads and greps never touch your own context — you get back only the answer. `tfa-explore \"where is auth handled?\"` runs read-only in the repo (`--repo <path>`, default cwd; the path must be in an authorized workspace) and streams the result to stdout. The TODO it creates is hidden from the dashboard. Prefer it over manual multi-file searching for any non-trivial \"where/how/what is\" question.",
+    "versionCmd": "tfa-explore --version 2>/dev/null | head -1",
+    "installCmd": "bun add -g @todoforai/tfa-explore",
+    "internal": true,
+    "statusCmd": "tfa-explore whoami"
+  },
+  "tfa-review": {
+    "category": "development",
+    "pkg": "@todoforai/tfa-review",
+    "installer": "npm",
+    "label": "Review",
+    "capabilities": "Sub-agent code review of a git diff as a hidden TODO. Options: --repo, --against <ref|WORKING>, --tools read,grep,list,bash,webfetch, -m/--model, -p/--project.",
+    "description": "Review a git diff in a separate sub-agent, so inspecting the diff and the surrounding files costs none of your own context. `tfa-review \"<goal>\"` diffs the repo (`--repo <path>`, default cwd) against `--against <ref>` (default `WORKING` = uncommitted) and streams findings, simplifications and issues to stdout. The TODO it creates is hidden from the dashboard. Run it before calling a non-trivial change done.",
+    "versionCmd": "tfa-review --version 2>/dev/null | head -1",
+    "installCmd": "bun add -g @todoforai/tfa-review",
+    "internal": true,
+    "statusCmd": "tfa-review whoami"
+  },
+  "tfa-summary": {
+    "category": "development",
+    "pkg": "@todoforai/tfa-summary",
+    "installer": "npm",
+    "label": "Summary",
+    "capabilities": "Summarize files or piped stdin in a sub-agent as a hidden TODO. Options: -f/--file (repeatable), trailing focus text, -m/--model, -p/--project.",
+    "description": "Summarize long input in a separate sub-agent so the raw text never enters your own context: `cat big.log | tfa-summary \"what failed?\"` or `tfa-summary -f a.md -f b.md \"focus\"`. Files come from `-f/--file` (repeatable) or trailing paths, the last bare argument is the focus. Streams the summary to stdout; the TODO it creates is hidden from the dashboard.",
+    "versionCmd": "tfa-summary --version 2>/dev/null | head -1",
+    "installCmd": "bun add -g @todoforai/tfa-summary",
+    "internal": true,
+    "statusCmd": "tfa-summary whoami"
+  },
   "tfa-handoff": {
     "category": "development",
     "pkg": "@todoforai/tfa-handoff",
