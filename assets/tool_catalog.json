@@ -436,7 +436,7 @@
     "label": "TODOforAI",
     "binName": "todoforai-cli",
     "capabilities": "Delegate work to another TODO: create/list/inspect/update TODOs (real, visible, resumable tasks with their own agent & chat), show files/URLs in the chat, run templates & workflows, platform API access",
-    "description": "Manage the user's OWN TODOforAI tasks — NOT code `// TODO` comments. Aliases: `tfa-cli`, `todoai`. THIS is the tool for delegating/spinning off work: `todoforai-cli \"prompt\"` creates a real TODO the user can see, follow and resume, with its own agent and chat (`-n` run to completion, `--no-watch` fire-and-forget, `--project/--agent/--model` to steer, `--resume <id>`/`-c` to continue, `addmessage <id> \"text\"` to talk to it). Never use `todoforai-subagent` for delegation — that's a throwaway stdin→stdout call with no TODO of its own. Also: `list` (`--status open`), `--inspect <id>[:<msg-id>]` to read a TODO's chat (read-only), `status`/`delete`, `--template` for registry workflows. Surface a result INTO the chat: `show <file|-> [todo-id]` renders by mimetype (`-` reads stdin), `open <url> [todo-id]` embeds a live preview; both take `--title`/`--alias <name>` — re-using an alias UPDATES that block in place instead of appending.",
+    "description": "Manage the user's OWN TODOforAI tasks — NOT code `// TODO` comments. Aliases: `tfa-cli`, `todoai`. THIS is the tool for delegating/spinning off work: `todoforai-cli \"prompt\"` creates a real TODO the user can see, follow and resume, with its own agent and chat (`-n` run to completion, `--no-watch` fire-and-forget, `--project/--agent/--model` to steer, `--resume <id>`/`-c` to continue, `addmessage <id> \"text\"` to talk to it). Never use a one-shot `tfa-*` sub-agent CLI for delegation — that's a throwaway stdin→stdout call with no TODO of its own. Also: `list` (`--status open`), `--inspect <id>[:<msg-id>]` to read a TODO's chat (read-only), `status`/`delete`, `--template` for registry workflows. Surface a result INTO the chat: `show <file|-> [todo-id]` renders by mimetype (`-` reads stdin), `open <url> [todo-id]` embeds a live preview; both take `--title`/`--alias <name>` — re-using an alias UPDATES that block in place instead of appending.",
     "installCmd": "bun add -g @todoforai/cli",
     "versionCmd": "todoforai-cli --version 2>/dev/null | head -1",
     "preinstallCloud": true,
@@ -646,18 +646,6 @@
     "versionCmd": "node -p \"require(require('child_process').execSync('which todoforai-browser',{encoding:'utf8'}).trim().replace(/\\/dist\\/index\\.js$/, '/package.json')).version\" 2>/dev/null",
     "internal": true,
     "preinstallJarvis": true
-  },
-  "todoforai-subagent": {
-    "category": "development",
-    "pkg": "@todoforai/subagent",
-    "installer": "npm",
-    "label": "Sub-agent",
-    "capabilities": "One-shot LLM call from the shell: pipe stdin in, get an answer on stdout. NOT for delegating a task — that's `todoforai-cli`.",
-    "versionCmd": "todoforai-subagent --version 2>/dev/null | head -1",
-    "installCmd": "bun add -g @todoforai/subagent",
-    "internal": true,
-    "statusCmd": "todoforai-subagent whoami 2>/dev/null | grep -v 'not logged'",
-    "description": "Throwaway sub-agent for a single question: pipe text/files in, get the answer on stdout (`curl https://example.com | todoforai-subagent \"what colour is this site?\"`). It leaves NO todo the user can see, track or resume — to delegate real work to another TODO use `todoforai-cli \"prompt\"` instead. `-m` model (default `openai:openai/gpt-5.6-luna`), `-s :review|:explore|:plan|:summarize|@file|text` system message, `-i <path>` attach a file/image, `--tools read,grep,bash`, `--timeout <s>` (default 120, max 900)."
   },
   "tfa-handoff": {
     "category": "development",
