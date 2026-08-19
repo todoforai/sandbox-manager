@@ -103,7 +103,7 @@
     "label": "Instagram",
     "capabilities": "Upload photos & reels, post stories, send DMs, like & comment, manage followers",
     "versionCmd": "pip show instagrapi 2>/dev/null | grep -oP 'Version: \\K.*'",
-    "statusCmd": "python3 -c 'import instagrapi' 2>/dev/null && echo installed"
+    "statusCmd": "{ python3 -c 'import instagrapi' || py -c 'import instagrapi'; } 2>/dev/null && echo installed"
   },
   "mudslide": {
     "category": "social",
@@ -573,7 +573,7 @@
     "installer": "pip",
     "label": "PDF",
     "capabilities": "PDF text editing, extraction, merge, split. Call via `python3 -c`.",
-    "versionCmd": "python3 -c 'import pymupdf; print(pymupdf.__version__)' 2>/dev/null",
+    "versionCmd": "{ python3 -c 'import pymupdf; print(pymupdf.__version__)' || py -c 'import pymupdf; print(pymupdf.__version__)'; } 2>/dev/null",
     "preinstallCloud": true,
     "preinstallJarvis": true
   },
