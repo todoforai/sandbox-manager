@@ -138,17 +138,22 @@ export function fmtDate(ms) {
 
 /** Standard sign-in card. Single CTA: sign in via the main site, which then
  *  hands back a one-time token (see consumeOttFromUrl above). */
+const LOGO_SVG = `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+  <path d="M20 7 Q20 5 22 5 H78 Q80 5 80 7 V23 Q80 25 78 25 H60 V48 Q60 50 58 50 H42 Q40 50 40 48 V25 H22 Q20 25 20 23 Z" fill="#ff4500"/>
+  <path d="M40 50 L60 50 L65 60 L60 70 L55 80 L50 90 L45 80 L40 70 L35 60 Z" fill="#ff7700"/>
+  <path d="M42 50 L58 50 L62 57 L58 65 L54 73 L50 81 L46 73 L42 65 L38 57 Z" fill="#ffaa00"/>
+  <path d="M44 50 L56 50 L59 55 L56 61 L53 67 L50 73 L47 67 L44 61 L41 55 Z" fill="#ffdd00"/>
+  <path d="M46 50 L54 50 L56 53 L54 57 L52 61 L50 65 L48 61 L46 57 L44 53 Z" fill="#ffff88"/>
+</svg>`;
+
 export function renderSignIn({ message } = {}) {
   return el('div', { class: 'signin' },
     el('div', { class: 'signin-card' },
-      el('div', {
-        class: 'seal',
-        html: '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10.5" width="16" height="10" rx="2.5"/><path d="M8 10.5V7a4 4 0 0 1 8 0v3.5"/><circle cx="12" cy="15.5" r="1.4" fill="currentColor" stroke="none"/></svg>',
-      }),
-      el('h2', {}, 'Sign in to continue'),
-      el('p', {}, message || 'This panel uses your TODO for AI account. Sign in on the main site and you\u2019ll be brought right back.'),
-      el('a', { class: 'btn primary', href: LOGIN_URL }, 'Continue with TODO for AI \u2192'),
-      el('div', { class: 'hint' }, 'One account across all panels \u00b7 no separate password'),
+      el('div', { class: 'logo', html: LOGO_SVG }),
+      el('h2', { html: 'Sign in to TODO <b>for</b> AI' }),
+      el('p', {}, message || 'One account for every panel. You\u2019ll hop to todofor.ai to sign in and land right back here.'),
+      el('a', { class: 'btn primary', href: LOGIN_URL }, 'Continue with TODO for AI'),
+      el('div', { class: 'hint' }, 'No separate password \u2014 your main session carries over.'),
     ),
   );
 }
