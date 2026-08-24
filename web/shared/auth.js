@@ -151,9 +151,9 @@ export function renderSignIn({ message } = {}) {
     el('div', { class: 'signin-card' },
       el('div', { class: 'logo', html: LOGO_SVG }),
       el('h2', { html: 'Sign in to TODO <b>for</b> AI' }),
-      el('p', {}, message || 'One account for every panel. You\u2019ll hop to todofor.ai to sign in and land right back here.'),
-      el('a', { class: 'btn primary', href: LOGIN_URL }, 'Continue with TODO for AI'),
-      el('div', { class: 'hint' }, 'No separate password \u2014 your main session carries over.'),
+      message ? el('p', {}, message) : null,
+      el('a', { class: 'btn primary', href: LOGIN_URL }, 'Continue'),
+      el('div', { class: 'hint' }, 'You\u2019ll be brought back here after signing in.'),
     ),
   );
 }

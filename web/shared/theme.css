@@ -225,11 +225,12 @@ footer.app-footer a { color: var(--muted-foreground); }
 .signin-card h2 b { color: var(--primary); font-weight: 700; }
 .signin-card p {
   color: var(--muted-foreground); font-size: 14px; line-height: 1.6;
-  margin: 0 auto 26px; max-width: 30ch;
+  margin: 0 auto; max-width: 32ch;
   text-wrap: balance;
 }
 .signin-card .btn.primary {
   display: flex; width: 100%; justify-content: center; align-items: center; gap: 8px;
+  margin-top: 26px;
   padding: 14px 20px;
   font-weight: 600; font-size: 15px;
   color: #fff;
