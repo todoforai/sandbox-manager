@@ -416,42 +416,7 @@
   }
 
   /* ---------- Sign-in screen ---------- */
-  .signin {
-    min-height: calc(100vh - 56px);
-    display: grid; place-items: center;
-    padding: 40px 20px;
-  }
-  .signin-card {
-    border: 1px solid var(--border);
-    background: var(--card);
-    border-radius: var(--radius-lg);
-    padding: 48px 40px;
-    max-width: 440px;
-    text-align: center;
-    box-shadow: var(--shadow-md);
-  }
-  .signin-card .icon {
-    width: 56px; height: 56px;
-    margin: 0 auto 20px;
-    border-radius: 50%;
-    background: color-mix(in srgb, var(--primary) 12%, transparent);
-    color: var(--primary);
-    display: grid; place-items: center;
-    font-size: 28px;
-  }
-  .signin-card h2 {
-    font-size: 22px;
-    font-weight: 600;
-    letter-spacing: -0.015em;
-    margin: 0 0 8px;
-  }
-  .signin-card p {
-    color: var(--muted-foreground);
-    margin: 0 0 24px;
-    font-size: 14px;
-    line-height: 1.55;
-  }
-  .signin-card .primary { width: 100%; padding: 11px 22px; font-size: 14px; }
+  /* Sign-in styles come from shared/theme.css (glass card + glowing seal). */
 
   /* ---------- Footer hint ---------- */
   footer {

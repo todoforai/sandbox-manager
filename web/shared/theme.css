@@ -195,17 +195,55 @@ footer.app-footer a { color: var(--muted-foreground); }
 /* ---------- Sign-in ---------- */
 .signin { min-height: calc(100vh - 200px); display: flex; align-items: center; justify-content: center; padding: 32px 16px; }
 .signin-card {
-  max-width: 440px; width: 100%; padding: 32px;
-  background: var(--card);
+  position: relative;
+  max-width: 420px; width: 100%; padding: 44px 36px 32px;
+  background: rgba(255, 255, 255, 0.035);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
   border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
+  border-radius: 16px;
   text-align: center;
-  box-shadow: var(--shadow-lg);
+  overflow: hidden;
 }
-.signin-card .icon { font-size: 32px; margin-bottom: 12px; }
-.signin-card h2 { margin: 0 0 8px; font-weight: 600; }
-.signin-card p { color: var(--muted-foreground); margin: 0 0 20px; }
-.signin-card .btn.primary { display: inline-flex; padding: 10px 20px; }
+/* Warm light source inside the card, echoing the page-level glow. */
+.signin-card::before {
+  content: '';
+  position: absolute; inset: 0; pointer-events: none;
+  background: radial-gradient(280px 150px at 50% -50px, color-mix(in srgb, var(--primary) 18%, transparent), transparent 70%);
+}
+.signin-card > * { position: relative; }
+.signin-card .seal {
+  width: 56px; height: 56px;
+  margin: 0 auto 20px;
+  border-radius: 16px;
+  border: 1px solid color-mix(in srgb, var(--primary) 35%, var(--border));
+  background: color-mix(in srgb, var(--primary) 10%, transparent);
+  color: var(--primary);
+  display: grid; place-items: center;
+  box-shadow: 0 0 24px color-mix(in srgb, var(--primary) 25%, transparent);
+  animation: seal-breathe 3.2s ease-in-out infinite;
+}
+@keyframes seal-breathe {
+  50% { box-shadow: 0 0 40px color-mix(in srgb, var(--primary) 45%, transparent); }
+}
+.signin-card .seal svg { display: block; }
+.signin-card h2 { margin: 0 0 8px; font-size: 20px; font-weight: 600; letter-spacing: -0.015em; }
+.signin-card p { color: var(--muted-foreground); font-size: 13.5px; line-height: 1.55; margin: 0 0 24px; }
+.signin-card .btn.primary {
+  display: flex; width: 100%; justify-content: center;
+  padding: 11px 20px;
+  font-weight: 600; font-size: 14px;
+  border-radius: var(--radius-md);
+  transition: background .15s, border-color .15s, box-shadow .2s, transform .06s;
+}
+.signin-card .btn.primary:hover {
+  box-shadow: 0 0 24px color-mix(in srgb, var(--primary) 35%, transparent);
+}
+.signin-card .hint {
+  margin-top: 16px;
+  font-size: 12px;
+  color: var(--muted-foreground);
+}
 
 /* ---------- Tables ---------- */
 table.app-table {

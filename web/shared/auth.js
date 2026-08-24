@@ -141,10 +141,14 @@ export function fmtDate(ms) {
 export function renderSignIn({ message } = {}) {
   return el('div', { class: 'signin' },
     el('div', { class: 'signin-card' },
-      el('div', { class: 'icon' }, '🔒'),
-      el('h2', {}, 'Sign in required'),
-      el('p', {}, message || 'This panel uses your TODO for AI account. Sign in on the main site, then return here.'),
-      el('a', { class: 'btn primary', href: LOGIN_URL }, 'Sign in at todofor.ai'),
+      el('div', {
+        class: 'seal',
+        html: '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10.5" width="16" height="10" rx="2.5"/><path d="M8 10.5V7a4 4 0 0 1 8 0v3.5"/><circle cx="12" cy="15.5" r="1.4" fill="currentColor" stroke="none"/></svg>',
+      }),
+      el('h2', {}, 'Sign in to continue'),
+      el('p', {}, message || 'This panel uses your TODO for AI account. Sign in on the main site and you\u2019ll be brought right back.'),
+      el('a', { class: 'btn primary', href: LOGIN_URL }, 'Continue with TODO for AI \u2192'),
+      el('div', { class: 'hint' }, 'One account across all panels \u00b7 no separate password'),
     ),
   );
 }
