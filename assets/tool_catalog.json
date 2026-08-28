@@ -5,7 +5,10 @@
     "installer": "npm",
     "label": "Gmail",
     "statusCmd": "zele whoami",
+    "loginNeedsPty": true,
     "loginCmd": "zele login --method google",
+    "oauthUrlPattern": "(https://accounts\\.google\\.com\\S+)",
+    "oauthCallbackPort": 8089,
     "credentialPaths": [
       "~/.zele/sqlite.db"
     ],
@@ -21,7 +24,10 @@
     "binName": "zele",
     "label": "Google Calendar",
     "statusCmd": "zele whoami",
+    "loginNeedsPty": true,
     "loginCmd": "zele login --method google",
+    "oauthUrlPattern": "(https://accounts\\.google\\.com\\S+)",
+    "oauthCallbackPort": 8089,
     "credentialPaths": [
       "~/.zele/sqlite.db"
     ],
@@ -36,6 +42,8 @@
     "label": "X",
     "statusCmd": "xurl whoami 2>&1 | sed -n 's/.*\"username\"[[:space:]]*:[[:space:]]*\"\\([^\"]*\\)\".*/\\1/p' | head -1",
     "loginCmd": "xurl auth oauth2",
+    "oauthUrlPattern": "(https://(?:twitter|x)\\.com/i/oauth2\\S+)",
+    "oauthCallbackPort": 8080,
     "credentialPaths": [
       "~/.xurl"
     ],
@@ -199,9 +207,9 @@
     "pkg": "@todoforai/image-api",
     "installer": "npm",
     "label": "Image Gen",
+    "platformAuth": true,
     "capabilities": "AI image generation & editing via TODOFORAI backend (gpt-image, nano-banana, nano-banana-pro)",
     "versionCmd": "tfa-imagegen --version 2>/dev/null | head -1",
-    "statusCmd": "test -f ~/.config/todoforai/credentials.json && echo authenticated || test -n \"$TODOFORAI_API_KEY\" && echo authenticated",
     "credentialPaths": [
       "~/.config/todoforai/credentials.json"
     ]
@@ -248,7 +256,11 @@
     "preinstallCloud": true,
     "label": "GitHub",
     "statusCmd": "gh auth status",
-    "loginCmd": "gh auth login",
+    "loginCmd": "gh auth login --hostname github.com --git-protocol https",
+    "oauthUrlPattern": "(https://github\\.com/login/device\\S*)",
+    "deviceCodePattern": "one-time code:\\s*([A-Z0-9]{4}-[A-Z0-9]{4})",
+    "canStreamLogin": true,
+    "logoutCmd": "gh auth logout --hostname github.com --user {{ACCOUNT}}",
     "credentialPaths": [
       "~/.config/gh/hosts.yml"
     ],
@@ -520,6 +532,8 @@
     "label": "Cloud Sync",
     "statusCmd": "rclone listremotes 2>&1 | grep -v 'NOTICE' | grep -q ':' && echo authenticated",
     "loginCmd": "rclone config",
+    "oauthUrlPattern": "(https?://127\\.0\\.0\\.1:\\d+/auth\\?\\S+)",
+    "oauthCallbackPort": 53682,
     "credentialPaths": [
       "~/.config/rclone/rclone.conf"
     ],
@@ -666,58 +680,58 @@
     "pkg": "@todoforai/tfa-explore",
     "installer": "npm",
     "label": "Explore",
+    "platformAuth": true,
     "capabilities": "Read-only sub-agent that maps a codebase and answers where/how/what questions as a hidden TODO. Options: --repo, --tools read,grep,list,bash,webfetch, -m/--model, -p/--project.",
     "description": "Explore a codebase in a separate sub-agent so the file reads and greps never touch your own context — you get back only the answer. `tfa-explore \"where is auth handled?\"` runs read-only in the repo (`--repo <path>`, default cwd; the path must be in an authorized workspace) and streams the result to stdout. The TODO it creates is hidden from the dashboard. Prefer it over manual multi-file searching for any non-trivial \"where/how/what is\" question.",
     "versionCmd": "tfa-explore --version 2>/dev/null | head -1",
     "installCmd": "bun add -g @todoforai/tfa-explore",
-    "internal": true,
-    "statusCmd": "tfa-explore whoami"
+    "internal": true
   },
   "tfa-review": {
     "category": "development",
     "pkg": "@todoforai/tfa-review",
     "installer": "npm",
     "label": "Review",
+    "platformAuth": true,
     "capabilities": "Sub-agent code review of a git diff as a hidden TODO. Options: --repo, --against <ref|WORKING>, --tools read,grep,list,bash,webfetch, -m/--model, -p/--project.",
     "description": "Review a git diff in a separate sub-agent, so inspecting the diff and the surrounding files costs none of your own context. `tfa-review \"<goal>\"` diffs the repo (`--repo <path>`, default cwd) against `--against <ref>` (default `WORKING` = uncommitted) and streams findings, simplifications and issues to stdout. The TODO it creates is hidden from the dashboard. Run it before calling a non-trivial change done.",
     "versionCmd": "tfa-review --version 2>/dev/null | head -1",
     "installCmd": "bun add -g @todoforai/tfa-review",
-    "internal": true,
-    "statusCmd": "tfa-review whoami"
+    "internal": true
   },
   "tfa-summary": {
     "category": "development",
     "pkg": "@todoforai/tfa-summary",
     "installer": "npm",
     "label": "Summary",
+    "platformAuth": true,
     "capabilities": "Summarize files or piped stdin in a sub-agent as a hidden TODO. Options: -f/--file (repeatable), trailing focus text, -m/--model, -p/--project.",
     "description": "Summarize long input in a separate sub-agent so the raw text never enters your own context: `cat big.log | tfa-summary \"what failed?\"` or `tfa-summary -f a.md -f b.md \"focus\"`. Files come from `-f/--file` (repeatable) or trailing paths, the last bare argument is the focus. Streams the summary to stdout; the TODO it creates is hidden from the dashboard.",
     "versionCmd": "tfa-summary --version 2>/dev/null | head -1",
     "installCmd": "bun add -g @todoforai/tfa-summary",
-    "internal": true,
-    "statusCmd": "tfa-summary whoami"
+    "internal": true
   },
   "tfa-handoff": {
     "category": "development",
     "pkg": "@todoforai/tfa-handoff",
     "installer": "npm",
     "label": "Handoff",
+    "platformAuth": true,
     "capabilities": "Compact a conversation into a handoff document as a hidden TODO; pipe filter for `tfa-cli --inspect … | tfa-handoff … | tfa-cli`",
     "description": "Compact a conversation into a handoff document for a fresh agent.",
     "versionCmd": "tfa-handoff --version 2>/dev/null | head -1",
     "installCmd": "bun add -g @todoforai/tfa-handoff",
-    "internal": true,
-    "statusCmd": "tfa-handoff whoami 2>/dev/null | grep -v 'not logged'"
+    "internal": true
   },
   "tfa-wait": {
     "category": "development",
     "pkg": "@todoforai/tfa-wait",
     "installer": "npm",
     "label": "Wait",
+    "platformAuth": true,
     "capabilities": "Wait for a boolean expression of triggers; result returns as a message here. Leaves joined by && (all) || (any): `3h` duration, `9:00` clock, `weekdays@9:00` day@time, ISO date, or a `word` webhook (minted URL printed). `--repeat` re-arms, `--until <dur>` caps lifetime, message uses `{{payload.x}}`. Turn ANY command into events: `<cmd> | tfa-wait pipe <name>` (each stdout line → event; JSON line = payload; `--min-gap` flood-guards; cancel stops it). `list`/`cancel`/`emit`. e.g. `tfa-wait 'deploy && tests || 1h' \"ship: {{payload.status}}\"`, `while true; do check-jsonl; sleep 120; done | tfa-wait pipe signals`.",
     "description": "Schedule wake-ups and wait for events — time (`3h`, `daily@9:00`), webhooks, or `<cmd> | tfa-wait pipe <name>` to turn any command's stdout lines into events; results return into the conversation. Cancelling the wait stops its pipe.",
     "versionCmd": "tfa-wait --version 2>/dev/null | head -1",
-    "statusCmd": "test -n \"$TODOFORAI_API_TOKEN\" && echo authenticated",
     "installCmd": "bun add -g @todoforai/tfa-wait",
     "preinstallCloud": true,
     "internal": true,
@@ -728,10 +742,10 @@
     "pkg": "@todoforai/tfa-vault",
     "installer": "npm",
     "label": "Vault",
+    "platformAuth": true,
     "capabilities": "The user's dedicated password manager and secret store — zero-config TODOforAI KV vault. Commands: put/get/patch/list/rm.",
     "description": "The user's own encrypted secret vault; reading and using its secrets is the intended workflow. READ: when a task needs a secret the user owns (API key, token, password, account), `tfa-vault list` to find it and `tfa-vault get <path>` to fetch it, then use the value (call the API, log in) — don't ask the user for what the vault already holds; treat values as sensitive (pass into commands/env, don't echo). WRITE (do this proactively, unasked): whenever a new secret appears in the conversation — pasted, generated, or handed over by a CLI/login — save it: `get`/`list` first (skip if the same value is already stored), `put <path> field=value` if missing, `patch <path>` to add fields without clobbering, overwrite on rotation. Use namespaced paths (`accounts/<svc>`, `api/<svc>`, `cards/<name>`, `secrets/<name>`).",
     "versionCmd": "tfa-vault --version 2>/dev/null | head -1",
-    "statusCmd": "tfa-vault whoami",
     "installCmd": "bun add -g @todoforai/tfa-vault",
     "preinstallCloud": true,
     "preinstallJarvis": true
@@ -741,10 +755,10 @@
     "pkg": "@todoforai/tfa-memory",
     "installer": "npm",
     "label": "Memory",
+    "platformAuth": true,
     "capabilities": "The user's persistent memory store — addressable text rows (source/ref) with full-text and semantic search, plus every message of every past TODO federated read-only under the `todo` source. Commands: add/search/ls/get/rm/sources.",
     "description": "The user's long-term memory: notes, procedures, docs, learned facts — addressed as source/ref (e.g. deploy-notes/rollback) — AND every message of every past TODO, searchable read-only under the `todo` source (`todo/<todoId>:<messageId>`), live from the backend message index with nothing separate to sync. READ: before re-deriving anything the user likely already knows or you discussed before, `tfa-memory search \"<topic>\"` — it covers saved rows and past TODO messages in one shot (add --semantic for meaning-based recall, `--source todo` for past TODO messages only, `--todo <id>` to narrow to one TODO), then `tfa-memory get <source/ref>` for full content. WRITE (do this proactively): when durable knowledge appears in the conversation — a procedure, decision, config fact, preference — save it with `tfa-memory add <source>/<ref> \"text\"` (re-adding the same address updates in place; identical content is skipped). Use short factual source names (deploy-notes, acme, preferences). `todo` is read-only — you cannot write or delete there. `tfa-memory sources` lists what exists.",
     "versionCmd": "tfa-memory --version 2>/dev/null | head -1",
-    "statusCmd": "tfa-memory whoami",
     "installCmd": "bun add -g @todoforai/tfa-memory",
     "preinstallCloud": true,
     "preinstallJarvis": true
@@ -767,10 +781,10 @@
     "pkg": "@todoforai/tfa-surface",
     "installer": "npm",
     "label": "Surface",
+    "platformAuth": true,
     "capabilities": "See and drive what is shown in the user's live TODOFORAI UI: `describe` (open todos, focus, panels, embedded-browser CDP URL, on-screen show/card instances), `card add|list|get|rm` (project renderer cards, headless), todo open/focus/close, panel open/close, render markdown into surfaces, get/set controls. UI verbs require an open tab/app; card CRUD does not.",
     "description": "The user's live UI, addressable from the shell (CDP mental model: frontend → todo → panel surface). Target = $TODOFORAI_FRONTEND_ID (override per call: `TODOFORAI_FRONTEND_ID=<id> tfa-surface ...`). DISCOVER: `tfa-surface describe` — what's open (todos, focus, panel surfaces, sidebar, on-screen show/card instances) plus the embedded browser's CDP URL to drive with `agent-browser connect`; `--json` for scripts. CARDS: `card add|list|get|rm <name>` — project-scoped HTML renderer definitions (headless, no frontend needed). VIEWS: `todo open <todoId> [--popout]` / `todo focus|close <todoId>`; `panel open changes|preview|browser|terminal [--todo <id>] [--url <url>]` / `panel close`. CONTENT: EVENTS go in the chat stream; STATE the user should keep visible (plans, reports, live status) goes on a surface: `show chat.panel <todoId> \"...markdown...\"` (stdin for long content, re-show updates the SAME panel), `clear` removes it; `set todo.status <todoId> '\"DONE\"'` (permission-gated), `set block.focus <blockId>`. Exit 2 = no frontend id / tab not connected.",
     "versionCmd": "tfa-surface --version 2>/dev/null | head -1",
-    "statusCmd": "tfa-surface whoami",
     "installCmd": "bun add -g @todoforai/tfa-surface",
     "internal": true
   },
@@ -1132,5 +1146,162 @@
     "capabilities": "List/search/read Outlook/Hotmail mail, download attachments, create drafts/replies and send over Microsoft Graph.",
     "description": "Outlook / Hotmail / Microsoft 365 mail CLI over Microsoft Graph (cloud mailboxes — use ews-api for on-prem Exchange). `outlook-api auth` is a device-code flow with no Azure app registration; personal accounts use --tenant consumers (default), work/school --tenant organizations. list/search/read/attachments are read-only; `draft` and `reply` save to Drafts by default and only send with --send, so a human approves in Outlook; `send <draftId>` sends an existing draft. Raw JSON out; `get` is a raw Graph GET passthrough.",
     "versionCmd": "outlook-api --version 2>/dev/null | head -1"
+  },
+  "neonctl": {
+    "category": "database",
+    "pkg": "neonctl",
+    "installer": "npm",
+    "label": "Neon Postgres",
+    "statusCmd": "test -f ~/.config/neon/credentials.json && neonctl me --output json 2>/dev/null | sed -n 's/.*\"email\"[[:space:]]*:[[:space:]]*\"\\([^\"]*\\)\".*/\\1/p' | grep -m1 .",
+    "loginCmd": "neonctl auth",
+    "oauthUrlPattern": "(https://oauth2\\.neon\\.tech/oauth2/auth\\S+)",
+    "credentialPaths": [
+      "~/.config/neon/credentials.json"
+    ],
+    "capabilities": "Serverless Postgres: projects, branches, databases, roles, connection strings",
+    "description": "Manage Neon Postgres branches and run SQL: `neonctl projects list`, `neonctl branches create`, `neonctl connection-string`. Aliased as `neon`.",
+    "versionCmd": "neonctl --version 2>/dev/null | head -1",
+    "aliases": [
+      "neon"
+    ]
+  },
+  "m365": {
+    "category": "productivity",
+    "pkg": "@pnp/cli-microsoft365",
+    "installer": "npm",
+    "label": "Microsoft 365",
+    "statusCmd": "m365 status --output text 2>/dev/null | tr -d '\"' | grep -vi 'logged out' | grep -m1 .",
+    "loginCmd": "m365 login",
+    "oauthUrlPattern": "(https://microsoft\\.com/devicelogin\\S*)",
+    "deviceCodePattern": "\\b([A-Z0-9]{9})\\b",
+    "canStreamLogin": true,
+    "loginNeedsPty": true,
+    "credentialPaths": [
+      "~/.cli-m365-msal.json",
+      "~/.cli-m365-connection.json"
+    ],
+    "capabilities": "Outlook mail & calendar, Teams, SharePoint, OneDrive, Entra ID users and groups",
+    "description": "Microsoft 365 from the shell: `m365 outlook message list`, `m365 teams team list`, `m365 spo site list`. Device-code login; add `--output json` for parseable output.",
+    "versionCmd": "m365 version 2>/dev/null | tr -d '\"' | head -1"
+  },
+  "hubspot": {
+    "category": "marketing",
+    "pkg": "@hubspot/cli",
+    "installer": "npm",
+    "label": "HubSpot",
+    "binName": "hs",
+    "statusCmd": "hs account list >/dev/null 2>&1 && echo authenticated",
+    "loginCmd": "hs account auth",
+    "oauthUrlPattern": "(https://app\\.hubspot\\.com/oauth/authorize\\S+)",
+    "loginNeedsPty": true,
+    "credentialPaths": [
+      "~/.hscli/config.yml"
+    ],
+    "capabilities": "CRM objects, contacts & deals, CMS themes, serverless functions, HubDB",
+    "description": "Invoked as `hs`. `hs api <endpoint>` makes authenticated calls to any HubSpot API (contacts, deals, companies) — prefer it over raw curl.",
+    "versionCmd": "hs --version 2>/dev/null | head -1"
+  },
+  "posthog-cli": {
+    "category": "monitoring",
+    "pkg": "@posthog/cli",
+    "installer": "npm",
+    "label": "PostHog",
+    "statusCmd": "test -s ~/.config/posthog.json && grep -q 'token\\|key' ~/.config/posthog.json && echo authenticated",
+    "loginCmd": "posthog-cli login",
+    "loginNeedsPty": true,
+    "credentialPaths": [
+      "~/.config/posthog.json"
+    ],
+    "capabilities": "Product analytics queries, error tracking, source maps, releases, feature flags",
+    "description": "Official PostHog CLI. `posthog-cli api tools` lists the agent-first API tool catalog, `posthog-cli api call <tool> '<json>'` runs one (SQL queries, insights, flags). Also uploads sourcemaps/dSYM. Env alternative: POSTHOG_CLI_API_KEY + POSTHOG_CLI_PROJECT_ID.",
+    "versionCmd": "posthog-cli --version 2>/dev/null | head -1"
+  },
+  "canva": {
+    "category": "design",
+    "pkg": "@canva/cli",
+    "installer": "npm",
+    "label": "Canva",
+    "statusCmd": "test -s ~/.canva-cli/credentials && echo authenticated",
+    "loginCmd": "canva login",
+    "loginNeedsPty": true,
+    "credentialPaths": [
+      "~/.canva-cli/credentials"
+    ],
+    "capabilities": "Canva app development: scaffold, preview, deploy apps; Canva Developer MCP server",
+    "description": "Official Canva CLI — app-development focused: `canva apps create/list/preview`. `canva mcp` starts the Canva Developer MCP server. For design/export automation use the Canva Connect REST API.",
+    "versionCmd": "canva --version 2>/dev/null | head -1"
+  },
+  "webflow": {
+    "category": "development",
+    "pkg": "@webflow/webflow-cli",
+    "installer": "npm",
+    "label": "Webflow",
+    "statusCmd": "webflow auth status --skip-update-check >/dev/null 2>&1 && echo authenticated",
+    "loginCmd": "webflow auth login",
+    "loginNeedsPty": true,
+    "credentialPaths": [
+      "~/.config/webflow"
+    ],
+    "capabilities": "Sites, CMS collections & items, forms, assets, custom code",
+    "description": "Manage Webflow sites from the shell: `webflow sites list`, `webflow cms ...`, `webflow assets ...`. Add `--skip-update-check` in scripts.",
+    "versionCmd": "webflow --version 2>/dev/null | head -1"
+  },
+  "readwise": {
+    "category": "productivity",
+    "pkg": "@readwise/cli",
+    "installer": "npm",
+    "label": "Readwise",
+    "statusCmd": "readwise whoami >/dev/null 2>&1 && readwise whoami 2>/dev/null | sed 's/\\x1b\\[[0-9;]*m//g' | grep -m1 .",
+    "loginCmd": "readwise login",
+    "oauthUrlPattern": "(https://readwise\\.io/o/\\S+)",
+    "loginNeedsPty": true,
+    "credentialPaths": [
+      "~/.readwise-cli.json"
+    ],
+    "capabilities": "Reader documents & highlights: search (incl. vector), save, tag, export, organize",
+    "description": "Official Readwise/Reader CLI. `readwise search <query>`, `readwise list`, `readwise save <url>`; supports JSON output for piping and a read-only mode for agents. Token login for CI: `readwise login-with-token <token>` (get one at readwise.io/access_token).",
+    "versionCmd": "readwise --version 2>/dev/null | head -1"
+  },
+  "mapps": {
+    "category": "development",
+    "pkg": "@mondaycom/apps-cli",
+    "installer": "npm",
+    "label": "monday.com",
+    "statusCmd": "grep -qE '[A-Za-z0-9]' ~/.mappsrc 2>/dev/null && echo authenticated",
+    "loginCmd": "mapps init",
+    "loginNeedsPty": true,
+    "credentialPaths": [
+      "~/.mappsrc"
+    ],
+    "capabilities": "monday-code apps: scaffold, deploy, logs, env vars, storage, scheduler",
+    "description": "Invoked as `mapps` — app development and monday-code deployments only; `mapps init -t <token>` stores a monday.com API token in ~/.mappsrc. To read/write board DATA use the monday.com GraphQL API (api.monday.com/v2) with that same token.",
+    "versionCmd": "mapps --version 2>/dev/null | head -1"
+  },
+  "exa-cli": {
+    "category": "utility",
+    "pkg": "exa-cli",
+    "installer": "npm",
+    "label": "Exa Search",
+    "binName": "exa",
+    "statusCmd": "test -n \"$EXA_API_KEY\" && echo authenticated",
+    "credentialPaths": [],
+    "capabilities": "Neural web search, page contents, find-similar, grounded answers — built for agents",
+    "description": "Invoked as `exa`. `exa search <query>`, `exa answer <question>`, `exa contents <url>`, `exa find-similar <url>` — JSON by default. Needs EXA_API_KEY in the environment (get one at dashboard.exa.ai); store it in the vault.",
+    "versionCmd": "exa --version 2>/dev/null | head -1"
+  },
+  "mobbin": {
+    "category": "design",
+    "pkg": "mobbin",
+    "installer": "npm",
+    "label": "Mobbin",
+    "statusCmd": "mobbin auth print-cookie 2>/dev/null | grep -qE '[A-Za-z0-9]' && echo authenticated",
+    "loginCmd": "mobbin auth save-cookie",
+    "credentialPaths": [
+      "~/.config/mobbin/cookie.txt",
+      "~/.config/mobbin/storage-state.json"
+    ],
+    "capabilities": "Search real-world mobile & web UI patterns, screens and flows for design reference",
+    "description": "Unofficial CLI over Mobbin's undocumented web endpoints. `mobbin search --query \"login\" --platform ios`. Auth reuses browser cookies: log into mobbin.com in Chrome, then `mobbin auth save-cookie`.",
+    "versionCmd": "mobbin --version 2>/dev/null | head -2 | tr '\\n' ' '"
   }
 }
