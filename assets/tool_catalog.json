@@ -9,7 +9,7 @@
     "credentialPaths": [
       "~/.zele/sqlite.db"
     ],
-    "capabilities": "Read inbox, search/send/reply email, email addresses \u2014 multi-account Gmail, OAuth browser login for setup. Also Google Calendar via `zele cal` (see zele-calendar).",
+    "capabilities": "Read inbox, search/send/reply email, email addresses — multi-account Gmail, OAuth browser login for setup. Also Google Calendar via `zele cal` (see zele-calendar).",
     "versionCmd": "zele --version 2>/dev/null | head -1",
     "preinstallCloud": true,
     "preinstallJarvis": true
@@ -34,7 +34,7 @@
     "pkg": "@xdevplatform/xurl",
     "installer": "npm",
     "label": "X",
-    "statusCmd": "xurl whoami 2>&1 | grep -oP '\"username\":\\s*\"\\K[^\"]+' | head -1",
+    "statusCmd": "xurl whoami 2>&1 | sed -n 's/.*\"username\"[[:space:]]*:[[:space:]]*\"\\([^\"]*\\)\".*/\\1/p' | head -1",
     "loginCmd": "xurl auth oauth2",
     "credentialPaths": [
       "~/.xurl"
@@ -50,8 +50,8 @@
     "pkg": "@steipete/bird",
     "installer": "npm",
     "label": "X (bird)",
-    "statusCmd": "bird whoami 2>/dev/null | grep -oP '@\\K[A-Za-z0-9_]+' | head -1",
-    "capabilities": "Post tweets & replies, read tweets/threads/timelines, search, mentions, bookmarks, follow/unfollow, likes, trending \u2014 via Twitter GraphQL with browser cookies",
+    "statusCmd": "bird whoami 2>/dev/null | sed -n 's/^[^@]*@\\([A-Za-z0-9_][A-Za-z0-9_]*\\).*/\\1/p' | head -1",
+    "capabilities": "Post tweets & replies, read tweets/threads/timelines, search, mentions, bookmarks, follow/unfollow, likes, trending — via Twitter GraphQL with browser cookies",
     "description": "Fast X CLI via browser-cookie auth: `bird tweet <text>`, `bird read <url>`, `bird search <query>`, `bird thread <url>`, `bird home`. Prefer over xurl for everyday X workflows; auth via AUTH_TOKEN env or --chrome-profile cookies.",
     "versionCmd": "bird --version 2>/dev/null | head -1"
   },
@@ -60,12 +60,12 @@
     "pkg": "@todoforai/linkedin-api",
     "installer": "npm",
     "label": "LinkedIn",
-    "statusCmd": "linkedin-api whoami 2>/dev/null | grep -oP '\"publicId\":\\s*\"\\K[^\"]+' | head -1",
+    "statusCmd": "linkedin-api whoami 2>/dev/null | sed -n 's/.*\"publicId\"[[:space:]]*:[[:space:]]*\"\\([^\"]*\\)\".*/\\1/p' | head -1",
     "loginCmd": "linkedin-api auth",
     "credentialPaths": [
       "~/.config/linkedin-api/credentials.json"
     ],
-    "capabilities": "Read profiles, list/read conversations, send DMs and connection requests \u2014 LinkedIn Voyager API.",
+    "capabilities": "Read profiles, list/read conversations, send DMs and connection requests — LinkedIn Voyager API.",
     "description": "LinkedIn Voyager API CLI for profiles, conversations, DMs, and connections.",
     "versionCmd": "linkedin-api --version 2>/dev/null | head -1"
   },
@@ -74,12 +74,12 @@
     "pkg": "@todoforai/figma-api",
     "installer": "npm",
     "label": "Figma",
-    "statusCmd": "figma-api me 2>/dev/null | grep -oP '\"email\":\\s*\"\\K[^\"]+' | head -1",
+    "statusCmd": "figma-api me 2>/dev/null | sed -n 's/.*\"email\"[[:space:]]*:[[:space:]]*\"\\([^\"]*\\)\".*/\\1/p' | head -1",
     "loginCmd": "figma-api auth",
     "credentialPaths": [
       "~/.config/figma-api/credentials.json"
     ],
-    "capabilities": "Read+write Figma REST API: files/nodes JSON, render images (png/svg/pdf), comments, components/styles/variables, dev resources, webhooks \u2014 subcommand per endpoint.",
+    "capabilities": "Read+write Figma REST API: files/nodes JSON, render images (png/svg/pdf), comments, components/styles/variables, dev resources, webhooks — subcommand per endpoint.",
     "description": "Figma REST API CLI. File commands take a file key or Figma URL. Canvas writes (frames/text/shapes) use `figma-api run` via the plugin bridge. Run `figma-api <cmd> --help` for params.",
     "versionCmd": "figma-api --version 2>/dev/null | head -1"
   },
@@ -93,7 +93,7 @@
       "~/.tiktok/cookies.txt"
     ],
     "capabilities": "Upload videos, batch uploads, schedule posts, custom covers, hashtags & mentions",
-    "versionCmd": "pip show tiktok-uploader 2>/dev/null | grep -oP 'Version: \\K.*'",
+    "versionCmd": "{ python -m pip show tiktok-uploader || python3 -m pip show tiktok-uploader || py -m pip show tiktok-uploader; } 2>/dev/null | sed -n 's/^Version: //p'",
     "statusCmd": "test -f ~/.tiktok/cookies.txt && echo authenticated"
   },
   "instagrapi": {
@@ -102,8 +102,7 @@
     "installer": "pip",
     "label": "Instagram",
     "capabilities": "Upload photos & reels, post stories, send DMs, like & comment, manage followers",
-    "versionCmd": "pip show instagrapi 2>/dev/null | grep -oP 'Version: \\K.*'",
-    "statusCmd": "{ python3 -c 'import instagrapi' || py -c 'import instagrapi'; } 2>/dev/null && echo installed"
+    "versionCmd": "{ python -m pip show instagrapi || python3 -m pip show instagrapi || py -m pip show instagrapi; } 2>/dev/null | sed -n 's/^Version: //p'"
   },
   "mudslide": {
     "category": "social",
@@ -128,8 +127,8 @@
     "credentialPaths": [
       "~/.slack/credentials.json"
     ],
-    "capabilities": "Build & deploy Slack apps, manage workspaces & triggers, run datastore queries, tail logs \u2014 official Slack CLI.",
-    "description": "Invoked as `slack-cli` to avoid colliding with the Slack desktop app\u2019s `slack` binary.",
+    "capabilities": "Build & deploy Slack apps, manage workspaces & triggers, run datastore queries, tail logs — official Slack CLI.",
+    "description": "Invoked as `slack-cli` to avoid colliding with the Slack desktop app’s `slack` binary.",
     "versionCmd": "slack-cli version 2>/dev/null | head -1",
     "binName": "slack-cli",
     "binary": {
@@ -179,7 +178,7 @@
     "installer": "pip",
     "label": "Meta Ads",
     "statusCmd": "meta auth status 2>&1",
-    "capabilities": "Meta/Facebook & Instagram ad campaigns: campaigns/adsets/ads CRUD, insights & reporting, catalog/product-feed/product-set/product-item, ad creatives, datasets (pixels), pages \u2014 Marketing API via the official `meta` CLI.",
+    "capabilities": "Meta/Facebook & Instagram ad campaigns: campaigns/adsets/ads CRUD, insights & reporting, catalog/product-feed/product-set/product-item, ad creatives, datasets (pixels), pages — Marketing API via the official `meta` CLI.",
     "versionCmd": "meta --version 2>/dev/null | head -1"
   },
   "elevenlabs-api": {
@@ -200,7 +199,7 @@
     "pkg": "@todoforai/image-api",
     "installer": "npm",
     "label": "Image Gen",
-    "capabilities": "AI image generation & editing via TODOFORAI backend (gpt-image)",
+    "capabilities": "AI image generation & editing via TODOFORAI backend (gpt-image, nano-banana, nano-banana-pro)",
     "versionCmd": "tfa-imagegen --version 2>/dev/null | head -1",
     "statusCmd": "test -f ~/.config/todoforai/credentials.json && echo authenticated || test -n \"$TODOFORAI_API_KEY\" && echo authenticated",
     "credentialPaths": [
@@ -221,7 +220,7 @@
     "pkg": "ntn",
     "installer": "npm",
     "label": "Notion",
-    "statusCmd": "ntn doctor 2>&1 | grep -E 'Default workspace\\s+\u2714' >/dev/null",
+    "statusCmd": "ntn doctor 2>&1 | grep -E 'Default workspace\\s+✔' >/dev/null",
     "loginCmd": "ntn login",
     "credentialPaths": [
       "~/.config/notion"
@@ -291,7 +290,7 @@
     "pkg": "netlify-cli",
     "installer": "npm",
     "label": "Netlify",
-    "statusCmd": "netlify api getCurrentUser 2>&1 | grep -oP '\"email\":\\s*\"\\K[^\"]+' | head -1",
+    "statusCmd": "netlify api getCurrentUser 2>&1 | sed -n 's/.*\"email\"[[:space:]]*:[[:space:]]*\"\\([^\"]*\\)\".*/\\1/p' | head -1",
     "loginCmd": "netlify login",
     "credentialPaths": [
       "~/.netlify/config.json"
@@ -333,7 +332,7 @@
     "pkg": "stripe",
     "installer": "binary",
     "label": "Stripe",
-    "statusCmd": "stripe get /v1/account 2>&1 | grep -oP '\"id\":\\s*\"\\K[^\"]+' | head -1",
+    "statusCmd": "stripe get /v1/account 2>&1 | sed -n 's/.*\"id\"[[:space:]]*:[[:space:]]*\"\\([^\"]*\\)\".*/\\1/p' | head -1",
     "loginCmd": "stripe login",
     "credentialPaths": [
       "~/.config/stripe/config.toml"
@@ -434,16 +433,16 @@
     "pkg": "@todoforai/cli",
     "installer": "bun",
     "label": "TODOforAI",
-    "binName": "todoforai-cli",
-    "capabilities": "Delegate work to another TODO: create/list/inspect/update TODOs (real, visible, resumable tasks with their own agent & chat), show files/URLs in the chat, run templates & workflows, platform API access",
-    "description": "Manage the user's OWN TODOforAI tasks \u2014 NOT code `// TODO` comments. Aliases: `tfa-cli`, `todoai`. THIS is the tool for delegating/spinning off work: `todoforai-cli \"prompt\"` creates a real TODO the user can see, follow and resume, with its own agent and chat (`-n` run to completion, `--no-watch` fire-and-forget, `--project/--agent/--model` to steer, `--resume <id>`/`-c` to continue, `addmessage <id> \"text\"` to talk to it). Also: `list` (`--status open`), `--inspect <id>[:<msg-id>]` to read a TODO's chat (read-only), `status`/`delete`, `--template` for registry workflows. Surface a result INTO the chat: `show <file|-> [todo-id]` renders by mimetype (`-` reads stdin), `open <url> [todo-id]` embeds a live preview; both take `--title`/`--alias <name>` \u2014 re-using an alias UPDATES that block in place instead of appending.",
+    "binName": "tfa-cli",
+    "capabilities": "Delegate work to another TODO: create/list/inspect/update TODOs (real, visible, resumable tasks with their own agent & chat), show files/URLs in the chat (`show list [--project]` enumerates show/card instances), run templates & workflows, platform API access",
+    "description": "Manage the user's OWN TODOforAI tasks — NOT code `// TODO` comments. Legacy aliases: `todoforai-cli`, `todoai`. THIS is the tool for delegating/spinning off work: `tfa-cli \"prompt\"` creates a real TODO the user can see, follow and resume, with its own agent and chat (`-n` run to completion, `--no-watch` fire-and-forget, `--project/--agent/--model` to steer, `--resume <id>`/`-c` to continue, `addmessage <id> \"text\"` to talk to it). Also: `list` (`--status open`), `--inspect <id>[:<msg-id>]` to read a TODO's chat (read-only), `status`/`delete`, `--template` for registry workflows. Surface a result INTO the chat: `show <file|-> [todo-id]` renders by mimetype (`-` reads stdin), `show --card <name>` renders through a project renderer card, `show list [--project]` enumerates instances (ref/title/card/mime), `open <url> [todo-id]` embeds a live preview; `--title`/`--alias <name>` — re-using an alias UPDATES that block in place instead of appending.",
     "installCmd": "bun add -g @todoforai/cli",
-    "versionCmd": "todoforai-cli --version 2>/dev/null | head -1",
+    "versionCmd": "tfa-cli --version 2>/dev/null | head -1",
     "preinstallCloud": true,
-    "internal": true,
     "preinstallJarvis": true,
     "aliases": [
-      "tfa-cli"
+      "todoforai-cli",
+      "todoai"
     ]
   },
   "newman": {
@@ -482,8 +481,8 @@
     "pkg": "github.com/f/mcptools/cmd/mcptools",
     "installer": "system",
     "binName": "mcptools",
-    "label": "MCP Client",
-    "capabilities": "MCP (Model Context Protocol) client \u2014 discover & call tools/resources/prompts on stdio and remote (HTTP streamable / SSE) MCP servers.",
+    "label": "MCP support",
+    "capabilities": "MCP (Model Context Protocol) client — discover & call tools/resources/prompts on stdio and remote (HTTP streamable / SSE) MCP servers.",
     "description": "`mcptools tools <server>` lists, `mcptools call <tool> --params '{\"k\":1}' <server>` invokes. `<server>` = stdio command (`npx -y some-mcp-server`) or URL for hosted servers (`https://host/mcp` or `/sse`).",
     "versionCmd": "mcptools version 2>/dev/null | head -1",
     "installCmd": "go install github.com/f/mcptools/cmd/mcptools@latest  # or: brew tap f/mcptools && brew install mcp"
@@ -558,12 +557,12 @@
     "pkg": "rdt-cli",
     "installer": "pip",
     "label": "Reddit",
-    "statusCmd": "rdt status 2>&1 | grep -oP 'username\":\\s*\"\\K[^\"]+' | head -1",
+    "statusCmd": "rdt status 2>&1 | sed -n 's/.*\"username\"[[:space:]]*:[[:space:]]*\"\\([^\"]*\\)\".*/\\1/p' | head -1",
     "loginCmd": "rdt login",
     "credentialPaths": [
       "~/.config/rdt-cli/credential.json"
     ],
-    "capabilities": "Search & browse subreddits, read posts & comments, post comments, upvote & save, view user profiles \u2014 Reddit in your terminal.",
+    "capabilities": "Search & browse subreddits, read posts & comments, post comments, upvote & save, view user profiles — Reddit in your terminal.",
     "description": "Reddit CLI. Read: `rdt search \"<query>\" -r <sub> --json -c`, `rdt sub <name>`, `rdt read <postId>`, `rdt user-comments <user>`. Write: `rdt comment <postId> \"<text>\"`, `rdt upvote`, `rdt save`.",
     "versionCmd": "rdt --version 2>/dev/null | head -1"
   },
@@ -573,7 +572,7 @@
     "installer": "pip",
     "label": "PDF",
     "capabilities": "PDF text editing, extraction, merge, split. Call via `python3 -c`.",
-    "versionCmd": "{ python3 -c 'import pymupdf; print(pymupdf.__version__)' || py -c 'import pymupdf; print(pymupdf.__version__)'; } 2>/dev/null",
+    "versionCmd": "{ python -c 'import pymupdf; print(pymupdf.__version__)' || python3 -c 'import pymupdf; print(pymupdf.__version__)' || py -c 'import pymupdf; print(pymupdf.__version__)'; } 2>/dev/null",
     "preinstallCloud": true,
     "preinstallJarvis": true
   },
@@ -596,7 +595,7 @@
     "preinstallCloud": true,
     "label": "Browser",
     "capabilities": "Headless browser automation, web scraping, accessibility tree snapshots, screenshots, PDF generation",
-    "description": "Browser automation over CDP (`open`/`snapshot`/`click`/`type`/`fill`/`read`/`screenshot`/`eval`). If a live browser to drive is listed right below this entry (a `\u2192 Live browser to drive:` line with a connect URL), prefer it over a proxy. Just `connect '<url>'` \u2014 a changed connect URL is detected and reattached automatically. After connecting, verify it took (`snapshot` or read the URL); if it hangs or looks empty, `close` (clears your session only) and reconnect once. Never `close --all` even though `--help` offers it \u2014 it kills every session on the machine, including other agents'. When several agents share one real browser, open your own tab (`tab new`) and `tab <id>` back to it before each command \u2014 the remote browser's active tab is shared. Fallback when no connect URL is listed: on the cloud use browser-manager-cli; on a PC with a display, launch your own Chrome on `--remote-debugging-port=9222` and attach with `--cdp 9222`. Headless only on the cloud / no display.",
+    "description": "Browser automation over CDP (`open`/`snapshot`/`click`/`type`/`fill`/`read`/`screenshot`/`eval`). If a live browser to drive is listed right below this entry (a `→ Live browser to drive:` line with a connect URL), prefer it over a proxy. Just `connect '<url>'` — a changed connect URL is detected and reattached automatically. After connecting, verify it took (`snapshot` or read the URL); if it hangs or looks empty, `close` (clears your session only) and reconnect once. Never `close --all` even though `--help` offers it — it kills every session on the machine, including other agents'. When several agents share one real browser, open your own tab (`tab new`) and `tab <id>` back to it before each command — the remote browser's active tab is shared. Fallback when no connect URL is listed: on the cloud use browser-manager-cli; on a PC with a display, launch your own Chrome on `--remote-debugging-port=9222` and attach with `--cdp 9222`. Headless only on the cloud / no display.",
     "versionCmd": "agent-browser --version 2>/dev/null | head -1",
     "preinstallJarvis": true
   },
@@ -610,7 +609,7 @@
     "statusCmd": "browser-manager-cli status",
     "loginCmd": "browser-manager-cli login",
     "capabilities": "On-demand cloud Chromium sessions exposed as CDP endpoints for agent-browser; create/list/get/delete, hibernate/restore, per-session proxy (stealth Chromium).",
-    "description": "Spawns cloud Chromium sessions, each exposed as a CDP WebSocket for agent-browser to drive. `create` prints one line ending in a cdpUrl \u2014 pass it straight to `agent-browser connect '<cdpUrl>'` (connect the cdpUrl, not the Chrome debug port). `list`/`get <id>`, `delete <id>`/`delete-all`, `hibernate`/`restore`. Sessions run stealth Chromium that reads as a real desktop browser. For sites that block datacenter IPs, route through a proxy: `create --proxy socks5://host:port [--proxy-user U --proxy-pass P]`. Use this on the cloud VM instead of launching a local browser.",
+    "description": "Spawns cloud Chromium sessions, each exposed as a CDP WebSocket for agent-browser to drive. `create` prints one line ending in a cdpUrl — pass it straight to `agent-browser connect '<cdpUrl>'` (connect the cdpUrl, not the Chrome debug port). `list`/`get <id>`, `delete <id>`/`delete-all`, `hibernate`/`restore`. Sessions run stealth Chromium that reads as a real desktop browser. For sites that block datacenter IPs, route through a proxy: `create --proxy socks5://host:port [--proxy-user U --proxy-pass P]`. Use this on the cloud VM instead of launching a local browser.",
     "versionCmd": "browser-manager-cli version 2>/dev/null | head -1",
     "binary": {
       "linux-x86_64": {
@@ -656,7 +655,7 @@
     "installer": "npm",
     "label": "Explore",
     "capabilities": "Read-only sub-agent that maps a codebase and answers where/how/what questions as a hidden TODO. Options: --repo, --tools read,grep,list,bash,webfetch, -m/--model, -p/--project.",
-    "description": "Explore a codebase in a separate sub-agent so the file reads and greps never touch your own context \u2014 you get back only the answer. `tfa-explore \"where is auth handled?\"` runs read-only in the repo (`--repo <path>`, default cwd; the path must be in an authorized workspace) and streams the result to stdout. The TODO it creates is hidden from the dashboard. Prefer it over manual multi-file searching for any non-trivial \"where/how/what is\" question.",
+    "description": "Explore a codebase in a separate sub-agent so the file reads and greps never touch your own context — you get back only the answer. `tfa-explore \"where is auth handled?\"` runs read-only in the repo (`--repo <path>`, default cwd; the path must be in an authorized workspace) and streams the result to stdout. The TODO it creates is hidden from the dashboard. Prefer it over manual multi-file searching for any non-trivial \"where/how/what is\" question.",
     "versionCmd": "tfa-explore --version 2>/dev/null | head -1",
     "installCmd": "bun add -g @todoforai/tfa-explore",
     "internal": true,
@@ -691,7 +690,7 @@
     "pkg": "@todoforai/tfa-handoff",
     "installer": "npm",
     "label": "Handoff",
-    "capabilities": "Compact a conversation into a handoff document as a hidden TODO; pipe filter for `todoforai-cli --inspect \u2026 | tfa-handoff \u2026 | todoforai-cli`",
+    "capabilities": "Compact a conversation into a handoff document as a hidden TODO; pipe filter for `tfa-cli --inspect … | tfa-handoff … | tfa-cli`",
     "description": "Compact a conversation into a handoff document for a fresh agent.",
     "versionCmd": "tfa-handoff --version 2>/dev/null | head -1",
     "installCmd": "bun add -g @todoforai/tfa-handoff",
@@ -703,8 +702,8 @@
     "pkg": "@todoforai/tfa-wait",
     "installer": "npm",
     "label": "Wait",
-    "capabilities": "Wait for a boolean expression of triggers; result returns as a message here. Leaves joined by && (all) || (any): `3h` duration, `9:00` clock, `weekdays@9:00` day@time, ISO date, or a `word` webhook (minted URL printed). `--repeat` re-arms, `--until <dur>` caps lifetime, message uses `{{payload.x}}`. Turn ANY command into events: `<cmd> | tfa-wait pipe <name>` (each stdout line \u2192 event; JSON line = payload; `--min-gap` flood-guards; cancel stops it). `list`/`cancel`/`emit`. e.g. `tfa-wait 'deploy && tests || 1h' \"ship: {{payload.status}}\"`, `while true; do check-jsonl; sleep 120; done | tfa-wait pipe signals`.",
-    "description": "Schedule wake-ups and wait for events \u2014 time (`3h`, `daily@9:00`), webhooks, or `<cmd> | tfa-wait pipe <name>` to turn any command's stdout lines into events; results return into the conversation. Cancelling the wait stops its pipe.",
+    "capabilities": "Wait for a boolean expression of triggers; result returns as a message here. Leaves joined by && (all) || (any): `3h` duration, `9:00` clock, `weekdays@9:00` day@time, ISO date, or a `word` webhook (minted URL printed). `--repeat` re-arms, `--until <dur>` caps lifetime, message uses `{{payload.x}}`. Turn ANY command into events: `<cmd> | tfa-wait pipe <name>` (each stdout line → event; JSON line = payload; `--min-gap` flood-guards; cancel stops it). `list`/`cancel`/`emit`. e.g. `tfa-wait 'deploy && tests || 1h' \"ship: {{payload.status}}\"`, `while true; do check-jsonl; sleep 120; done | tfa-wait pipe signals`.",
+    "description": "Schedule wake-ups and wait for events — time (`3h`, `daily@9:00`), webhooks, or `<cmd> | tfa-wait pipe <name>` to turn any command's stdout lines into events; results return into the conversation. Cancelling the wait stops its pipe.",
     "versionCmd": "tfa-wait --version 2>/dev/null | head -1",
     "statusCmd": "test -n \"$TODOFORAI_API_TOKEN\" && echo authenticated",
     "installCmd": "bun add -g @todoforai/tfa-wait",
@@ -717,8 +716,8 @@
     "pkg": "@todoforai/tfa-vault",
     "installer": "npm",
     "label": "Vault",
-    "capabilities": "The user's dedicated password manager and secret store \u2014 zero-config TODOforAI KV vault. Commands: put/get/patch/list/rm.",
-    "description": "The user's own encrypted secret vault; reading and using its secrets is the intended workflow. READ: when a task needs a secret the user owns (API key, token, password, account), `tfa-vault list` to find it and `tfa-vault get <path>` to fetch it, then use the value (call the API, log in) \u2014 don't ask the user for what the vault already holds; treat values as sensitive (pass into commands/env, don't echo). WRITE (do this proactively, unasked): whenever a new secret appears in the conversation \u2014 pasted, generated, or handed over by a CLI/login \u2014 save it: `get`/`list` first (skip if the same value is already stored), `put <path> field=value` if missing, `patch <path>` to add fields without clobbering, overwrite on rotation. Use namespaced paths (`accounts/<svc>`, `api/<svc>`, `cards/<name>`, `secrets/<name>`).",
+    "capabilities": "The user's dedicated password manager and secret store — zero-config TODOforAI KV vault. Commands: put/get/patch/list/rm.",
+    "description": "The user's own encrypted secret vault; reading and using its secrets is the intended workflow. READ: when a task needs a secret the user owns (API key, token, password, account), `tfa-vault list` to find it and `tfa-vault get <path>` to fetch it, then use the value (call the API, log in) — don't ask the user for what the vault already holds; treat values as sensitive (pass into commands/env, don't echo). WRITE (do this proactively, unasked): whenever a new secret appears in the conversation — pasted, generated, or handed over by a CLI/login — save it: `get`/`list` first (skip if the same value is already stored), `put <path> field=value` if missing, `patch <path>` to add fields without clobbering, overwrite on rotation. Use namespaced paths (`accounts/<svc>`, `api/<svc>`, `cards/<name>`, `secrets/<name>`).",
     "versionCmd": "tfa-vault --version 2>/dev/null | head -1",
     "statusCmd": "tfa-vault whoami",
     "installCmd": "bun add -g @todoforai/tfa-vault",
@@ -730,8 +729,8 @@
     "pkg": "@todoforai/tfa-memory",
     "installer": "npm",
     "label": "Memory",
-    "capabilities": "The user's persistent memory store \u2014 addressable text rows (source/ref) with full-text and semantic search, plus every message of every past TODO federated read-only under the `todo` source. Commands: add/search/ls/get/rm/sources/live.",
-    "description": "The user's long-term memory: notes, procedures, docs, learned facts \u2014 addressed as source/ref (e.g. deploy-notes/rollback) \u2014 AND every message of every past TODO, searchable read-only under the `todo` source (`todo/<todoId>:<messageId>`), live from the backend message index with nothing separate to sync. READ: before re-deriving anything the user likely already knows or you discussed before, `tfa-memory search \"<topic>\"` \u2014 it covers saved rows and past TODO messages in one shot (add --semantic for meaning-based recall, `--source todo` for past TODO messages only, `--todo <id>` to narrow to one TODO), then `tfa-memory get <source/ref>` for full content. WRITE (do this proactively): when durable knowledge appears in the conversation \u2014 a procedure, decision, config fact, preference \u2014 save it with `tfa-memory add <source>/<ref> \"text\"` (re-adding the same address updates in place; identical content is skipped). Use short factual source names (deploy-notes, acme, preferences). `todo` is read-only \u2014 you cannot write or delete there. `tfa-memory sources` lists what exists. LIVE (L2 working memory, always in the system prompt as a frozen snapshot): `tfa-memory live [--ctx tag] [-B tokens]` re-renders the current knapsack when the topic shifted \u2014 it does not rewrite the frozen prompt copy. Pass --ctx with project/tool/domain tags to re-weight selection.",
+    "capabilities": "The user's persistent memory store — addressable text rows (source/ref) with full-text and semantic search, plus every message of every past TODO federated read-only under the `todo` source. Commands: add/search/ls/get/rm/sources.",
+    "description": "The user's long-term memory: notes, procedures, docs, learned facts — addressed as source/ref (e.g. deploy-notes/rollback) — AND every message of every past TODO, searchable read-only under the `todo` source (`todo/<todoId>:<messageId>`), live from the backend message index with nothing separate to sync. READ: before re-deriving anything the user likely already knows or you discussed before, `tfa-memory search \"<topic>\"` — it covers saved rows and past TODO messages in one shot (add --semantic for meaning-based recall, `--source todo` for past TODO messages only, `--todo <id>` to narrow to one TODO), then `tfa-memory get <source/ref>` for full content. WRITE (do this proactively): when durable knowledge appears in the conversation — a procedure, decision, config fact, preference — save it with `tfa-memory add <source>/<ref> \"text\"` (re-adding the same address updates in place; identical content is skipped). Use short factual source names (deploy-notes, acme, preferences). `todo` is read-only — you cannot write or delete there. `tfa-memory sources` lists what exists.",
     "versionCmd": "tfa-memory --version 2>/dev/null | head -1",
     "statusCmd": "tfa-memory whoami",
     "installCmd": "bun add -g @todoforai/tfa-memory",
@@ -744,9 +743,8 @@
     "installer": "npm",
     "label": "TODO Registry",
     "capabilities": "Browse the public TODO registry (200+ proven business-growth task templates) and create new ones: search/list/get/categories, create.",
-    "description": "TODO Registry CLI \u2014 browse and create proven, reusable business-growth task templates (SEO, email, CRM, ads, social, monitoring, \u2026). `search <query>` / `get <id>` / `list [category]` / `categories` browse the registry. `create --name ... --description ... --body @prompt.md` prints a new template id. To surface a template as a reviewable recommendation card, don\u2019t create a todo directly \u2014 use `todoforai-cli recommend --template <id> --project <projectId>`; the user accepts it to start a real todo.",
+    "description": "TODO Registry CLI — browse and create proven, reusable business-growth task templates (SEO, email, CRM, ads, social, monitoring, …). `search <query>` / `get <id>` / `list [category]` / `categories` browse the registry. `create --name ... --description ... --body @prompt.md` prints a new template id. To surface a template as a reviewable recommendation card, don’t create a todo directly — use `tfa-cli recommend --template <id> --project <projectId>`; the user accepts it to start a real todo.",
     "versionCmd": "todoregistry-cli --version 2>/dev/null | head -1",
-    "statusCmd": "todoregistry-cli --version >/dev/null 2>&1 && echo ok",
     "installCmd": "bun add -g @todoforai/todoregistry-cli",
     "preinstallCloud": true,
     "internal": true,
@@ -757,8 +755,8 @@
     "pkg": "@todoforai/tfa-surface",
     "installer": "npm",
     "label": "Surface",
-    "capabilities": "See and drive what is shown in the user's live TODOFORAI UI: `describe` (open todos, focus, panels, embedded-browser CDP URL), todo open/focus/close, panel open/close, render markdown into surfaces, get/set controls. Requires an open tab/app.",
-    "description": "The user's live UI, addressable from the shell (CDP mental model: frontend \u2192 todo \u2192 panel surface). Target = $TODOFORAI_FRONTEND_ID (override per call: `TODOFORAI_FRONTEND_ID=<id> tfa-surface ...`). DISCOVER: `tfa-surface describe` \u2014 what's open (todos, focus, panel surfaces, sidebar) plus the embedded browser's CDP URL to drive with `agent-browser connect`; `--json` for scripts. VIEWS: `todo open <todoId> [--popout]` / `todo focus|close <todoId>`; `panel open changes|preview|browser|terminal [--todo <id>] [--url <url>]` / `panel close`. CONTENT: EVENTS go in the chat stream; STATE the user should keep visible (plans, reports, live status) goes on a surface: `show chat.panel <todoId> \"...markdown...\"` (stdin for long content, re-show updates the SAME panel), `clear` removes it; `set todo.status <todoId> '\"DONE\"'` (permission-gated), `set block.focus <blockId>`. Exit 2 = no frontend id / tab not connected.",
+    "capabilities": "See and drive what is shown in the user's live TODOFORAI UI: `describe` (open todos, focus, panels, embedded-browser CDP URL, on-screen show/card instances), `card add|list|get|rm` (project renderer cards, headless), todo open/focus/close, panel open/close, render markdown into surfaces, get/set controls. UI verbs require an open tab/app; card CRUD does not.",
+    "description": "The user's live UI, addressable from the shell (CDP mental model: frontend → todo → panel surface). Target = $TODOFORAI_FRONTEND_ID (override per call: `TODOFORAI_FRONTEND_ID=<id> tfa-surface ...`). DISCOVER: `tfa-surface describe` — what's open (todos, focus, panel surfaces, sidebar, on-screen show/card instances) plus the embedded browser's CDP URL to drive with `agent-browser connect`; `--json` for scripts. CARDS: `card add|list|get|rm <name>` — project-scoped HTML renderer definitions (headless, no frontend needed). VIEWS: `todo open <todoId> [--popout]` / `todo focus|close <todoId>`; `panel open changes|preview|browser|terminal [--todo <id>] [--url <url>]` / `panel close`. CONTENT: EVENTS go in the chat stream; STATE the user should keep visible (plans, reports, live status) goes on a surface: `show chat.panel <todoId> \"...markdown...\"` (stdin for long content, re-show updates the SAME panel), `clear` removes it; `set todo.status <todoId> '\"DONE\"'` (permission-gated), `set block.focus <blockId>`. Exit 2 = no frontend id / tab not connected.",
     "versionCmd": "tfa-surface --version 2>/dev/null | head -1",
     "statusCmd": "tfa-surface whoami",
     "installCmd": "bun add -g @todoforai/tfa-surface",
@@ -810,7 +808,7 @@
     "installer": "system",
     "label": "Python",
     "capabilities": "Run Python scripts.",
-    "versionCmd": "python3 --version 2>/dev/null",
+    "versionCmd": "{ python3 --version || python --version || py --version; } 2>/dev/null | head -1",
     "preinstallCloud": true,
     "cloudAptPackages": [
       "python3"
@@ -1072,13 +1070,13 @@
     "pkg": "@todoforai/wordpress-api",
     "installer": "npm",
     "label": "WordPress",
-    "statusCmd": "wordpress-api whoami 2>/dev/null | grep -m1 -oP '\"slug\":\\s*\"\\K[^\"]+'",
+    "statusCmd": "wordpress-api whoami 2>/dev/null | sed -n 's/.*\"slug\"[[:space:]]*:[[:space:]]*\"\\([^\"]*\\)\".*/\\1/p' | head -1",
     "loginCmd": "wordpress-api auth",
     "credentialPaths": [
       "~/.config/wordpress-api/credentials.json"
     ],
-    "capabilities": "List/read/create/update/delete posts, list/read/update pages, browse media and categories \u2014 WordPress REST API.",
-    "description": "WordPress REST API CLI. `wordpress-api auth --site https://example.com --user <user> --password '<application password>'` (application password, not the login password). Reading published content needs no auth. `posts list|get|create|update|delete`, `pages`, `media`, `categories`. `posts create` saves a draft unless --status publish. On Elementor/JetEngine sites content.rendered comes back empty \u2014 fetch the post's public URL for the body.",
+    "capabilities": "List/read/create/update/delete posts, list/read/update pages, browse media and categories — WordPress REST API.",
+    "description": "WordPress REST API CLI. `wordpress-api auth --site https://example.com --user <user> --password '<application password>'` (application password, not the login password). Reading published content needs no auth. `posts list|get|create|update|delete`, `pages`, `media`, `categories`. `posts create` saves a draft unless --status publish. On Elementor/JetEngine sites content.rendered comes back empty — fetch the post's public URL for the body.",
     "versionCmd": "wordpress-api --version 2>/dev/null | head -1"
   },
   "facebook-pages-api": {
@@ -1086,13 +1084,13 @@
     "pkg": "@todoforai/facebook-pages-api",
     "installer": "npm",
     "label": "Facebook Pages",
-    "statusCmd": "facebook-pages-api whoami 2>/dev/null | grep -m1 -oP '\"name\":\\s*\"\\K[^\"]+'",
+    "statusCmd": "facebook-pages-api whoami 2>/dev/null | sed -n 's/.*\"name\"[[:space:]]*:[[:space:]]*\"\\([^\"]*\\)\".*/\\1/p' | head -1",
     "loginCmd": "facebook-pages-api auth",
     "credentialPaths": [
       "~/.config/facebook-pages-api/credentials.json"
     ],
-    "capabilities": "Post to a Facebook Page (published, unpublished or scheduled), read/reply/hide/delete comments, page and post insights, Page inbox, photo posting \u2014 official Meta Graph API.",
-    "description": "Facebook Pages CLI over the official Meta Graph API v21.0. `facebook-pages-api auth --page-id <id> --page-token <token>` (page token from GET /me/accounts; env FB_PAGE_ID / FB_PAGE_TOKEN). `feed list|get|create|delete`, `comments list|get|reply|hide|delete`, `insights page|post`, `conversations list|get`, `media create`. Writes are live \u2014 use `feed create --published false` for tests. `comments reply` posts publicly and immediately, so have a human approve the text. Many classic insights metrics (page_impressions, page_fans, post_impressions) were retired and now error; follower totals come from `whoami --fields followers_count,fan_count`. `conversations` needs the pages_messaging permission.",
+    "capabilities": "Post to a Facebook Page (published, unpublished or scheduled), read/reply/hide/delete comments, page and post insights, Page inbox, photo posting — official Meta Graph API.",
+    "description": "Facebook Pages CLI over the official Meta Graph API v21.0. `facebook-pages-api auth --page-id <id> --page-token <token>` (page token from GET /me/accounts; env FB_PAGE_ID / FB_PAGE_TOKEN). `feed list|get|create|delete`, `comments list|get|reply|hide|delete`, `insights page|post`, `conversations list|get`, `media create`. Writes are live — use `feed create --published false` for tests. `comments reply` posts publicly and immediately, so have a human approve the text. Many classic insights metrics (page_impressions, page_fans, post_impressions) were retired and now error; follower totals come from `whoami --fields followers_count,fan_count`. `conversations` needs the pages_messaging permission.",
     "versionCmd": "facebook-pages-api --version 2>/dev/null | head -1"
   },
   "ews-api": {
@@ -1100,13 +1098,13 @@
     "pkg": "ews-api",
     "installer": "pip",
     "label": "Exchange (EWS)",
-    "statusCmd": "ews-api whoami 2>/dev/null | grep -m1 -oP '\"email\":\\s*\"\\K[^\"]+'",
+    "statusCmd": "ews-api whoami 2>/dev/null | sed -n 's/.*\"email\"[[:space:]]*:[[:space:]]*\"\\([^\"]*\\)\".*/\\1/p' | head -1",
     "loginCmd": "ews-api auth",
     "credentialPaths": [
       "~/.config/ews-api/credentials.json"
     ],
     "capabilities": "List/search/read mail, create drafts and replies on an on-premise Exchange server over EWS.",
-    "description": "On-premise Microsoft Exchange CLI over EWS (Exchange Web Services), for servers with no Microsoft 365 tenant \u2014 use outlook-api for cloud mailboxes. `ews-api auth --email user@corp.hu --username 'DOMAIN\\\\user' --password ... --server mail.corp.hu` (NTLM; always pass --server, autodiscover is off). `list`, `search <query>`, `read <id>`, `draft`, `reply <id>`. draft/reply save to Drafts by default and only send with --send, so a human approves in Outlook.",
+    "description": "On-premise Microsoft Exchange CLI over EWS (Exchange Web Services), for servers with no Microsoft 365 tenant — use outlook-api for cloud mailboxes. `ews-api auth --email user@corp.hu --username 'DOMAIN\\\\user' --password ... --server mail.corp.hu` (NTLM; always pass --server, autodiscover is off). `list`, `search <query>`, `read <id>`, `draft`, `reply <id>`. draft/reply save to Drafts by default and only send with --send, so a human approves in Outlook.",
     "versionCmd": "ews-api --version 2>/dev/null | head -1"
   },
   "outlook-api": {
@@ -1114,13 +1112,13 @@
     "pkg": "@todoforai/outlook-api",
     "installer": "npm",
     "label": "Outlook (Graph)",
-    "statusCmd": "outlook-api whoami 2>/dev/null | grep -m1 -oP '\"userPrincipalName\":\\s*\"\\K[^\"]+'",
+    "statusCmd": "outlook-api whoami 2>/dev/null | sed -n 's/.*\"userPrincipalName\"[[:space:]]*:[[:space:]]*\"\\([^\"]*\\)\".*/\\1/p' | head -1",
     "loginCmd": "outlook-api auth",
     "credentialPaths": [
       "~/.config/outlook-api/config.json"
     ],
     "capabilities": "List/search/read Outlook/Hotmail mail, download attachments, create drafts/replies and send over Microsoft Graph.",
-    "description": "Outlook / Hotmail / Microsoft 365 mail CLI over Microsoft Graph (cloud mailboxes \u2014 use ews-api for on-prem Exchange). `outlook-api auth` is a device-code flow with no Azure app registration; personal accounts use --tenant consumers (default), work/school --tenant organizations. list/search/read/attachments are read-only; `draft` and `reply` save to Drafts by default and only send with --send, so a human approves in Outlook; `send <draftId>` sends an existing draft. Raw JSON out; `get` is a raw Graph GET passthrough.",
+    "description": "Outlook / Hotmail / Microsoft 365 mail CLI over Microsoft Graph (cloud mailboxes — use ews-api for on-prem Exchange). `outlook-api auth` is a device-code flow with no Azure app registration; personal accounts use --tenant consumers (default), work/school --tenant organizations. list/search/read/attachments are read-only; `draft` and `reply` save to Drafts by default and only send with --send, so a human approves in Outlook; `send <draftId>` sends an existing draft. Raw JSON out; `get` is a raw Graph GET passthrough.",
     "versionCmd": "outlook-api --version 2>/dev/null | head -1"
   }
 }
