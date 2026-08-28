@@ -257,6 +257,18 @@
     "versionCmd": "gh --version 2>/dev/null | head -1",
     "preinstallJarvis": true
   },
+  "mcporter": {
+    "category": "development",
+    "pkg": "mcporter",
+    "installer": "npm",
+    "label": "MCP (mcporter)",
+    "statusCmd": "mcporter list 2>/dev/null | grep -v 'No MCP servers' | head -5",
+    "capabilities": "Connect to any MCP server from the shell: list servers & tool schemas, call tools, read resources, OAuth login, generate standalone CLIs from MCP servers",
+    "description": "Bridge to MCP servers as plain CLI commands. `mcporter list` shows configured servers (auto-imports Claude/Cursor/VS Code/Codex configs; add `--schema` for tool docs), `mcporter call <server>.<tool> key=value ...` invokes a tool (or `mcporter call <http-url>` directly), `mcporter resource <server> [uri]` reads resources, `mcporter auth <server>` completes OAuth, `mcporter config add <name> <cmd-or-url>` registers a new server. Use this whenever a task needs an MCP-only integration — no MCP client wiring required.",
+    "versionCmd": "mcporter --version 2>/dev/null | head -1",
+    "preinstallJarvis": true,
+    "preinstallCloud": true
+  },
   "glab": {
     "category": "development",
     "pkg": "glab",
