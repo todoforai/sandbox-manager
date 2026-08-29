@@ -1162,9 +1162,6 @@
     "label": "Microsoft 365",
     "statusCmd": "m365 status --output text 2>/dev/null | tr -d '\"' | grep -vi 'logged out' | grep -m1 .",
     "loginCmd": "m365 login",
-    "oauthUrlPattern": "(https://microsoft\\.com/devicelogin\\S*)",
-    "deviceCodePattern": "\\b([A-Z0-9]{9})\\b",
-    "canStreamLogin": true,
     "loginNeedsPty": true,
     "credentialPaths": [
       "~/.cli-m365-msal.json",
@@ -1182,7 +1179,7 @@
     "binName": "hs",
     "statusCmd": "hs account list >/dev/null 2>&1 && echo authenticated",
     "loginCmd": "hs account auth",
-    "oauthUrlPattern": "(https://app\\.hubspot\\.com/oauth/authorize\\S+)",
+    "oauthUrlPattern": "(https://app\\.hubspot\\.com/l/personal-access-key\\S+)",
     "loginNeedsPty": true,
     "credentialPaths": [
       "~/.hscli/config.yml"
@@ -1243,7 +1240,6 @@
     "label": "Readwise",
     "statusCmd": "readwise whoami >/dev/null 2>&1 && readwise whoami 2>/dev/null | sed 's/\\x1b\\[[0-9;]*m//g' | grep -m1 .",
     "loginCmd": "readwise login",
-    "oauthUrlPattern": "(https://readwise\\.io/o/\\S+)",
     "loginNeedsPty": true,
     "credentialPaths": [
       "~/.readwise-cli.json"
