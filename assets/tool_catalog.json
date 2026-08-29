@@ -53,16 +53,6 @@
     "preinstallJarvis": true,
     "preinstallCloud": true
   },
-  "bird": {
-    "category": "social",
-    "pkg": "@steipete/bird",
-    "installer": "npm",
-    "label": "X (bird)",
-    "statusCmd": "bird whoami 2>/dev/null | sed -n 's/^[^@]*@\\([A-Za-z0-9_][A-Za-z0-9_]*\\).*/\\1/p' | head -1",
-    "capabilities": "Post tweets & replies, read tweets/threads/timelines, search, mentions, bookmarks, follow/unfollow, likes, trending — via Twitter GraphQL with browser cookies",
-    "description": "Fast X CLI via browser-cookie auth: `bird tweet <text>`, `bird read <url>`, `bird search <query>`, `bird thread <url>`, `bird home`. Prefer over xurl for everyday X workflows; auth via AUTH_TOKEN env or --chrome-profile cookies.",
-    "versionCmd": "bird --version 2>/dev/null | head -1"
-  },
   "linkedin-api": {
     "category": "social",
     "pkg": "@todoforai/linkedin-api",
