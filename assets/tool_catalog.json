@@ -81,40 +81,6 @@
     "description": "Figma REST API CLI. File commands take a file key or Figma URL. Canvas writes (frames/text/shapes) use `figma-api run` via the plugin bridge. Run `figma-api <cmd> --help` for params.",
     "versionCmd": "figma-api --version 2>/dev/null | head -1"
   },
-  "tiktok-uploader": {
-    "category": "social",
-    "pkg": "tiktok-uploader",
-    "installer": "pip",
-    "label": "TikTok",
-    "loginCmd": "npx @todoforai/tiktok-cookie-helper",
-    "credentialPaths": [
-      "~/.tiktok/cookies.txt"
-    ],
-    "capabilities": "Upload videos, batch uploads, schedule posts, custom covers, hashtags & mentions",
-    "versionCmd": "{ python -m pip show tiktok-uploader || python3 -m pip show tiktok-uploader || py -m pip show tiktok-uploader; } 2>/dev/null | sed -n 's/^Version: //p'",
-    "statusCmd": "test -f ~/.tiktok/cookies.txt && echo authenticated"
-  },
-  "instagrapi": {
-    "category": "social",
-    "pkg": "instagrapi",
-    "installer": "pip",
-    "label": "Instagram",
-    "capabilities": "Upload photos & reels, post stories, send DMs, like & comment, manage followers",
-    "versionCmd": "{ python -m pip show instagrapi || python3 -m pip show instagrapi || py -m pip show instagrapi; } 2>/dev/null | sed -n 's/^Version: //p'"
-  },
-  "mudslide": {
-    "category": "social",
-    "pkg": "mudslide",
-    "installer": "npm",
-    "label": "WhatsApp",
-    "statusCmd": "mudslide me",
-    "loginCmd": "mudslide login",
-    "credentialPaths": [
-      "~/.local/share/mudslide"
-    ],
-    "capabilities": "Send messages, send images & files, send locations & polls, group management, QR code login",
-    "versionCmd": "mudslide --version 2>/dev/null | head -1"
-  },
   "slack-cli": {
     "category": "social",
     "pkg": "slack-cli",
