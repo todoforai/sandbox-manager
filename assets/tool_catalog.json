@@ -158,6 +158,19 @@
       "~/.config/todoforai/elevenlabs.json"
     ]
   },
+  "ffmpeg": {
+    "category": "media",
+    "pkg": "ffmpeg",
+    "installer": "system",
+    "label": "FFmpeg",
+    "cloudAptPackages": [
+      "ffmpeg"
+    ],
+    "preinstallCloud": true,
+    "capabilities": "Convert/transcode audio & video, cut & concat, resize & crop, extract audio, thumbnails, subtitles, streaming, screen capture",
+    "description": "Media swiss-army knife: `ffmpeg -i in.mp4 out.webm`; `ffprobe` for metadata.",
+    "versionCmd": "ffmpeg -version 2>/dev/null | head -1"
+  },
   "tfa-imagegen": {
     "category": "media",
     "pkg": "@todoforai/image-api",
@@ -533,6 +546,74 @@
     },
     "versionCmd": "rclone version 2>/dev/null | head -1",
     "preinstallJarvis": true
+  },
+  "aws": {
+    "category": "cloud",
+    "pkg": "awscli",
+    "installer": "system",
+    "label": "AWS",
+    "installCmd": "curl -sS https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip -o /tmp/awscli.zip && unzip -qo /tmp/awscli.zip -d /tmp && sudo /tmp/aws/install --update",
+    "statusCmd": "aws sts get-caller-identity --query Arn --output text 2>/dev/null | sed 's/.*\\///' | grep -m1 .",
+    "loginCmd": "aws configure",
+    "loginNeedsPty": true,
+    "credentialPaths": [
+      "~/.aws/credentials",
+      "~/.aws/config",
+      "~/.aws/sso/cache"
+    ],
+    "capabilities": "Full AWS API: S3, EC2, Lambda, IAM, CloudFormation, RDS, SQS/SNS and every other service via `aws <service> <operation>`",
+    "description": "Official AWS CLI v2. Auth via `aws configure` (access keys) or `aws configure sso` + `aws sso login` (browser device flow).",
+    "versionCmd": "aws --version 2>/dev/null | head -1"
+  },
+  "gcloud": {
+    "category": "cloud",
+    "pkg": "google-cloud-sdk",
+    "installer": "system",
+    "label": "Google Cloud",
+    "installCmd": "curl -sSL https://sdk.cloud.google.com | bash -s -- --disable-prompts",
+    "statusCmd": "gcloud auth list --filter=status:ACTIVE --format=\"value(account)\" 2>/dev/null | grep -m1 .",
+    "loginCmd": "gcloud auth login --no-launch-browser",
+    "loginNeedsPty": true,
+    "oauthUrlPattern": "(https://accounts\\.google\\.com/o/oauth2/auth\\S+)",
+    "credentialPaths": [
+      "~/.config/gcloud"
+    ],
+    "capabilities": "GCE, GKE, Cloud Run, Cloud Storage, BigQuery, Pub/Sub, IAM — every GCP service via `gcloud`/`gsutil`/`bq`",
+    "description": "Official Google Cloud CLI. `gcloud auth login --no-launch-browser` prints the OAuth URL and waits for the pasted verification code.",
+    "versionCmd": "gcloud --version 2>/dev/null | head -1"
+  },
+  "az": {
+    "category": "cloud",
+    "pkg": "azure-cli",
+    "installer": "pip",
+    "label": "Azure",
+    "binName": "az",
+    "statusCmd": "az account show --query user.name -o tsv 2>/dev/null | grep -m1 .",
+    "loginCmd": "az login --use-device-code",
+    "oauthUrlPattern": "(https://login\\.microsoft\\.com/device\\S*)",
+    "deviceCodePattern": "enter the code ([A-Z0-9]+)",
+    "canStreamLogin": true,
+    "credentialPaths": [
+      "~/.azure"
+    ],
+    "capabilities": "VMs, AKS, App Service, Functions, Storage, Cosmos DB, Entra ID — every Azure service via `az <group> <command>`",
+    "description": "Official Azure CLI. Device-code login: prints login.microsoft.com/device + a code, then polls — no callback port.",
+    "versionCmd": "az version --query '\"azure-cli\"' -o tsv 2>/dev/null | head -1"
+  },
+  "doctl": {
+    "category": "cloud",
+    "pkg": "doctl",
+    "installer": "binary",
+    "label": "DigitalOcean",
+    "statusCmd": "doctl account get --format Email --no-header 2>/dev/null | grep -m1 .",
+    "loginCmd": "doctl auth init",
+    "loginNeedsPty": true,
+    "credentialPaths": [
+      "~/.config/doctl/config.yaml"
+    ],
+    "capabilities": "Droplets, App Platform, Kubernetes, Spaces, databases, load balancers, DNS",
+    "description": "Official DigitalOcean CLI. `doctl auth init` prompts for an API token from cloud.digitalocean.com/account/api/tokens.",
+    "versionCmd": "doctl version 2>/dev/null | head -1"
   },
   "rdt": {
     "category": "social",
