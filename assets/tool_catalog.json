@@ -13,7 +13,7 @@
       "~/.zele/sqlite.db"
     ],
     "capabilities": "Read inbox, search/send/reply email, email addresses — multi-account Gmail, OAuth browser login for setup. Also Google Calendar via `zele cal` (see zele-calendar).",
-    "versionCmd": "zele --version 2>/dev/null | head -1",
+    "versionCmd": "zele --version 2>/dev/null | sed -n 1p",
     "preinstallCloud": true,
     "preinstallJarvis": true
   },
@@ -32,7 +32,7 @@
       "~/.zele/sqlite.db"
     ],
     "capabilities": "Google Calendar via `zele cal`: list calendars and events, create/update/delete events with Google Meet links, recurrence and reminders, respond to invites, free/busy.",
-    "versionCmd": "zele --version 2>/dev/null | head -1",
+    "versionCmd": "zele --version 2>/dev/null | sed -n 1p",
     "preinstallJarvis": true
   },
   "xurl": {
@@ -49,7 +49,7 @@
     ],
     "capabilities": "Post tweets, reply & quote, read timelines, search tweets, like & repost, follow/unfollow, DMs, media uploads",
     "description": "Raw X API access via `xurl <method> <path>`.",
-    "versionCmd": "xurl --version 2>/dev/null | head -1",
+    "versionCmd": "xurl --version 2>/dev/null | sed -n 1p",
     "preinstallJarvis": true,
     "preinstallCloud": true
   },
@@ -65,7 +65,7 @@
     ],
     "capabilities": "Read profiles, list/read conversations, send DMs and connection requests — LinkedIn Voyager API.",
     "description": "LinkedIn Voyager API CLI for profiles, conversations, DMs, and connections.",
-    "versionCmd": "linkedin-api --version 2>/dev/null | head -1"
+    "versionCmd": "linkedin-api --version 2>/dev/null | sed -n 1p"
   },
   "figma-api": {
     "category": "design",
@@ -79,7 +79,7 @@
     ],
     "capabilities": "Read+write Figma REST API: files/nodes JSON, render images (png/svg/pdf), comments, components/styles/variables, dev resources, webhooks — subcommand per endpoint.",
     "description": "Figma REST API CLI. File commands take a file key or Figma URL. Canvas writes (frames/text/shapes) use `figma-api run` via the plugin bridge. Run `figma-api <cmd> --help` for params.",
-    "versionCmd": "figma-api --version 2>/dev/null | head -1"
+    "versionCmd": "figma-api --version 2>/dev/null | sed -n 1p"
   },
   "slack-cli": {
     "category": "social",
@@ -93,7 +93,7 @@
     ],
     "capabilities": "Build & deploy Slack apps, manage workspaces & triggers, run datastore queries, tail logs — official Slack CLI.",
     "description": "Invoked as `slack-cli` to avoid colliding with the Slack desktop app’s `slack` binary.",
-    "versionCmd": "slack-cli version 2>/dev/null | head -1",
+    "versionCmd": "slack-cli version 2>/dev/null | sed -n 1p",
     "binName": "slack-cli",
     "binary": {
       "linux-x86_64": {
@@ -133,7 +133,7 @@
       "~/.config/telegram-send/telegram-send.conf"
     ],
     "capabilities": "Send messages, send files & images, send video & audio, Markdown/HTML formatting, channel & group support",
-    "versionCmd": "telegram-send --version 2>/dev/null | head -1",
+    "versionCmd": "telegram-send --version 2>/dev/null | sed -n 1p",
     "statusCmd": "test -f ~/.config/telegram-send/telegram-send.conf && echo authenticated"
   },
   "meta-ads": {
@@ -144,7 +144,7 @@
     "binName": "meta",
     "statusCmd": "out=$(meta auth status 2>&1); rc=$?; printf '%s\\n' \"$out\" | grep -m1 .; exit $rc",
     "capabilities": "Meta/Facebook & Instagram ad campaigns: campaigns/adsets/ads CRUD, insights & reporting, catalog/product-feed/product-set/product-item, ad creatives, datasets (pixels), pages — Marketing API via the official `meta` CLI.",
-    "versionCmd": "meta --version 2>/dev/null | head -1"
+    "versionCmd": "meta --version 2>/dev/null | sed -n 1p"
   },
   "elevenlabs-api": {
     "category": "media",
@@ -152,7 +152,7 @@
     "installer": "npm",
     "label": "ElevenLabs",
     "capabilities": "Text-to-speech, voice cloning, multiple languages.",
-    "versionCmd": "elevenlabs-api --version 2>/dev/null | head -1",
+    "versionCmd": "elevenlabs-api --version 2>/dev/null | sed -n 1p",
     "statusCmd": "test -f ~/.config/todoforai/elevenlabs.json && echo authenticated || test -n \"$ELEVENLABS_API_KEY\" && echo authenticated",
     "loginCmd": "elevenlabs-api auth <api_key>",
     "credentialPaths": [
@@ -170,7 +170,7 @@
     "preinstallCloud": true,
     "capabilities": "Convert/transcode audio & video, cut & concat, resize & crop, extract audio, thumbnails, subtitles, streaming, screen capture",
     "description": "Media swiss-army knife: `ffmpeg -i in.mp4 out.webm`; `ffprobe` for metadata.",
-    "versionCmd": "ffmpeg -version 2>/dev/null | head -1"
+    "versionCmd": "ffmpeg -version 2>/dev/null | sed -n 1p"
   },
   "tfa-imagegen": {
     "category": "media",
@@ -179,7 +179,7 @@
     "label": "Image Gen",
     "platformAuth": true,
     "capabilities": "AI image generation & editing via TODOFORAI backend (gpt-image, nano-banana, nano-banana-pro)",
-    "versionCmd": "tfa-imagegen --version 2>/dev/null | head -1",
+    "versionCmd": "tfa-imagegen --version 2>/dev/null | sed -n 1p",
     "credentialPaths": [
       "~/.config/todoforai/credentials.json"
     ]
@@ -190,7 +190,7 @@
     "installer": "npm",
     "label": "Suno",
     "capabilities": "AI music generation, custom lyrics, multiple genres.",
-    "versionCmd": "suno-api --version 2>/dev/null | head -1",
+    "versionCmd": "suno-api --version 2>/dev/null | sed -n 1p",
     "statusCmd": "test -n \"$SUNO_API_KEY\" && echo authenticated"
   },
   "ntn": {
@@ -204,7 +204,7 @@
       "~/.config/notion"
     ],
     "capabilities": "Official Notion CLI: raw API calls (`ntn api <path>`), page/data-source management, file uploads, Workers deploy.",
-    "versionCmd": "ntn --version 2>/dev/null | head -1"
+    "versionCmd": "ntn --version 2>/dev/null | sed -n 1p"
   },
   "perplexity-api": {
     "category": "utility",
@@ -212,7 +212,7 @@
     "installer": "npm",
     "label": "Perplexity",
     "capabilities": "AI-powered web search, chat completions, async chat, embeddings and agent runs",
-    "versionCmd": "perplexity-api --version 2>/dev/null | head -1",
+    "versionCmd": "perplexity-api --version 2>/dev/null | sed -n 1p",
     "statusCmd": "test -f ~/.config/todoforai/perplexity.json && echo authenticated || test -n \"$PERPLEXITY_API_KEY\" && echo authenticated",
     "loginCmd": "perplexity-api auth <api_key>",
     "credentialPaths": [
@@ -236,7 +236,7 @@
     ],
     "capabilities": "Repos, PRs & issues, actions & releases, gists & SSH keys",
     "description": "Prefer `gh` over raw GitHub API calls.",
-    "versionCmd": "gh --version 2>/dev/null | head -1",
+    "versionCmd": "gh --version 2>/dev/null | sed -n 1p",
     "preinstallJarvis": true
   },
   "mcporter": {
@@ -247,7 +247,7 @@
     "statusCmd": "mcporter list 2>/dev/null | grep -v 'No MCP servers' | grep -m1 .",
     "capabilities": "Connect to any MCP server from the shell: list servers & tool schemas, call tools, read resources, OAuth login, generate standalone CLIs from MCP servers",
     "description": "Bridge to MCP servers as plain CLI commands. `mcporter list` shows configured servers (auto-imports Claude/Cursor/VS Code/Codex configs; add `--schema` for tool docs), `mcporter call <server>.<tool> key=value ...` invokes a tool (or `mcporter call <http-url>` directly), `mcporter resource <server> [uri]` reads resources, `mcporter auth <server>` completes OAuth, `mcporter config add <name> <cmd-or-url>` registers a new server. Use this whenever a task needs an MCP-only integration — no MCP client wiring required.",
-    "versionCmd": "mcporter --version 2>/dev/null | head -1",
+    "versionCmd": "mcporter --version 2>/dev/null | sed -n 1p",
     "preinstallJarvis": true,
     "preinstallCloud": true
   },
@@ -263,7 +263,7 @@
     ],
     "capabilities": "Repos, MRs & issues, CI/CD pipelines, releases",
     "description": "GitLab equivalent of `gh`.",
-    "versionCmd": "glab --version 2>/dev/null | head -1",
+    "versionCmd": "glab --version 2>/dev/null | sed -n 1p",
     "deviceCodePattern": "one-time code: ([A-Z0-9-]+)",
     "oauthUrlPattern": "(https://gitlab\\.com/oauth/device)",
     "canStreamLogin": true
@@ -280,7 +280,7 @@
     ],
     "capabilities": "Deploy & preview, environment variables, domain management",
     "description": "`vercel deploy`; manage env vars, domains, preview URLs.",
-    "versionCmd": "vercel --version 2>/dev/null | head -1",
+    "versionCmd": "vercel --version 2>/dev/null | sed -n 1p",
     "deviceCodePattern": "user_code=([A-Z0-9-]+)",
     "oauthUrlPattern": "(https://vercel\\.com/oauth/device\\S*)",
     "canStreamLogin": true
@@ -297,7 +297,7 @@
     ],
     "capabilities": "Deploy & preview, serverless functions, forms & identity",
     "description": "`netlify deploy --prod` for production; manage env vars, forms, identity.",
-    "versionCmd": "netlify --version 2>/dev/null | head -1",
+    "versionCmd": "netlify --version 2>/dev/null | sed -n 1p",
     "oauthUrlPattern": "(https://app\\.netlify\\.com/authorize\\S+)",
     "canStreamLogin": true
   },
@@ -313,7 +313,7 @@
     ],
     "capabilities": "Hosting & deploy, Firestore & Realtime DB, auth & functions",
     "description": "Deploy hosting/functions, manage Firestore/RTDB rules and data, auth users, emulators.",
-    "versionCmd": "firebase --version 2>/dev/null | head -1",
+    "versionCmd": "firebase --version 2>/dev/null | sed -n 1p",
     "oauthUrlPattern": "(https://auth\\.firebase\\.tools/login\\S+)",
     "canStreamLogin": true
   },
@@ -329,7 +329,7 @@
     ],
     "capabilities": "Workers & Pages deploy, KV & D1 storage, R2 & Queues",
     "description": "Tail logs with `wrangler tail`. Use `cloudflared` for tunnels.",
-    "versionCmd": "wrangler --version 2>/dev/null | head -1",
+    "versionCmd": "wrangler --version 2>/dev/null | sed -n 1p",
     "oauthUrlPattern": "(https://dash\\.cloudflare\\.com/oauth2/auth\\S+)",
     "oauthCallbackPort": 8976
   },
@@ -345,7 +345,7 @@
     ],
     "capabilities": "Payments & subscriptions, webhook testing, invoice management",
     "description": "`stripe listen` forwards webhooks locally; `stripe get/post /v1/...` for raw API.",
-    "versionCmd": "stripe --version 2>/dev/null | head -1",
+    "versionCmd": "stripe --version 2>/dev/null | sed -n 1p",
     "deviceCodePattern": "\"verification_code\":\\s*\"([A-Z0-9-]+)\"",
     "oauthUrlPattern": "\"browser_url\":\\s*\"(\\S+?)\"",
     "canStreamLogin": true
@@ -362,7 +362,7 @@
     ],
     "capabilities": "Deploy containers globally, Postgres & volumes, auto-scaling",
     "description": "`flyctl deploy` from app dir; manage Postgres/volumes/machines/secrets.",
-    "versionCmd": "flyctl version 2>/dev/null | head -1"
+    "versionCmd": "flyctl version 2>/dev/null | sed -n 1p"
   },
   "supabase": {
     "category": "cloud",
@@ -376,7 +376,7 @@
     ],
     "capabilities": "Postgres database, auth & storage, edge functions",
     "description": "Link to cloud project; runs/migrates local Postgres.",
-    "versionCmd": "supabase --version 2>/dev/null | head -1"
+    "versionCmd": "supabase --version 2>/dev/null | sed -n 1p"
   },
   "railway": {
     "category": "cloud",
@@ -390,7 +390,7 @@
     ],
     "capabilities": "Deploy apps & databases, environment management, auto-scaling",
     "description": "`railway up` to deploy current dir.",
-    "versionCmd": "railway --version 2>/dev/null | head -1",
+    "versionCmd": "railway --version 2>/dev/null | sed -n 1p",
     "deviceCodePattern": "user_code=([A-Z0-9-]+)",
     "oauthUrlPattern": "(https://railway\\.com/activate\\S*)",
     "canStreamLogin": true
@@ -405,7 +405,7 @@
       "~/.config/shopify/config.json"
     ],
     "capabilities": "Theme development, app scaffolding, store management",
-    "versionCmd": "shopify version 2>/dev/null | head -1",
+    "versionCmd": "node -p \"require(require('fs').realpathSync(require('child_process').execSync('command -v shopify',{encoding:'utf8'}).trim()).replace(/\\/bin\\/[^/]*$/, '/package.json')).version\" 2>/dev/null",
     "statusCmd": "test -f ~/.config/shopify/config.json && echo authenticated",
     "deviceCodePattern": "verification code: ([A-Z0-9-]+)",
     "oauthUrlPattern": "(https://accounts\\.shopify\\.com/activate-with-code\\S*)",
@@ -418,7 +418,7 @@
     "label": "Shop",
     "capabilities": "Product search & price comparison across Shopify stores",
     "description": "Shop.app product search across Shopify stores. `shop-app search '<query>' --ships-to HU -n 10` returns products with price, rating, URL, and variants. `shop-app similar <variantId>` finds lookalikes.",
-    "versionCmd": "shop-app --version 2>/dev/null | head -1"
+    "versionCmd": "shop-app --version 2>/dev/null | sed -n 1p"
   },
   "datadog-ci": {
     "category": "monitoring",
@@ -426,7 +426,7 @@
     "installer": "npm",
     "label": "Datadog",
     "capabilities": "CI test visibility, sourcemap uploads, deployment tracking.",
-    "versionCmd": "datadog-ci version 2>/dev/null | head -1",
+    "versionCmd": "datadog-ci version 2>/dev/null | sed -n 1p",
     "statusCmd": "test -n \"$DATADOG_API_KEY\" && echo authenticated"
   },
   "sentry-cli": {
@@ -441,7 +441,7 @@
     ],
     "capabilities": "Release management, sourcemap uploads, error monitoring",
     "description": "`sentry-cli releases new <version>`.",
-    "versionCmd": "sentry-cli --version 2>/dev/null | head -1"
+    "versionCmd": "sentry-cli --version 2>/dev/null | sed -n 1p"
   },
   "todoai": {
     "category": "utility",
@@ -452,7 +452,7 @@
     "capabilities": "Delegate work to another TODO: create/list/inspect/update TODOs (real, visible, resumable tasks with their own agent & chat), show files/URLs in the chat (`show list [--project]` enumerates show/card instances), run templates & workflows, platform API access",
     "description": "Manage the user's OWN TODOforAI tasks — NOT code `// TODO` comments. Legacy aliases: `todoforai-cli`, `todoai`. THIS is the tool for delegating/spinning off work: `tfa-cli \"prompt\"` creates a real TODO the user can see, follow and resume, with its own agent and chat (`-n` run to completion, `--no-watch` fire-and-forget, `--project/--agent/--model` to steer, `--resume <id>`/`-c` to continue, `addmessage <id> \"text\"` to talk to it). Also: `list` (`--status open`), `--inspect <id>[:<msg-id>]` to read a TODO's chat (read-only), `status`/`delete`, `--template` for registry workflows. Surface a result INTO the chat: `show <file|-> [todo-id]` renders by mimetype (`-` reads stdin), `show --card <name>` renders through a project renderer card, `show list [--project]` enumerates instances (ref/title/card/mime), `open <url> [todo-id]` embeds a live preview; `--title`/`--alias <name>` — re-using an alias UPDATES that block in place instead of appending.",
     "installCmd": "bun add -g @todoforai/cli",
-    "versionCmd": "tfa-cli --version 2>/dev/null | head -1",
+    "versionCmd": "tfa-cli --version 2>/dev/null | sed -n 1p",
     "preinstallCloud": true,
     "preinstallJarvis": true,
     "aliases": [
@@ -467,7 +467,7 @@
     "label": "Postman",
     "capabilities": "Run API test collections, CI/CD integration, HTML reports",
     "description": "`newman run <collection.json> -e <env.json>`.",
-    "versionCmd": "newman --version 2>/dev/null | head -1"
+    "versionCmd": "newman --version 2>/dev/null | sed -n 1p"
   },
   "curl": {
     "category": "networking",
@@ -477,7 +477,7 @@
     "binName": "curl",
     "capabilities": "HTTP/HTTPS/FTP client: GET/POST/PUT/DELETE, headers, auth, file upload/download, follow redirects, cookies, TLS.",
     "description": "",
-    "versionCmd": "curl --version 2>/dev/null | head -1 | cut -d' ' -f1-2",
+    "versionCmd": "curl --version 2>/dev/null | sed -n 1p | cut -d' ' -f1-2",
     "preinstallCloud": true,
     "internal": true,
     "preinstallJarvis": true
@@ -489,7 +489,7 @@
     "label": "Tunnel",
     "capabilities": "Tunnel to localhost, expose local services, zero-trust access",
     "description": "`cloudflared tunnel --url http://localhost:<port>` prints a public https URL.",
-    "versionCmd": "cloudflared --version 2>/dev/null | head -1"
+    "versionCmd": "cloudflared --version 2>/dev/null | sed -n 1p"
   },
   "mcptools": {
     "category": "development",
@@ -499,7 +499,7 @@
     "label": "MCP support",
     "capabilities": "MCP (Model Context Protocol) client — discover & call tools/resources/prompts on stdio and remote (HTTP streamable / SSE) MCP servers.",
     "description": "`mcptools tools <server>` lists, `mcptools call <tool> --params '{\"k\":1}' <server>` invokes. `<server>` = stdio command (`npx -y some-mcp-server`) or URL for hosted servers (`https://host/mcp` or `/sse`).",
-    "versionCmd": "mcptools version 2>/dev/null | head -1",
+    "versionCmd": "mcptools version 2>/dev/null | sed -n 1p",
     "installCmd": "go install github.com/f/mcptools/cmd/mcptools@latest  # or: brew tap f/mcptools && brew install mcp"
   },
   "vault": {
@@ -513,7 +513,7 @@
       "~/.vault-token"
     ],
     "capabilities": "HashiCorp Vault secrets management and dynamic credentials.",
-    "versionCmd": "vault --version 2>/dev/null | head -1"
+    "versionCmd": "vault --version 2>/dev/null | sed -n 1p"
   },
   "rclone": {
     "category": "cloud",
@@ -534,7 +534,7 @@
         "label": "Google Drive",
         "authType": "oauth",
         "connectCmd": "rclone config create {{REMOTE}} drive",
-        "statusCmd": "rclone lsd {{REMOTE}}: 2>&1 | head -1",
+        "statusCmd": "rclone lsd {{REMOTE}}: 2>&1 | sed -n 1p",
         "remoteName": "gdrive",
         "rcloneType": "drive",
         "userInfoCmd": "TOKEN=$(rclone config dump 2>/dev/null | python3 -c \"import json,sys; print(json.loads(json.load(sys.stdin)['{{REMOTE}}']['token'])['access_token'])\") && curl -sf 'https://www.googleapis.com/drive/v3/about?fields=user' -H \"Authorization: Bearer $TOKEN\" | python3 -c \"import json,sys; print(json.load(sys.stdin)['user']['emailAddress'])\" 2>/dev/null"
@@ -543,7 +543,7 @@
         "label": "OneDrive",
         "authType": "oauth",
         "connectCmd": "rclone config create {{REMOTE}} onedrive",
-        "statusCmd": "rclone lsd {{REMOTE}}: 2>&1 | head -1",
+        "statusCmd": "rclone lsd {{REMOTE}}: 2>&1 | sed -n 1p",
         "remoteName": "onedrive",
         "rcloneType": "onedrive",
         "userInfoCmd": "TOKEN=$(rclone config dump 2>/dev/null | python3 -c \"import json,sys; print(json.loads(json.load(sys.stdin)['{{REMOTE}}']['token'])['access_token'])\") && curl -sf 'https://graph.microsoft.com/v1.0/me' -H \"Authorization: Bearer $TOKEN\" | python3 -c \"import json,sys; d=json.load(sys.stdin); print(d.get('mail') or d.get('userPrincipalName',''))\" 2>/dev/null"
@@ -552,7 +552,7 @@
         "label": "Dropbox",
         "authType": "oauth",
         "connectCmd": "rclone config create {{REMOTE}} dropbox",
-        "statusCmd": "rclone lsd {{REMOTE}}: 2>&1 | head -1",
+        "statusCmd": "rclone lsd {{REMOTE}}: 2>&1 | sed -n 1p",
         "remoteName": "dropbox",
         "rcloneType": "dropbox",
         "userInfoCmd": "TOKEN=$(rclone config dump 2>/dev/null | python3 -c \"import json,sys; print(json.loads(json.load(sys.stdin)['{{REMOTE}}']['token'])['access_token'])\") && curl -sf -X POST 'https://api.dropboxapi.com/2/users/get_current_account' -H \"Authorization: Bearer $TOKEN\" | python3 -c \"import json,sys; print(json.load(sys.stdin)['email'])\" 2>/dev/null"
@@ -561,12 +561,12 @@
         "label": "Amazon S3",
         "authType": "credentials",
         "connectCmd": "rclone config create {{REMOTE}} s3",
-        "statusCmd": "rclone lsd {{REMOTE}}: 2>&1 | head -1",
+        "statusCmd": "rclone lsd {{REMOTE}}: 2>&1 | sed -n 1p",
         "remoteName": "s3",
         "rcloneType": "s3"
       }
     },
-    "versionCmd": "rclone version 2>/dev/null | head -1",
+    "versionCmd": "rclone version 2>/dev/null | sed -n 1p",
     "preinstallJarvis": true
   },
   "aws": {
@@ -585,7 +585,7 @@
     ],
     "capabilities": "Full AWS API: S3, EC2, Lambda, IAM, CloudFormation, RDS, SQS/SNS and every other service via `aws <service> <operation>`",
     "description": "Official AWS CLI v2. Auth via `aws configure` (access keys) or `aws configure sso` + `aws sso login` (browser device flow).",
-    "versionCmd": "aws --version 2>/dev/null | head -1"
+    "versionCmd": "aws --version 2>/dev/null | sed -n 1p"
   },
   "gcloud": {
     "category": "cloud",
@@ -602,7 +602,7 @@
     ],
     "capabilities": "GCE, GKE, Cloud Run, Cloud Storage, BigQuery, Pub/Sub, IAM — every GCP service via `gcloud`/`gsutil`/`bq`",
     "description": "Official Google Cloud CLI. `gcloud auth login --no-launch-browser` prints the OAuth URL and waits for the pasted verification code.",
-    "versionCmd": "gcloud --version 2>/dev/null | head -1"
+    "versionCmd": "gcloud --version 2>/dev/null | sed -n 1p"
   },
   "az": {
     "category": "cloud",
@@ -620,7 +620,7 @@
     ],
     "capabilities": "VMs, AKS, App Service, Functions, Storage, Cosmos DB, Entra ID — every Azure service via `az <group> <command>`",
     "description": "Official Azure CLI. Device-code login: prints login.microsoft.com/device + a code, then polls — no callback port.",
-    "versionCmd": "az version --query '\"azure-cli\"' -o tsv 2>/dev/null | head -1"
+    "versionCmd": "az version --query '\"azure-cli\"' -o tsv 2>/dev/null | sed -n 1p"
   },
   "doctl": {
     "category": "cloud",
@@ -635,7 +635,7 @@
     ],
     "capabilities": "Droplets, App Platform, Kubernetes, Spaces, databases, load balancers, DNS",
     "description": "Official DigitalOcean CLI. `doctl auth init` prompts for an API token from cloud.digitalocean.com/account/api/tokens.",
-    "versionCmd": "doctl version 2>/dev/null | head -1"
+    "versionCmd": "doctl version 2>/dev/null | sed -n 1p"
   },
   "rdt": {
     "category": "social",
@@ -649,7 +649,7 @@
     ],
     "capabilities": "Search & browse subreddits, read posts & comments, post comments, upvote & save, view user profiles — Reddit in your terminal.",
     "description": "Reddit CLI. Read: `rdt search \"<query>\" -r <sub> --json -c`, `rdt sub <name>`, `rdt read <postId>`, `rdt user-comments <user>`. Write: `rdt comment <postId> \"<text>\"`, `rdt upvote`, `rdt save`.",
-    "versionCmd": "rdt --version 2>/dev/null | head -1"
+    "versionCmd": "rdt --version 2>/dev/null | sed -n 1p"
   },
   "pymupdf": {
     "category": "utility",
@@ -669,7 +669,7 @@
     "label": "Doc to Markdown",
     "capabilities": "Convert documents to clean Markdown: doc, docx, pptx, xlsx, odt, ods, odp, rtf, epub, csv. Fully local, no API key.",
     "description": "Convert office/rich documents to GitHub-Flavored Markdown, entirely local (MIT, no API key, no network). `anydoc report.docx` prints Markdown to stdout; `anydoc slides.pptx -o slides.md` writes a file; `anydoc - --format csv < data.csv` reads stdin. Format is auto-detected from content. Prefer this over raw XML extraction when you need to READ the text of docx/pptx/xlsx/odt/rtf/epub/csv. Not for editing (one-way) and not for scanned/image-only PDFs (needs OCR).",
-    "versionCmd": "anydoc --version 2>/dev/null | head -1",
+    "versionCmd": "anydoc --version 2>/dev/null | sed -n 1p",
     "preinstallCloud": true,
     "preinstallJarvis": true
   },
@@ -681,7 +681,7 @@
     "label": "Browser",
     "capabilities": "Headless browser automation, web scraping, accessibility tree snapshots, screenshots, PDF generation",
     "description": "Browser automation over CDP (`open`/`snapshot`/`click`/`type`/`fill`/`read`/`screenshot`/`eval`). If a live browser to drive is listed right below this entry (a `→ Live browser to drive:` line with a connect URL), prefer it over a proxy. Just `connect '<url>'` — a changed connect URL is detected and reattached automatically. After connecting, verify it took (`snapshot` or read the URL); if it hangs or looks empty, `close` (clears your session only) and reconnect once. Never `close --all` even though `--help` offers it — it kills every session on the machine, including other agents'. When several agents share one real browser, open your own tab (`tab new`) and `tab <id>` back to it before each command — the remote browser's active tab is shared. Fallback when no connect URL is listed: on the cloud use browser-manager-cli; on a PC with a display, launch your own Chrome on `--remote-debugging-port=9222` and attach with `--cdp 9222`. Headless only on the cloud / no display.",
-    "versionCmd": "agent-browser --version 2>/dev/null | head -1",
+    "versionCmd": "agent-browser --version 2>/dev/null | sed -n 1p",
     "preinstallJarvis": true
   },
   "browser-manager-cli": {
@@ -694,7 +694,7 @@
     "platformAuth": true,
     "capabilities": "On-demand cloud Chromium sessions exposed as CDP endpoints for agent-browser; create/list/get/delete, hibernate/restore, per-session proxy (stealth Chromium).",
     "description": "Spawns cloud Chromium sessions, each exposed as a CDP WebSocket for agent-browser to drive. `create` prints one line ending in a cdpUrl — pass it straight to `agent-browser connect '<cdpUrl>'` (connect the cdpUrl, not the Chrome debug port). `list`/`get <id>`, `delete <id>`/`delete-all`, `hibernate`/`restore`. Sessions run stealth Chromium that reads as a real desktop browser. For sites that block datacenter IPs, route through a proxy: `create --proxy socks5://host:port [--proxy-user U --proxy-pass P]`. Use this on the cloud VM instead of launching a local browser.",
-    "versionCmd": "browser-manager-cli version 2>/dev/null | head -1",
+    "versionCmd": "browser-manager-cli version 2>/dev/null | sed -n 1p",
     "binary": {
       "linux-x86_64": {
         "url": "https://github.com/todoforai/browser-manager/releases/download/cli-v0.1.1/browser-manager-cli-linux-x86_64",
@@ -729,7 +729,7 @@
     "preinstallCloud": true,
     "label": "Browser (Extension)",
     "capabilities": "Browser automation via extension (non-headless), web scraping, accessibility tree snapshots, screenshots, PDF generation",
-    "versionCmd": "node -p \"require(require('child_process').execSync('which todoforai-browser',{encoding:'utf8'}).trim().replace(/\\/dist\\/index\\.js$/, '/package.json')).version\" 2>/dev/null",
+    "versionCmd": "node -p \"require(require('fs').realpathSync(require('child_process').execSync('command -v todoforai-browser',{encoding:'utf8'}).trim()).replace(/\\/dist\\/index\\.js$/, '/package.json')).version\" 2>/dev/null",
     "internal": true,
     "preinstallJarvis": true
   },
@@ -741,7 +741,7 @@
     "platformAuth": true,
     "capabilities": "Read-only sub-agent that maps a codebase and answers where/how/what questions as a hidden TODO. Options: --repo, --tools read,grep,list,bash,webfetch, -m/--model, -p/--project.",
     "description": "Explore a codebase in a separate sub-agent so the file reads and greps never touch your own context — you get back only the answer. `tfa-explore \"where is auth handled?\"` runs read-only in the repo (`--repo <path>`, default cwd; the path must be in an authorized workspace) and streams the result to stdout. The TODO it creates is hidden from the dashboard. Prefer it over manual multi-file searching for any non-trivial \"where/how/what is\" question.",
-    "versionCmd": "tfa-explore --version 2>/dev/null | head -1",
+    "versionCmd": "tfa-explore --version 2>/dev/null | sed -n 1p",
     "installCmd": "bun add -g @todoforai/tfa-explore",
     "internal": true
   },
@@ -753,7 +753,7 @@
     "platformAuth": true,
     "capabilities": "Sub-agent code review of a git diff as a hidden TODO. Options: --repo, --against <ref|WORKING>, --tools read,grep,list,bash,webfetch, -m/--model, -p/--project.",
     "description": "Review a git diff in a separate sub-agent, so inspecting the diff and the surrounding files costs none of your own context. `tfa-review \"<goal>\"` diffs the repo (`--repo <path>`, default cwd) against `--against <ref>` (default `WORKING` = uncommitted) and streams findings, simplifications and issues to stdout. The TODO it creates is hidden from the dashboard. Run it before calling a non-trivial change done.",
-    "versionCmd": "tfa-review --version 2>/dev/null | head -1",
+    "versionCmd": "tfa-review --version 2>/dev/null | sed -n 1p",
     "installCmd": "bun add -g @todoforai/tfa-review",
     "internal": true
   },
@@ -765,7 +765,7 @@
     "platformAuth": true,
     "capabilities": "Summarize files or piped stdin in a sub-agent as a hidden TODO. Options: -f/--file (repeatable), trailing focus text, -m/--model, -p/--project.",
     "description": "Summarize long input in a separate sub-agent so the raw text never enters your own context: `cat big.log | tfa-summary \"what failed?\"` or `tfa-summary -f a.md -f b.md \"focus\"`. Files come from `-f/--file` (repeatable) or trailing paths, the last bare argument is the focus. Streams the summary to stdout; the TODO it creates is hidden from the dashboard.",
-    "versionCmd": "tfa-summary --version 2>/dev/null | head -1",
+    "versionCmd": "tfa-summary --version 2>/dev/null | sed -n 1p",
     "installCmd": "bun add -g @todoforai/tfa-summary",
     "internal": true
   },
@@ -777,7 +777,7 @@
     "platformAuth": true,
     "capabilities": "Compact a conversation into a handoff document as a hidden TODO; pipe filter for `tfa-cli --inspect … | tfa-handoff … | tfa-cli`",
     "description": "Compact a conversation into a handoff document for a fresh agent.",
-    "versionCmd": "tfa-handoff --version 2>/dev/null | head -1",
+    "versionCmd": "tfa-handoff --version 2>/dev/null | sed -n 1p",
     "installCmd": "bun add -g @todoforai/tfa-handoff",
     "internal": true
   },
@@ -789,7 +789,7 @@
     "platformAuth": true,
     "capabilities": "Wait for a boolean expression of triggers; result returns as a message here. Leaves joined by && (all) || (any): `3h` duration, `9:00` clock, `weekdays@9:00` day@time, ISO date, or a `word` webhook (minted URL printed). `--repeat` re-arms, `--until <dur>` caps lifetime, message uses `{{payload.x}}`. Turn ANY command into events: `<cmd> | tfa-wait pipe <name>` (each stdout line → event; JSON line = payload; `--min-gap` flood-guards; cancel stops it). `list`/`cancel`/`emit`. e.g. `tfa-wait 'deploy && tests || 1h' \"ship: {{payload.status}}\"`, `while true; do check-jsonl; sleep 120; done | tfa-wait pipe signals`.",
     "description": "Schedule wake-ups and wait for events — time (`3h`, `daily@9:00`), webhooks, or `<cmd> | tfa-wait pipe <name>` to turn any command's stdout lines into events; results return into the conversation. Cancelling the wait stops its pipe.",
-    "versionCmd": "tfa-wait --version 2>/dev/null | head -1",
+    "versionCmd": "tfa-wait --version 2>/dev/null | sed -n 1p",
     "installCmd": "bun add -g @todoforai/tfa-wait",
     "preinstallCloud": true,
     "internal": true,
@@ -803,7 +803,7 @@
     "platformAuth": true,
     "capabilities": "The user's dedicated password manager and secret store — zero-config TODOforAI KV vault. Commands: put/get/patch/list/rm.",
     "description": "The user's own encrypted secret vault; reading and using its secrets is the intended workflow. READ: when a task needs a secret the user owns (API key, token, password, account), `tfa-vault list` to find it and `tfa-vault get <path>` to fetch it, then use the value (call the API, log in) — don't ask the user for what the vault already holds; treat values as sensitive (pass into commands/env, don't echo). WRITE (do this proactively, unasked): whenever a new secret appears in the conversation — pasted, generated, or handed over by a CLI/login — save it: `get`/`list` first (skip if the same value is already stored), `put <path> field=value` if missing, `patch <path>` to add fields without clobbering, overwrite on rotation. Use namespaced paths (`accounts/<svc>`, `api/<svc>`, `cards/<name>`, `secrets/<name>`).",
-    "versionCmd": "tfa-vault --version 2>/dev/null | head -1",
+    "versionCmd": "tfa-vault --version 2>/dev/null | sed -n 1p",
     "installCmd": "bun add -g @todoforai/tfa-vault",
     "preinstallCloud": true,
     "preinstallJarvis": true
@@ -816,7 +816,7 @@
     "platformAuth": true,
     "capabilities": "The user's persistent memory store — addressable text rows (source/ref) with full-text and semantic search, plus every message of every past TODO federated read-only under the `todo` source. Commands: add/search/ls/get/rm/sources.",
     "description": "The user's long-term memory: notes, procedures, docs, learned facts — addressed as source/ref (e.g. deploy-notes/rollback) — AND every message of every past TODO, searchable read-only under the `todo` source (`todo/<todoId>:<messageId>`), live from the backend message index with nothing separate to sync. READ: before re-deriving anything the user likely already knows or you discussed before, `tfa-memory search \"<topic>\"` — it covers saved rows and past TODO messages in one shot (add --semantic for meaning-based recall, `--source todo` for past TODO messages only, `--todo <id>` to narrow to one TODO), then `tfa-memory get <source/ref>` for full content. WRITE (do this proactively): when durable knowledge appears in the conversation — a procedure, decision, config fact, preference — save it with `tfa-memory add <source>/<ref> \"text\"` (re-adding the same address updates in place; identical content is skipped). Use short factual source names (deploy-notes, acme, preferences). `todo` is read-only — you cannot write or delete there. `tfa-memory sources` lists what exists.",
-    "versionCmd": "tfa-memory --version 2>/dev/null | head -1",
+    "versionCmd": "tfa-memory --version 2>/dev/null | sed -n 1p",
     "installCmd": "bun add -g @todoforai/tfa-memory",
     "preinstallCloud": true,
     "preinstallJarvis": true
@@ -828,7 +828,7 @@
     "label": "TODO Registry",
     "capabilities": "Browse the public TODO registry (200+ proven business-growth task templates) and create new ones: search/list/get/categories, create.",
     "description": "TODO Registry CLI — browse and create proven, reusable business-growth task templates (SEO, email, CRM, ads, social, monitoring, …). `search <query>` / `get <id>` / `list [category]` / `categories` browse the registry. `create --name ... --description ... --body @prompt.md` prints a new template id. To surface a template as a reviewable recommendation card, don’t create a todo directly — use `tfa-cli recommend --template <id> --project <projectId>`; the user accepts it to start a real todo.",
-    "versionCmd": "todoregistry-cli --version 2>/dev/null | head -1",
+    "versionCmd": "todoregistry-cli --version 2>/dev/null | sed -n 1p",
     "installCmd": "bun add -g @todoforai/todoregistry-cli",
     "preinstallCloud": true,
     "internal": true,
@@ -842,7 +842,7 @@
     "platformAuth": true,
     "capabilities": "See and drive what is shown in the user's live TODOFORAI UI: `describe` (open todos, focus, panels, embedded-browser CDP URL, on-screen show/card instances), `card add|list|get|rm` (project renderer cards, headless), todo open/focus/close, panel open/close, render markdown into surfaces, get/set controls. UI verbs require an open tab/app; card CRUD does not.",
     "description": "The user's live UI, addressable from the shell (CDP mental model: frontend → todo → panel surface). Target = $TODOFORAI_FRONTEND_ID (override per call: `TODOFORAI_FRONTEND_ID=<id> tfa-surface ...`). DISCOVER: `tfa-surface describe` — what's open (todos, focus, panel surfaces, sidebar, on-screen show/card instances) plus the embedded browser's CDP URL to drive with `agent-browser connect`; `--json` for scripts. CARDS: `card add|list|get|rm <name>` — project-scoped HTML renderer definitions (headless, no frontend needed). VIEWS: `todo open <todoId> [--popout]` / `todo focus|close <todoId>`; `panel open changes|preview|browser|terminal [--todo <id>] [--url <url>]` / `panel close`. CONTENT: EVENTS go in the chat stream; STATE the user should keep visible (plans, reports, live status) goes on a surface: `show chat.panel <todoId> \"...markdown...\"` (stdin for long content, re-show updates the SAME panel), `clear` removes it; `set todo.status <todoId> '\"DONE\"'` (permission-gated), `set block.focus <blockId>`. Exit 2 = no frontend id / tab not connected.",
-    "versionCmd": "tfa-surface --version 2>/dev/null | head -1",
+    "versionCmd": "tfa-surface --version 2>/dev/null | sed -n 1p",
     "installCmd": "bun add -g @todoforai/tfa-surface",
     "internal": true
   },
@@ -892,7 +892,7 @@
     "installer": "system",
     "label": "Python",
     "capabilities": "Run Python scripts.",
-    "versionCmd": "{ python3 --version || python --version || py --version; } 2>/dev/null | head -1",
+    "versionCmd": "{ python3 --version || python --version || py --version; } 2>/dev/null | sed -n 1p",
     "preinstallCloud": true,
     "cloudAptPackages": [
       "python3"
@@ -929,7 +929,7 @@
     "installer": "system",
     "label": "Python Package Installer",
     "capabilities": "Install Python packages.",
-    "versionCmd": "pip3 --version 2>/dev/null | head -1",
+    "versionCmd": "pip3 --version 2>/dev/null | sed -n 1p",
     "internal": true
   },
   "uv": {
@@ -962,7 +962,7 @@
     "label": "Search",
     "capabilities": "Fast recursive grep with regex, .gitignore-aware, parallel, unicode-correct",
     "description": "",
-    "versionCmd": "rg --version 2>/dev/null | head -1",
+    "versionCmd": "rg --version 2>/dev/null | sed -n 1p",
     "preinstallCloud": true,
     "binary": {
       "linux-x86_64": {
@@ -1002,7 +1002,7 @@
     "label": "Structural Search",
     "capabilities": "AST-based structural code search and rewrite: match syntax, find real call sites, and make safe codemods.",
     "description": "Use when regex cannot distinguish syntax from text: `ast-grep -p \"foo($$$)\" -l ts` finds real calls while ignoring strings and comments; add `--rewrite \"...\"` for codemods. Prefer `rg` for literal or token search.",
-    "versionCmd": "ast-grep --version 2>/dev/null | head -1",
+    "versionCmd": "ast-grep --version 2>/dev/null | sed -n 1p",
     "preinstallCloud": true,
     "binary": {
       "linux-x86_64": {
@@ -1042,7 +1042,7 @@
     "label": "Find Files",
     "capabilities": "Fast user-friendly find replacement: regex by default, .gitignore-aware, parallel",
     "description": "",
-    "versionCmd": "fd --version 2>/dev/null | head -1",
+    "versionCmd": "fd --version 2>/dev/null | sed -n 1p",
     "preinstallCloud": true,
     "binary": {
       "linux-x86_64": {
@@ -1082,7 +1082,7 @@
     "label": "JSON",
     "capabilities": "Command-line JSON processor: query, filter, transform, format JSON streams",
     "description": "",
-    "versionCmd": "jq --version 2>/dev/null | head -1",
+    "versionCmd": "jq --version 2>/dev/null | sed -n 1p",
     "preinstallCloud": true,
     "binary": {
       "linux-x86_64": {
@@ -1118,7 +1118,7 @@
     "label": "Apply Diff",
     "capabilities": "Apply unified/context diff patches to files; reverse, dry-run, fuzzy matching",
     "description": "",
-    "versionCmd": "patch --version 2>/dev/null | head -1",
+    "versionCmd": "patch --version 2>/dev/null | sed -n 1p",
     "binName": "patch",
     "internal": true,
     "preinstallJarvis": true
@@ -1131,7 +1131,7 @@
     "label": "Replace Text",
     "capabilities": "Stream editor: in-place text substitution, line filtering, scripted edits",
     "description": "",
-    "versionCmd": "sed --version 2>/dev/null | head -1",
+    "versionCmd": "sed --version 2>/dev/null | sed -n 1p",
     "binName": "sed",
     "internal": true,
     "preinstallJarvis": true
@@ -1144,7 +1144,7 @@
     "label": "Search Text",
     "capabilities": "Search plain text for lines matching a regex: recursive, fixed-string, context, invert, count",
     "description": "",
-    "versionCmd": "grep --version 2>/dev/null | head -1",
+    "versionCmd": "grep --version 2>/dev/null | sed -n 1p",
     "binName": "grep",
     "internal": true,
     "preinstallJarvis": true
@@ -1161,7 +1161,7 @@
     ],
     "capabilities": "List/read/create/update/delete posts, list/read/update pages, browse media and categories — WordPress REST API.",
     "description": "WordPress REST API CLI. `wordpress-api auth --site https://example.com --user <user> --password '<application password>'` (application password, not the login password). Reading published content needs no auth. `posts list|get|create|update|delete`, `pages`, `media`, `categories`. `posts create` saves a draft unless --status publish. On Elementor/JetEngine sites content.rendered comes back empty — fetch the post's public URL for the body.",
-    "versionCmd": "wordpress-api --version 2>/dev/null | head -1"
+    "versionCmd": "wordpress-api --version 2>/dev/null | sed -n 1p"
   },
   "facebook-pages-api": {
     "category": "social",
@@ -1175,7 +1175,7 @@
     ],
     "capabilities": "Post to a Facebook Page (published, unpublished or scheduled), read/reply/hide/delete comments, page and post insights, Page inbox, photo posting — official Meta Graph API.",
     "description": "Facebook Pages CLI over the official Meta Graph API v21.0. `facebook-pages-api auth --page-id <id> --page-token <token>` (page token from GET /me/accounts; env FB_PAGE_ID / FB_PAGE_TOKEN). `feed list|get|create|delete`, `comments list|get|reply|hide|delete`, `insights page|post`, `conversations list|get`, `media create`. Writes are live — use `feed create --published false` for tests. `comments reply` posts publicly and immediately, so have a human approve the text. Many classic insights metrics (page_impressions, page_fans, post_impressions) were retired and now error; follower totals come from `whoami --fields followers_count,fan_count`. `conversations` needs the pages_messaging permission.",
-    "versionCmd": "facebook-pages-api --version 2>/dev/null | head -1"
+    "versionCmd": "facebook-pages-api --version 2>/dev/null | sed -n 1p"
   },
   "ews-api": {
     "category": "email",
@@ -1189,7 +1189,7 @@
     ],
     "capabilities": "List/search/read mail, create drafts and replies on an on-premise Exchange server over EWS.",
     "description": "On-premise Microsoft Exchange CLI over EWS (Exchange Web Services), for servers with no Microsoft 365 tenant — use outlook-api for cloud mailboxes. `ews-api auth --email user@corp.hu --username 'DOMAIN\\\\user' --password ... --server mail.corp.hu` (NTLM; always pass --server, autodiscover is off). `list`, `search <query>`, `read <id>`, `draft`, `reply <id>`. draft/reply save to Drafts by default and only send with --send, so a human approves in Outlook.",
-    "versionCmd": "ews-api --version 2>/dev/null | head -1"
+    "versionCmd": "ews-api --version 2>/dev/null | sed -n 1p"
   },
   "outlook-api": {
     "category": "email",
@@ -1203,7 +1203,7 @@
     ],
     "capabilities": "List/search/read Outlook/Hotmail mail, download attachments, create drafts/replies and send over Microsoft Graph.",
     "description": "Outlook / Hotmail / Microsoft 365 mail CLI over Microsoft Graph (cloud mailboxes — use ews-api for on-prem Exchange). `outlook-api auth` is a device-code flow with no Azure app registration; personal accounts use --tenant consumers (default), work/school --tenant organizations. list/search/read/attachments are read-only; `draft` and `reply` save to Drafts by default and only send with --send, so a human approves in Outlook; `send <draftId>` sends an existing draft. Raw JSON out; `get` is a raw Graph GET passthrough.",
-    "versionCmd": "outlook-api --version 2>/dev/null | head -1",
+    "versionCmd": "outlook-api --version 2>/dev/null | sed -n 1p",
     "deviceCodePattern": "enter the code ([A-Z0-9]+)",
     "oauthUrlPattern": "(https://www\\.microsoft\\.com/link)",
     "canStreamLogin": true
@@ -1221,7 +1221,7 @@
     ],
     "capabilities": "Serverless Postgres: projects, branches, databases, roles, connection strings",
     "description": "Manage Neon Postgres branches and run SQL: `neonctl projects list`, `neonctl branches create`, `neonctl connection-string`. Aliased as `neon`.",
-    "versionCmd": "neonctl --version 2>/dev/null | head -1",
+    "versionCmd": "neonctl --version 2>/dev/null | sed -n 1p",
     "aliases": [
       "neon"
     ],
@@ -1241,7 +1241,7 @@
     ],
     "capabilities": "Outlook mail & calendar, Teams, SharePoint, OneDrive, Entra ID users and groups",
     "description": "Microsoft 365 from the shell: `m365 outlook message list`, `m365 teams team list`, `m365 spo site list`. Device-code login; add `--output json` for parseable output.",
-    "versionCmd": "m365 version 2>/dev/null | tr -d '\"' | head -1"
+    "versionCmd": "m365 version 2>/dev/null | tr -d '\"' | sed -n 1p"
   },
   "hubspot": {
     "category": "marketing",
@@ -1258,7 +1258,7 @@
     ],
     "capabilities": "CRM objects, contacts & deals, CMS themes, serverless functions, HubDB",
     "description": "Invoked as `hs`. `hs api <endpoint>` makes authenticated calls to any HubSpot API (contacts, deals, companies) — prefer it over raw curl.",
-    "versionCmd": "hs --version 2>/dev/null | head -1",
+    "versionCmd": "hs --version 2>/dev/null | sed -n 1p",
     "canStreamLogin": true
   },
   "posthog-cli": {
@@ -1273,7 +1273,7 @@
     ],
     "capabilities": "Product analytics queries, error tracking, source maps, releases, feature flags",
     "description": "Official PostHog CLI. `posthog-cli api tools` lists the agent-first API tool catalog, `posthog-cli api call <tool> '<json>'` runs one (SQL queries, insights, flags). Also uploads sourcemaps/dSYM. Env alternative: POSTHOG_CLI_API_KEY + POSTHOG_CLI_PROJECT_ID.",
-    "versionCmd": "posthog-cli --version 2>/dev/null | head -1"
+    "versionCmd": "posthog-cli --version 2>/dev/null | sed -n 1p"
   },
   "canva": {
     "category": "design",
@@ -1288,7 +1288,7 @@
     ],
     "capabilities": "Canva app development: scaffold, preview, deploy apps; Canva Developer MCP server",
     "description": "Official Canva CLI — app-development focused: `canva apps create/list/preview`. `canva mcp` starts the Canva Developer MCP server. For design/export automation use the Canva Connect REST API.",
-    "versionCmd": "canva --version 2>/dev/null | head -1",
+    "versionCmd": "canva --version 2>/dev/null | sed -n 1p",
     "oauthUrlPattern": "OPEN_URL: (https://www\\.canva\\.com/api/oauth/authorize\\S+)",
     "oauthCallbackPort": 3030
   },
@@ -1304,7 +1304,7 @@
     ],
     "capabilities": "Sites, CMS collections & items, forms, assets, custom code",
     "description": "Manage Webflow sites from the shell: `webflow sites list`, `webflow cms ...`, `webflow assets ...`. Add `--skip-update-check` in scripts.",
-    "versionCmd": "webflow --version 2>/dev/null | head -1"
+    "versionCmd": "webflow --version 2>/dev/null | sed -n 1p"
   },
   "readwise": {
     "category": "productivity",
@@ -1318,7 +1318,7 @@
     ],
     "capabilities": "Reader documents & highlights: search (incl. vector), save, tag, export, organize",
     "description": "Official Readwise/Reader CLI. `readwise search <query>`, `readwise list`, `readwise save <url>`; supports JSON output for piping and a read-only mode for agents. Token login for CI: `readwise login-with-token <token>` (get one at readwise.io/access_token).",
-    "versionCmd": "readwise --version 2>/dev/null | head -1",
+    "versionCmd": "readwise --version 2>/dev/null | sed -n 1p",
     "oauthUrlPattern": "OPEN_URL: (https://readwise\\.io/o/authorize\\S+)",
     "oauthCallbackPort": 6274
   },
@@ -1335,7 +1335,7 @@
     ],
     "capabilities": "monday-code apps: scaffold, deploy, logs, env vars, storage, scheduler",
     "description": "Invoked as `mapps` — app development and monday-code deployments only; `mapps init -t <token>` stores a monday.com API token in ~/.mappsrc. To read/write board DATA use the monday.com GraphQL API (api.monday.com/v2) with that same token.",
-    "versionCmd": "mapps --version 2>/dev/null | head -1"
+    "versionCmd": "mapps --version 2>/dev/null | sed -n 1p"
   },
   "exa-cli": {
     "category": "utility",
@@ -1347,7 +1347,7 @@
     "credentialPaths": [],
     "capabilities": "Neural web search, page contents, find-similar, grounded answers — built for agents",
     "description": "Invoked as `exa`. `exa search <query>`, `exa answer <question>`, `exa contents <url>`, `exa find-similar <url>` — JSON by default. Needs EXA_API_KEY in the environment (get one at dashboard.exa.ai); store it in the vault.",
-    "versionCmd": "exa --version 2>/dev/null | head -1"
+    "versionCmd": "exa --version 2>/dev/null | sed -n 1p"
   },
   "mobbin": {
     "category": "design",
@@ -1362,6 +1362,6 @@
     ],
     "capabilities": "Search real-world mobile & web UI patterns, screens and flows for design reference",
     "description": "Unofficial CLI over Mobbin's undocumented web endpoints. `mobbin search --query \"login\" --platform ios`. Auth reuses browser cookies: log into mobbin.com in Chrome, then `mobbin auth save-cookie`.",
-    "versionCmd": "mobbin --version 2>/dev/null | head -2 | tr '\\n' ' '"
+    "versionCmd": "mobbin --version 2>/dev/null | sed -n '1,2p' | tr '\\n' ' '"
   }
 }
