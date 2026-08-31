@@ -311,7 +311,7 @@
     "pkg": "wrangler",
     "installer": "npm",
     "label": "Cloudflare",
-    "statusCmd": "wrangler whoami 2>&1 | grep -v 'Failed' | grep '@'",
+    "statusCmd": "wrangler whoami 2>&1 | grep -m1 -oiE '[[:alnum:]._%+-]+@[[:alnum:].-]+\\.[[:alpha:]]{2,}'",
     "loginCmd": "wrangler login",
     "credentialPaths": [
       "~/.config/.wrangler/config/default.toml"
