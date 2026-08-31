@@ -4,7 +4,7 @@
     "pkg": "zele",
     "installer": "npm",
     "label": "Gmail",
-    "statusCmd": "zele whoami",
+    "statusCmd": "zele whoami 2>/dev/null | grep 'email:' | grep -m1 .",
     "loginNeedsPty": true,
     "loginCmd": "zele login --method google",
     "oauthUrlPattern": "(https://accounts\\.google\\.com\\S+)",
@@ -23,7 +23,7 @@
     "installer": "npm",
     "binName": "zele",
     "label": "Google Calendar",
-    "statusCmd": "zele whoami",
+    "statusCmd": "zele whoami 2>/dev/null | grep 'email:' | grep -m1 .",
     "loginNeedsPty": true,
     "loginCmd": "zele login --method google",
     "oauthUrlPattern": "(https://accounts\\.google\\.com\\S+)",
@@ -40,7 +40,7 @@
     "pkg": "@xdevplatform/xurl",
     "installer": "npm",
     "label": "X",
-    "statusCmd": "xurl whoami 2>&1 | sed -n 's/.*\"username\"[[:space:]]*:[[:space:]]*\"\\([^\"]*\\)\".*/\\1/p' | head -1",
+    "statusCmd": "xurl whoami 2>&1 | sed -n 's/.*\"username\"[[:space:]]*:[[:space:]]*\"\\([^\"]*\\)\".*/\\1/p' | grep -m1 .",
     "loginCmd": "xurl auth oauth2",
     "oauthUrlPattern": "(https://(?:twitter|x)\\.com/i/oauth2\\S+)",
     "oauthCallbackPort": 8080,
@@ -58,7 +58,7 @@
     "pkg": "@todoforai/linkedin-api",
     "installer": "npm",
     "label": "LinkedIn",
-    "statusCmd": "linkedin-api whoami 2>/dev/null | sed -n 's/.*\"publicId\"[[:space:]]*:[[:space:]]*\"\\([^\"]*\\)\".*/\\1/p' | head -1",
+    "statusCmd": "linkedin-api whoami 2>/dev/null | sed -n 's/.*\"publicId\"[[:space:]]*:[[:space:]]*\"\\([^\"]*\\)\".*/\\1/p' | grep -m1 .",
     "loginCmd": "linkedin-api auth",
     "credentialPaths": [
       "~/.config/linkedin-api/credentials.json"
@@ -72,7 +72,7 @@
     "pkg": "@todoforai/figma-api",
     "installer": "npm",
     "label": "Figma",
-    "statusCmd": "figma-api me 2>/dev/null | sed -n 's/.*\"email\"[[:space:]]*:[[:space:]]*\"\\([^\"]*\\)\".*/\\1/p' | head -1",
+    "statusCmd": "figma-api me 2>/dev/null | sed -n 's/.*\"email\"[[:space:]]*:[[:space:]]*\"\\([^\"]*\\)\".*/\\1/p' | grep -m1 .",
     "loginCmd": "figma-api auth",
     "credentialPaths": [
       "~/.config/figma-api/credentials.json"
@@ -86,7 +86,7 @@
     "pkg": "slack-cli",
     "installer": "binary",
     "label": "Slack",
-    "statusCmd": "slack-cli auth list 2>&1 | grep -q 'Team' && echo authenticated",
+    "statusCmd": "slack-cli auth list 2>&1 | grep 'Team' >/dev/null && echo authenticated",
     "loginCmd": "slack-cli login",
     "credentialPaths": [
       "~/.slack/credentials.json"
@@ -141,7 +141,8 @@
     "pkg": "meta-ads",
     "installer": "pip",
     "label": "Meta Ads",
-    "statusCmd": "meta auth status 2>&1",
+    "binName": "meta",
+    "statusCmd": "out=$(meta auth status 2>&1); rc=$?; printf '%s\\n' \"$out\" | grep -m1 .; exit $rc",
     "capabilities": "Meta/Facebook & Instagram ad campaigns: campaigns/adsets/ads CRUD, insights & reporting, catalog/product-feed/product-set/product-item, ad creatives, datasets (pixels), pages — Marketing API via the official `meta` CLI.",
     "versionCmd": "meta --version 2>/dev/null | head -1"
   },
@@ -224,7 +225,7 @@
     "installer": "binary",
     "preinstallCloud": true,
     "label": "GitHub",
-    "statusCmd": "gh auth status",
+    "statusCmd": "gh auth status 2>&1 | grep 'Logged in to' | grep -m1 .",
     "loginCmd": "gh auth login --hostname github.com --git-protocol https",
     "oauthUrlPattern": "(https://github\\.com/login/device\\S*)",
     "deviceCodePattern": "one-time code:\\s*([A-Z0-9]{4}-[A-Z0-9]{4})",
@@ -243,7 +244,7 @@
     "pkg": "mcporter",
     "installer": "npm",
     "label": "MCP (mcporter)",
-    "statusCmd": "mcporter list 2>/dev/null | grep -v 'No MCP servers' | head -5",
+    "statusCmd": "mcporter list 2>/dev/null | grep -v 'No MCP servers' | grep -m1 .",
     "capabilities": "Connect to any MCP server from the shell: list servers & tool schemas, call tools, read resources, OAuth login, generate standalone CLIs from MCP servers",
     "description": "Bridge to MCP servers as plain CLI commands. `mcporter list` shows configured servers (auto-imports Claude/Cursor/VS Code/Codex configs; add `--schema` for tool docs), `mcporter call <server>.<tool> key=value ...` invokes a tool (or `mcporter call <http-url>` directly), `mcporter resource <server> [uri]` reads resources, `mcporter auth <server>` completes OAuth, `mcporter config add <name> <cmd-or-url>` registers a new server. Use this whenever a task needs an MCP-only integration — no MCP client wiring required.",
     "versionCmd": "mcporter --version 2>/dev/null | head -1",
@@ -255,7 +256,7 @@
     "pkg": "glab",
     "installer": "binary",
     "label": "GitLab",
-    "statusCmd": "glab auth status",
+    "statusCmd": "glab auth status 2>&1 | grep 'Logged in to' | grep -m1 .",
     "loginCmd": "glab auth login",
     "credentialPaths": [
       "~/.config/glab-cli/config.yml"
@@ -269,7 +270,7 @@
     "pkg": "vercel",
     "installer": "npm",
     "label": "Vercel",
-    "statusCmd": "vercel whoami",
+    "statusCmd": "vercel whoami 2>/dev/null | tr -d '\\r' | grep -m1 .",
     "loginCmd": "vercel login",
     "credentialPaths": [
       "~/.local/share/com.vercel.cli/auth.json"
@@ -283,7 +284,7 @@
     "pkg": "netlify-cli",
     "installer": "npm",
     "label": "Netlify",
-    "statusCmd": "netlify api getCurrentUser 2>&1 | sed -n 's/.*\"email\"[[:space:]]*:[[:space:]]*\"\\([^\"]*\\)\".*/\\1/p' | head -1",
+    "statusCmd": "netlify api getCurrentUser 2>&1 | sed -n 's/.*\"email\"[[:space:]]*:[[:space:]]*\"\\([^\"]*\\)\".*/\\1/p' | grep -m1 .",
     "loginCmd": "netlify login",
     "credentialPaths": [
       "~/.netlify/config.json"
@@ -297,7 +298,7 @@
     "pkg": "firebase-tools",
     "installer": "npm",
     "label": "Firebase",
-    "statusCmd": "firebase login:list 2>&1 | grep '@'",
+    "statusCmd": "firebase login:list 2>&1 | grep -oiE '[[:alnum:]._%+-]+@[[:alnum:].-]+\\.[[:alpha:]]{2,}' | grep -m1 .",
     "loginCmd": "firebase login",
     "credentialPaths": [
       "~/.config/configstore/firebase-tools.json"
@@ -311,7 +312,7 @@
     "pkg": "wrangler",
     "installer": "npm",
     "label": "Cloudflare",
-    "statusCmd": "wrangler whoami 2>&1 | grep -m1 -oiE '[[:alnum:]._%+-]+@[[:alnum:].-]+\\.[[:alpha:]]{2,}'",
+    "statusCmd": "wrangler whoami 2>&1 | grep -oiE '[[:alnum:]._%+-]+@[[:alnum:].-]+\\.[[:alpha:]]{2,}' | grep -m1 .",
     "loginCmd": "wrangler login",
     "credentialPaths": [
       "~/.config/.wrangler/config/default.toml"
@@ -325,7 +326,7 @@
     "pkg": "stripe",
     "installer": "binary",
     "label": "Stripe",
-    "statusCmd": "stripe get /v1/account 2>&1 | sed -n 's/.*\"id\"[[:space:]]*:[[:space:]]*\"\\([^\"]*\\)\".*/\\1/p' | head -1",
+    "statusCmd": "stripe get /v1/account </dev/null 2>&1 | sed -n 's/.*\"id\"[[:space:]]*:[[:space:]]*\"\\([^\"]*\\)\".*/\\1/p' | grep -m1 .",
     "loginCmd": "stripe login",
     "credentialPaths": [
       "~/.config/stripe/config.toml"
@@ -339,7 +340,7 @@
     "pkg": "flyctl",
     "installer": "binary",
     "label": "Fly.io",
-    "statusCmd": "flyctl auth whoami 2>&1 | grep -v 'not logged in' | head -1",
+    "statusCmd": "flyctl auth whoami 2>/dev/null | tr -d '\\r' | grep -m1 .",
     "loginCmd": "flyctl auth login",
     "credentialPaths": [
       "~/.fly/config.yml"
@@ -367,7 +368,7 @@
     "pkg": "@railway/cli",
     "installer": "npm",
     "label": "Railway",
-    "statusCmd": "railway whoami 2>&1 | grep -v 'Unauthorized'",
+    "statusCmd": "RAILWAY_NO_TELEMETRY=1 railway whoami 2>&1 | grep -v 'Unauthorized' | grep -m1 .",
     "loginCmd": "railway login",
     "credentialPaths": [
       "~/.railway/config.json"
@@ -412,7 +413,7 @@
     "pkg": "@sentry/cli",
     "installer": "npm",
     "label": "Sentry",
-    "statusCmd": "sentry-cli info 2>&1 | grep -q 'Authentication Info' && echo authenticated",
+    "statusCmd": "sentry-cli info --no-defaults >/dev/null 2>&1 && echo authenticated",
     "loginCmd": "sentry-cli login",
     "credentialPaths": [
       "~/.sentryclirc"
@@ -455,7 +456,7 @@
     "binName": "curl",
     "capabilities": "HTTP/HTTPS/FTP client: GET/POST/PUT/DELETE, headers, auth, file upload/download, follow redirects, cookies, TLS.",
     "description": "",
-    "versionCmd": "curl --version 2>/dev/null | head -1",
+    "versionCmd": "curl --version 2>/dev/null | head -1 | cut -d' ' -f1-2",
     "preinstallCloud": true,
     "internal": true,
     "preinstallJarvis": true
@@ -571,7 +572,7 @@
     "installer": "system",
     "label": "Google Cloud",
     "installCmd": "curl -sSL https://sdk.cloud.google.com | bash -s -- --disable-prompts",
-    "statusCmd": "gcloud auth list --filter=status:ACTIVE --format=\"value(account)\" 2>/dev/null | grep -m1 .",
+    "statusCmd": "gcloud auth list --filter=status:ACTIVE --format=\"value(account)\" 2>/dev/null | tr -d '\\r' | grep -m1 .",
     "loginCmd": "gcloud auth login --no-launch-browser",
     "loginNeedsPty": true,
     "oauthUrlPattern": "(https://accounts\\.google\\.com/o/oauth2/auth\\S+)",
@@ -588,7 +589,7 @@
     "installer": "pip",
     "label": "Azure",
     "binName": "az",
-    "statusCmd": "az account show --query user.name -o tsv 2>/dev/null | grep -m1 .",
+    "statusCmd": "az account show --query user.name -o tsv 2>/dev/null | tr -d '\\r' | grep -m1 .",
     "loginCmd": "az login --use-device-code",
     "oauthUrlPattern": "(https://login\\.microsoft\\.com/device\\S*)",
     "deviceCodePattern": "enter the code ([A-Z0-9]+)",
@@ -605,7 +606,7 @@
     "pkg": "doctl",
     "installer": "binary",
     "label": "DigitalOcean",
-    "statusCmd": "doctl account get --format Email --no-header 2>/dev/null | grep -m1 .",
+    "statusCmd": "doctl account get --format Email --no-header 2>/dev/null | tr -d '\\r' | grep -m1 .",
     "loginCmd": "doctl auth init",
     "loginNeedsPty": true,
     "credentialPaths": [
@@ -620,7 +621,7 @@
     "pkg": "rdt-cli",
     "installer": "pip",
     "label": "Reddit",
-    "statusCmd": "rdt status 2>&1 | sed -n 's/.*\"username\"[[:space:]]*:[[:space:]]*\"\\([^\"]*\\)\".*/\\1/p' | head -1",
+    "statusCmd": "rdt status 2>&1 | sed -n 's/.*\"username\"[[:space:]]*:[[:space:]]*\"\\([^\"]*\\)\".*/\\1/p' | grep -m1 .",
     "loginCmd": "rdt login",
     "credentialPaths": [
       "~/.config/rdt-cli/credential.json"
@@ -1132,7 +1133,7 @@
     "pkg": "@todoforai/wordpress-api",
     "installer": "npm",
     "label": "WordPress",
-    "statusCmd": "wordpress-api whoami 2>/dev/null | sed -n 's/.*\"slug\"[[:space:]]*:[[:space:]]*\"\\([^\"]*\\)\".*/\\1/p' | head -1",
+    "statusCmd": "wordpress-api whoami 2>/dev/null | sed -n 's/.*\"slug\"[[:space:]]*:[[:space:]]*\"\\([^\"]*\\)\".*/\\1/p' | grep -m1 .",
     "loginCmd": "wordpress-api auth",
     "credentialPaths": [
       "~/.config/wordpress-api/credentials.json"
@@ -1146,7 +1147,7 @@
     "pkg": "@todoforai/facebook-pages-api",
     "installer": "npm",
     "label": "Facebook Pages",
-    "statusCmd": "facebook-pages-api whoami 2>/dev/null | sed -n 's/.*\"name\"[[:space:]]*:[[:space:]]*\"\\([^\"]*\\)\".*/\\1/p' | head -1",
+    "statusCmd": "facebook-pages-api whoami 2>/dev/null | sed -n 's/.*\"name\"[[:space:]]*:[[:space:]]*\"\\([^\"]*\\)\".*/\\1/p' | grep -m1 .",
     "loginCmd": "facebook-pages-api auth",
     "credentialPaths": [
       "~/.config/facebook-pages-api/credentials.json"
@@ -1160,7 +1161,7 @@
     "pkg": "ews-api",
     "installer": "pip",
     "label": "Exchange (EWS)",
-    "statusCmd": "ews-api whoami 2>/dev/null | sed -n 's/.*\"email\"[[:space:]]*:[[:space:]]*\"\\([^\"]*\\)\".*/\\1/p' | head -1",
+    "statusCmd": "ews-api whoami 2>/dev/null | sed -n 's/.*\"email\"[[:space:]]*:[[:space:]]*\"\\([^\"]*\\)\".*/\\1/p' | grep -m1 .",
     "loginCmd": "ews-api auth",
     "credentialPaths": [
       "~/.config/ews-api/credentials.json"
@@ -1174,7 +1175,7 @@
     "pkg": "@todoforai/outlook-api",
     "installer": "npm",
     "label": "Outlook (Graph)",
-    "statusCmd": "outlook-api whoami 2>/dev/null | sed -n 's/.*\"userPrincipalName\"[[:space:]]*:[[:space:]]*\"\\([^\"]*\\)\".*/\\1/p' | head -1",
+    "statusCmd": "outlook-api whoami 2>/dev/null | sed -n 's/.*\"userPrincipalName\"[[:space:]]*:[[:space:]]*\"\\([^\"]*\\)\".*/\\1/p' | grep -m1 .",
     "loginCmd": "outlook-api auth",
     "credentialPaths": [
       "~/.config/outlook-api/config.json"
@@ -1326,7 +1327,7 @@
     "pkg": "mobbin",
     "installer": "npm",
     "label": "Mobbin",
-    "statusCmd": "mobbin auth print-cookie 2>/dev/null | grep -qE '[A-Za-z0-9]' && echo authenticated",
+    "statusCmd": "mobbin auth print-cookie 2>/dev/null | grep -E '[A-Za-z0-9]' >/dev/null && echo authenticated",
     "loginCmd": "mobbin auth save-cookie",
     "credentialPaths": [
       "~/.config/mobbin/cookie.txt",
