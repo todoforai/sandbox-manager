@@ -39,12 +39,21 @@ RUN curl -fsSL https://github.com/ast-grep/ast-grep/releases/download/0.44.1/app
 ARG CLOUD_APT_PACKAGES=""
 ARG CLOUD_INSTALL_SCRIPT=""
 ARG CLOUD_VERIFY_SCRIPT=""
+# PIP_PREINSTALL runs here, not in a later layer: it needs python3 from apt and
+# uv from the install script, and cloudVerifyCmd (which imports pymupdf) runs at
+# the end of this same RUN — installing later would verify before installing.
+# Ubuntu 24.04 marks the system Python EXTERNALLY-MANAGED and ships no pip, so
+# use uv, the same resolver the edge uses for pip tools.
+ARG PIP_PREINSTALL=""
 RUN if [ -n "$CLOUD_INSTALL_SCRIPT" ]; then bash -euxo pipefail -c "$CLOUD_INSTALL_SCRIPT"; fi \
  && if [ -n "$CLOUD_APT_PACKAGES" ]; then \
       apt-get update \
       && apt-get install -y --no-install-recommends $CLOUD_APT_PACKAGES \
       && apt-get clean \
       && rm -rf /var/lib/apt/lists/*; \
+    fi \
+ && if [ -n "$PIP_PREINSTALL" ]; then \
+      uv pip install --system --break-system-packages $PIP_PREINSTALL; \
     fi \
  && if [ -n "$CLOUD_VERIFY_SCRIPT" ]; then bash -euxo pipefail -c "$CLOUD_VERIFY_SCRIPT"; fi \
  && if command -v node >/dev/null && command -v bun >/dev/null; then \
@@ -56,14 +65,6 @@ RUN if [ -n "$CLOUD_INSTALL_SCRIPT" ]; then bash -euxo pipefail -c "$CLOUD_INSTA
 # BUN_CACHE_BUST invalidates this layer on each rootfs rebuild so unpinned
 # packages (e.g. @todoforai/cli) resolve to latest at deploy time rather than
 # reusing a stale docker layer from a previous build.
-# pip-installed catalog tools. Ubuntu 24.04 marks the system Python
-# EXTERNALLY-MANAGED and ships no pip, so use uv (installed above) — it is the
-# same resolver the edge uses for pip tools.
-ARG PIP_PREINSTALL=""
-RUN if [ -n "$PIP_PREINSTALL" ]; then \
-      uv pip install --system --break-system-packages $PIP_PREINSTALL; \
-    fi
-
 ARG BUN_PREINSTALL=""
 ARG BUN_CACHE_BUST=""
 # `bun add -g` does NOT run npm lifecycle scripts, and some CLIs ship only a JS
