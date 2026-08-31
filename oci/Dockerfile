@@ -56,6 +56,14 @@ RUN if [ -n "$CLOUD_INSTALL_SCRIPT" ]; then bash -euxo pipefail -c "$CLOUD_INSTA
 # BUN_CACHE_BUST invalidates this layer on each rootfs rebuild so unpinned
 # packages (e.g. @todoforai/cli) resolve to latest at deploy time rather than
 # reusing a stale docker layer from a previous build.
+# pip-installed catalog tools. Ubuntu 24.04 marks the system Python
+# EXTERNALLY-MANAGED and ships no pip, so use uv (installed above) — it is the
+# same resolver the edge uses for pip tools.
+ARG PIP_PREINSTALL=""
+RUN if [ -n "$PIP_PREINSTALL" ]; then \
+      uv pip install --system --break-system-packages $PIP_PREINSTALL; \
+    fi
+
 ARG BUN_PREINSTALL=""
 ARG BUN_CACHE_BUST=""
 # `bun add -g` does NOT run npm lifecycle scripts, and some CLIs ship only a JS
@@ -63,16 +71,20 @@ ARG BUN_CACHE_BUST=""
 # 25 MB Go binary). Without this the shim installs "successfully" and every
 # invocation dies with "xurl binary not found", which reads as a broken tool at
 # runtime. Run the hooks explicitly for the packages that declare one.
+# Only the packages named in the catalog are treated as required: a hook failure
+# there ships a broken tool, so it must fail the build. Transitive dependencies
+# get their hooks best-effort (they are not what the catalog promises).
 RUN if [ -n "$BUN_PREINSTALL" ]; then \
       export BUN_INSTALL=/usr/local && bun add -g $BUN_PREINSTALL \
-   && for pj in /usr/local/install/global/node_modules/*/package.json \
-                /usr/local/install/global/node_modules/@*/*/package.json; do \
-        [ -f "$pj" ] || continue; \
-        d=$(dirname "$pj"); \
-        hook=$(node -p "const s=require('$pj').scripts||{}; s.postinstall||s.install||''" 2>/dev/null); \
+   && root=/usr/local/install/global/node_modules \
+   && for spec in $BUN_PREINSTALL; do \
+        pkg=$(printf '%s' "$spec" | sed 's/\(.\)@[^@]*$/\1/'); \
+        pj="$root/$pkg/package.json"; \
+        [ -f "$pj" ] || { echo "not in bun root (installed by another layer): $pkg" && continue; }; \
+        hook=$(node -p "const s=require('$pj').scripts||{}; [s.preinstall,s.install,s.postinstall].filter(Boolean).join(' && ')" 2>/dev/null); \
         [ -n "$hook" ] || continue; \
-        echo "postinstall: $d -> $hook"; \
-        (cd "$d" && sh -c "$hook") || echo "postinstall FAILED (non-fatal): $d"; \
+        echo "lifecycle (required): $pkg -> $hook"; \
+        (cd "$root/$pkg" && sh -c "$hook") || { echo "lifecycle FAILED for catalog package $pkg" && exit 1; }; \
       done; \
     fi
 

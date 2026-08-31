@@ -338,7 +338,7 @@
     "pkg": "stripe",
     "installer": "binary",
     "label": "Stripe",
-    "statusCmd": "stripe get /v1/account </dev/null 2>&1 | sed -n 's/.*\"id\"[[:space:]]*:[[:space:]]*\"\\([^\"]*\\)\".*/\\1/p' | grep -m1 .",
+    "statusCmd": "stripe config --list 2>/dev/null | sed -n 's/^account_id[[:space:]]*=[[:space:]]*.\\([^'\\'']*\\).*/\\1/p' | grep -m1 .",
     "loginCmd": "stripe login",
     "credentialPaths": [
       "~/.config/stripe/config.toml"
@@ -534,7 +534,6 @@
         "label": "Google Drive",
         "authType": "oauth",
         "connectCmd": "rclone config create {{REMOTE}} drive",
-        "statusCmd": "rclone lsd {{REMOTE}}: 2>&1 | sed -n 1p",
         "remoteName": "gdrive",
         "rcloneType": "drive",
         "userInfoCmd": "TOKEN=$(rclone config dump 2>/dev/null | python3 -c \"import json,sys; print(json.loads(json.load(sys.stdin)['{{REMOTE}}']['token'])['access_token'])\") && curl -sf 'https://www.googleapis.com/drive/v3/about?fields=user' -H \"Authorization: Bearer $TOKEN\" | python3 -c \"import json,sys; print(json.load(sys.stdin)['user']['emailAddress'])\" 2>/dev/null"
@@ -543,7 +542,6 @@
         "label": "OneDrive",
         "authType": "oauth",
         "connectCmd": "rclone config create {{REMOTE}} onedrive",
-        "statusCmd": "rclone lsd {{REMOTE}}: 2>&1 | sed -n 1p",
         "remoteName": "onedrive",
         "rcloneType": "onedrive",
         "userInfoCmd": "TOKEN=$(rclone config dump 2>/dev/null | python3 -c \"import json,sys; print(json.loads(json.load(sys.stdin)['{{REMOTE}}']['token'])['access_token'])\") && curl -sf 'https://graph.microsoft.com/v1.0/me' -H \"Authorization: Bearer $TOKEN\" | python3 -c \"import json,sys; d=json.load(sys.stdin); print(d.get('mail') or d.get('userPrincipalName',''))\" 2>/dev/null"
@@ -552,7 +550,6 @@
         "label": "Dropbox",
         "authType": "oauth",
         "connectCmd": "rclone config create {{REMOTE}} dropbox",
-        "statusCmd": "rclone lsd {{REMOTE}}: 2>&1 | sed -n 1p",
         "remoteName": "dropbox",
         "rcloneType": "dropbox",
         "userInfoCmd": "TOKEN=$(rclone config dump 2>/dev/null | python3 -c \"import json,sys; print(json.loads(json.load(sys.stdin)['{{REMOTE}}']['token'])['access_token'])\") && curl -sf -X POST 'https://api.dropboxapi.com/2/users/get_current_account' -H \"Authorization: Bearer $TOKEN\" | python3 -c \"import json,sys; print(json.load(sys.stdin)['email'])\" 2>/dev/null"
@@ -561,7 +558,6 @@
         "label": "Amazon S3",
         "authType": "credentials",
         "connectCmd": "rclone config create {{REMOTE}} s3",
-        "statusCmd": "rclone lsd {{REMOTE}}: 2>&1 | sed -n 1p",
         "remoteName": "s3",
         "rcloneType": "s3"
       }
@@ -659,6 +655,7 @@
     "capabilities": "PDF text editing, extraction, merge, split. Call via `python3 -c`.",
     "versionCmd": "{ python -c 'import pymupdf; print(pymupdf.__version__)' || python3 -c 'import pymupdf; print(pymupdf.__version__)' || py -c 'import pymupdf; print(pymupdf.__version__)'; } 2>/dev/null",
     "preinstallCloud": true,
+    "cloudVerifyCmd": "python3 -c 'import pymupdf'",
     "preinstallJarvis": true
   },
   "anydoc": {
@@ -929,7 +926,7 @@
     "installer": "system",
     "label": "Python Package Installer",
     "capabilities": "Install Python packages.",
-    "versionCmd": "pip3 --version 2>/dev/null | sed -n 1p",
+    "versionCmd": "pip3 --version 2>/dev/null | sed -n 1p | cut -d' ' -f1-2",
     "internal": true
   },
   "uv": {

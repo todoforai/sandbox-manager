@@ -67,6 +67,14 @@ if [ -f "$TOOL_CATALOG_JSON" ] && command -v jq >/dev/null 2>&1; then
         | map(select(.value.preinstallCloud == true and (.value.installer == "bun" or .value.installer == "npm")))
         | map(.value.pkg) | join(" ")
     ' "$TOOL_CATALOG_JSON")
+    # pip-installed catalog tools (e.g. pymupdf) — without this branch they are
+    # tagged preinstallCloud but never installed, and only surface as a broken
+    # import at runtime.
+    PIP_PREINSTALL=$(jq -r '
+        to_entries
+        | map(select(.value.preinstallCloud == true and .value.installer == "pip"))
+        | map(.value.pkg) | join(" ")
+    ' "$TOOL_CATALOG_JSON")
     CLOUD_APT_PACKAGES=$(jq -r '
         [to_entries[] | select(.value.preinstallCloud == true) | .value.cloudAptPackages[]?]
         | unique | join(" ")
@@ -85,6 +93,7 @@ if [ -f "$TOOL_CATALOG_JSON" ] && command -v jq >/dev/null 2>&1; then
     ' "$TOOL_CATALOG_JSON")
 fi
 echo "   bun/npm packages: ${BUN_PREINSTALL:-(none)}"
+echo "   pip packages: ${PIP_PREINSTALL:-(none)}"
 echo "   apt packages: ${CLOUD_APT_PACKAGES:-(none)}"
 echo "   catalog install commands: $CLOUD_INSTALL_COUNT"
 
@@ -129,6 +138,7 @@ docker build \
     --build-arg CLOUD_INSTALL_SCRIPT="$CLOUD_INSTALL_SCRIPT" \
     --build-arg CLOUD_VERIFY_SCRIPT="$CLOUD_VERIFY_SCRIPT" \
     --build-arg BUN_PREINSTALL="$BUN_PREINSTALL" \
+    --build-arg PIP_PREINSTALL="$PIP_PREINSTALL" \
     --build-arg BUN_CACHE_BUST="$BUN_CACHE_BUST" \
     -t "$IMAGE" \
     -f "$OCI_DIR/Dockerfile" \
