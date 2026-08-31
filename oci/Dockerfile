@@ -58,7 +58,23 @@ RUN if [ -n "$CLOUD_INSTALL_SCRIPT" ]; then bash -euxo pipefail -c "$CLOUD_INSTA
 # reusing a stale docker layer from a previous build.
 ARG BUN_PREINSTALL=""
 ARG BUN_CACHE_BUST=""
-RUN if [ -n "$BUN_PREINSTALL" ]; then export BUN_INSTALL=/usr/local && bun add -g $BUN_PREINSTALL; fi
+# `bun add -g` does NOT run npm lifecycle scripts, and some CLIs ship only a JS
+# shim whose postinstall downloads the real binary (@xdevplatform/xurl fetches a
+# 25 MB Go binary). Without this the shim installs "successfully" and every
+# invocation dies with "xurl binary not found", which reads as a broken tool at
+# runtime. Run the hooks explicitly for the packages that declare one.
+RUN if [ -n "$BUN_PREINSTALL" ]; then \
+      export BUN_INSTALL=/usr/local && bun add -g $BUN_PREINSTALL \
+   && for pj in /usr/local/install/global/node_modules/*/package.json \
+                /usr/local/install/global/node_modules/@*/*/package.json; do \
+        [ -f "$pj" ] || continue; \
+        d=$(dirname "$pj"); \
+        hook=$(node -p "const s=require('$pj').scripts||{}; s.postinstall||s.install||''" 2>/dev/null); \
+        [ -n "$hook" ] || continue; \
+        echo "postinstall: $d -> $hook"; \
+        (cd "$d" && sh -c "$hook") || echo "postinstall FAILED (non-fatal): $d"; \
+      done; \
+    fi
 
 # agent-browser is only a CDP client — it needs a real Chrome to drive. Its own
 # `install` fetches Chrome for Testing (Google's automation channel, version-
