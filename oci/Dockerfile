@@ -101,9 +101,12 @@ RUN if [ -s /usr/local/bin/browser-manager-cli ]; then \
         rm -f /usr/local/bin/browser-manager-cli; \
     fi
 
-# Slim rclone (todoforai backend only) — fetched by build-oci.sh from the
+# rclone (full todoforai fork build) — fetched by build-oci.sh from the
 # rclone-backend release and dropped next to this Dockerfile as `rclone`. The
-# guest entrypoint uses it to FUSE-mount the user's cloud workspace. Best-effort:
+# guest entrypoint uses it to FUSE-mount the user's cloud workspace, and the
+# frontend drives it over the bridge to browse/connect external data sources
+# (Drive, OneDrive, Dropbox, S3) — which is why this is the full build and not
+# the todoforai-only slim one. Best-effort:
 # build-oci.sh may leave a 0-byte placeholder if the release isn't published yet,
 # in which case we drop it so the entrypoint's mount step simply no-ops.
 COPY rclone /usr/local/bin/rclone

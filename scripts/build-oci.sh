@@ -39,16 +39,18 @@ echo "   bridge: $BRIDGE_BIN ($(ls -lh "$BRIDGE_BIN" | awk '{print $5}'))"
 cp "$BRIDGE_BIN" "$OCI_DIR/todoforai-bridge"
 trap 'rm -f "$OCI_DIR/todoforai-bridge"' EXIT
 
-# --- slim rclone (todoforai backend only): baked in like the bridge so the
-# sandbox can FUSE-mount the user's cloud workspace. Best-effort — if the
-# pinned release asset isn't published yet, drop it and the guest entrypoint
-# simply skips the mount (a non-essential feature, must not fail the build).
+# --- rclone (full todoforai fork build): baked in like the bridge so the
+# sandbox can FUSE-mount the user's cloud workspace AND serve the "connect a
+# data source" UI (drive/onedrive/dropbox/s3 backends + lsjson/listremotes).
+# Best-effort — if the pinned release asset isn't published yet, drop it and
+# the guest entrypoint simply skips the mount (a non-essential feature, must
+# not fail the build).
 rm -f "$OCI_DIR/rclone"
 if RCLONE_BIN="$("$SCRIPT_DIR/sync-vendor.sh" rclone 2>/dev/null)" && [ -f "$RCLONE_BIN" ]; then
     cp "$RCLONE_BIN" "$OCI_DIR/rclone"
     echo "   rclone: $RCLONE_BIN ($(ls -lh "$RCLONE_BIN" | awk '{print $5}'))"
 else
-    echo "   WARN: slim rclone not fetchable (release not published?) — cloud mount disabled in this image" >&2
+    echo "   WARN: rclone not fetchable (release not published?) — cloud mount + data sources disabled in this image" >&2
 fi
 # Empty placeholder keeps the Dockerfile COPY valid when the fetch is skipped.
 [ -f "$OCI_DIR/rclone" ] || : > "$OCI_DIR/rclone"

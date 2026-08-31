@@ -1,0 +1,6 @@
+# Pinned digests for the rclone-backend release assets baked into the sandbox
+# image. The upstream release publishes .sha256 files only for the slim
+# `rclone-sandbox-*` binaries, so the full-build tarballs are pinned here.
+# Format: <tag> <asset> <sha256>
+v0.1.4 rclone-linux-amd64.tar.gz 0b8de3ff9c90c0bf73eba059aeac7723d54c35c0f34f5ee569c654fc27d0b0cc
+v0.1.4 rclone-linux-arm64.tar.gz 18bda6d9b762bb289b3dcb18e3ce405b97e085f8b0934c653394d38afbefb939

@@ -59,7 +59,7 @@
     "installer": "npm",
     "label": "LinkedIn",
     "statusCmd": "linkedin-api whoami 2>/dev/null | sed -n 's/.*\"publicId\"[[:space:]]*:[[:space:]]*\"\\([^\"]*\\)\".*/\\1/p' | grep -m1 .",
-    "loginCmd": "linkedin-api auth",
+    "loginCmd": "linkedin-api auth <li_at> <jsessionid>",
     "credentialPaths": [
       "~/.config/linkedin-api/credentials.json"
     ],
@@ -73,7 +73,7 @@
     "installer": "npm",
     "label": "Figma",
     "statusCmd": "figma-api me 2>/dev/null | sed -n 's/.*\"email\"[[:space:]]*:[[:space:]]*\"\\([^\"]*\\)\".*/\\1/p' | grep -m1 .",
-    "loginCmd": "figma-api auth",
+    "loginCmd": "figma-api auth <token>",
     "credentialPaths": [
       "~/.config/figma-api/credentials.json"
     ],
@@ -257,13 +257,16 @@
     "installer": "binary",
     "label": "GitLab",
     "statusCmd": "glab auth status 2>&1 | grep 'Logged in to' | grep -m1 .",
-    "loginCmd": "glab auth login",
+    "loginCmd": "glab auth login --device",
     "credentialPaths": [
       "~/.config/glab-cli/config.yml"
     ],
     "capabilities": "Repos, MRs & issues, CI/CD pipelines, releases",
     "description": "GitLab equivalent of `gh`.",
-    "versionCmd": "glab --version 2>/dev/null | head -1"
+    "versionCmd": "glab --version 2>/dev/null | head -1",
+    "deviceCodePattern": "one-time code: ([A-Z0-9-]+)",
+    "oauthUrlPattern": "(https://gitlab\\.com/oauth/device)",
+    "canStreamLogin": true
   },
   "vercel": {
     "category": "deployment",
@@ -277,7 +280,10 @@
     ],
     "capabilities": "Deploy & preview, environment variables, domain management",
     "description": "`vercel deploy`; manage env vars, domains, preview URLs.",
-    "versionCmd": "vercel --version 2>/dev/null | head -1"
+    "versionCmd": "vercel --version 2>/dev/null | head -1",
+    "deviceCodePattern": "user_code=([A-Z0-9-]+)",
+    "oauthUrlPattern": "(https://vercel\\.com/oauth/device\\S*)",
+    "canStreamLogin": true
   },
   "netlify": {
     "category": "deployment",
@@ -291,7 +297,9 @@
     ],
     "capabilities": "Deploy & preview, serverless functions, forms & identity",
     "description": "`netlify deploy --prod` for production; manage env vars, forms, identity.",
-    "versionCmd": "netlify --version 2>/dev/null | head -1"
+    "versionCmd": "netlify --version 2>/dev/null | head -1",
+    "oauthUrlPattern": "(https://app\\.netlify\\.com/authorize\\S+)",
+    "canStreamLogin": true
   },
   "firebase": {
     "category": "deployment",
@@ -299,13 +307,15 @@
     "installer": "npm",
     "label": "Firebase",
     "statusCmd": "firebase login:list 2>&1 | grep -oiE '[[:alnum:]._%+-]+@[[:alnum:].-]+\\.[[:alpha:]]{2,}' | grep -m1 .",
-    "loginCmd": "firebase login",
+    "loginCmd": "firebase login --no-localhost",
     "credentialPaths": [
       "~/.config/configstore/firebase-tools.json"
     ],
     "capabilities": "Hosting & deploy, Firestore & Realtime DB, auth & functions",
     "description": "Deploy hosting/functions, manage Firestore/RTDB rules and data, auth users, emulators.",
-    "versionCmd": "firebase --version 2>/dev/null | head -1"
+    "versionCmd": "firebase --version 2>/dev/null | head -1",
+    "oauthUrlPattern": "(https://auth\\.firebase\\.tools/login\\S+)",
+    "canStreamLogin": true
   },
   "wrangler": {
     "category": "deployment",
@@ -319,7 +329,9 @@
     ],
     "capabilities": "Workers & Pages deploy, KV & D1 storage, R2 & Queues",
     "description": "Tail logs with `wrangler tail`. Use `cloudflared` for tunnels.",
-    "versionCmd": "wrangler --version 2>/dev/null | head -1"
+    "versionCmd": "wrangler --version 2>/dev/null | head -1",
+    "oauthUrlPattern": "(https://dash\\.cloudflare\\.com/oauth2/auth\\S+)",
+    "oauthCallbackPort": 8976
   },
   "stripe": {
     "category": "payments",
@@ -333,7 +345,10 @@
     ],
     "capabilities": "Payments & subscriptions, webhook testing, invoice management",
     "description": "`stripe listen` forwards webhooks locally; `stripe get/post /v1/...` for raw API.",
-    "versionCmd": "stripe --version 2>/dev/null | head -1"
+    "versionCmd": "stripe --version 2>/dev/null | head -1",
+    "deviceCodePattern": "\"verification_code\":\\s*\"([A-Z0-9-]+)\"",
+    "oauthUrlPattern": "\"browser_url\":\\s*\"(\\S+?)\"",
+    "canStreamLogin": true
   },
   "flyctl": {
     "category": "cloud",
@@ -341,7 +356,7 @@
     "installer": "binary",
     "label": "Fly.io",
     "statusCmd": "flyctl auth whoami 2>/dev/null | tr -d '\\r' | grep -m1 .",
-    "loginCmd": "flyctl auth login",
+    "loginCmd": "flyctl auth login -t <access_token>",
     "credentialPaths": [
       "~/.fly/config.yml"
     ],
@@ -355,7 +370,7 @@
     "installer": "binary",
     "label": "Supabase",
     "statusCmd": "supabase projects list >/dev/null 2>&1 && echo authenticated",
-    "loginCmd": "supabase login",
+    "loginCmd": "supabase login --token <access_token>",
     "credentialPaths": [
       "~/.config/supabase/access-token"
     ],
@@ -368,27 +383,33 @@
     "pkg": "@railway/cli",
     "installer": "npm",
     "label": "Railway",
-    "statusCmd": "RAILWAY_NO_TELEMETRY=1 railway whoami 2>&1 | grep -v 'Unauthorized' | grep -m1 .",
+    "statusCmd": "out=$(RAILWAY_NO_TELEMETRY=1 railway whoami 2>&1); rc=$?; printf '%s\\n' \"$out\" | grep -m1 .; exit $rc",
     "loginCmd": "railway login",
     "credentialPaths": [
       "~/.railway/config.json"
     ],
     "capabilities": "Deploy apps & databases, environment management, auto-scaling",
     "description": "`railway up` to deploy current dir.",
-    "versionCmd": "railway --version 2>/dev/null | head -1"
+    "versionCmd": "railway --version 2>/dev/null | head -1",
+    "deviceCodePattern": "user_code=([A-Z0-9-]+)",
+    "oauthUrlPattern": "(https://railway\\.com/activate\\S*)",
+    "canStreamLogin": true
   },
   "shopify": {
     "category": "ecommerce",
     "pkg": "@shopify/cli",
     "installer": "npm",
     "label": "Shopify",
-    "loginCmd": "shopify auth login",
+    "loginCmd": "shopify auth login --alias tfa",
     "credentialPaths": [
       "~/.config/shopify/config.json"
     ],
     "capabilities": "Theme development, app scaffolding, store management",
     "versionCmd": "shopify version 2>/dev/null | head -1",
-    "statusCmd": "test -f ~/.config/shopify/config.json && echo authenticated"
+    "statusCmd": "test -f ~/.config/shopify/config.json && echo authenticated",
+    "deviceCodePattern": "verification code: ([A-Z0-9-]+)",
+    "oauthUrlPattern": "(https://accounts\\.shopify\\.com/activate-with-code\\S*)",
+    "canStreamLogin": true
   },
   "shop-app": {
     "category": "ecommerce",
@@ -414,7 +435,7 @@
     "installer": "npm",
     "label": "Sentry",
     "statusCmd": "sentry-cli info --no-defaults >/dev/null 2>&1 && echo authenticated",
-    "loginCmd": "sentry-cli login",
+    "loginCmd": "sentry-cli login --auth-token <auth_token>",
     "credentialPaths": [
       "~/.sentryclirc"
     ],
@@ -487,7 +508,7 @@
     "installer": "binary",
     "label": "HashiCorp Vault",
     "statusCmd": "vault token lookup >/dev/null 2>&1 && echo authenticated",
-    "loginCmd": "vault login",
+    "loginCmd": "vault login <token>",
     "credentialPaths": [
       "~/.vault-token"
     ],
@@ -500,7 +521,7 @@
     "installer": "system",
     "preinstallCloud": true,
     "label": "Cloud Storage",
-    "statusCmd": "rclone listremotes 2>&1 | grep -v 'NOTICE' | grep -q ':' && echo authenticated",
+    "statusCmd": "rclone listremotes 2>/dev/null | grep ':$' | grep -m1 .",
     "loginCmd": "rclone config",
     "oauthUrlPattern": "(https?://127\\.0\\.0\\.1:\\d+/auth\\?\\S+)",
     "oauthCallbackPort": 53682,
@@ -607,7 +628,7 @@
     "installer": "binary",
     "label": "DigitalOcean",
     "statusCmd": "doctl account get --format Email --no-header 2>/dev/null | tr -d '\\r' | grep -m1 .",
-    "loginCmd": "doctl auth init",
+    "loginCmd": "doctl auth init -t <access_token>",
     "loginNeedsPty": true,
     "credentialPaths": [
       "~/.config/doctl/config.yaml"
@@ -1134,7 +1155,7 @@
     "installer": "npm",
     "label": "WordPress",
     "statusCmd": "wordpress-api whoami 2>/dev/null | sed -n 's/.*\"slug\"[[:space:]]*:[[:space:]]*\"\\([^\"]*\\)\".*/\\1/p' | grep -m1 .",
-    "loginCmd": "wordpress-api auth",
+    "loginCmd": "wordpress-api auth --site <url> --user <username> --password <app_password>",
     "credentialPaths": [
       "~/.config/wordpress-api/credentials.json"
     ],
@@ -1148,7 +1169,7 @@
     "installer": "npm",
     "label": "Facebook Pages",
     "statusCmd": "facebook-pages-api whoami 2>/dev/null | sed -n 's/.*\"name\"[[:space:]]*:[[:space:]]*\"\\([^\"]*\\)\".*/\\1/p' | grep -m1 .",
-    "loginCmd": "facebook-pages-api auth",
+    "loginCmd": "facebook-pages-api auth --page-id <id> --page-token <token>",
     "credentialPaths": [
       "~/.config/facebook-pages-api/credentials.json"
     ],
@@ -1162,7 +1183,7 @@
     "installer": "pip",
     "label": "Exchange (EWS)",
     "statusCmd": "ews-api whoami 2>/dev/null | sed -n 's/.*\"email\"[[:space:]]*:[[:space:]]*\"\\([^\"]*\\)\".*/\\1/p' | grep -m1 .",
-    "loginCmd": "ews-api auth",
+    "loginCmd": "ews-api auth --email <email> --username <username> --password <password> --server <server>",
     "credentialPaths": [
       "~/.config/ews-api/credentials.json"
     ],
@@ -1182,7 +1203,10 @@
     ],
     "capabilities": "List/search/read Outlook/Hotmail mail, download attachments, create drafts/replies and send over Microsoft Graph.",
     "description": "Outlook / Hotmail / Microsoft 365 mail CLI over Microsoft Graph (cloud mailboxes — use ews-api for on-prem Exchange). `outlook-api auth` is a device-code flow with no Azure app registration; personal accounts use --tenant consumers (default), work/school --tenant organizations. list/search/read/attachments are read-only; `draft` and `reply` save to Drafts by default and only send with --send, so a human approves in Outlook; `send <draftId>` sends an existing draft. Raw JSON out; `get` is a raw Graph GET passthrough.",
-    "versionCmd": "outlook-api --version 2>/dev/null | head -1"
+    "versionCmd": "outlook-api --version 2>/dev/null | head -1",
+    "deviceCodePattern": "enter the code ([A-Z0-9]+)",
+    "oauthUrlPattern": "(https://www\\.microsoft\\.com/link)",
+    "canStreamLogin": true
   },
   "neonctl": {
     "category": "database",
@@ -1200,7 +1224,8 @@
     "versionCmd": "neonctl --version 2>/dev/null | head -1",
     "aliases": [
       "neon"
-    ]
+    ],
+    "canStreamLogin": true
   },
   "m365": {
     "category": "productivity",
@@ -1233,7 +1258,8 @@
     ],
     "capabilities": "CRM objects, contacts & deals, CMS themes, serverless functions, HubDB",
     "description": "Invoked as `hs`. `hs api <endpoint>` makes authenticated calls to any HubSpot API (contacts, deals, companies) — prefer it over raw curl.",
-    "versionCmd": "hs --version 2>/dev/null | head -1"
+    "versionCmd": "hs --version 2>/dev/null | head -1",
+    "canStreamLogin": true
   },
   "posthog-cli": {
     "category": "monitoring",
@@ -1242,7 +1268,6 @@
     "label": "PostHog",
     "statusCmd": "test -s ~/.config/posthog.json && grep -q 'token\\|key' ~/.config/posthog.json && echo authenticated",
     "loginCmd": "posthog-cli login",
-    "loginNeedsPty": true,
     "credentialPaths": [
       "~/.config/posthog.json"
     ],
@@ -1263,7 +1288,9 @@
     ],
     "capabilities": "Canva app development: scaffold, preview, deploy apps; Canva Developer MCP server",
     "description": "Official Canva CLI — app-development focused: `canva apps create/list/preview`. `canva mcp` starts the Canva Developer MCP server. For design/export automation use the Canva Connect REST API.",
-    "versionCmd": "canva --version 2>/dev/null | head -1"
+    "versionCmd": "canva --version 2>/dev/null | head -1",
+    "oauthUrlPattern": "OPEN_URL: (https://www\\.canva\\.com/api/oauth/authorize\\S+)",
+    "oauthCallbackPort": 3030
   },
   "webflow": {
     "category": "development",
@@ -1272,7 +1299,6 @@
     "label": "Webflow",
     "statusCmd": "webflow auth status --skip-update-check >/dev/null 2>&1 && echo authenticated",
     "loginCmd": "webflow auth login",
-    "loginNeedsPty": true,
     "credentialPaths": [
       "~/.config/webflow"
     ],
@@ -1287,13 +1313,14 @@
     "label": "Readwise",
     "statusCmd": "readwise whoami >/dev/null 2>&1 && readwise whoami 2>/dev/null | sed 's/\\x1b\\[[0-9;]*m//g' | grep -m1 .",
     "loginCmd": "readwise login",
-    "loginNeedsPty": true,
     "credentialPaths": [
       "~/.readwise-cli.json"
     ],
     "capabilities": "Reader documents & highlights: search (incl. vector), save, tag, export, organize",
     "description": "Official Readwise/Reader CLI. `readwise search <query>`, `readwise list`, `readwise save <url>`; supports JSON output for piping and a read-only mode for agents. Token login for CI: `readwise login-with-token <token>` (get one at readwise.io/access_token).",
-    "versionCmd": "readwise --version 2>/dev/null | head -1"
+    "versionCmd": "readwise --version 2>/dev/null | head -1",
+    "oauthUrlPattern": "OPEN_URL: (https://readwise\\.io/o/authorize\\S+)",
+    "oauthCallbackPort": 6274
   },
   "mapps": {
     "category": "development",
