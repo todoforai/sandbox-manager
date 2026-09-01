@@ -42,6 +42,9 @@ ARG CLOUD_VERIFY_SCRIPT=""
 # PIP_PREINSTALL runs here, not in a later layer: it needs python3 from apt and
 # uv from the install script, and cloudVerifyCmd (which imports pymupdf) runs at
 # the end of this same RUN — installing later would verify before installing.
+# The specs are ==-pinned (enforced by build-oci.sh): the SAME pinned list
+# drives the edge venv installs (shared-fbe pipSpecs), so both environments
+# carry identical package versions.
 # Ubuntu 24.04 marks the system Python EXTERNALLY-MANAGED and ships no pip, so
 # use uv, the same resolver the edge uses for pip tools.
 ARG PIP_PREINSTALL=""

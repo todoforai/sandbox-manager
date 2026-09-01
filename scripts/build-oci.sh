@@ -57,6 +57,7 @@ fi
 
 # --- preinstall data from the tool catalog.
 BUN_PREINSTALL=""
+PIP_PREINSTALL=""
 CLOUD_APT_PACKAGES=""
 CLOUD_INSTALL_SCRIPT=""
 CLOUD_INSTALL_COUNT=0
@@ -69,12 +70,21 @@ if [ -f "$TOOL_CATALOG_JSON" ] && command -v jq >/dev/null 2>&1; then
     ' "$TOOL_CATALOG_JSON")
     # pip-installed catalog tools (e.g. pymupdf) — without this branch they are
     # tagged preinstallCloud but never installed, and only surface as a broken
-    # import at runtime.
+    # import at runtime. `packages` (per-spec pinned list) wins over `pkg`;
+    # the same list drives the edge venv (toolInstallCommand.ts pipSpecs), so
+    # both environments install identical versions. Preinstalled specs must be
+    # ==-pinned — an unpinned one silently drifts from the edge venv.
     PIP_PREINSTALL=$(jq -r '
         to_entries
         | map(select(.value.preinstallCloud == true and .value.installer == "pip"))
-        | map(.value.pkg) | join(" ")
+        | map(.value.packages // [.value.pkg]) | flatten | join(" ")
     ' "$TOOL_CATALOG_JSON")
+    for spec in $PIP_PREINSTALL; do
+        case "$spec" in *==*) ;; *)
+            echo "ERROR: preinstallCloud pip spec '$spec' is not ==-pinned (tool_catalog.json)" >&2
+            exit 1
+        esac
+    done
     CLOUD_APT_PACKAGES=$(jq -r '
         [to_entries[] | select(.value.preinstallCloud == true) | .value.cloudAptPackages[]?]
         | unique | join(" ")
