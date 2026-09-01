@@ -672,6 +672,18 @@
     "preinstallJarvis": true,
     "description": "PDF text editing, extraction, merge, split. Call via `python3 -c`."
   },
+  "matplotlib": {
+    "category": "utility",
+    "pkg": "matplotlib pandas",
+    "installer": "pip",
+    "label": "Charts",
+    "summary": "Plot charts and crunch tabular data (matplotlib + pandas + numpy).",
+    "versionCmd": "{ python -c 'import matplotlib; print(matplotlib.__version__)' || python3 -c 'import matplotlib; print(matplotlib.__version__)' || py -c 'import matplotlib; print(matplotlib.__version__)'; } 2>/dev/null",
+    "preinstallCloud": true,
+    "cloudVerifyCmd": "python3 -c 'import matplotlib, pandas'",
+    "preinstallJarvis": true,
+    "description": "Chart/plot generation (matplotlib, Agg backend) and tabular data wrangling (pandas, numpy). Use for chart PNGs in decks, reports, dashboards. Call via `python3 -c` or scripts."
+  },
   "anydoc": {
     "category": "utility",
     "pkg": "@firecrawl/anydoc",
