@@ -454,13 +454,12 @@
     "description": "`sentry-cli releases new <version>`.",
     "versionCmd": "sentry-cli --version 2>/dev/null | sed -n 1p"
   },
-  "todoai": {
+  "tfa-cli": {
     "category": "utility",
     "pkg": "@todoforai/cli",
     "installer": "bun",
     "label": "TODOforAI",
     "summary": "Create and follow up on your TODOs, and show results in the chat.",
-    "binName": "tfa-cli",
     "description": "Manage the user's OWN TODOforAI tasks — NOT code `// TODO` comments. Legacy aliases: `todoforai-cli`, `todoai`. THIS is the tool for delegating/spinning off work: `tfa-cli \"prompt\"` creates a real TODO the user can see, follow and resume, with its own agent and chat (`-n` run to completion, `--no-watch` fire-and-forget, `--project/--agent/--model` to steer, `--resume <id>`/`-c` to continue, `addmessage <id> \"text\"` to talk to it). Also: `list` (`--status open`), `--inspect <id>[:<msg-id>]` to read a TODO's chat (read-only), `status`/`delete`, `--template` for registry workflows. Surface a result INTO the chat: `show <file|-> [todo-id]` renders by mimetype (`-` reads stdin), `show --card <name>` renders through a project renderer card, `show list [--project]` enumerates instances (ref/title/card/mime), `open <url> [todo-id]` embeds a live preview; `--title`/`--alias <name>` — re-using an alias UPDATES that block in place instead of appending.",
     "installCmd": "bun add -g @todoforai/cli",
     "versionCmd": "tfa-cli --version 2>/dev/null | sed -n 1p",
