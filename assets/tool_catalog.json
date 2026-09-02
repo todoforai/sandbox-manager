@@ -533,7 +533,7 @@
     "preinstallCloud": true,
     "label": "Cloud Storage",
     "summary": "Move files between Google Drive, Dropbox, OneDrive, S3 and more.",
-    "statusCmd": "rclone listremotes 2>/dev/null | grep ':$' | grep -m1 .",
+    "statusCmd": "rclone listremotes --long 2>/dev/null | tr -s ' ' | grep -m20 .",
     "loginCmd": "rclone config",
     "oauthUrlPattern": "(https?://127\\.0\\.0\\.1:\\d+/auth\\?\\S+)",
     "oauthCallbackPort": 53682,
