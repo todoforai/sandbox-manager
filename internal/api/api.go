@@ -157,12 +157,14 @@ func (s *Server) exec(w http.ResponseWriter, r *http.Request, id store.Identity)
 		httpErr(w, http.StatusBadRequest, "argv is required")
 		return
 	}
-	out, err := s.svc.Exec(r.Context(), id, r.PathValue("id"), req.Argv)
+	out, code, err := s.svc.Exec(r.Context(), id, r.PathValue("id"), req.Argv)
 	if err != nil {
 		writeServiceErr(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]string{"output": string(out)})
+	// Non-zero exit is a result, not a transport error: callers get the
+	// output either way and decide themselves.
+	writeJSON(w, http.StatusOK, map[string]any{"output": string(out), "exit_code": code})
 }
 
 func (s *Server) attachDevice(w http.ResponseWriter, r *http.Request, id store.Identity) {

@@ -293,45 +293,57 @@ func (m *Manager) Create(ctx context.Context, s Spec) (*Created, error) {
 	return &Created{IP: ip}, nil
 }
 
+var execEnvAllow = []string{"NOISE_BACKEND_HOST", "NOISE_BACKEND_PORT", "BRIDGE_PORT", "DEVICE_NAME", "AGENT_BROWSER_EXECUTABLE_PATH"}
+
 // Exec runs argv inside a running microVM and returns combined output. This is
 // the recovery-channel replacement (old SSH-CA + vsock) and the lite-style
 // exec, unified into one containerd task.Exec.
-func (m *Manager) Exec(ctx context.Context, id string, argv []string) ([]byte, error) {
+func (m *Manager) Exec(ctx context.Context, id string, argv []string) ([]byte, int, error) {
 	ctx = m.ctx(ctx)
 	container, err := m.client.LoadContainer(ctx, id)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	task, err := container.Task(ctx, nil)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	if len(argv) == 0 {
-		return nil, fmt.Errorf("exec: empty argv")
+		return nil, 0, fmt.Errorf("exec: empty argv")
+	}
+	// Forward only the non-secret runtime vars the bridge itself sees, so
+	// exec'd CLIs resolve the same backend. Allowlist, not denylist: anything
+	// new (tokens, keys) stays out of /exec by default.
+	env := []string{"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin", "HOME=/root"}
+	if spec, err := container.Spec(ctx); err == nil && spec.Process != nil {
+		for _, kv := range spec.Process.Env {
+			for _, k := range execEnvAllow {
+				if strings.HasPrefix(kv, k+"=") {
+					env = append(env, kv)
+					break
+				}
+			}
+		}
 	}
 	buf := &outputBuffer{}
 	proc, err := task.Exec(ctx, "exec-"+randHex(6), &specs.Process{
 		Args: argv,
 		Cwd:  "/root",
-		Env:  []string{"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"},
+		Env:  env,
 	}, cio.NewCreator(cio.WithStreams(nil, buf, buf)))
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	defer proc.Delete(ctx)
 	statusC, err := proc.Wait(ctx)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	if err := proc.Start(ctx); err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	status := <-statusC
-	out := buf.Bytes()
-	if code := status.ExitCode(); code != 0 {
-		return out, fmt.Errorf("exec exited %d", code)
-	}
-	return out, nil
+	return buf.Bytes(), int(status.ExitCode()), nil
 }
 
 // Liveness is the result of IsLive: a VM is either definitively Live, known

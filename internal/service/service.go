@@ -255,9 +255,9 @@ func (s *Service) List(ctx context.Context, id store.Identity) ([]*store.Sandbox
 	return list, nil
 }
 
-func (s *Service) Exec(ctx context.Context, id store.Identity, sandboxID string, argv []string) ([]byte, error) {
+func (s *Service) Exec(ctx context.Context, id store.Identity, sandboxID string, argv []string) ([]byte, int, error) {
 	if _, err := s.Get(ctx, id, sandboxID); err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	return s.vm.Exec(ctx, sandboxID, argv)
 }
