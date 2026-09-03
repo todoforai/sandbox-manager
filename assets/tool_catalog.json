@@ -1356,6 +1356,22 @@
     "oauthUrlPattern": "OPEN_URL: (https://readwise\\.io/o/authorize\\S+)",
     "oauthCallbackPort": 6274
   },
+  "granola": {
+    "category": "productivity",
+    "pkg": "granola-cli",
+    "installer": "npm",
+    "binName": "granola",
+    "label": "Granola",
+    "summary": "Read your Granola meeting notes and transcripts.",
+    "statusCmd": "granola auth status -o json 2>/dev/null | sed -n 's/.*\"authenticated\": *true.*/authenticated/p' | grep -m1 .",
+    "loginCmd": "granola auth login",
+    "credentialPaths": [
+      "~/.config/keyring",
+      "~/.config/granola"
+    ],
+    "versionCmd": "granola --version 2>/dev/null | sed -n 1p",
+    "description": "Community Granola CLI (read-only). `granola meeting list [-l N] [--since <date>] [-s <query>] [-a <attendee>] -o json`, `granola meeting notes|enhanced|transcript <id>`, `granola meeting export <id>`; `granola folder list`, `granola workspace list`. `-o json|yaml|toon` for piping. Login imports credentials from the installed Granola desktop app (`granola auth login`) — desktop app must be logged in on the same machine; transcripts need a paid Granola plan."
+  },
   "mapps": {
     "category": "development",
     "pkg": "@mondaycom/apps-cli",
