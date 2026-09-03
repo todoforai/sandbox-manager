@@ -15,3 +15,5 @@ assets/cache/
 # transient binaries dropped into oci/ by build-oci.sh (removed on exit)
 oci/todoforai-bridge
 oci/browser-manager-cli
+.env.smoke
+.smoke/
