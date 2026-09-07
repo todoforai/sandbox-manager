@@ -59,8 +59,21 @@ fi
 # secrets are injected. MUST NOT block or fail the boot — a broken mount would
 # make the device look offline for a non-essential feature, so everything here
 # is wrapped and the daemon starts regardless.
+# The OCI spec grants /dev/fuse (node + device-cgroup allow), but the Kata
+# runtime strips Linux.Resources.Devices before handing the spec to the guest
+# agent, which then builds its own default whitelist without fuse. The guest
+# is root in its own cgroup, so add the rule here (guest-scoped, cgroup v1).
+allow_fuse() {
+    python3 -c 'import os; os.close(os.open("/dev/fuse", os.O_RDWR))' 2>/dev/null && return
+    cg=$(mktemp -d)
+    mount -t cgroup -o devices none "$cg" || return
+    echo 'c 10:229 rwm' > "$cg$(sed -n 's/^[0-9]*:devices://p' /proc/self/cgroup)/devices.allow"
+    umount "$cg"; rmdir "$cg"
+}
+
 mount_cloud() {
     command -v rclone >/dev/null 2>&1 || { echo "mount: rclone not installed, skipping" >&2; return; }
+    allow_fuse || echo "mount: could not allow /dev/fuse in device cgroup" >&2
     creds=$HOME/.config/todoforai/credentials.json
     [ -r "$creds" ] || { echo "mount: no credentials.json, skipping" >&2; return; }
 
