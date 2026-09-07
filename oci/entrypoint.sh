@@ -37,17 +37,9 @@ if ! grep -Eqs '^[0-9a-f]{32}$' "$MID_FILE"; then
 fi
 cat "$MID_FILE" > /etc/machine-id || echo "machine-id: could not install to /etc" >&2
 
-# NOTE: on success `login` falls through INTO the daemon (it does not return),
-# so the exec below only runs on the no-token path or after a login failure.
-# Both invocations therefore need the log redirect (see comment at exec).
-if [ -n "${ENROLL_TOKEN:-}" ]; then
-    /usr/local/bin/todoforai-bridge logout >/dev/null 2>&1 || true
-    /usr/local/bin/todoforai-bridge login \
-        ${DEVICE_NAME:+--device-name "$DEVICE_NAME"} \
-        --token "$ENROLL_TOKEN" \
-        >>"$BRIDGE_LOG" 2>&1 \
-        || echo "enroll: login --token failed (continuing; daemon may start without creds)" >&2
-fi
+# Fresh enrollment must not reuse a stale credentials.json (see NOTE above the
+# login); done before the mount waiter starts so it can't pick the stale one.
+[ -n "${ENROLL_TOKEN:-}" ] && { /usr/local/bin/todoforai-bridge logout >/dev/null 2>&1 || true; }
 
 # Best-effort: mount the user's todofor.ai cloud workspace as a FUSE filesystem
 # so agent shell commands can read/write cloud files directly at a stable path.
@@ -109,8 +101,24 @@ mount_cloud() {
         && echo "mount: cloud workspace at $mnt" >&2 \
         || echo "mount: rclone mount failed" >&2
 }
-# stderr is /dev/null (cio.NullIO) — keep the mount outcome in the guest log.
-{ mount_cloud || echo "mount: skipped (unexpected error)" >&2; } 2>>"$BRIDGE_LOG"
+# Backgrounded: on a fresh VM `login --token` below never returns (it becomes
+# the daemon), and credentials.json only exists once it has enrolled — so wait
+# for the file, then mount. stderr is /dev/null (cio.NullIO): log to the guest.
+{
+    for _ in $(seq 60); do [ -r "$HOME/.config/todoforai/credentials.json" ] && break; sleep 1; done
+    mount_cloud || echo "mount: skipped (unexpected error)" >&2
+} 2>>"$BRIDGE_LOG" &
+
+# NOTE: on success `login` falls through INTO the daemon (it does not return),
+# so the exec below only runs on the no-token path or after a login failure.
+# Both invocations therefore need the log redirect (see comment at exec).
+if [ -n "${ENROLL_TOKEN:-}" ]; then
+    /usr/local/bin/todoforai-bridge login \
+        ${DEVICE_NAME:+--device-name "$DEVICE_NAME"} \
+        --token "$ENROLL_TOKEN" \
+        >>"$BRIDGE_LOG" 2>&1 \
+        || echo "enroll: login --token failed (continuing; daemon may start without creds)" >&2
+fi
 
 # Hand off to the daemon (no subcommand → loads saved creds and connects).
 #
