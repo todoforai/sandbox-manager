@@ -4,3 +4,5 @@
 # Format: <tag> <asset> <sha256>
 v0.1.4 rclone-linux-amd64.tar.gz 0b8de3ff9c90c0bf73eba059aeac7723d54c35c0f34f5ee569c654fc27d0b0cc
 v0.1.4 rclone-linux-arm64.tar.gz 18bda6d9b762bb289b3dcb18e3ce405b97e085f8b0934c653394d38afbefb939
+v0.1.5 rclone-linux-amd64.tar.gz 6682136782287a6bfcc9df2c2f1f0956cd212546d204027d30ac1587b3acfa5e
+v0.1.5 rclone-linux-arm64.tar.gz e28c1d47c4be0efd3c26dbc4c1a8e164a2cf796ce1d5cbfaf299e82beb21277d

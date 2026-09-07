@@ -89,19 +89,14 @@ mount_cloud() {
     [ -n "$device_id" ] && [ -n "$device_secret" ] && [ -n "$api_url" ] || {
         echo "mount: incomplete credentials, skipping" >&2; return; }
 
-    # deviceId+secret → short-lived dst_ session token (accepted on /dst/v1).
-    dst=$(curl -fsS -X POST "$api_url/api/v1/cli/device/token" \
-        -H 'Content-Type: application/json' \
-        -d "{\"deviceId\":\"$device_id\",\"secret\":\"$device_secret\"}" \
-        | jq -r '.token // empty')
-    [ -n "$dst" ] || { echo "mount: device token exchange failed" >&2; return; }
-
-    # Hand rclone the dst_ token itself. It hardcodes /api/v1/resources/*, which
-    # accepts dst_ tokens (RestApi.apiKeyAuthMiddleware) — so no permanent API
-    # key is minted here. That escalation is now blocked outright: a token
-    # readable by every command in the sandbox must not buy forever-access.
+    # Hand rclone the durable device credentials, not a one-shot dst_ token:
+    # the backend mints a dst_ token itself and re-mints it at half TTL (and
+    # on 401), so the mount survives past the 24h token lifetime. The secret
+    # is already readable in credentials.json by everything in the sandbox,
+    # so this widens nothing; dst_ tokens still can't mint durable API keys.
     rclone config create todoforai todoforai \
-        api_key="$dst" url="$api_url" --non-interactive >/dev/null 2>&1 || {
+        device_id="$device_id" device_secret="$device_secret" url="$api_url" \
+        --non-interactive >/dev/null 2>&1 || {
         echo "mount: rclone config failed" >&2; return; }
 
     mnt=$HOME/.todoforai/mnt/todoforai
