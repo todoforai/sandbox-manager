@@ -274,6 +274,12 @@ func (m *Manager) Create(ctx context.Context, s Spec) (*Created, error) {
 			// boot. Both are guest-VM-scoped: no host exposure.
 			oci.WithLinuxDevice("/dev/fuse", "rwm"),
 			oci.WithAddedCapabilities([]string{"CAP_SYS_ADMIN"}),
+			// Top-level guest cgroup. containerd's default path is
+			// /<namespace>/<id>; kata-agent then creates the intermediate
+			// /<namespace> cgroup with its own device whitelist (no fuse), and
+			// cgroup v1 devices are hierarchical, so the fuse allow rule above
+			// is silently dropped. At the root there is no such parent.
+			oci.WithCgroup("/"+s.ID),
 		),
 	)
 	if err != nil {
