@@ -55,12 +55,15 @@ cat "$MID_FILE" > /etc/machine-id || echo "machine-id: could not install to /etc
 # runtime strips Linux.Resources.Devices before handing the spec to the guest
 # agent, which then builds its own default whitelist without fuse. The guest
 # is root in its own cgroup, so add the rule here (guest-scoped, cgroup v1).
+mnt=$HOME/.todoforai/mnt/todoforai
+
 allow_fuse() {
     python3 -c 'import os; os.close(os.open("/dev/fuse", os.O_RDWR))' 2>/dev/null && return
     cg=$(mktemp -d)
     mount -t cgroup -o devices none "$cg" || return
-    echo 'c 10:229 rwm' > "$cg$(sed -n 's/^[0-9]*:devices://p' /proc/self/cgroup)/devices.allow"
+    echo 'c 10:229 rwm' > "$cg$(sed -n 's/^[0-9]*:devices://p' /proc/self/cgroup)/devices.allow"; rc=$?
     umount "$cg"; rmdir "$cg"
+    return $rc
 }
 
 mount_cloud() {
@@ -91,9 +94,7 @@ mount_cloud() {
         --non-interactive >/dev/null 2>&1 || {
         echo "mount: rclone config failed" >&2; return; }
 
-    mnt=$HOME/.todoforai/mnt/todoforai
     mkdir -p "$mnt"
-    mountpoint -q "$mnt" && { echo "mount: already mounted at $mnt" >&2; return; }
     rclone mount todoforai: "$mnt" \
         --vfs-cache-mode full --vfs-fast-fingerprint --no-modtime \
         --attr-timeout 1h --vfs-cache-max-size 400M \
@@ -102,11 +103,17 @@ mount_cloud() {
         || echo "mount: rclone mount failed" >&2
 }
 # Backgrounded: on a fresh VM `login --token` below never returns (it becomes
-# the daemon), and credentials.json only exists once it has enrolled — so wait
-# for the file, then mount. stderr is /dev/null (cio.NullIO): log to the guest.
+# the daemon), and usable credentials only exist once it has enrolled (logout
+# may leave a file with an empty deviceSecret). Retry with backoff until
+# mounted — slow enrollment or a backend blip must not lose the mount for the
+# VM's lifetime. stderr is /dev/null (cio.NullIO): log to the guest.
 {
-    for _ in $(seq 60); do [ -r "$HOME/.config/todoforai/credentials.json" ] && break; sleep 1; done
-    mount_cloud || echo "mount: skipped (unexpected error)" >&2
+    delay=1
+    until mountpoint -q "$mnt"; do
+        [ "$(jq -r '.deviceSecret // empty' "$HOME/.config/todoforai/credentials.json" 2>/dev/null)" ] \
+            && { mount_cloud || echo "mount: skipped (unexpected error)" >&2; }
+        sleep $delay; [ $delay -lt 60 ] && delay=$((delay * 2))
+    done
 } 2>>"$BRIDGE_LOG" &
 
 # NOTE: on success `login` falls through INTO the daemon (it does not return),
