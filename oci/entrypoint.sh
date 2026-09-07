@@ -109,7 +109,8 @@ mount_cloud() {
         && echo "mount: cloud workspace at $mnt" >&2 \
         || echo "mount: rclone mount failed" >&2
 }
-mount_cloud || echo "mount: skipped (unexpected error)" >&2
+# stderr is /dev/null (cio.NullIO) — keep the mount outcome in the guest log.
+{ mount_cloud || echo "mount: skipped (unexpected error)" >&2; } 2>>"$BRIDGE_LOG"
 
 # Hand off to the daemon (no subcommand → loads saved creds and connects).
 #
