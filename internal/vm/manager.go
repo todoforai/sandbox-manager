@@ -267,6 +267,13 @@ func (m *Manager) Create(ctx context.Context, s Spec) (*Created, error) {
 				Type: specs.NetworkNamespace,
 				Path: nsPath,
 			}),
+			// FUSE for the entrypoint's rclone mount of the cloud workspace
+			// (~/.todoforai/mnt/todoforai). Kata's guest kernel has fuse, but
+			// the default spec gives the guest neither the /dev/fuse node nor
+			// CAP_SYS_ADMIN (mount(2)), so fusermount3 failed silently at every
+			// boot. Both are guest-VM-scoped: no host exposure.
+			oci.WithLinuxDevice("/dev/fuse", "rwm"),
+			oci.WithAddedCapabilities([]string{"CAP_SYS_ADMIN"}),
 		),
 	)
 	if err != nil {
