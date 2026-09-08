@@ -813,7 +813,7 @@
     "label": "Wait",
     "summary": "Wait for a time or an event, then continue the task.",
     "platformAuth": true,
-    "description": "Schedule wake-ups and wait for events — time (`3h`, `daily@9:00`), webhooks, or `<cmd> | tfa-wait pipe <name>` to turn any command's stdout lines into events; results return into the conversation. Cancelling the wait stops its pipe.",
+    "description": "Go idle until a time or event, then get woken with a message in this chat: `tfa-wait '<expr>' \"<msg>\"` — expr joins `3h`, `daily@9:00`, and words with `&&`/`||`; a word mints a webhook URL (POST JSON → `{{payload.x}}`). `tfa-wait run '<cmd>' --pipe <name>` turns a command's stdout lines into `<name>` events (killed on cancel). Arm the wait BEFORE finishing your turn.",
     "versionCmd": "tfa-wait --version 2>/dev/null | sed -n 1p",
     "installCmd": "bun add -g @todoforai/tfa-wait",
     "preinstallCloud": true,
