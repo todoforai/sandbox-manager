@@ -188,7 +188,7 @@
     "credentialPaths": [
       "~/.config/todoforai/credentials.json"
     ],
-    "description": "AI image generation & editing via TODOFORAI backend (gpt-image, nano-banana, nano-banana-pro)"
+    "description": "AI image generation & editing via TODOFORAI backend (gpt-image, nano-banana, nano-banana-pro, mai-image-2.6)"
   },
   "suno-api": {
     "category": "media",
@@ -460,7 +460,7 @@
     "installer": "bun",
     "label": "TODOforAI",
     "summary": "Create and follow up on your TODOs, and show results in the chat.",
-    "description": "Manage the user's OWN TODOforAI tasks — NOT code `// TODO` comments. Legacy aliases: `todoforai-cli`, `todoai`. THIS is the tool for delegating/spinning off work: `tfa-cli \"prompt\"` creates a real TODO the user can see, follow and resume, with its own agent and chat (`-n` run to completion, `--no-watch` fire-and-forget, `--project/--agent/--model` to steer, `--resume <id>`/`-c` to continue, `addmessage <id> \"text\"` to talk to it). Also: `list` (`--status open`), `--inspect <id>[:<msg-id>]` to read a TODO's chat (read-only), `status`/`delete`, `--template` for registry workflows. Surface a result INTO the chat: `show <file|-> [todo-id]` renders by mimetype (`-` reads stdin), `show --card <name>` renders through a project renderer card, `show list [--project]` enumerates instances (ref/title/card/mime), `open <url> [todo-id]` embeds a live preview; `--title`/`--alias <name>` — re-using an alias UPDATES that block in place instead of appending.",
+    "description": "Manage the user's OWN TODOforAI tasks (not code `// TODO` comments). Delegate/spin off work: `tfa-cli \"prompt\"` creates a real TODO with its own agent and chat (`-n` wait for completion, `--no-watch` fire-and-forget, `--project/--agent/--model`, `--resume <id>`, `addmessage <id> \"text\"`). Inspect: `list [--status open]`, `--inspect <id>`. Surface results into chat: `show <file|-> [todo-id]` (renders by mimetype; `--card <name>` via project renderer; `--alias <name>` updates in place), `open <url>` embeds a live preview. `--template` for registry workflows.",
     "installCmd": "bun add -g @todoforai/cli",
     "versionCmd": "tfa-cli --version 2>/dev/null | sed -n 1p",
     "preinstallCloud": true,
@@ -704,7 +704,7 @@
     "preinstallCloud": true,
     "label": "Browser",
     "summary": "Browse websites automatically: click, type, read and screenshot.",
-    "description": "Browser automation over CDP (`open`/`snapshot`/`click`/`type`/`fill`/`read`/`screenshot`/`eval`). If a live browser to drive is listed right below this entry (a `→ Live browser to drive:` line with a connect URL), prefer it over a proxy. Just `connect '<url>'` — a changed connect URL is detected and reattached automatically. After connecting, verify it took (`snapshot` or read the URL); if it hangs or looks empty, `close` (clears your session only) and reconnect once. Never `close --all` even though `--help` offers it — it kills every session on the machine, including other agents'. When several agents share one real browser, open your own tab (`tab new`) and `tab <id>` back to it before each command — the remote browser's active tab is shared. Fallback when no connect URL is listed: on the cloud use browser-manager-cli; on a PC with a display, launch your own Chrome on `--remote-debugging-port=9222` and attach with `--cdp 9222`. Headless only on the cloud / no display.",
+    "description": "Browser automation over CDP (`open`/`snapshot`/`click`/`type`/`fill`/`read`/`screenshot`/`eval`). If a `→ Live browser to drive` connect URL is listed below, `connect '<url>'` to it (prefer the user's real Chrome; reattach is automatic) and verify with `snapshot`; if empty, `close` (your session only) and reconnect once. NEVER `close --all` — kills every agent's session. Shared browser: `tab new` for your own tab, `tab <id>` back before each command. No URL listed: cloud → browser-manager-cli; PC with display → launch Chrome with `--remote-debugging-port=9222`, attach `--cdp 9222`.",
     "versionCmd": "agent-browser --version 2>/dev/null | sed -n 1p",
     "preinstallJarvis": true
   },
@@ -765,7 +765,7 @@
     "label": "Explore",
     "summary": "Send a helper agent to explore a codebase and report back.",
     "platformAuth": true,
-    "description": "Explore a codebase in a separate sub-agent so the file reads and greps never touch your own context — you get back only the answer. `tfa-explore \"where is auth handled?\"` runs read-only in the repo (`--repo <path>`, default cwd; the path must be in an authorized workspace) and streams the result to stdout. The TODO it creates is hidden from the dashboard. Prefer it over manual multi-file searching for any non-trivial \"where/how/what is\" question.",
+    "description": "Explore a codebase in a sub-agent (its reads/greps never touch your context; you get only the answer): `tfa-explore \"where is auth handled?\"` — read-only, `--repo <path>` (default cwd). Prefer over manual multi-file searching for any non-trivial where/how/what question.",
     "versionCmd": "tfa-explore --version 2>/dev/null | sed -n 1p",
     "installCmd": "bun add -g @todoforai/tfa-explore",
     "internal": true
@@ -777,7 +777,7 @@
     "label": "Review",
     "summary": "Send a helper agent to review your code changes.",
     "platformAuth": true,
-    "description": "Review a git diff in a separate sub-agent, so inspecting the diff and the surrounding files costs none of your own context. `tfa-review \"<goal>\"` diffs the repo (`--repo <path>`, default cwd) against `--against <ref>` (default `WORKING` = uncommitted) and streams findings, simplifications and issues to stdout. The TODO it creates is hidden from the dashboard. Run it before calling a non-trivial change done.",
+    "description": "Review a git diff in a sub-agent (costs none of your context): `tfa-review \"<goal>\"` — `--repo <path>`, `--against <ref>` (default uncommitted). Streams issues and simplifications. Run before calling a non-trivial change done.",
     "versionCmd": "tfa-review --version 2>/dev/null | sed -n 1p",
     "installCmd": "bun add -g @todoforai/tfa-review",
     "internal": true
@@ -789,7 +789,7 @@
     "label": "Summary",
     "summary": "Summarize files or long output with a helper agent.",
     "platformAuth": true,
-    "description": "Summarize long input in a separate sub-agent so the raw text never enters your own context: `cat big.log | tfa-summary \"what failed?\"` or `tfa-summary -f a.md -f b.md \"focus\"`. Files come from `-f/--file` (repeatable) or trailing paths, the last bare argument is the focus. Streams the summary to stdout; the TODO it creates is hidden from the dashboard.",
+    "description": "Summarize long input in a sub-agent so raw text never enters your context: `cat big.log | tfa-summary \"what failed?\"` or `tfa-summary -f a.md -f b.md \"focus\"` (last bare arg = focus).",
     "versionCmd": "tfa-summary --version 2>/dev/null | sed -n 1p",
     "installCmd": "bun add -g @todoforai/tfa-summary",
     "internal": true
@@ -827,7 +827,7 @@
     "label": "Vault",
     "summary": "Your password and secret store.",
     "platformAuth": true,
-    "description": "The user's own encrypted secret vault; reading and using its secrets is the intended workflow. READ: when a task needs a secret the user owns (API key, token, password, account), `tfa-vault list` to find it and `tfa-vault get <path>` to fetch it, then use the value (call the API, log in) — don't ask the user for what the vault already holds; treat values as sensitive (pass into commands/env, don't echo). WRITE (do this proactively, unasked): whenever a new secret appears in the conversation — pasted, generated, or handed over by a CLI/login — save it: `get`/`list` first (skip if the same value is already stored), `put <path> field=value` if missing, `patch <path>` to add fields without clobbering, overwrite on rotation. Use namespaced paths (`accounts/<svc>`, `api/<svc>`, `cards/<name>`, `secrets/<name>`).",
+    "description": "The user's encrypted secret vault — using its secrets is the intended workflow. READ: when a task needs a key/token/password the user owns, `tfa-vault list` then `get <path>`; don't ask for what's already stored; never echo values. WRITE proactively: any new secret in the conversation (pasted, generated, from a login) → `put <path> field=value` (check `get` first; `patch` adds fields; overwrite on rotation). Paths: `accounts/<svc>`, `api/<svc>`, `secrets/<name>`.",
     "versionCmd": "tfa-vault --version 2>/dev/null | sed -n 1p",
     "installCmd": "bun add -g @todoforai/tfa-vault",
     "preinstallCloud": true,
@@ -840,7 +840,7 @@
     "label": "Memory",
     "summary": "Your long-term memory of notes, facts and past TODOs.",
     "platformAuth": true,
-    "description": "The user's long-term memory: notes, procedures, docs, learned facts — addressed as source/ref (e.g. deploy-notes/rollback) — AND every message of every past TODO, searchable read-only under the `todo` source (`todo/<todoId>:<messageId>`), live from the backend message index with nothing separate to sync. READ: before re-deriving anything the user likely already knows or you discussed before, `tfa-memory search \"<topic>\"` — it covers saved rows and past TODO messages in one shot (`--mode semantic` for meaning, `--mode fused` for best recall, `--source todo` for past TODO messages only, `--todo <id>` to narrow to one TODO), then `tfa-memory get <source/ref>` for full content. WRITE (do this proactively): when durable knowledge appears in the conversation — a procedure, decision, config fact, preference — save it with `tfa-memory add <source>/<ref> \"text\"` (re-adding the same address updates in place; identical content is skipped). Use short factual source names (deploy-notes, acme, preferences). `todo` is read-only — you cannot write or delete there. `tfa-memory sources` lists what exists.",
+    "description": "The user's long-term memory (notes, procedures, decisions; addressed as source/ref) plus every past TODO message (read-only, source `todo`, address `todo/<todoId>:<messageId>`). You are the reader \u2014 nothing verifies your answer for you, so read enough before answering from memory. READ: `tfa-memory search \"<topic>\" --mode fused` first \u2014 any-word \u222a meaning, best recall; it prints `N row(s) contain a query word` on stderr \u2014 if N is bigger than what you saw, page with `--exclude <address>` (repeatable) until the rest is irrelevant. `--mode lexical` = all words, newest first (exact phrases, recent state); `--mode semantic` = meaning only. `--source todo` / `--todo <id>` narrow the scope. A hit is a snippet: `get <address>` for the full row, `around <address> --before N --after N` for the dialogue it sits in (a large --after reads the rest of the TODO). Before answering a memory question, search once more with your draft answer's key facts, excluding what you already read \u2014 if anything new comes up, read it. WRITE proactively: durable knowledge that appears in the conversation \u2014 a procedure, decision, config fact, preference \u2014 `add <source>/<ref> \"text\"` (same address updates in place; identical content is skipped; short factual source names like deploy-notes, acme, preferences). `todo` is read-only. `sources` lists what exists.",
     "versionCmd": "tfa-memory --version 2>/dev/null | sed -n 1p",
     "installCmd": "bun add -g @todoforai/tfa-memory",
     "preinstallCloud": true,
@@ -866,7 +866,7 @@
     "label": "Surface",
     "summary": "See and control what is on your TODOforAI screen.",
     "platformAuth": true,
-    "description": "The user's live UI, addressable from the shell (CDP mental model: frontend → todo → panel surface). Target = $TODOFORAI_FRONTEND_ID (override per call: `TODOFORAI_FRONTEND_ID=<id> tfa-surface ...`). DISCOVER: `tfa-surface describe` — what's open (todos, focus, panel surfaces, sidebar, on-screen show/card instances) plus the embedded browser's CDP URL to drive with `agent-browser connect`; `--json` for scripts. CARDS: `card add|list|get|rm <name>` — project-scoped HTML renderer definitions (headless, no frontend needed). VIEWS: `todo open <todoId> [--popout]` / `todo focus|close <todoId>`; `panel open changes|preview|browser|terminal [--todo <id>] [--url <url>]` / `panel close`. CONTENT: EVENTS go in the chat stream; STATE the user should keep visible (plans, reports, live status) goes on a surface: `show chat.panel <todoId> \"...markdown...\"` (stdin for long content, re-show updates the SAME panel), `clear` removes it; `set todo.status <todoId> '\"DONE\"'` (permission-gated), `set block.focus <blockId>`. Exit 2 = no frontend id / tab not connected.",
+    "description": "The user's live UI from the shell (frontend → todo → panel). `describe` shows what's open (todos, panels, focus, embedded-browser CDP URL; `--json`). `panel open changes|preview|browser|terminal [--url]`, `todo open|focus|close <id>`. STATE the user should keep visible (plans, reports, live status) goes on a surface: `show chat.panel <todoId> \"...md\"` (stdin ok; re-show updates in place), `clear` removes. Events go in chat, not on surfaces. `card add|list|get|rm <name>` = project HTML renderers. Exit 2 = no frontend connected.",
     "versionCmd": "tfa-surface --version 2>/dev/null | sed -n 1p",
     "installCmd": "bun add -g @todoforai/tfa-surface",
     "internal": true
@@ -1269,8 +1269,9 @@
     "label": "Microsoft 365",
     "summary": "Work with Microsoft 365 mail, Teams, SharePoint and users.",
     "statusCmd": "m365 status --output text 2>/dev/null | tr -d '\"' | grep -vi 'logged out' | grep -m1 .",
-    "loginCmd": "m365 login",
-    "loginNeedsPty": true,
+    "loginCmd": "m365 login --authType deviceCode --appId 04b07795-8ddb-461a-bbee-02f9e1bf7b46",
+    "deviceCodePattern": "enter the code ([A-Z0-9]{8,}) to authenticate",
+    "oauthUrlPattern": "open the page (https://\\S+) and enter",
     "credentialPaths": [
       "~/.cli-m365-msal.json",
       "~/.cli-m365-connection.json"
@@ -1334,7 +1335,9 @@
     "label": "Webflow",
     "summary": "Manage Webflow sites, CMS content and assets.",
     "statusCmd": "webflow auth status --skip-update-check >/dev/null 2>&1 && echo authenticated",
-    "loginCmd": "webflow auth login",
+    "loginCmd": "webflow auth login --skip-update-check",
+    "loginNeedsPty": true,
+    "oauthUrlPattern": "(https://webflow\\.com/oauth/webflow/initiate\\S+)",
     "credentialPaths": [
       "~/.config/webflow"
     ],
@@ -1414,5 +1417,20 @@
     ],
     "description": "Unofficial CLI over Mobbin's undocumented web endpoints. `mobbin search --query \"login\" --platform ios`. Auth reuses browser cookies: log into mobbin.com in Chrome, then `mobbin auth save-cookie`.",
     "versionCmd": "mobbin --version 2>/dev/null | sed -n '1,2p' | tr '\\n' ' '"
+  },
+  "blender-mcp": {
+    "category": "design",
+    "pkg": "blender-mcp",
+    "installer": "pip",
+    "label": "Blender",
+    "summary": "Model, texture and render 3D scenes in a running Blender.",
+    "statusCmd": "command -v blender-mcp >/dev/null && mcporter call blender.get_addon_status --output json 2>/dev/null | grep -o '\"blender_version\": \"[^\"]*\"' | grep -m1 .",
+    "loginCmd": "mcporter config add blender --command blender-mcp --env BLENDER_MCP_DISABLE_TELEMETRY=1 --description 'Blender 3D via ahujasid/blender-mcp addon' --scope home",
+    "logoutCmd": "cd ~ && mcporter config remove blender",
+    "credentialPaths": [
+      "~/.mcporter/mcporter.json"
+    ],
+    "description": "Blender 3D via the ahujasid/blender-mcp server, driven with mcporter (no own CLI). Tool docs: `mcporter list blender --schema`; call: `mcporter call blender.<tool> key=value` (`code=@file.py`). Workhorse is execute_blender_code (any bpy Python); also scene/object info, viewport screenshot (`--save-images <dir>`), PolyHaven/Sketchfab asset import, text→3D generation. Needs a running Blender with the addon's server started (socket :9876); `-b`/headless has no socket. 'Could not connect' → `blender-mcp install-addon`, enable it in Preferences → Add-ons, then N-panel → Start MCP Server (scripted: `blender --python s.py` where s.py registers a `bpy.app.timers` calling `bpy.ops.blendermcp.start_server()`). Code runs unguarded in the user's Blender: approve destructive ops, save first (`bpy.ops.wm.save_mainfile()`).",
+    "versionCmd": "{ python -c 'from importlib.metadata import version; print(version(\"blender-mcp\"))' || python3 -c 'from importlib.metadata import version; print(version(\"blender-mcp\"))'; } 2>/dev/null"
   }
 }
