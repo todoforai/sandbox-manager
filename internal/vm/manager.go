@@ -507,6 +507,19 @@ func guestLogPath(id string) string {
 	return p
 }
 
+// GuestLogTail returns the last few lines of the guest's stdout/stderr — the
+// only diagnostic left once a VM has died, and what the user gets told.
+func (m *Manager) GuestLogTail(id string, maxBytes int) string {
+	b, err := os.ReadFile(guestLogPath(id))
+	if err != nil || len(b) == 0 {
+		return ""
+	}
+	if len(b) > maxBytes {
+		b = b[len(b)-maxBytes:]
+	}
+	return strings.TrimSpace(string(b))
+}
+
 func (m *Manager) Delete(ctx context.Context, id string) error {
 	ctx = m.ctx(ctx)
 	defer os.Remove(guestLogPath(id))

@@ -341,17 +341,40 @@ func (s *Service) reconcileUserSlot(ctx context.Context, userID string) {
 		return
 	}
 	for _, sb := range all {
-		if !s.staleDead(ctx, sb) {
-			continue
+		if s.staleDead(ctx, sb) {
+			s.teardownDead(ctx, sb, "reconcileUserSlot")
 		}
-		s.vm.Delete(ctx, sb.ID)
-		if err := s.store.Delete(ctx, sb.ID); err != nil {
-			log.Printf("reconcileUserSlot delete %s: %v", sb.ID, err)
-			continue // keep the slot held rather than leak a stale record
-		}
-		if err := s.store.ReleaseUserSlot(ctx, sb.UserID, sb.ID); err != nil {
-			log.Printf("reconcileUserSlot release slot %s: %v", sb.UserID, err)
-		}
+	}
+}
+
+// teardownDead tears down an active record whose VM is gone: kill leftover
+// container/netns/direct-volume, drop the record, free the slot. Shared by
+// Reconcile and reconcileUserSlot so the paths stay identical. Before the
+// delete it publishes an `error` state carrying the guest log tail — a VM that
+// dies before its bridge attaches would otherwise vanish without the user (or
+// the backend) ever learning why; the frontend surfaces `error` as a toast.
+// The Device row survives — the next VM re-enrolls onto it via the persistent
+// machine-id.
+func (s *Service) teardownDead(ctx context.Context, sb *store.Sandbox, who string) {
+	reason := s.vm.GuestLogTail(sb.ID, 512)
+	if reason == "" {
+		reason = "VM exited before it came online"
+	}
+	log.Printf("%s: sandbox %s (user %s) died: %s", who, sb.ID, sb.UserID, reason)
+	dead := *sb
+	dead.State = store.StateError
+	dead.Error = reason
+	dead.LastActivity = store.NowMillis()
+	if err := s.store.Put(ctx, &dead); err != nil {
+		log.Printf("%s publish error state %s: %v", who, sb.ID, err)
+	}
+	s.vm.Delete(ctx, sb.ID)
+	if err := s.store.Delete(ctx, sb.ID); err != nil {
+		log.Printf("%s delete %s: %v", who, sb.ID, err)
+		return // keep the slot held rather than leak a stale record
+	}
+	if err := s.store.ReleaseUserSlot(ctx, sb.UserID, sb.ID); err != nil {
+		log.Printf("%s release slot %s: %v", who, sb.UserID, err)
 	}
 }
 
@@ -383,20 +406,7 @@ func (s *Service) Reconcile(ctx context.Context) error {
 		if !s.staleDead(ctx, sb) {
 			continue
 		}
-		// Dead VM still marked active: tear it down the same way Delete and
-		// reconcileUserSlot do — kill leftover container/netns/direct-volume,
-		// drop the record, free the slot. An "error" tombstone left in the
-		// index instead would leak forever (one per dead VM), so keep the
-		// three teardown paths identical. The Device row survives — the next
-		// VM re-enrolls onto it via the persistent machine-id.
-		s.vm.Delete(ctx, sb.ID)
-		if err := s.store.Delete(ctx, sb.ID); err != nil {
-			log.Printf("reconcile delete %s: %v", sb.ID, err)
-			continue // keep the slot held rather than leak a stale record
-		}
-		if err := s.store.ReleaseUserSlot(ctx, sb.UserID, sb.ID); err != nil {
-			log.Printf("reconcile release slot %s: %v", sb.UserID, err)
-		}
+		s.teardownDead(ctx, sb, "reconcile")
 	}
 	return nil
 }
