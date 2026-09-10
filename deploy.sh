@@ -262,6 +262,8 @@ BACKEND_ADMIN_API_KEY=CHANGE_ME
 NOISE_BACKEND_HOST=CHANGE_ME
 NOISE_BACKEND_PORT=CHANGE_ME
 BRIDGE_PORT=CHANGE_ME
+X_CLIENT_ID=
+X_CLIENT_SECRET=
 ENVEOF
             echo "Created default shared/.env — edit it before deploying."
         fi

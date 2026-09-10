@@ -220,6 +220,9 @@ func (m *Manager) Create(ctx context.Context, s Spec) (*Created, error) {
 	if m.cfg.BridgePort != "" {
 		env = append(env, "BRIDGE_PORT="+m.cfg.BridgePort)
 	}
+	if m.cfg.XClientID != "" {
+		env = append(env, "X_CLIENT_ID="+m.cfg.XClientID, "X_CLIENT_SECRET="+m.cfg.XClientSecret)
+	}
 
 	// Networking FIRST: create the netns + run CNI in it, then boot the VM
 	// inside that netns. Proven on the spike box — the reverse (CNI on the

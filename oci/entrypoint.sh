@@ -41,6 +41,20 @@ cat "$MID_FILE" > /etc/machine-id || echo "machine-id: could not install to /etc
 # login); done before the mount waiter starts so it can't pick the stale one.
 [ -n "${ENROLL_TOKEN:-}" ] && { /usr/local/bin/todoforai-bridge logout >/dev/null 2>&1 || true; }
 
+# X (xurl) OAuth2 needs a registered developer app or the authorize URL goes
+# out with client_id= empty. Register ours on the persistent home so the
+# catalog's plain `xurl auth oauth2` works. Idempotent: update if present.
+# Unset afterwards: the bridge is exec'd below and every agent shell inherits
+# its env (the secret still lives in ~/.xurl, 0600 — this is hygiene).
+if [ -n "${X_CLIENT_ID:-}" ] && command -v xurl >/dev/null 2>&1; then
+    { xurl auth apps update todoforai --client-id "$X_CLIENT_ID" --client-secret "${X_CLIENT_SECRET:-}" \
+        || xurl auth apps add todoforai --client-id "$X_CLIENT_ID" --client-secret "${X_CLIENT_SECRET:-}" \
+            --redirect-uri http://localhost:8080/callback; } >/dev/null 2>&1 \
+        && xurl auth default todoforai >/dev/null 2>&1 \
+        || echo "xurl: app registration failed" >&2
+fi
+unset X_CLIENT_ID X_CLIENT_SECRET
+
 # Best-effort: mount the user's todofor.ai cloud workspace as a FUSE filesystem
 # so agent shell commands can read/write cloud files directly at a stable path.
 # The slim rclone (COPY'd by the Dockerfile) + fusermount3 (fuse3 apt pkg) ship

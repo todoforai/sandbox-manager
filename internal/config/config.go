@@ -54,6 +54,12 @@ type Config struct {
 	NoiseBackendPort string // NOISE_BACKEND_PORT injected into the VM (enrollment)
 	BridgePort       string // BRIDGE_PORT injected into the VM (daemon WS port)
 
+	// X developer app for xurl's OAuth2 sign-in. Registered into ~/.xurl by
+	// the entrypoint at boot; without it xurl emits client_id= empty and X
+	// rejects the authorize URL. Boot-only: NOT in execEnvAllow.
+	XClientID     string // X_CLIENT_ID
+	XClientSecret string // X_CLIENT_SECRET
+
 	// containerd / Kata
 	ContainerdSock string // default /run/containerd/containerd.sock
 	Namespace      string // containerd namespace, default "sandbox"
@@ -118,6 +124,8 @@ func Load() (*Config, error) {
 		NoiseBackendHost:     os.Getenv("NOISE_BACKEND_HOST"),
 		NoiseBackendPort:     os.Getenv("NOISE_BACKEND_PORT"),
 		BridgePort:           os.Getenv("BRIDGE_PORT"),
+		XClientID:            os.Getenv("X_CLIENT_ID"),
+		XClientSecret:        os.Getenv("X_CLIENT_SECRET"),
 		ContainerdSock:       env("CONTAINERD_SOCK", "/run/containerd/containerd.sock"),
 		Namespace:            env("CONTAINERD_NAMESPACE", "sandbox"),
 		Runtime:              env("SANDBOX_RUNTIME", "io.containerd.kata-fc.v2"),
