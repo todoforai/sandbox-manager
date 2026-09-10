@@ -10,9 +10,7 @@
     "loginCmd": "zele login --method google",
     "oauthUrlPattern": "(https://accounts\\.google\\.com\\S+)",
     "oauthCallbackPort": 8089,
-    "credentialPaths": [
-      "~/.zele/sqlite.db"
-    ],
+    "credentialPaths": ["~/.zele/sqlite.db"],
     "versionCmd": "zele --version 2>/dev/null | sed -n 1p",
     "preinstallCloud": true,
     "preinstallJarvis": true,
@@ -31,9 +29,7 @@
     "loginCmd": "zele login --method google",
     "oauthUrlPattern": "(https://accounts\\.google\\.com\\S+)",
     "oauthCallbackPort": 8089,
-    "credentialPaths": [
-      "~/.zele/sqlite.db"
-    ],
+    "credentialPaths": ["~/.zele/sqlite.db"],
     "versionCmd": "zele --version 2>/dev/null | sed -n 1p",
     "preinstallJarvis": true,
     "description": "Google Calendar via `zele cal`: list calendars and events, create/update/delete events with Google Meet links, recurrence and reminders, respond to invites, free/busy."
@@ -48,11 +44,9 @@
     "loginCmd": "xurl auth oauth2",
     "oauthUrlPattern": "(https://(?:twitter|x)\\.com/i/oauth2\\S+)",
     "oauthCallbackPort": 8080,
-    "credentialPaths": [
-      "~/.xurl"
-    ],
+    "credentialPaths": ["~/.xurl"],
     "description": "Raw X API access via `xurl <method> <path>`.",
-    "versionCmd": "xurl --version 2>/dev/null | sed -n 1p",
+    "versionCmd": "xurl version 2>/dev/null | sed -n 1p",
     "preinstallJarvis": true,
     "preinstallCloud": true
   },
@@ -65,9 +59,7 @@
     "summary": "Read LinkedIn profiles and send messages and connection requests.",
     "statusCmd": "linkedin-api whoami 2>/dev/null | sed -n 's/.*\"publicId\"[[:space:]]*:[[:space:]]*\"\\([^\"]*\\)\".*/\\1/p' | grep -m10 .",
     "loginCmd": "linkedin-api auth <li_at> <jsessionid>",
-    "credentialPaths": [
-      "~/.config/linkedin-api/credentials.json"
-    ],
+    "credentialPaths": ["~/.config/linkedin-api/credentials.json"],
     "description": "LinkedIn Voyager API CLI for profiles, conversations, DMs, and connections.",
     "versionCmd": "linkedin-api --version 2>/dev/null | sed -n 1p"
   },
@@ -79,9 +71,7 @@
     "summary": "Read Figma files, export images and leave comments.",
     "statusCmd": "figma-api me 2>/dev/null | sed -n 's/.*\"email\"[[:space:]]*:[[:space:]]*\"\\([^\"]*\\)\".*/\\1/p' | grep -m10 .",
     "loginCmd": "figma-api auth <token>",
-    "credentialPaths": [
-      "~/.config/figma-api/credentials.json"
-    ],
+    "credentialPaths": ["~/.config/figma-api/credentials.json"],
     "description": "Figma REST API CLI. File commands take a file key or Figma URL. Canvas writes (frames/text/shapes) use `figma-api run` via the plugin bridge. Run `figma-api <cmd> --help` for params.",
     "versionCmd": "figma-api --version 2>/dev/null | sed -n 1p"
   },
@@ -96,9 +86,7 @@
     "summary": "Work with Slack workspaces and apps.",
     "statusCmd": "slack-cli auth list 2>&1 | grep 'Team' >/dev/null && echo authenticated",
     "loginCmd": "slack-cli login",
-    "credentialPaths": [
-      "~/.slack/credentials.json"
-    ],
+    "credentialPaths": ["~/.slack/credentials.json"],
     "description": "Invoked as `slack-cli` to avoid colliding with the Slack desktop app’s `slack` binary.",
     "versionCmd": "slack-cli version 2>/dev/null | sed -n 1p",
     "binName": "slack-cli",
@@ -139,9 +127,7 @@
     "label": "Telegram",
     "summary": "Send Telegram messages, photos and files.",
     "loginCmd": "telegram-send --configure",
-    "credentialPaths": [
-      "~/.config/telegram-send/telegram-send.conf"
-    ],
+    "credentialPaths": ["~/.config/telegram-send/telegram-send.conf"],
     "versionCmd": "telegram-send --version 2>/dev/null | sed -n 1p",
     "statusCmd": "test -f ~/.config/telegram-send/telegram-send.conf && echo authenticated",
     "description": "Send messages, send files & images, send video & audio, Markdown/HTML formatting, channel & group support"
@@ -169,9 +155,7 @@
     "versionCmd": "elevenlabs-api --version 2>/dev/null | sed -n 1p",
     "statusCmd": "test -f ~/.config/todoforai/elevenlabs.json && echo authenticated || test -n \"$ELEVENLABS_API_KEY\" && echo authenticated",
     "loginCmd": "elevenlabs-api auth <api_key>",
-    "credentialPaths": [
-      "~/.config/todoforai/elevenlabs.json"
-    ],
+    "credentialPaths": ["~/.config/todoforai/elevenlabs.json"],
     "description": "Text-to-speech, voice cloning, multiple languages."
   },
   "ffmpeg": {
@@ -181,9 +165,7 @@
     "installer": "system",
     "label": "FFmpeg",
     "summary": "Convert, trim and resize video and audio files.",
-    "cloudAptPackages": [
-      "ffmpeg"
-    ],
+    "cloudAptPackages": ["ffmpeg"],
     "preinstallCloud": true,
     "description": "Media swiss-army knife: `ffmpeg -i in.mp4 out.webm`; `ffprobe` for metadata.",
     "versionCmd": "ffmpeg -version 2>/dev/null | sed -n 1p"
@@ -197,9 +179,7 @@
     "summary": "Generate and edit images from a description.",
     "platformAuth": true,
     "versionCmd": "tfa-imagegen --version 2>/dev/null | sed -n 1p",
-    "credentialPaths": [
-      "~/.config/todoforai/credentials.json"
-    ],
+    "credentialPaths": ["~/.config/todoforai/credentials.json"],
     "description": "AI image generation & editing via TODOFORAI backend (gpt-image, nano-banana, nano-banana-pro, mai-image-2.6)"
   },
   "suno-api": {
@@ -222,9 +202,7 @@
     "summary": "Read and update Notion pages and databases.",
     "statusCmd": "ntn doctor 2>&1 | grep -E 'Default workspace\\s+✔' >/dev/null",
     "loginCmd": "ntn login",
-    "credentialPaths": [
-      "~/.config/notion"
-    ],
+    "credentialPaths": ["~/.config/notion"],
     "versionCmd": "ntn --version 2>/dev/null | sed -n 1p",
     "description": "Official Notion CLI: raw API calls (`ntn api <path>`), page/data-source management, file uploads, Workers deploy."
   },
@@ -238,9 +216,7 @@
     "versionCmd": "perplexity-api --version 2>/dev/null | sed -n 1p",
     "statusCmd": "test -f ~/.config/todoforai/perplexity.json && echo authenticated || test -n \"$PERPLEXITY_API_KEY\" && echo authenticated",
     "loginCmd": "perplexity-api auth <api_key>",
-    "credentialPaths": [
-      "~/.config/todoforai/perplexity.json"
-    ],
+    "credentialPaths": ["~/.config/todoforai/perplexity.json"],
     "description": "AI-powered web search, chat completions, async chat, embeddings and agent runs"
   },
   "gh": {
@@ -256,9 +232,7 @@
     "deviceCodePattern": "one-time code:\\s*([A-Z0-9]{4}-[A-Z0-9]{4})",
     "canStreamLogin": true,
     "logoutCmd": "gh auth logout --hostname github.com --user {{ACCOUNT}}",
-    "credentialPaths": [
-      "~/.config/gh/hosts.yml"
-    ],
+    "credentialPaths": ["~/.config/gh/hosts.yml"],
     "description": "Prefer `gh` over raw GitHub API calls.",
     "versionCmd": "gh --version 2>/dev/null | sed -n 1p",
     "preinstallJarvis": true
@@ -283,9 +257,7 @@
     "summary": "Work with your GitLab repos, merge requests and pipelines.",
     "statusCmd": "glab auth status 2>&1 | grep 'Logged in to' | grep -m1 .",
     "loginCmd": "glab auth login --device",
-    "credentialPaths": [
-      "~/.config/glab-cli/config.yml"
-    ],
+    "credentialPaths": ["~/.config/glab-cli/config.yml"],
     "description": "GitLab equivalent of `gh`.",
     "versionCmd": "glab --version 2>/dev/null | sed -n 1p",
     "deviceCodePattern": "one-time code: ([A-Z0-9-]+)",
@@ -301,9 +273,7 @@
     "summary": "Deploy websites to Vercel and manage them.",
     "statusCmd": "vercel whoami 2>/dev/null | tr -d '\\r' | grep -m1 .",
     "loginCmd": "vercel login",
-    "credentialPaths": [
-      "~/.local/share/com.vercel.cli/auth.json"
-    ],
+    "credentialPaths": ["~/.local/share/com.vercel.cli/auth.json"],
     "description": "`vercel deploy`; manage env vars, domains, preview URLs.",
     "versionCmd": "vercel --version 2>/dev/null | sed -n 1p",
     "deviceCodePattern": "user_code=([A-Z0-9-]+)",
@@ -318,9 +288,7 @@
     "summary": "Deploy websites to Netlify and manage them.",
     "statusCmd": "netlify api getCurrentUser 2>&1 | sed -n 's/.*\"email\"[[:space:]]*:[[:space:]]*\"\\([^\"]*\\)\".*/\\1/p' | grep -m10 .",
     "loginCmd": "netlify login",
-    "credentialPaths": [
-      "~/.netlify/config.json"
-    ],
+    "credentialPaths": ["~/.netlify/config.json"],
     "description": "`netlify deploy --prod` for production; manage env vars, forms, identity.",
     "versionCmd": "netlify --version 2>/dev/null | sed -n 1p",
     "oauthUrlPattern": "(https://app\\.netlify\\.com/authorize\\S+)",
@@ -335,9 +303,7 @@
     "summary": "Deploy and manage Firebase hosting, database and functions.",
     "statusCmd": "firebase login:list 2>&1 | grep -oiE '[[:alnum:]._%+-]+@[[:alnum:].-]+\\.[[:alpha:]]{2,}' | grep -m1 .",
     "loginCmd": "firebase login --no-localhost",
-    "credentialPaths": [
-      "~/.config/configstore/firebase-tools.json"
-    ],
+    "credentialPaths": ["~/.config/configstore/firebase-tools.json"],
     "description": "Deploy hosting/functions, manage Firestore/RTDB rules and data, auth users, emulators.",
     "versionCmd": "firebase --version 2>/dev/null | sed -n 1p",
     "oauthUrlPattern": "(https://auth\\.firebase\\.tools/login\\S+)",
@@ -352,9 +318,7 @@
     "summary": "Deploy and manage Cloudflare Workers and Pages.",
     "statusCmd": "wrangler whoami 2>&1 | grep -oiE '[[:alnum:]._%+-]+@[[:alnum:].-]+\\.[[:alpha:]]{2,}' | grep -m1 .",
     "loginCmd": "wrangler login",
-    "credentialPaths": [
-      "~/.config/.wrangler/config/default.toml"
-    ],
+    "credentialPaths": ["~/.config/.wrangler/config/default.toml"],
     "description": "Tail logs with `wrangler tail`. Use `cloudflared` for tunnels.",
     "versionCmd": "wrangler --version 2>/dev/null | sed -n 1p",
     "oauthUrlPattern": "(https://dash\\.cloudflare\\.com/oauth2/auth\\S+)",
@@ -371,9 +335,7 @@
     "summary": "Look up Stripe payments, customers and subscriptions.",
     "statusCmd": "stripe config --list 2>/dev/null | sed -n 's/^account_id[[:space:]]*=[[:space:]]*.\\([^'\\'']*\\).*/\\1/p' | grep -m10 .",
     "loginCmd": "stripe login",
-    "credentialPaths": [
-      "~/.config/stripe/config.toml"
-    ],
+    "credentialPaths": ["~/.config/stripe/config.toml"],
     "description": "`stripe listen` forwards webhooks locally; `stripe get/post /v1/...` for raw API.",
     "versionCmd": "stripe --version 2>/dev/null | sed -n 1p",
     "deviceCodePattern": "\"verification_code\":\\s*\"([A-Z0-9-]+)\"",
@@ -388,9 +350,7 @@
     "summary": "Deploy and scale apps on Fly.io.",
     "statusCmd": "flyctl auth whoami 2>/dev/null | tr -d '\\r' | grep -m1 .",
     "loginCmd": "flyctl auth login -t <access_token>",
-    "credentialPaths": [
-      "~/.fly/config.yml"
-    ],
+    "credentialPaths": ["~/.fly/config.yml"],
     "description": "`flyctl deploy` from app dir; manage Postgres/volumes/machines/secrets.",
     "versionCmd": "flyctl version 2>/dev/null | sed -n 1p"
   },
@@ -405,9 +365,7 @@
     "summary": "Manage your Supabase database, auth and storage.",
     "statusCmd": "supabase projects list >/dev/null 2>&1 && echo authenticated",
     "loginCmd": "supabase login --token <access_token>",
-    "credentialPaths": [
-      "~/.config/supabase/access-token"
-    ],
+    "credentialPaths": ["~/.config/supabase/access-token"],
     "description": "Link to cloud project; runs/migrates local Postgres.",
     "versionCmd": "supabase --version 2>/dev/null | sed -n 1p"
   },
@@ -419,9 +377,7 @@
     "summary": "Deploy and manage apps and databases on Railway.",
     "statusCmd": "out=$(RAILWAY_NO_TELEMETRY=1 railway whoami 2>&1); rc=$?; printf '%s\\n' \"$out\" | grep -m1 .; exit $rc",
     "loginCmd": "railway login",
-    "credentialPaths": [
-      "~/.railway/config.json"
-    ],
+    "credentialPaths": ["~/.railway/config.json"],
     "description": "`railway up` to deploy current dir.",
     "versionCmd": "railway --version 2>/dev/null | sed -n 1p",
     "deviceCodePattern": "user_code=([A-Z0-9-]+)",
@@ -436,9 +392,7 @@
     "label": "Shopify",
     "summary": "Build and manage Shopify stores and themes.",
     "loginCmd": "shopify auth login --alias tfa",
-    "credentialPaths": [
-      "~/.config/shopify/config.json"
-    ],
+    "credentialPaths": ["~/.config/shopify/config.json"],
     "versionCmd": "node -p \"require(require('fs').realpathSync(require('child_process').execSync('command -v shopify',{encoding:'utf8'}).trim()).replace(/\\/bin\\/[^/]*$/, '/package.json')).version\" 2>/dev/null",
     "statusCmd": "test -f ~/.config/shopify/config.json && echo authenticated",
     "deviceCodePattern": "verification code: ([A-Z0-9-]+)",
@@ -475,9 +429,7 @@
     "summary": "Manage Sentry releases and error tracking.",
     "statusCmd": "sentry-cli info --no-defaults >/dev/null 2>&1 && echo authenticated",
     "loginCmd": "sentry-cli login --auth-token <auth_token>",
-    "credentialPaths": [
-      "~/.sentryclirc"
-    ],
+    "credentialPaths": ["~/.sentryclirc"],
     "description": "`sentry-cli releases new <version>`.",
     "versionCmd": "sentry-cli --version 2>/dev/null | sed -n 1p"
   },
@@ -492,10 +444,7 @@
     "versionCmd": "tfa-cli --version 2>/dev/null | sed -n 1p",
     "preinstallCloud": true,
     "preinstallJarvis": true,
-    "aliases": [
-      "todoforai-cli",
-      "todoai"
-    ]
+    "aliases": ["todoforai-cli", "todoai"]
   },
   "newman": {
     "preinstallCloud": true,
@@ -553,9 +502,7 @@
     "summary": "Read and manage secrets in HashiCorp Vault.",
     "statusCmd": "vault token lookup >/dev/null 2>&1 && echo authenticated",
     "loginCmd": "vault login <token>",
-    "credentialPaths": [
-      "~/.vault-token"
-    ],
+    "credentialPaths": ["~/.vault-token"],
     "versionCmd": "vault --version 2>/dev/null | sed -n 1p",
     "description": "HashiCorp Vault secrets management and dynamic credentials."
   },
@@ -570,9 +517,7 @@
     "loginCmd": "rclone config",
     "oauthUrlPattern": "(https?://127\\.0\\.0\\.1:\\d+/auth\\?\\S+)",
     "oauthCallbackPort": 53682,
-    "credentialPaths": [
-      "~/.config/rclone/rclone.conf"
-    ],
+    "credentialPaths": ["~/.config/rclone/rclone.conf"],
     "subProviders": {
       "gdrive": {
         "label": "Google Drive",
@@ -623,13 +568,10 @@
     "statusCmd": "aws sts get-caller-identity --query Arn --output text 2>/dev/null | sed 's/.*\\///' | grep -m1 .",
     "loginCmd": "aws configure",
     "loginNeedsPty": true,
-    "credentialPaths": [
-      "~/.aws/credentials",
-      "~/.aws/config",
-      "~/.aws/sso/cache"
-    ],
+    "credentialPaths": ["~/.aws/credentials", "~/.aws/config", "~/.aws/sso/cache"],
     "description": "Official AWS CLI v2. Auth via `aws configure` (access keys) or `aws configure sso` + `aws sso login` (browser device flow).",
-    "versionCmd": "aws --version 2>/dev/null | sed -n 1p"
+    "versionCmd": "aws --version 2>/dev/null | sed -n 1p",
+    "uninstallCmd": "sudo -n rm -rf /usr/local/aws-cli /usr/local/bin/aws /usr/local/bin/aws_completer 2>/dev/null || { echo \"aws was installed with sudo; remove it manually: sudo rm -rf /usr/local/aws-cli /usr/local/bin/aws /usr/local/bin/aws_completer\"; exit 1; }"
   },
   "gcloud": {
     "category": "cloud",
@@ -642,11 +584,10 @@
     "loginCmd": "gcloud auth login --no-launch-browser",
     "loginNeedsPty": true,
     "oauthUrlPattern": "(https://accounts\\.google\\.com/o/oauth2/auth\\S+)",
-    "credentialPaths": [
-      "~/.config/gcloud"
-    ],
+    "credentialPaths": ["~/.config/gcloud"],
     "description": "Official Google Cloud CLI. `gcloud auth login --no-launch-browser` prints the OAuth URL and waits for the pasted verification code.",
-    "versionCmd": "gcloud --version 2>/dev/null | sed -n 1p"
+    "versionCmd": "gcloud --version 2>/dev/null | sed -n 1p",
+    "uninstallCmd": "rm -rf \"$HOME/google-cloud-sdk\" && ! command -v gcloud >/dev/null 2>&1 || { echo \"gcloud is still on PATH: $(command -v gcloud)\"; exit 1; }"
   },
   "az": {
     "category": "cloud",
@@ -660,9 +601,7 @@
     "oauthUrlPattern": "(https://login\\.microsoft\\.com/device\\S*)",
     "deviceCodePattern": "enter the code ([A-Z0-9]+)",
     "canStreamLogin": true,
-    "credentialPaths": [
-      "~/.azure"
-    ],
+    "credentialPaths": ["~/.azure"],
     "description": "Official Azure CLI. Device-code login: prints login.microsoft.com/device + a code, then polls — no callback port.",
     "versionCmd": "az version --query '\"azure-cli\"' -o tsv 2>/dev/null | sed -n 1p"
   },
@@ -678,9 +617,7 @@
     "statusCmd": "doctl account get --format Email --no-header 2>/dev/null | tr -d '\\r' | grep -m1 .",
     "loginCmd": "doctl auth init -t <access_token>",
     "loginNeedsPty": true,
-    "credentialPaths": [
-      "~/.config/doctl/config.yaml"
-    ],
+    "credentialPaths": ["~/.config/doctl/config.yaml"],
     "description": "Official DigitalOcean CLI. `doctl auth init` prompts for an API token from cloud.digitalocean.com/account/api/tokens.",
     "versionCmd": "doctl version 2>/dev/null | sed -n 1p"
   },
@@ -694,9 +631,7 @@
     "summary": "Search Reddit, read threads and post comments.",
     "statusCmd": "rdt status 2>&1 | sed -n 's/.*\"username\"[[:space:]]*:[[:space:]]*\"\\([^\"]*\\)\".*/\\1/p' | grep -m10 .",
     "loginCmd": "rdt login",
-    "credentialPaths": [
-      "~/.config/rdt-cli/credential.json"
-    ],
+    "credentialPaths": ["~/.config/rdt-cli/credential.json"],
     "description": "Reddit CLI. Read: `rdt search \"<query>\" -r <sub> --json -c`, `rdt sub <name>`, `rdt read <postId>`, `rdt user-comments <user>`. Write: `rdt comment <postId> \"<text>\"`, `rdt upvote`, `rdt save`.",
     "versionCmd": "rdt --version 2>/dev/null | sed -n 1p"
   },
@@ -787,9 +722,7 @@
   "todoforai-browser": {
     "category": "development",
     "pkg": "@todoforai/browser",
-    "aliases": [
-      "tfa-browser"
-    ],
+    "aliases": ["tfa-browser"],
     "installer": "npm",
     "preinstallCloud": true,
     "label": "Browser (Extension)",
@@ -885,7 +818,7 @@
     "label": "Memory",
     "summary": "Your long-term memory of notes, facts and past TODOs.",
     "platformAuth": true,
-    "description": "The user's long-term memory (notes, procedures, decisions; addressed as source/ref) plus every past TODO message (read-only, source `todo`, address `todo/<todoId>:<messageId>`). You are the reader \u2014 nothing verifies your answer for you, so read enough before answering from memory. READ: `tfa-memory search \"<topic>\" --mode fused` first \u2014 any-word \u222a meaning, best recall; it prints `N row(s) contain a query word` on stderr \u2014 if N is bigger than what you saw, page with `--exclude <address>` (repeatable) until the rest is irrelevant. `--mode lexical` = all words, newest first (exact phrases, recent state); `--mode semantic` = meaning only. `--source todo` / `--todo <id>` narrow the scope. A hit is a snippet: `get <address>` for the full row, `around <address> --before N --after N` for the dialogue it sits in (a large --after reads the rest of the TODO). Before answering a memory question, search once more with your draft answer's key facts, excluding what you already read \u2014 if anything new comes up, read it. WRITE proactively: durable knowledge that appears in the conversation \u2014 a procedure, decision, config fact, preference \u2014 `add <source>/<ref> \"text\"` (same address updates in place; identical content is skipped; short factual source names like deploy-notes, acme, preferences). `todo` is read-only. `sources` lists what exists.",
+    "description": "The user's long-term memory (notes, procedures, decisions; addressed as source/ref) plus every past TODO message (read-only, source `todo`, address `todo/<todoId>:<messageId>`). You are the reader — nothing verifies your answer for you, so read enough before answering from memory. READ: `tfa-memory search \"<topic>\" --mode fused` first — any-word ∪ meaning, best recall; it prints `N row(s) contain a query word` on stderr — if N is bigger than what you saw, page with `--exclude <address>` (repeatable) until the rest is irrelevant. `--mode lexical` = all words, newest first (exact phrases, recent state); `--mode semantic` = meaning only. `--source todo` / `--todo <id>` narrow the scope. A hit is a snippet: `get <address>` for the full row, `around <address> --before N --after N` for the dialogue it sits in (a large --after reads the rest of the TODO). Before answering a memory question, search once more with your draft answer's key facts, excluding what you already read — if anything new comes up, read it. WRITE proactively: durable knowledge that appears in the conversation — a procedure, decision, config fact, preference — `add <source>/<ref> \"text\"` (same address updates in place; identical content is skipped; short factual source names like deploy-notes, acme, preferences). `todo` is read-only. `sources` lists what exists.",
     "versionCmd": "tfa-memory --version 2>/dev/null | sed -n 1p",
     "installCmd": "bun add -g @todoforai/tfa-memory",
     "preinstallCloud": true,
@@ -955,9 +888,7 @@
     "versionCmd": "node -p 'process.version' 2>/dev/null",
     "preinstallCloud": true,
     "cloudInstallCmd": "curl -fsSL https://deb.nodesource.com/setup_24.x | bash -",
-    "cloudAptPackages": [
-      "nodejs"
-    ],
+    "cloudAptPackages": ["nodejs"],
     "cloudVerifyCmd": "node --version",
     "internal": true,
     "preinstallJarvis": true,
@@ -972,9 +903,7 @@
     "summary": "Run Python code.",
     "versionCmd": "{ python3 --version || python --version || py --version; } 2>/dev/null | sed -n 1p",
     "preinstallCloud": true,
-    "cloudAptPackages": [
-      "python3"
-    ],
+    "cloudAptPackages": ["python3"],
     "cloudVerifyCmd": "python3 --version",
     "internal": true,
     "preinstallJarvis": true,
@@ -1256,9 +1185,7 @@
     "summary": "Read and publish WordPress posts and pages.",
     "statusCmd": "wordpress-api whoami 2>/dev/null | sed -n 's/.*\"slug\"[[:space:]]*:[[:space:]]*\"\\([^\"]*\\)\".*/\\1/p' | grep -m10 .",
     "loginCmd": "wordpress-api auth --site <url> --user <username> --password <app_password>",
-    "credentialPaths": [
-      "~/.config/wordpress-api/credentials.json"
-    ],
+    "credentialPaths": ["~/.config/wordpress-api/credentials.json"],
     "description": "WordPress REST API CLI. `wordpress-api auth --site https://example.com --user <user> --password '<application password>'` (application password, not the login password). Reading published content needs no auth. `posts list|get|create|update|delete`, `pages`, `media`, `categories`. `posts create` saves a draft unless --status publish. On Elementor/JetEngine sites content.rendered comes back empty — fetch the post's public URL for the body.",
     "versionCmd": "wordpress-api --version 2>/dev/null | sed -n 1p"
   },
@@ -1271,9 +1198,7 @@
     "summary": "Post to your Facebook Page and handle comments.",
     "statusCmd": "facebook-pages-api whoami 2>/dev/null | sed -n 's/.*\"name\"[[:space:]]*:[[:space:]]*\"\\([^\"]*\\)\".*/\\1/p' | grep -m10 .",
     "loginCmd": "facebook-pages-api auth --page-id <id> --page-token <token>",
-    "credentialPaths": [
-      "~/.config/facebook-pages-api/credentials.json"
-    ],
+    "credentialPaths": ["~/.config/facebook-pages-api/credentials.json"],
     "description": "Facebook Pages CLI over the official Meta Graph API v21.0. `facebook-pages-api auth --page-id <id> --page-token <token>` (page token from GET /me/accounts; env FB_PAGE_ID / FB_PAGE_TOKEN). `feed list|get|create|delete`, `comments list|get|reply|hide|delete`, `insights page|post`, `conversations list|get`, `media create`, and `request <GET|POST|DELETE> <path> [--data <json>]` — raw curl-like call against ANY Graph edge with the stored page token auto-attached (use this instead of curl for anything not covered by a subcommand). Writes are live — use `feed create --published false` for tests. `comments reply` posts publicly and immediately, so have a human approve the text. Many classic insights metrics (page_impressions, page_fans, post_impressions) were retired and now error; follower totals come from `whoami --fields followers_count,fan_count`. `conversations` needs the pages_messaging permission.",
     "versionCmd": "facebook-pages-api --version 2>/dev/null | sed -n 1p"
   },
@@ -1285,9 +1210,7 @@
     "summary": "Read and write mail on a company Exchange server.",
     "statusCmd": "ews-api whoami 2>/dev/null | sed -n 's/.*\"email\"[[:space:]]*:[[:space:]]*\"\\([^\"]*\\)\".*/\\1/p' | grep -m10 .",
     "loginCmd": "ews-api auth --email <email> --username <username> --server <server> --password <password>",
-    "credentialPaths": [
-      "~/.config/ews-api/credentials.json"
-    ],
+    "credentialPaths": ["~/.config/ews-api/credentials.json"],
     "description": "On-premise Microsoft Exchange CLI over EWS (Exchange Web Services), for servers with no Microsoft 365 tenant — use outlook-api for cloud mailboxes (EWS is blocked on Exchange Online from Oct 2026; on-prem Exchange 2016/2019/SE keep it). `ews-api auth --email user@corp.hu --username 'DOMAIN\\\\user' --server mail.corp.hu` (NTLM; prompts for the password on a TTY, or `--password-stdin`; always pass --server, autodiscover is off). Multiple mailboxes: `whoami` lists them, `--account <email>` / EWS_ACCOUNT picks one, `default <email>` / `logout <email>` manage them; EWS_EMAIL/EWS_USERNAME/EWS_PASSWORD/EWS_SERVER override for unattended runs. `list`, `search <query>`, `read <id>`, `draft`, `reply <id>`. draft/reply save to Drafts by default and only send with --send, so a human approves in Outlook. Stores the plaintext mailbox password in ~/.config/ews-api/credentials.json (0600); re-run auth after an AD password rotation.",
     "versionCmd": "ews-api --version 2>/dev/null | sed -n 1p",
     "logoutCmd": "ews-api logout {{ACCOUNT}}"
@@ -1301,9 +1224,7 @@
     "summary": "Read and write your Outlook mail.",
     "statusCmd": "outlook-api whoami 2>/dev/null | sed -n 's/.*\"userPrincipalName\"[[:space:]]*:[[:space:]]*\"\\([^\"]*\\)\".*/\\1/p' | grep -m10 .",
     "loginCmd": "outlook-api auth",
-    "credentialPaths": [
-      "~/.config/outlook-api/config.json"
-    ],
+    "credentialPaths": ["~/.config/outlook-api/config.json"],
     "description": "Outlook / Hotmail / Microsoft 365 mail CLI over Microsoft Graph (cloud mailboxes — use ews-api for on-prem Exchange). `outlook-api auth` is a device-code flow with no Azure app registration; personal accounts use --tenant consumers (default), work/school --tenant organizations. list/search/read/attachments are read-only; `draft` and `reply` save to Drafts by default and only send with --send, so a human approves in Outlook; `send <draftId>` sends an existing draft. Raw JSON out; `get` is a raw Graph GET passthrough.",
     "versionCmd": "outlook-api --version 2>/dev/null | sed -n 1p",
     "deviceCodePattern": "enter the code ([A-Z0-9]+)",
@@ -1319,14 +1240,10 @@
     "statusCmd": "test -f ~/.config/neon/credentials.json && neonctl me --output json 2>/dev/null | sed -n 's/.*\"email\"[[:space:]]*:[[:space:]]*\"\\([^\"]*\\)\".*/\\1/p' | grep -m10 .",
     "loginCmd": "neonctl auth",
     "oauthUrlPattern": "(https://oauth2\\.neon\\.tech/oauth2/auth\\S+)",
-    "credentialPaths": [
-      "~/.config/neon/credentials.json"
-    ],
+    "credentialPaths": ["~/.config/neon/credentials.json"],
     "description": "Manage Neon Postgres branches and run SQL: `neonctl projects list`, `neonctl branches create`, `neonctl connection-string`. Aliased as `neon`.",
     "versionCmd": "neonctl --version 2>/dev/null | sed -n 1p",
-    "aliases": [
-      "neon"
-    ],
+    "aliases": ["neon"],
     "canStreamLogin": true
   },
   "m365": {
@@ -1340,10 +1257,7 @@
     "loginCmd": "m365 login --authType deviceCode --appId 04b07795-8ddb-461a-bbee-02f9e1bf7b46",
     "deviceCodePattern": "enter the code ([A-Z0-9]{8,}) to authenticate",
     "oauthUrlPattern": "open the page (https://\\S+) and enter",
-    "credentialPaths": [
-      "~/.cli-m365-msal.json",
-      "~/.cli-m365-connection.json"
-    ],
+    "credentialPaths": ["~/.cli-m365-msal.json", "~/.cli-m365-connection.json"],
     "description": "Microsoft 365 from the shell: `m365 outlook message list`, `m365 teams team list`, `m365 spo site list`. Device-code login; add `--output json` for parseable output.",
     "versionCmd": "m365 version 2>/dev/null | tr -d '\"' | sed -n 1p"
   },
@@ -1359,9 +1273,7 @@
     "loginCmd": "hs account auth",
     "oauthUrlPattern": "(https://app\\.hubspot\\.com/l/personal-access-key\\S+)",
     "loginNeedsPty": true,
-    "credentialPaths": [
-      "~/.hscli/config.yml"
-    ],
+    "credentialPaths": ["~/.hscli/config.yml"],
     "description": "Invoked as `hs`. `hs api <endpoint>` makes authenticated calls to any HubSpot API (contacts, deals, companies) — prefer it over raw curl.",
     "versionCmd": "hs --version 2>/dev/null | sed -n 1p",
     "canStreamLogin": true
@@ -1375,9 +1287,7 @@
     "summary": "Query PostHog product analytics and manage feature flags.",
     "statusCmd": "test -s ~/.config/posthog.json && grep -q 'token\\|key' ~/.config/posthog.json && echo authenticated",
     "loginCmd": "posthog-cli login",
-    "credentialPaths": [
-      "~/.config/posthog.json"
-    ],
+    "credentialPaths": ["~/.config/posthog.json"],
     "description": "Official PostHog CLI. `posthog-cli api tools` lists the agent-first API tool catalog, `posthog-cli api call <tool> '<json>'` runs one (SQL queries, insights, flags). Also uploads sourcemaps/dSYM. Env alternative: POSTHOG_CLI_API_KEY + POSTHOG_CLI_PROJECT_ID.",
     "versionCmd": "posthog-cli --version 2>/dev/null | sed -n 1p"
   },
@@ -1390,9 +1300,7 @@
     "statusCmd": "test -s ~/.canva-cli/credentials && echo authenticated",
     "loginCmd": "canva login",
     "loginNeedsPty": true,
-    "credentialPaths": [
-      "~/.canva-cli/credentials"
-    ],
+    "credentialPaths": ["~/.canva-cli/credentials"],
     "description": "Official Canva CLI — app-development focused: `canva apps create/list/preview`. `canva mcp` starts the Canva Developer MCP server. For design/export automation use the Canva Connect REST API.",
     "versionCmd": "canva --version 2>/dev/null | sed -n 1p",
     "oauthUrlPattern": "OPEN_URL: (https://www\\.canva\\.com/api/oauth/authorize\\S+)",
@@ -1408,9 +1316,7 @@
     "loginCmd": "webflow auth login --skip-update-check",
     "loginNeedsPty": true,
     "oauthUrlPattern": "(https://webflow\\.com/oauth/webflow/initiate\\S+)",
-    "credentialPaths": [
-      "~/.config/webflow"
-    ],
+    "credentialPaths": ["~/.config/webflow"],
     "description": "Manage Webflow sites from the shell: `webflow sites list`, `webflow cms ...`, `webflow assets ...`. Add `--skip-update-check` in scripts.",
     "versionCmd": "webflow --version 2>/dev/null | sed -n 1p"
   },
@@ -1422,9 +1328,7 @@
     "summary": "Search and save articles and highlights in Readwise.",
     "statusCmd": "readwise whoami >/dev/null 2>&1 && readwise whoami 2>/dev/null | sed 's/\\x1b\\[[0-9;]*m//g' | grep -m1 .",
     "loginCmd": "readwise login",
-    "credentialPaths": [
-      "~/.readwise-cli.json"
-    ],
+    "credentialPaths": ["~/.readwise-cli.json"],
     "description": "Official Readwise/Reader CLI. `readwise search <query>`, `readwise list`, `readwise save <url>`; supports JSON output for piping and a read-only mode for agents. Token login for CI: `readwise login-with-token <token>` (get one at readwise.io/access_token).",
     "versionCmd": "readwise --version 2>/dev/null | sed -n 1p",
     "oauthUrlPattern": "OPEN_URL: (https://readwise\\.io/o/authorize\\S+)",
@@ -1440,10 +1344,7 @@
     "summary": "Read your Granola meeting notes and transcripts.",
     "statusCmd": "granola auth status -o json 2>/dev/null | sed -n 's/.*\"authenticated\": *true.*/authenticated/p' | grep -m1 .",
     "loginCmd": "granola auth login",
-    "credentialPaths": [
-      "~/.config/keyring",
-      "~/.config/granola"
-    ],
+    "credentialPaths": ["~/.config/keyring", "~/.config/granola"],
     "versionCmd": "granola --version 2>/dev/null | sed -n 1p",
     "description": "Community Granola CLI (read-only). `granola meeting list [-l N] [--since <date>] [-s <query>] [-a <attendee>] -o json`, `granola meeting notes|enhanced|transcript <id>`, `granola meeting export <id>`; `granola folder list`, `granola workspace list`. `-o json|yaml|toon` for piping. Login imports credentials from the installed Granola desktop app (`granola auth login`) — desktop app must be logged in on the same machine; transcripts need a paid Granola plan."
   },
@@ -1472,9 +1373,7 @@
     "statusCmd": "grep -qE '[A-Za-z0-9]' ~/.mappsrc 2>/dev/null && echo authenticated",
     "loginCmd": "mapps init",
     "loginNeedsPty": true,
-    "credentialPaths": [
-      "~/.mappsrc"
-    ],
+    "credentialPaths": ["~/.mappsrc"],
     "description": "Invoked as `mapps` — app development and monday-code deployments only; `mapps init -t <token>` stores a monday.com API token in ~/.mappsrc. To read/write board DATA use the monday.com GraphQL API (api.monday.com/v2) with that same token.",
     "versionCmd": "mapps --version 2>/dev/null | sed -n 1p"
   },
@@ -1499,10 +1398,7 @@
     "summary": "Browse real app and website design examples.",
     "statusCmd": "mobbin auth print-cookie 2>/dev/null | grep -E '[A-Za-z0-9]' >/dev/null && echo authenticated",
     "loginCmd": "mobbin auth save-cookie",
-    "credentialPaths": [
-      "~/.config/mobbin/cookie.txt",
-      "~/.config/mobbin/storage-state.json"
-    ],
+    "credentialPaths": ["~/.config/mobbin/cookie.txt", "~/.config/mobbin/storage-state.json"],
     "description": "Unofficial CLI over Mobbin's undocumented web endpoints. `mobbin search --query \"login\" --platform ios`. Auth reuses browser cookies: log into mobbin.com in Chrome, then `mobbin auth save-cookie`.",
     "versionCmd": "mobbin --version 2>/dev/null | sed -n '1,2p' | tr '\\n' ' '"
   },
@@ -1517,9 +1413,7 @@
     "statusCmd": "command -v blender-mcp >/dev/null && mcporter call blender.get_addon_status --output json 2>/dev/null | grep -o '\"blender_version\": \"[^\"]*\"' | grep -m1 .",
     "loginCmd": "mcporter config add blender --command blender-mcp --env BLENDER_MCP_DISABLE_TELEMETRY=1 --description 'Blender 3D via ahujasid/blender-mcp addon' --scope home",
     "logoutCmd": "cd ~ && mcporter config remove blender",
-    "credentialPaths": [
-      "~/.mcporter/mcporter.json"
-    ],
+    "credentialPaths": ["~/.mcporter/mcporter.json"],
     "description": "Blender 3D via the ahujasid/blender-mcp server, driven with mcporter (no own CLI). Tool docs: `mcporter list blender --schema`; call: `mcporter call blender.<tool> key=value` (`code=@file.py`). Workhorse is execute_blender_code (any bpy Python); also scene/object info, viewport screenshot (`--save-images <dir>`), PolyHaven/Sketchfab asset import, text→3D generation. Needs a running Blender with the addon's server started (socket :9876); `-b`/headless has no socket. 'Could not connect' → `blender-mcp install-addon`, enable it in Preferences → Add-ons, then N-panel → Start MCP Server (scripted: `blender --python s.py` where s.py registers a `bpy.app.timers` calling `bpy.ops.blendermcp.start_server()`). Code runs unguarded in the user's Blender: approve destructive ops, save first (`bpy.ops.wm.save_mainfile()`).",
     "versionCmd": "{ python -c 'from importlib.metadata import version; print(version(\"blender-mcp\"))' || python3 -c 'from importlib.metadata import version; print(version(\"blender-mcp\"))'; } 2>/dev/null"
   }

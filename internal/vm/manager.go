@@ -293,7 +293,11 @@ func (m *Manager) Create(ctx context.Context, s Spec) (*Created, error) {
 		return nil, fmt.Errorf("new container: %w", err)
 	}
 
-	task, err := container.NewTask(ctx, cio.NullIO)
+	// Guest stdout/stderr → a per-VM file on the host. A pipe (cio.NullIO's
+	// default) has no reader, so a chatty guest would block after 64KB; a file
+	// never blocks and keeps early-boot/entrypoint output inspectable when the
+	// VM dies before /exec can reach it. Removed in Delete.
+	task, err := container.NewTask(ctx, cio.LogFile(guestLogPath(s.ID)))
 	if err != nil {
 		container.Delete(ctx, containerd.WithSnapshotCleanup)
 		teardownNet()
@@ -489,8 +493,23 @@ func (m *Manager) IsLive(ctx context.Context, id string) Liveness {
 // netns/loop) runs UNCONDITIONALLY — even when the container is already gone —
 // so a retry or reconcile after a partial/crashed delete still leaves no
 // residue.
+const guestLogDir = "/run/sandbox-manager/guest-logs"
+
+func guestLogPath(id string) string {
+	os.MkdirAll(guestLogDir, 0o755)
+	p := filepath.Join(guestLogDir, id+".log")
+	// containerd creates it 0600 root; pre-create readable so operators can tail
+	// it without sudo (same content /exec already exposes).
+	if f, err := os.OpenFile(p, os.O_CREATE|os.O_WRONLY, 0o644); err == nil {
+		f.Close()
+		os.Chmod(p, 0o644) // umask-proof
+	}
+	return p
+}
+
 func (m *Manager) Delete(ctx context.Context, id string) error {
 	ctx = m.ctx(ctx)
+	defer os.Remove(guestLogPath(id))
 	var err error
 	if container, lerr := m.client.LoadContainer(ctx, id); lerr == nil {
 		if task, terr := container.Task(ctx, nil); terr == nil {

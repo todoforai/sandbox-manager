@@ -29,6 +29,26 @@ func (s *Store) Delete(userID string) error {
 	return os.RemoveAll(dir)
 }
 
+// growDisk extends a sparse ext4 image and its filesystem to size bytes. The
+// image is not mounted here (one sandbox per user, called before the VM
+// attaches), so an offline resize2fs is safe; it requires a clean fs, hence
+// the preen fsck first.
+func growDisk(path string, size int64) error {
+	if err := os.Truncate(path, size); err != nil {
+		return fmt.Errorf("grow %s: %w", path, err)
+	}
+	if out, err := exec.Command("e2fsck", "-fp", path).CombinedOutput(); err != nil {
+		// exit 1 = errors corrected; only ≥2 is a real failure
+		if ee, ok := err.(*exec.ExitError); !ok || ee.ExitCode() > 1 {
+			return fmt.Errorf("e2fsck %s: %v: %s", path, err, out)
+		}
+	}
+	if out, err := exec.Command("resize2fs", path).CombinedOutput(); err != nil {
+		return fmt.Errorf("resize2fs %s: %v: %s", path, err, out)
+	}
+	return nil
+}
+
 var validID = regexp.MustCompile(`^[A-Za-z0-9_.-]+$`)
 
 func (s *Store) dir(userID string) (string, error) {
@@ -40,7 +60,10 @@ func (s *Store) dir(userID string) (string, error) {
 
 // EnsureDisk returns the path to the user's home.img, creating + formatting it
 // (sparse, size_mib ceiling) on first call. Idempotent: an existing image is
-// returned untouched — never reformatted (would destroy user data).
+// never reformatted (would destroy user data), but it IS grown to sizeMiB when
+// smaller — e.g. a disk created on a lower tier. A full home is fatal: the
+// entrypoint can't write credentials.json, enrollment fails, the bridge loops
+// on 4401 and the VM dies silently. Never shrinks.
 func (s *Store) EnsureDisk(userID string, sizeMiB uint64) (string, error) {
 	dir, err := s.dir(userID)
 	if err != nil {
@@ -50,7 +73,13 @@ func (s *Store) EnsureDisk(userID string, sizeMiB uint64) (string, error) {
 		return "", err
 	}
 	path := filepath.Join(dir, "home.img")
-	if _, err := os.Stat(path); err == nil {
+	if st, err := os.Stat(path); err == nil {
+		want := int64(sizeMiB) * 1024 * 1024
+		if st.Size() < want {
+			if err := growDisk(path, want); err != nil {
+				return "", err
+			}
+		}
 		return path, nil
 	}
 	f, err := os.Create(path)
