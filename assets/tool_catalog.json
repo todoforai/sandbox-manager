@@ -19,6 +19,7 @@
     "description": "Read inbox, search/send/reply email, email addresses — multi-account Gmail, OAuth browser login for setup. Also Google Calendar via `zele cal` (see zele-calendar)."
   },
   "zele-calendar": {
+    "preinstallCloud": true,
     "category": "utility",
     "pkg": "zele",
     "installer": "npm",
@@ -56,6 +57,7 @@
     "preinstallCloud": true
   },
   "linkedin-api": {
+    "preinstallCloud": true,
     "category": "social",
     "pkg": "@todoforai/linkedin-api",
     "installer": "npm",
@@ -84,6 +86,9 @@
     "versionCmd": "figma-api --version 2>/dev/null | sed -n 1p"
   },
   "slack-cli": {
+    "preinstallCloud": true,
+    "cloudInstallCmd": "curl -fsSL https://github.com/slackapi/slack-cli/releases/download/v4.2.0/slack_cli_4.2.0_linux_amd64.tar.gz | tar -xz -C /tmp bin/slack && install -m0755 /tmp/bin/slack /usr/local/bin/slack-cli && rm -rf /tmp/bin",
+    "cloudVerifyCmd": "slack-cli --version",
     "category": "social",
     "pkg": "slack-cli",
     "installer": "binary",
@@ -126,6 +131,8 @@
     }
   },
   "telegram-send": {
+    "preinstallCloud": true,
+    "packages": ["telegram-send==0.39.2"],
     "category": "social",
     "pkg": "telegram-send",
     "installer": "pip",
@@ -140,6 +147,8 @@
     "description": "Send messages, send files & images, send video & audio, Markdown/HTML formatting, channel & group support"
   },
   "meta-ads": {
+    "preinstallCloud": true,
+    "packages": ["meta-ads==1.1.0"],
     "category": "marketing",
     "pkg": "meta-ads",
     "installer": "pip",
@@ -151,6 +160,7 @@
     "description": "Meta/Facebook & Instagram ad campaigns: campaigns/adsets/ads CRUD, insights & reporting, catalog/product-feed/product-set/product-item, ad creatives, datasets (pixels), pages — Marketing API via the official `meta` CLI. No raw/passthrough mode; for arbitrary Graph API calls with a Page token use `facebook-pages-api request <method> <path>`."
   },
   "elevenlabs-api": {
+    "preinstallCloud": true,
     "category": "media",
     "pkg": "@todoforai/elevenlabs-api",
     "installer": "npm",
@@ -165,6 +175,7 @@
     "description": "Text-to-speech, voice cloning, multiple languages."
   },
   "ffmpeg": {
+    "commodity": true,
     "category": "media",
     "pkg": "ffmpeg",
     "installer": "system",
@@ -178,6 +189,7 @@
     "versionCmd": "ffmpeg -version 2>/dev/null | sed -n 1p"
   },
   "tfa-imagegen": {
+    "preinstallCloud": true,
     "category": "media",
     "pkg": "@todoforai/image-api",
     "installer": "npm",
@@ -191,6 +203,7 @@
     "description": "AI image generation & editing via TODOFORAI backend (gpt-image, nano-banana, nano-banana-pro, mai-image-2.6)"
   },
   "suno-api": {
+    "preinstallCloud": true,
     "category": "media",
     "pkg": "@todoforai/suno-api",
     "installer": "npm",
@@ -201,6 +214,7 @@
     "description": "AI music generation, custom lyrics, multiple genres."
   },
   "ntn": {
+    "preinstallCloud": true,
     "category": "utility",
     "pkg": "ntn",
     "installer": "npm",
@@ -215,6 +229,7 @@
     "description": "Official Notion CLI: raw API calls (`ntn api <path>`), page/data-source management, file uploads, Workers deploy."
   },
   "perplexity-api": {
+    "preinstallCloud": true,
     "category": "utility",
     "pkg": "@todoforai/perplexity-api",
     "installer": "npm",
@@ -278,6 +293,7 @@
     "canStreamLogin": true
   },
   "vercel": {
+    "preinstallCloud": true,
     "category": "deployment",
     "pkg": "vercel",
     "installer": "npm",
@@ -311,6 +327,7 @@
     "canStreamLogin": true
   },
   "firebase": {
+    "preinstallCloud": true,
     "category": "deployment",
     "pkg": "firebase-tools",
     "installer": "npm",
@@ -327,6 +344,7 @@
     "canStreamLogin": true
   },
   "wrangler": {
+    "preinstallCloud": true,
     "category": "deployment",
     "pkg": "wrangler",
     "installer": "npm",
@@ -343,6 +361,9 @@
     "oauthCallbackPort": 8976
   },
   "stripe": {
+    "preinstallCloud": true,
+    "cloudInstallCmd": "curl -fsSL https://github.com/stripe/stripe-cli/releases/download/v1.50.10/stripe_1.50.10_linux_x86_64.tar.gz | tar -xz -C /usr/local/bin stripe",
+    "cloudVerifyCmd": "stripe --version",
     "category": "payments",
     "pkg": "stripe",
     "installer": "binary",
@@ -374,6 +395,9 @@
     "versionCmd": "flyctl version 2>/dev/null | sed -n 1p"
   },
   "supabase": {
+    "preinstallCloud": true,
+    "cloudInstallCmd": "curl -fsSL https://github.com/supabase/cli/releases/download/v2.117.0/supabase_2.117.0_linux_amd64.tar.gz | tar -xz -C /usr/local/bin supabase",
+    "cloudVerifyCmd": "supabase --version",
     "category": "cloud",
     "pkg": "supabase",
     "installer": "binary",
@@ -405,6 +429,7 @@
     "canStreamLogin": true
   },
   "shopify": {
+    "preinstallCloud": true,
     "category": "ecommerce",
     "pkg": "@shopify/cli",
     "installer": "npm",
@@ -422,6 +447,7 @@
     "description": "Theme development, app scaffolding, store management"
   },
   "shop-app": {
+    "preinstallCloud": true,
     "category": "ecommerce",
     "pkg": "@todoforai/shop-app",
     "installer": "npm",
@@ -441,6 +467,7 @@
     "description": "CI test visibility, sourcemap uploads, deployment tracking."
   },
   "sentry-cli": {
+    "preinstallCloud": true,
     "category": "monitoring",
     "pkg": "@sentry/cli",
     "installer": "npm",
@@ -471,6 +498,7 @@
     ]
   },
   "newman": {
+    "preinstallCloud": true,
     "category": "testing",
     "pkg": "newman",
     "installer": "npm",
@@ -480,6 +508,7 @@
     "versionCmd": "newman --version 2>/dev/null | sed -n 1p"
   },
   "curl": {
+    "commodity": true,
     "category": "networking",
     "pkg": "curl",
     "installer": "system",
@@ -493,6 +522,10 @@
     "preinstallJarvis": true
   },
   "cloudflared": {
+    "preinstallCloud": true,
+    "cloudInstallCmd": "curl -fsSL https://github.com/cloudflare/cloudflared/releases/download/2026.9.0/cloudflared-linux-amd64 -o /usr/local/bin/cloudflared && chmod 0755 /usr/local/bin/cloudflared",
+    "cloudVerifyCmd": "cloudflared --version",
+    "commodity": true,
     "category": "networking",
     "pkg": "cloudflared",
     "installer": "binary",
@@ -578,6 +611,9 @@
     "description": "Access Google Drive, OneDrive, Dropbox, S3, and 40+ cloud providers. List, copy, sync, move, and mount files; use `rclone config create <name> <provider>` to connect."
   },
   "aws": {
+    "preinstallCloud": true,
+    "cloudInstallCmd": "curl -fsSL https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip -o /tmp/awscli.zip && unzip -qo /tmp/awscli.zip -d /tmp && /tmp/aws/install --update && rm -rf /tmp/aws /tmp/awscli.zip",
+    "cloudVerifyCmd": "aws --version",
     "category": "cloud",
     "pkg": "awscli",
     "installer": "system",
@@ -631,6 +667,9 @@
     "versionCmd": "az version --query '\"azure-cli\"' -o tsv 2>/dev/null | sed -n 1p"
   },
   "doctl": {
+    "preinstallCloud": true,
+    "cloudInstallCmd": "curl -fsSL https://github.com/digitalocean/doctl/releases/download/v1.168.0/doctl-1.168.0-linux-amd64.tar.gz | tar -xz -C /usr/local/bin doctl",
+    "cloudVerifyCmd": "doctl version",
     "category": "cloud",
     "pkg": "doctl",
     "installer": "binary",
@@ -646,6 +685,8 @@
     "versionCmd": "doctl version 2>/dev/null | sed -n 1p"
   },
   "rdt": {
+    "preinstallCloud": true,
+    "packages": ["rdt-cli==0.4.1"],
     "category": "social",
     "pkg": "rdt-cli",
     "installer": "pip",
@@ -759,6 +800,7 @@
     "description": "Browser automation via extension (non-headless), web scraping, accessibility tree snapshots, screenshots, PDF generation"
   },
   "tfa-explore": {
+    "preinstallCloud": true,
     "category": "development",
     "pkg": "@todoforai/tfa-explore",
     "installer": "npm",
@@ -771,6 +813,7 @@
     "internal": true
   },
   "tfa-review": {
+    "preinstallCloud": true,
     "category": "development",
     "pkg": "@todoforai/tfa-review",
     "installer": "npm",
@@ -783,6 +826,7 @@
     "internal": true
   },
   "tfa-summary": {
+    "preinstallCloud": true,
     "category": "development",
     "pkg": "@todoforai/tfa-summary",
     "installer": "npm",
@@ -795,6 +839,7 @@
     "internal": true
   },
   "tfa-handoff": {
+    "preinstallCloud": true,
     "category": "development",
     "pkg": "@todoforai/tfa-handoff",
     "installer": "npm",
@@ -860,6 +905,7 @@
     "preinstallJarvis": true
   },
   "tfa-surface": {
+    "preinstallCloud": true,
     "category": "utility",
     "pkg": "@todoforai/tfa-surface",
     "installer": "npm",
@@ -872,6 +918,7 @@
     "internal": true
   },
   "bun": {
+    "commodity": true,
     "category": "development",
     "pkg": "bun",
     "installer": "system",
@@ -886,6 +933,7 @@
     "description": "Run JavaScript/TypeScript, install packages, run tests (`bun`, `bunx`)."
   },
   "bunx": {
+    "commodity": true,
     "category": "development",
     "pkg": "bunx",
     "installer": "system",
@@ -898,6 +946,7 @@
     "description": "Run package binaries with Bun."
   },
   "node": {
+    "commodity": true,
     "category": "development",
     "pkg": "node",
     "installer": "system",
@@ -915,6 +964,7 @@
     "description": "Run Node.js scripts."
   },
   "python3": {
+    "commodity": true,
     "category": "development",
     "pkg": "python3",
     "installer": "system",
@@ -931,6 +981,7 @@
     "description": "Run Python scripts."
   },
   "npm": {
+    "commodity": true,
     "category": "development",
     "pkg": "npm",
     "installer": "system",
@@ -943,6 +994,7 @@
     "description": "Install Node packages and run package scripts."
   },
   "npx": {
+    "commodity": true,
     "category": "development",
     "pkg": "npx",
     "installer": "system",
@@ -955,6 +1007,10 @@
     "description": "Run npm package binaries."
   },
   "pip3": {
+    "preinstallCloud": true,
+    "cloudAptPackages": ["python3-pip"],
+    "cloudVerifyCmd": "pip3 --version",
+    "commodity": true,
     "category": "development",
     "pkg": "pip3",
     "installer": "system",
@@ -965,6 +1021,7 @@
     "description": "Install Python packages."
   },
   "uv": {
+    "commodity": true,
     "category": "development",
     "pkg": "uv",
     "installer": "system",
@@ -978,6 +1035,7 @@
     "description": "Manage Python dependencies, environments, tools, and scripts (`uv`, `uvx`)."
   },
   "uvx": {
+    "commodity": true,
     "category": "development",
     "pkg": "uvx",
     "installer": "system",
@@ -990,6 +1048,7 @@
     "description": "Run Python tools in isolated environments."
   },
   "ripgrep": {
+    "commodity": true,
     "category": "development",
     "pkg": "ripgrep",
     "installer": "binary",
@@ -1070,6 +1129,7 @@
     "preinstallJarvis": true
   },
   "fd": {
+    "commodity": true,
     "category": "development",
     "pkg": "fd-find",
     "installer": "binary",
@@ -1110,6 +1170,7 @@
     "preinstallJarvis": true
   },
   "jq": {
+    "commodity": true,
     "category": "development",
     "pkg": "jq",
     "installer": "binary",
@@ -1145,6 +1206,7 @@
     "preinstallJarvis": true
   },
   "patch": {
+    "commodity": true,
     "category": "development",
     "pkg": "patch",
     "installer": "system",
@@ -1158,6 +1220,7 @@
     "preinstallJarvis": true
   },
   "sed": {
+    "commodity": true,
     "category": "development",
     "pkg": "sed",
     "installer": "system",
@@ -1171,6 +1234,7 @@
     "preinstallJarvis": true
   },
   "grep": {
+    "commodity": true,
     "category": "development",
     "pkg": "grep",
     "installer": "system",
@@ -1184,6 +1248,7 @@
     "preinstallJarvis": true
   },
   "wordpress-api": {
+    "preinstallCloud": true,
     "category": "development",
     "pkg": "@todoforai/wordpress-api",
     "installer": "npm",
@@ -1198,6 +1263,7 @@
     "versionCmd": "wordpress-api --version 2>/dev/null | sed -n 1p"
   },
   "facebook-pages-api": {
+    "preinstallCloud": true,
     "category": "social",
     "pkg": "@todoforai/facebook-pages-api",
     "installer": "npm",
@@ -1227,6 +1293,7 @@
     "logoutCmd": "ews-api logout {{ACCOUNT}}"
   },
   "outlook-api": {
+    "preinstallCloud": true,
     "category": "email",
     "pkg": "@todoforai/outlook-api",
     "installer": "npm",
@@ -1263,6 +1330,7 @@
     "canStreamLogin": true
   },
   "m365": {
+    "preinstallCloud": true,
     "category": "productivity",
     "pkg": "@pnp/cli-microsoft365",
     "installer": "npm",
@@ -1280,6 +1348,7 @@
     "versionCmd": "m365 version 2>/dev/null | tr -d '\"' | sed -n 1p"
   },
   "hubspot": {
+    "preinstallCloud": true,
     "category": "marketing",
     "pkg": "@hubspot/cli",
     "installer": "npm",
@@ -1298,6 +1367,7 @@
     "canStreamLogin": true
   },
   "posthog-cli": {
+    "preinstallCloud": true,
     "category": "monitoring",
     "pkg": "@posthog/cli",
     "installer": "npm",
@@ -1361,6 +1431,7 @@
     "oauthCallbackPort": 6274
   },
   "granola": {
+    "preinstallCloud": true,
     "category": "productivity",
     "pkg": "granola-cli",
     "installer": "npm",
@@ -1375,6 +1446,22 @@
     ],
     "versionCmd": "granola --version 2>/dev/null | sed -n 1p",
     "description": "Community Granola CLI (read-only). `granola meeting list [-l N] [--since <date>] [-s <query>] [-a <attendee>] -o json`, `granola meeting notes|enhanced|transcript <id>`, `granola meeting export <id>`; `granola folder list`, `granola workspace list`. `-o json|yaml|toon` for piping. Login imports credentials from the installed Granola desktop app (`granola auth login`) — desktop app must be logged in on the same machine; transcripts need a paid Granola plan."
+  },
+  "trello": {
+    "preinstallCloud": true,
+    "category": "productivity",
+    "pkg": "trello-cli",
+    "installer": "npm",
+    "binName": "trello",
+    "label": "Trello",
+    "summary": "Manage your Trello boards, lists and cards.",
+    "statusCmd": "trello board:list --format json </dev/null >/dev/null 2>&1 && echo authenticated",
+    "loginCmd": "trello auth:api-key <key> && trello auth:token <token>",
+    "credentialPaths": [
+      "~/.trello-cli"
+    ],
+    "versionCmd": "trello --version 2>/dev/null | sed -n 1p",
+    "description": "Community Trello CLI (mheap/trello-cli, no official one exists). Auth is a Trello API key + token from https://trello.com/app-key — `trello auth:api-key <key>` then `trello auth:token <token>`. `board:list`, `list:list --board <name>`, `card:list --board <b> --list <l>`, `card:create --board <b> --list <l> --name <n> [--description ..] [--due <date>]`, `card:move`, `card:comment`, `label:*`, `search <q>`. Add `--format json` for piping. Names resolve via a local cache; run `trello board:list` once after login to warm it."
   },
   "mapps": {
     "category": "development",
@@ -1392,6 +1479,7 @@
     "versionCmd": "mapps --version 2>/dev/null | sed -n 1p"
   },
   "exa-cli": {
+    "preinstallCloud": true,
     "category": "utility",
     "pkg": "exa-cli",
     "installer": "npm",
@@ -1419,6 +1507,8 @@
     "versionCmd": "mobbin --version 2>/dev/null | sed -n '1,2p' | tr '\\n' ' '"
   },
   "blender-mcp": {
+    "preinstallCloud": true,
+    "packages": ["blender-mcp==1.9.1"],
     "category": "design",
     "pkg": "blender-mcp",
     "installer": "pip",
