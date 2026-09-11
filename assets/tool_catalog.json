@@ -14,7 +14,7 @@
     "versionCmd": "zele --version 2>/dev/null | sed -n 1p",
     "preinstallCloud": true,
     "preinstallJarvis": true,
-    "description": "Read inbox, search/send/reply email, email addresses — multi-account Gmail, OAuth browser login for setup. Also Google Calendar via `zele cal` (see zele-calendar)."
+    "description": "Gmail (multi-account, OAuth login): inbox, search, send, reply, contacts. Google Calendar via `zele cal`: list/create/update/delete events (Meet links, recurrence), respond to invites, free/busy."
   },
   "zele-calendar": {
     "preinstallCloud": true,
@@ -244,7 +244,7 @@
     "label": "MCP (mcporter)",
     "summary": "Use tools from any MCP server.",
     "statusCmd": "mcporter list 2>/dev/null | grep -v 'No MCP servers' | grep -m1 .",
-    "description": "Bridge to MCP servers as plain CLI commands. `mcporter list` shows configured servers (auto-imports Claude/Cursor/VS Code/Codex configs; add `--schema` for tool docs), `mcporter call <server>.<tool> key=value ...` invokes a tool (or `mcporter call <http-url>` directly), `mcporter resource <server> [uri]` reads resources, `mcporter auth <server>` completes OAuth, `mcporter config add <name> <cmd-or-url>` registers a new server. Use this whenever a task needs an MCP-only integration — no MCP client wiring required.",
+    "description": "MCP servers as CLI: `mcporter list [server] [--schema]`, `mcporter call <server>.<tool> key=value` (`key=@file`), `mcporter config add <name> <cmd-or-url>`, `mcporter auth <server>`. `--help` for more.",
     "versionCmd": "mcporter --version 2>/dev/null | sed -n 1p",
     "preinstallJarvis": true,
     "preinstallCloud": true
@@ -446,16 +446,6 @@
     "preinstallJarvis": true,
     "aliases": ["todoforai-cli", "todoai"]
   },
-  "newman": {
-    "preinstallCloud": true,
-    "category": "testing",
-    "pkg": "newman",
-    "installer": "npm",
-    "label": "Postman",
-    "summary": "Run Postman API test collections.",
-    "description": "`newman run <collection.json> -e <env.json>`.",
-    "versionCmd": "newman --version 2>/dev/null | sed -n 1p"
-  },
   "curl": {
     "commodity": true,
     "category": "networking",
@@ -483,17 +473,6 @@
     "description": "`cloudflared tunnel --url http://localhost:<port>` prints a public https URL.",
     "versionCmd": "cloudflared --version 2>/dev/null | sed -n 1p"
   },
-  "mcptools": {
-    "category": "development",
-    "pkg": "github.com/f/mcptools/cmd/mcptools",
-    "installer": "system",
-    "binName": "mcptools",
-    "label": "MCP support",
-    "summary": "Discover and call tools on MCP servers.",
-    "description": "`mcptools tools <server>` lists, `mcptools call <tool> --params '{\"k\":1}' <server>` invokes. `<server>` = stdio command (`npx -y some-mcp-server`) or URL for hosted servers (`https://host/mcp` or `/sse`).",
-    "versionCmd": "mcptools version 2>/dev/null | sed -n 1p",
-    "installCmd": "go install github.com/f/mcptools/cmd/mcptools@latest  # or: brew tap f/mcptools && brew install mcp"
-  },
   "vault": {
     "category": "security",
     "pkg": "vault",
@@ -513,7 +492,7 @@
     "preinstallCloud": true,
     "label": "Cloud Storage",
     "summary": "Move files between Google Drive, Dropbox, OneDrive, S3 and more.",
-    "statusCmd": "rclone listremotes --long 2>/dev/null | tr -s ' ' | grep -m20 .",
+    "statusCmd": "rclone listremotes --long 2>/dev/null | tr -s ' ' | grep -v ' todoforai$' | grep -m20 .",
     "loginCmd": "rclone config",
     "oauthUrlPattern": "(https?://127\\.0\\.0\\.1:\\d+/auth\\?\\S+)",
     "oauthCallbackPort": 53682,
@@ -648,19 +627,6 @@
     "preinstallJarvis": true,
     "description": "PDF text editing, extraction, merge, split. Call via `python3 -c`."
   },
-  "matplotlib": {
-    "category": "utility",
-    "pkg": "matplotlib",
-    "packages": ["matplotlib==3.11.1", "pandas==3.0.5"],
-    "installer": "pip",
-    "label": "Charts",
-    "summary": "Plot charts and crunch tabular data (matplotlib + pandas + numpy).",
-    "versionCmd": "{ python -c 'import matplotlib; print(matplotlib.__version__)' || python3 -c 'import matplotlib; print(matplotlib.__version__)' || py -c 'import matplotlib; print(matplotlib.__version__)'; } 2>/dev/null",
-    "preinstallCloud": true,
-    "cloudVerifyCmd": "python3 -c 'import matplotlib, pandas'",
-    "preinstallJarvis": true,
-    "description": "Chart/plot generation (matplotlib, Agg backend) and tabular data wrangling (pandas, numpy). Use for chart PNGs in decks, reports, dashboards. Call via `python3 -c` or scripts."
-  },
   "anydoc": {
     "category": "utility",
     "pkg": "@firecrawl/anydoc",
@@ -668,7 +634,7 @@
     "binName": "anydoc",
     "label": "Doc to Markdown",
     "summary": "Turn Word, PowerPoint, Excel and other documents into clean text.",
-    "description": "Convert office/rich documents to GitHub-Flavored Markdown, entirely local (MIT, no API key, no network). `anydoc report.docx` prints Markdown to stdout; `anydoc slides.pptx -o slides.md` writes a file; `anydoc - --format csv < data.csv` reads stdin. Format is auto-detected from content. Prefer this over raw XML extraction when you need to READ the text of docx/pptx/xlsx/odt/rtf/epub/csv. Not for editing (one-way) and not for scanned/image-only PDFs (needs OCR).",
+    "description": "Office/rich docs (docx/pptx/xlsx/odt/rtf/epub/csv) → Markdown, fully local. `anydoc file.docx` → stdout, `-o out.md` writes, `anydoc - --format csv < stdin`. Prefer over raw XML extraction for reading; one-way, no OCR for scanned PDFs.",
     "versionCmd": "anydoc --version 2>/dev/null | sed -n 1p",
     "preinstallCloud": true,
     "preinstallJarvis": true
@@ -680,7 +646,7 @@
     "preinstallCloud": true,
     "label": "Browser",
     "summary": "Browse websites automatically: click, type, read and screenshot.",
-    "description": "Browser automation over CDP (`open`/`snapshot`/`click`/`type`/`fill`/`read`/`screenshot`/`eval`). If a `→ Live browser to drive` connect URL is listed below, `connect '<url>'` to it (prefer the user's real Chrome; reattach is automatic) and verify with `snapshot`; if empty, `close` (your session only) and reconnect once. NEVER `close --all` — kills every agent's session. Shared browser: `tab new` for your own tab, `tab <id>` back before each command. No URL listed: cloud → browser-manager-cli; PC with display → launch Chrome with `--remote-debugging-port=9222`, attach `--cdp 9222`.",
+    "description": "Browser automation over CDP (`open`/`snapshot`/`click`/`type`/`fill`/`read`/`screenshot`/`eval`). `connect '<url>'` to a listed live browser (prefer the user's real Chrome), verify with `snapshot`; if empty, `close` (own session only) and reconnect once. NEVER `close --all`. Shared browser: `tab new` for your own tab, `tab <id>` before each command. No URL listed: cloud → browser-manager-cli; PC with display → Chrome `--remote-debugging-port=9222`, attach `--cdp 9222`.",
     "versionCmd": "agent-browser --version 2>/dev/null | sed -n 1p",
     "preinstallJarvis": true
   },
@@ -791,7 +757,7 @@
     "label": "Wait",
     "summary": "Wait for a time or an event, then continue the task.",
     "platformAuth": true,
-    "description": "Schedule wake-ups and wait for events — time (`3h`, `daily@9:00`), webhooks, or a shell command's output; results return into the conversation. To wait for a long job to FINISH: `tfa-wait 'bench || 6h' \"Done: exit {{payload.exit}}\"` then `tfa-wait run '<cmd>' --pipe bench --on-exit &` — never a pgrep/sleep poll loop (pgrep -f matches its own loop). `tfa-wait run '<cmd>' --pipe <name>` turns each stdout line into an event; cancelling the wait kills the command.",
+    "description": "Schedule wake-ups and wait for events — time (`3h`, `daily@9:00`), webhooks, or a command's output; results return into the conversation. Wait for a long job: `tfa-wait 'bench || 6h' \"Done: exit {{payload.exit}}\"` then `tfa-wait run '<cmd>' --pipe bench --on-exit &` (each stdout line = event; cancelling kills the command). Never pgrep/sleep poll loops.",
     "versionCmd": "tfa-wait --version 2>/dev/null | sed -n 1p",
     "installCmd": "bun add -g @todoforai/tfa-wait",
     "preinstallCloud": true,
@@ -818,7 +784,7 @@
     "label": "Memory",
     "summary": "Your long-term memory of notes, facts and past TODOs.",
     "platformAuth": true,
-    "description": "The user's long-term memory (notes, procedures, decisions; addressed as source/ref) plus every past TODO message (read-only, source `todo`, address `todo/<todoId>:<messageId>`). You are the reader — nothing verifies your answer for you, so read enough before answering from memory. READ: `tfa-memory search \"<topic>\" --mode fused` first — any-word ∪ meaning, best recall; it prints `N row(s) contain a query word` on stderr — if N is bigger than what you saw, page with `--exclude <address>` (repeatable) until the rest is irrelevant. `--mode lexical` = all words, newest first (exact phrases, recent state); `--mode semantic` = meaning only. `--source todo` / `--todo <id>` narrow the scope. A hit is a snippet: `get <address>` for the full row, `around <address> --before N --after N` for the dialogue it sits in (a large --after reads the rest of the TODO). Before answering a memory question, search once more with your draft answer's key facts, excluding what you already read — if anything new comes up, read it. WRITE proactively: durable knowledge that appears in the conversation — a procedure, decision, config fact, preference — `add <source>/<ref> \"text\"` (same address updates in place; identical content is skipped; short factual source names like deploy-notes, acme, preferences). `todo` is read-only. `sources` lists what exists.",
+    "description": "User's long-term memory (notes/procedures/decisions, address `source/ref`) plus every past TODO message (read-only, `todo/<todoId>:<messageId>`). READ: `search \"<topic>\" --mode fused` first (`lexical` = all words newest first, `semantic` = meaning; `--source todo` / `--todo <id>` narrow). stderr prints `N row(s) contain a query word` — if N exceeds what you saw, page with `--exclude <address>`. `get <address>` = full row, `around <address> --before N --after N` = surrounding dialogue. Before answering from memory, search once more with your draft's key facts. WRITE durable facts proactively: `add <source>/<ref> \"text\"` (same address updates in place; short source names like deploy-notes, preferences). `sources` lists them.",
     "versionCmd": "tfa-memory --version 2>/dev/null | sed -n 1p",
     "installCmd": "bun add -g @todoforai/tfa-memory",
     "preinstallCloud": true,
@@ -830,7 +796,7 @@
     "installer": "npm",
     "label": "TODO Registry",
     "summary": "Browse ready-made business task templates.",
-    "description": "TODO Registry CLI — browse and create proven, reusable business-growth task templates (SEO, email, CRM, ads, social, monitoring, …). `search <query>` / `get <id>` / `list [category]` / `categories` browse the registry. `create --name ... --description ... --body @prompt.md` prints a new template id. To surface a template as a reviewable recommendation card, don’t create a todo directly — use `tfa-cli recommend --template <id> --project <projectId>`; the user accepts it to start a real todo.",
+    "description": "Reusable business task templates (SEO, email, CRM, ads, social, …): `search <q>`, `get <id>`, `list [category]`, `categories`, `create --name … --description … --body @prompt.md`. To recommend a template, don't create a todo directly — `tfa-cli recommend --template <id> --project <projectId>`.",
     "versionCmd": "todoregistry-cli --version 2>/dev/null | sed -n 1p",
     "installCmd": "bun add -g @todoforai/todoregistry-cli",
     "preinstallCloud": true,
@@ -845,7 +811,7 @@
     "label": "Surface",
     "summary": "See and control what is on your TODOforAI screen.",
     "platformAuth": true,
-    "description": "The user's live UI from the shell (frontend → todo → panel). `describe` shows what's open (todos, panels, focus, embedded-browser CDP URL; `--json`). `panel open changes|preview|browser|terminal [--url]`, `todo open|focus|close <id>`. STATE the user should keep visible (plans, reports, live status) goes on a surface: `show chat.panel <todoId> \"...md\"` (stdin ok; re-show updates in place), `clear` removes. Events go in chat, not on surfaces. `card add|list|get|rm <name>` = project HTML renderers. Exit 2 = no frontend connected.",
+    "description": "The user's live UI from the shell. `describe` shows what's open (todos, panels, focus, embedded-browser CDP URL; `--json`). `panel open changes|preview|browser|terminal [--url]`, `todo open|focus|close <id>`. Persistent state (plans, reports, live status) → `show chat.panel <todoId> \"...md\"` (stdin ok; re-show updates in place), `clear` removes; events go in chat. `card add|list|get|rm <name>` = project HTML renderers. Exit 2 = no frontend connected.",
     "versionCmd": "tfa-surface --version 2>/dev/null | sed -n 1p",
     "installCmd": "bun add -g @todoforai/tfa-surface",
     "internal": true
@@ -1199,7 +1165,7 @@
     "statusCmd": "facebook-pages-api whoami 2>/dev/null | sed -n 's/.*\"name\"[[:space:]]*:[[:space:]]*\"\\([^\"]*\\)\".*/\\1/p' | grep -m10 .",
     "loginCmd": "facebook-pages-api auth --page-id <id> --page-token <token>",
     "credentialPaths": ["~/.config/facebook-pages-api/credentials.json"],
-    "description": "Facebook Pages CLI over the official Meta Graph API v21.0. `facebook-pages-api auth --page-id <id> --page-token <token>` (page token from GET /me/accounts; env FB_PAGE_ID / FB_PAGE_TOKEN). `feed list|get|create|delete`, `comments list|get|reply|hide|delete`, `insights page|post`, `conversations list|get`, `media create`, and `request <GET|POST|DELETE> <path> [--data <json>]` — raw curl-like call against ANY Graph edge with the stored page token auto-attached (use this instead of curl for anything not covered by a subcommand). Writes are live — use `feed create --published false` for tests. `comments reply` posts publicly and immediately, so have a human approve the text. Many classic insights metrics (page_impressions, page_fans, post_impressions) were retired and now error; follower totals come from `whoami --fields followers_count,fan_count`. `conversations` needs the pages_messaging permission.",
+    "description": "Facebook Pages CLI (Meta Graph API). `auth --page-id <id> --page-token <token>` (or env FB_PAGE_ID/FB_PAGE_TOKEN). `feed`, `comments`, `insights`, `conversations`, `media`, and `request <GET|POST|DELETE> <path> [--data <json>]` = any Graph edge with the page token attached (use instead of curl). Writes are live: `feed create --published false` for tests; `comments reply` posts publicly — get human approval. Follower totals: `whoami --fields followers_count,fan_count` (many classic insights metrics are retired). `--help` for subcommands.",
     "versionCmd": "facebook-pages-api --version 2>/dev/null | sed -n 1p"
   },
   "ews-api": {
@@ -1211,7 +1177,7 @@
     "statusCmd": "ews-api whoami 2>/dev/null | sed -n 's/.*\"email\"[[:space:]]*:[[:space:]]*\"\\([^\"]*\\)\".*/\\1/p' | grep -m10 .",
     "loginCmd": "ews-api auth --email <email> --username <username> --server <server> --password <password>",
     "credentialPaths": ["~/.config/ews-api/credentials.json"],
-    "description": "On-premise Microsoft Exchange CLI over EWS (Exchange Web Services), for servers with no Microsoft 365 tenant — use outlook-api for cloud mailboxes (EWS is blocked on Exchange Online from Oct 2026; on-prem Exchange 2016/2019/SE keep it). `ews-api auth --email user@corp.hu --username 'DOMAIN\\\\user' --server mail.corp.hu` (NTLM; prompts for the password on a TTY, or `--password-stdin`; always pass --server, autodiscover is off). Multiple mailboxes: `whoami` lists them, `--account <email>` / EWS_ACCOUNT picks one, `default <email>` / `logout <email>` manage them; EWS_EMAIL/EWS_USERNAME/EWS_PASSWORD/EWS_SERVER override for unattended runs. `list`, `search <query>`, `read <id>`, `draft`, `reply <id>`. draft/reply save to Drafts by default and only send with --send, so a human approves in Outlook. Stores the plaintext mailbox password in ~/.config/ews-api/credentials.json (0600); re-run auth after an AD password rotation.",
+    "description": "On-prem Microsoft Exchange mail over EWS (cloud/M365 → outlook-api). `auth --email <e> --username 'DOMAIN\\\\user' --server <host>` (NTLM; password prompt or `--password-stdin`; --server required). Multi-mailbox: `whoami`, `--account <email>`/EWS_ACCOUNT, `default`, `logout`; EWS_EMAIL/EWS_USERNAME/EWS_PASSWORD/EWS_SERVER for unattended runs. `list`, `search <q>`, `read <id>`, `draft`, `reply <id>` — draft/reply stay in Drafts unless --send. Password stored plaintext in ~/.config/ews-api (0600); re-auth after rotation.",
     "versionCmd": "ews-api --version 2>/dev/null | sed -n 1p",
     "logoutCmd": "ews-api logout {{ACCOUNT}}"
   },
@@ -1225,7 +1191,7 @@
     "statusCmd": "outlook-api whoami 2>/dev/null | sed -n 's/.*\"userPrincipalName\"[[:space:]]*:[[:space:]]*\"\\([^\"]*\\)\".*/\\1/p' | grep -m10 .",
     "loginCmd": "outlook-api auth",
     "credentialPaths": ["~/.config/outlook-api/config.json"],
-    "description": "Outlook / Hotmail / Microsoft 365 mail CLI over Microsoft Graph (cloud mailboxes — use ews-api for on-prem Exchange). `outlook-api auth` is a device-code flow with no Azure app registration; personal accounts use --tenant consumers (default), work/school --tenant organizations. list/search/read/attachments are read-only; `draft` and `reply` save to Drafts by default and only send with --send, so a human approves in Outlook; `send <draftId>` sends an existing draft. Raw JSON out; `get` is a raw Graph GET passthrough.",
+    "description": "Outlook/Hotmail/M365 mail over Microsoft Graph (on-prem Exchange → ews-api). `auth` = device-code flow; `--tenant consumers` (default, personal) | `organizations`. list/search/read/attachments are read-only; `draft`/`reply` stay in Drafts unless --send; `send <draftId>`. `get <path>` = raw Graph GET. JSON out.",
     "versionCmd": "outlook-api --version 2>/dev/null | sed -n 1p",
     "deviceCodePattern": "enter the code ([A-Z0-9]+)",
     "oauthUrlPattern": "(https://(?:www\\.microsoft\\.com/link|login\\.microsoft\\.com/device))",
@@ -1411,10 +1377,10 @@
     "label": "Blender",
     "summary": "Model, texture and render 3D scenes in a running Blender.",
     "statusCmd": "command -v blender-mcp >/dev/null && mcporter call blender.get_addon_status --output json 2>/dev/null | grep -o '\"blender_version\": \"[^\"]*\"' | grep -m1 .",
-    "loginCmd": "mcporter config add blender --command blender-mcp --env BLENDER_MCP_DISABLE_TELEMETRY=1 --description 'Blender 3D via ahujasid/blender-mcp addon' --scope home",
+    "loginCmd": "command -v mcporter >/dev/null 2>&1 || bun add -g mcporter; mcporter config add blender --command blender-mcp --env BLENDER_MCP_DISABLE_TELEMETRY=1 --description 'Blender 3D via ahujasid/blender-mcp addon' --scope home",
     "logoutCmd": "cd ~ && mcporter config remove blender",
     "credentialPaths": ["~/.mcporter/mcporter.json"],
-    "description": "Blender 3D via the ahujasid/blender-mcp server, driven with mcporter (no own CLI). Tool docs: `mcporter list blender --schema`; call: `mcporter call blender.<tool> key=value` (`code=@file.py`). Workhorse is execute_blender_code (any bpy Python); also scene/object info, viewport screenshot (`--save-images <dir>`), PolyHaven/Sketchfab asset import, text→3D generation. Needs a running Blender with the addon's server started (socket :9876); `-b`/headless has no socket. 'Could not connect' → `blender-mcp install-addon`, enable it in Preferences → Add-ons, then N-panel → Start MCP Server (scripted: `blender --python s.py` where s.py registers a `bpy.app.timers` calling `bpy.ops.blendermcp.start_server()`). Code runs unguarded in the user's Blender: approve destructive ops, save first (`bpy.ops.wm.save_mainfile()`).",
+    "description": "Blender 3D via the ahujasid/blender-mcp server through mcporter: `mcporter list blender --schema`, `mcporter call blender.<tool> key=value` (`code=@file.py`; every tool needs `user_prompt`). Workhorse: execute_blender_code (any bpy Python); also scene/object info, viewport screenshot (`--save-images <dir>`), PolyHaven/Sketchfab import. Needs a GUI Blender with the addon server started (socket :9876; headless has none). 'Could not connect' → `blender-mcp install-addon`, enable in Preferences → Add-ons, N-panel → Start MCP Server (scripted: `blender --python s.py`, s.py registers a `bpy.app.timers` calling `bpy.ops.blendermcp.start_server()`). Code runs unguarded: save first (`bpy.ops.wm.save_mainfile()`), approve destructive ops.",
     "versionCmd": "{ python -c 'from importlib.metadata import version; print(version(\"blender-mcp\"))' || python3 -c 'from importlib.metadata import version; print(version(\"blender-mcp\"))'; } 2>/dev/null"
   }
 }
