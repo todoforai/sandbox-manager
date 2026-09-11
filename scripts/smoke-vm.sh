@@ -204,7 +204,7 @@ phase_roundtrip() {
   if [ -n "${BROWSER_NOISE_HOST:-}" ]; then check browser.mgr "BROWSER_NOISE_HOST=$BROWSER_NOISE_HOST browser-manager-cli list"
   else skip browser.mgr "no dev browser-manager Noise endpoint (set BROWSER_NOISE_HOST)"; fi
   check browser.agent  'agent-browser --version' 'agent-browser'
-  check python.libs    "python3 -c 'import pymupdf, matplotlib, pandas; print(\"ok\")'" ok
+  check python.libs    "python3 -c 'import pymupdf; print(\"ok\")'" ok
   check home.persist   'echo smoke-$(date +%s) > ~/.smoke-marker && cat ~/.smoke-marker' smoke-
 }
 

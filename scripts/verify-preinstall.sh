@@ -36,7 +36,7 @@ printf "%-20s %-9s %-7s %-5s %s\n" TOOL PRESENT STATUS EXIT NOTE
 fail=0
 for k in $keys; do
   bin=$(jqc --arg k "$k" '.[$k].binName // .[$k].pkg | split("/")[-1]')
-  # python libs (pymupdf, matplotlib) have a verify cmd instead of a binary
+  # python libs (pymupdf) have a verify cmd instead of a binary
   present=$(command -v "$k" >/dev/null || command -v "$bin" >/dev/null && echo yes || echo NO)
   verify=$(jqc --arg k "$k" '.[$k].cloudVerifyCmd // ""')
   [ "$present" = NO ] && [ -n "$verify" ] && bash -c "$verify" >/dev/null 2>&1 && present=lib
