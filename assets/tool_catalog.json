@@ -627,6 +627,20 @@
     "preinstallJarvis": true,
     "description": "PDF text editing, extraction, merge, split. Call via `python3 -c`."
   },
+  "pyhanko": {
+    "category": "security",
+    "pkg": "pyhanko-cli",
+    "packages": ["pyhanko-cli==0.5.0", "pyHanko[pkcs11,image-support,opentype]==0.37.0"],
+    "installer": "pip",
+    "binName": "pyhanko",
+    "label": "PDF Signing",
+    "summary": "Digitally sign and verify PDFs with a certificate (PAdES, timestamps, smart cards).",
+    "versionCmd": "pyhanko --version 2>/dev/null | sed -n 1p",
+    "preinstallCloud": true,
+    "cloudVerifyCmd": "pyhanko --version",
+    "preinstallJarvis": true,
+    "description": "Cryptographic PDF signing/validation (PAdES B-B..B-LTA). Sign: `pyhanko sign addsig --field Sig1 [--timestamp-url <tsa>] pkcs12 --passfile pass.txt in.pdf out.pdf cert.p12`; smart card/eID: `... pkcs11 --lib <pkcs11.so> in.pdf out.pdf`; verify: `pyhanko sign validate --pretty-print [--trust ca.pem] out.pdf`; list fields: `pyhanko sign list`. The signer's cert/key comes from the user (vault); self-signed certs validate only with `--trust`. Not for click-to-sign workflows."
+  },
   "anydoc": {
     "category": "utility",
     "pkg": "@firecrawl/anydoc",
