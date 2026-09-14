@@ -126,7 +126,7 @@
     "installer": "pip",
     "label": "Telegram",
     "summary": "Send Telegram messages, photos and files.",
-    "loginCmd": "telegram-send --configure",
+    "loginCmd": "t=<bot_token>; c=$(curl -sf \"https://api.telegram.org/bot$t/getUpdates\" | python3 -c \"import json,sys; u=[x for x in json.load(sys.stdin)['result'] if 'message' in x]; print(u[-1]['message']['chat']['id'])\" 2>/dev/null) || { echo \"No message from you yet: open your bot in Telegram, send it any message, then retry\"; exit 1; }; mkdir -p \"$HOME/.config/telegram-send\" && printf '[telegram]\\ntoken = %s\\nchat_id = %s\\n' \"$t\" \"$c\" > \"$HOME/.config/telegram-send/telegram-send.conf\" && telegram-send \"Connected to TODOforAI\"",
     "credentialPaths": ["~/.config/telegram-send/telegram-send.conf"],
     "versionCmd": "telegram-send --version 2>/dev/null | sed -n 1p",
     "statusCmd": "test -f ~/.config/telegram-send/telegram-send.conf && echo authenticated",
@@ -436,11 +436,11 @@
   "tfa-cli": {
     "category": "utility",
     "pkg": "@todoforai/cli",
-    "installer": "bun",
+    "installer": "npm",
     "label": "TODOforAI",
     "summary": "Create and follow up on your TODOs, and show results in the chat.",
-    "description": "Manage the user's OWN TODOforAI tasks (not code `// TODO` comments). Delegate/spin off work: `tfa-cli \"prompt\"` creates a real TODO with its own agent and chat (`-n` wait for completion, `--no-watch` fire-and-forget, `--project/--agent/--model`, `--resume <id>`, `addmessage <id> \"text\"`). Inspect: `list [--status open]`, `--inspect <id>`. Surface results into chat: `show <file|-> [todo-id]` (renders by mimetype; `--card <name>` via project renderer; `--alias <name>` updates in place), `open <url>` embeds a live preview. `--template` for registry workflows.",
-    "installCmd": "bun add -g @todoforai/cli",
+    "description": "Manage the user's OWN TODOforAI tasks (not code `// TODO` comments). Delegate/spin off work: `tfa-cli \"prompt\"` creates a real TODO with its own agent and chat (`-n` wait for completion, `--no-watch` fire-and-forget, `--project/--agent/--model`, `--resume <id>`, `addmessage <id> \"text\"`). Inspect: `list [--status open]`, `--inspect <id>`. Surface results into chat: `show <file|-> [todo-id]` (renders by mimetype; `--card <name>` via project renderer; `--alias <name>` updates in place), `open <url>` embeds a live preview. This is the ONLY way to display a local file (image, pdf, html) in the chat: markdown `![](path.png)` with a local/relative path does NOT resolve to workspace files or attachments and 404s in the browser. `--template` for registry workflows.",
+    "installCmd": "npm install -g @todoforai/cli",
     "versionCmd": "tfa-cli --version 2>/dev/null | sed -n 1p",
     "preinstallCloud": true,
     "preinstallJarvis": true,
@@ -720,9 +720,9 @@
     "label": "Explore",
     "summary": "Send a helper agent to explore a codebase and report back.",
     "platformAuth": true,
-    "description": "Explore a codebase in a sub-agent (its reads/greps never touch your context; you get only the answer): `tfa-explore \"where is auth handled?\"` — read-only, `--repo <path>` (default cwd). Prefer over manual multi-file searching for any non-trivial where/how/what question.",
+    "description": "Sub-agent codebase exploration in its own context, you get only the answer: `tfa-explore \"where is auth handled?\" [--repo <path>]`. Prefer over manual multi-file searching.",
     "versionCmd": "tfa-explore --version 2>/dev/null | sed -n 1p",
-    "installCmd": "bun add -g @todoforai/tfa-explore",
+    "installCmd": "npm install -g @todoforai/tfa-explore",
     "internal": true
   },
   "tfa-review": {
@@ -733,9 +733,9 @@
     "label": "Review",
     "summary": "Send a helper agent to review your code changes.",
     "platformAuth": true,
-    "description": "Review a git diff in a sub-agent (costs none of your context): `tfa-review \"<goal>\"` — `--repo <path>`, `--against <ref>` (default uncommitted). Streams issues and simplifications. Run before calling a non-trivial change done.",
+    "description": "Sub-agent review of a git diff in its own context: `tfa-review \"<goal>\" [--repo <path>] [--against <ref>]` (default: uncommitted). Run before calling a non-trivial change done.",
     "versionCmd": "tfa-review --version 2>/dev/null | sed -n 1p",
-    "installCmd": "bun add -g @todoforai/tfa-review",
+    "installCmd": "npm install -g @todoforai/tfa-review",
     "internal": true
   },
   "tfa-summary": {
@@ -746,9 +746,9 @@
     "label": "Summary",
     "summary": "Summarize files or long output with a helper agent.",
     "platformAuth": true,
-    "description": "Summarize long input in a sub-agent so raw text never enters your context: `cat big.log | tfa-summary \"what failed?\"` or `tfa-summary -f a.md -f b.md \"focus\"` (last bare arg = focus).",
+    "description": "Sub-agent summary so raw text never enters your context: `cat big.log | tfa-summary \"what failed?\"`, or `-f <file>` (repeatable).",
     "versionCmd": "tfa-summary --version 2>/dev/null | sed -n 1p",
-    "installCmd": "bun add -g @todoforai/tfa-summary",
+    "installCmd": "npm install -g @todoforai/tfa-summary",
     "internal": true
   },
   "tfa-handoff": {
@@ -761,7 +761,7 @@
     "platformAuth": true,
     "description": "Compact a conversation into a handoff document for a fresh agent.",
     "versionCmd": "tfa-handoff --version 2>/dev/null | sed -n 1p",
-    "installCmd": "bun add -g @todoforai/tfa-handoff",
+    "installCmd": "npm install -g @todoforai/tfa-handoff",
     "internal": true
   },
   "tfa-wait": {
@@ -773,7 +773,7 @@
     "platformAuth": true,
     "description": "Schedule wake-ups and wait for events — time (`3h`, `daily@9:00`), webhooks, or a command's output; results return into the conversation. Wait for a long job: `tfa-wait 'bench || 6h' \"Done: exit {{payload.exit}}\"` then `tfa-wait run '<cmd>' --pipe bench --on-exit &` (each stdout line = event; cancelling kills the command). Never pgrep/sleep poll loops.",
     "versionCmd": "tfa-wait --version 2>/dev/null | sed -n 1p",
-    "installCmd": "bun add -g @todoforai/tfa-wait",
+    "installCmd": "npm install -g @todoforai/tfa-wait",
     "preinstallCloud": true,
     "internal": true,
     "preinstallJarvis": true
@@ -787,7 +787,7 @@
     "platformAuth": true,
     "description": "The user's encrypted secret vault — using its secrets is the intended workflow. READ: when a task needs a key/token/password the user owns, `tfa-vault list` then `get <path>`; don't ask for what's already stored; never echo values. WRITE proactively: any new secret in the conversation (pasted, generated, from a login) → `put <path> field=value` (check `get` first; `patch` adds fields; overwrite on rotation). Paths: `accounts/<svc>`, `api/<svc>`, `secrets/<name>`.",
     "versionCmd": "tfa-vault --version 2>/dev/null | sed -n 1p",
-    "installCmd": "bun add -g @todoforai/tfa-vault",
+    "installCmd": "npm install -g @todoforai/tfa-vault",
     "preinstallCloud": true,
     "preinstallJarvis": true
   },
@@ -800,7 +800,7 @@
     "platformAuth": true,
     "description": "User's long-term memory (notes/procedures/decisions, address `source/ref`) plus every past TODO message (read-only, `todo/<todoId>:<messageId>`). READ: `search \"<topic>\" --mode fused` first (`lexical` = all words newest first, `semantic` = meaning; `--source todo` / `--todo <id>` narrow). stderr prints `N row(s) contain a query word` — if N exceeds what you saw, page with `--exclude <address>`. `get <address>` = full row, `around <address> --before N --after N` = surrounding dialogue. Before answering from memory, search once more with your draft's key facts. WRITE durable facts proactively: `add <source>/<ref> \"text\"` (same address updates in place; short source names like deploy-notes, preferences). `sources` lists them.",
     "versionCmd": "tfa-memory --version 2>/dev/null | sed -n 1p",
-    "installCmd": "bun add -g @todoforai/tfa-memory",
+    "installCmd": "npm install -g @todoforai/tfa-memory",
     "preinstallCloud": true,
     "preinstallJarvis": true
   },
@@ -812,7 +812,7 @@
     "summary": "Browse ready-made business task templates.",
     "description": "Reusable business task templates (SEO, email, CRM, ads, social, …): `search <q>`, `get <id>`, `list [category]`, `categories`, `create --name … --description … --body @prompt.md`. To recommend a template, don't create a todo directly — `tfa-cli recommend --template <id> --project <projectId>`.",
     "versionCmd": "todoregistry-cli --version 2>/dev/null | sed -n 1p",
-    "installCmd": "bun add -g @todoforai/todoregistry-cli",
+    "installCmd": "npm install -g @todoforai/todoregistry-cli",
     "preinstallCloud": true,
     "internal": true,
     "preinstallJarvis": true
@@ -827,7 +827,7 @@
     "platformAuth": true,
     "description": "The user's live UI from the shell. `describe` shows what's open (todos, panels, focus, embedded-browser CDP URL; `--json`). `panel open changes|preview|browser|terminal [--url]`, `todo open|focus|close <id>`. Persistent state (plans, reports, live status) → `show chat.panel <todoId> \"...md\"` (stdin ok; re-show updates in place), `clear` removes; events go in chat. `card add|list|get|rm <name>` = project HTML renderers. Exit 2 = no frontend connected.",
     "versionCmd": "tfa-surface --version 2>/dev/null | sed -n 1p",
-    "installCmd": "bun add -g @todoforai/tfa-surface",
+    "installCmd": "npm install -g @todoforai/tfa-surface",
     "internal": true
   },
   "bun": {
@@ -1391,7 +1391,7 @@
     "label": "Blender",
     "summary": "Model, texture and render 3D scenes in a running Blender.",
     "statusCmd": "command -v blender-mcp >/dev/null && mcporter call blender.get_addon_status --output json 2>/dev/null | grep -o '\"blender_version\": \"[^\"]*\"' | grep -m1 .",
-    "loginCmd": "command -v mcporter >/dev/null 2>&1 || bun add -g mcporter; mcporter config add blender --command blender-mcp --env BLENDER_MCP_DISABLE_TELEMETRY=1 --description 'Blender 3D via ahujasid/blender-mcp addon' --scope home",
+    "loginCmd": "command -v mcporter >/dev/null 2>&1 || npm install -g --prefix \"$HOME/.local\" mcporter; mcporter config add blender --command blender-mcp --env BLENDER_MCP_DISABLE_TELEMETRY=1 --description 'Blender 3D via ahujasid/blender-mcp addon' --scope home",
     "logoutCmd": "cd ~ && mcporter config remove blender",
     "credentialPaths": ["~/.mcporter/mcporter.json"],
     "description": "Blender 3D via the ahujasid/blender-mcp server through mcporter: `mcporter list blender --schema`, `mcporter call blender.<tool> key=value` (`code=@file.py`; every tool needs `user_prompt`). Workhorse: execute_blender_code (any bpy Python); also scene/object info, viewport screenshot (`--save-images <dir>`), PolyHaven/Sketchfab import. Needs a GUI Blender with the addon server started (socket :9876; headless has none). 'Could not connect' → `blender-mcp install-addon`, enable in Preferences → Add-ons, N-panel → Start MCP Server (scripted: `blender --python s.py`, s.py registers a `bpy.app.timers` calling `bpy.ops.blendermcp.start_server()`). Code runs unguarded: save first (`bpy.ops.wm.save_mainfile()`), approve destructive ops.",
