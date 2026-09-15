@@ -79,12 +79,14 @@ if [ -f "$TOOL_CATALOG_JSON" ] && command -v jq >/dev/null 2>&1; then
         | map(select(.value.preinstallCloud == true and .value.installer == "pip"))
         | map(.value.packages // [.value.pkg]) | flatten | join(" ")
     ' "$TOOL_CATALOG_JSON")
+    set -f  # specs may carry extras (`pkg[a,b]==x`) — no globbing
     for spec in $PIP_PREINSTALL; do
         case "$spec" in *==*) ;; *)
             echo "ERROR: preinstallCloud pip spec '$spec' is not ==-pinned (tool_catalog.json)" >&2
             exit 1
         esac
     done
+    set +f
     CLOUD_APT_PACKAGES=$(jq -r '
         [to_entries[] | select(.value.preinstallCloud == true) | .value.cloudAptPackages[]?]
         | unique | join(" ")

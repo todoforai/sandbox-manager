@@ -58,7 +58,7 @@ RUN if [ -n "$CLOUD_INSTALL_SCRIPT" ]; then bash -euxo pipefail -c "$CLOUD_INSTA
       && rm -rf /var/lib/apt/lists/*; \
     fi \
  && if [ -n "$PIP_PREINSTALL" ]; then \
-      uv pip install --system --break-system-packages $PIP_PREINSTALL; \
+      set -f; uv pip install --system --break-system-packages $PIP_PREINSTALL; set +f; \
     fi \
  && if [ -n "$CLOUD_VERIFY_SCRIPT" ]; then bash -euxo pipefail -c "$CLOUD_VERIFY_SCRIPT"; fi \
  && if command -v node >/dev/null && command -v bun >/dev/null; then \
