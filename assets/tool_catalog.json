@@ -280,6 +280,21 @@
     "oauthUrlPattern": "(https://vercel\\.com/oauth/device\\S*)",
     "canStreamLogin": true
   },
+  "eas": {
+    "category": "deployment",
+    "pkg": "eas-cli",
+    "installer": "npm",
+    "label": "Expo EAS",
+    "summary": "Build, update and submit mobile apps with Expo.",
+    "statusCmd": "out=$(eas whoami 2>/dev/null) && printf '%s\\n' \"$out\" | tr -d '\\r' | grep -m1 .",
+    "loginCmd": "eas login --browser",
+    "logoutCmd": "eas logout",
+    "oauthUrlPattern": "(https://expo\\.dev/(?:sso-)?login\\?\\S+)",
+    "canStreamLogin": true,
+    "credentialPaths": ["~/.expo/state.json"],
+    "description": "Expo Application Services for React Native apps: `eas update --channel <c>` ships a JS-only OTA, `eas build -p ios --profile production --auto-submit` (`-p all` for both) makes a native build and sends it to TestFlight / Play. `eas build:list`, `eas update:list` and `eas submit` inspect or re-submit existing builds. An OTA only reaches installs whose runtimeVersion matches, so a native version bump needs a real build. The browser login binds to a RANDOM loopback port, so it only completes in a browser on the same host; on a remote/headless host set EXPO_TOKEN (Account -> Access tokens) instead. EXPO_TOKEN (Account -> Access tokens) works in CI instead of a login.",
+    "versionCmd": "eas --version 2>/dev/null | sed -n 1p"
+  },
   "netlify": {
     "category": "deployment",
     "pkg": "netlify-cli",
