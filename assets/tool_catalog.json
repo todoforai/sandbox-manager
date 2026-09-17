@@ -126,10 +126,10 @@
     "installer": "pip",
     "label": "Telegram",
     "summary": "Send Telegram messages, photos and files.",
-    "loginCmd": "t=<bot_token>; c=$(curl -sf \"https://api.telegram.org/bot$t/getUpdates\" | python3 -c \"import json,sys; u=[x for x in json.load(sys.stdin)['result'] if 'message' in x]; print(u[-1]['message']['chat']['id'])\" 2>/dev/null) || { echo \"No message from you yet: open your bot in Telegram, send it any message, then retry\"; exit 1; }; mkdir -p \"$HOME/.config/telegram-send\" && printf '[telegram]\\ntoken = %s\\nchat_id = %s\\n' \"$t\" \"$c\" > \"$HOME/.config/telegram-send/telegram-send.conf\" && telegram-send \"Connected to TODOforAI\"",
-    "credentialPaths": ["~/.config/telegram-send/telegram-send.conf"],
+    "loginCmd": "t=<bot_token>; c=$(curl -sf \"https://api.telegram.org/bot$t/getUpdates\" | python3 -c \"import json,sys; u=[x for x in json.load(sys.stdin)['result'] if 'message' in x]; print(u[-1]['message']['chat']['id'])\" 2>/dev/null) || { echo \"No message from you yet: open your bot in Telegram, send it any message, then retry\"; exit 1; }; mkdir -p \"$HOME/.config\" && printf '[telegram]\\ntoken = %s\\nchat_id = %s\\n' \"$t\" \"$c\" > \"$HOME/.config/telegram-send.conf\" && telegram-send \"Connected to TODOforAI\"",
+    "credentialPaths": ["~/.config/telegram-send.conf"],
     "versionCmd": "telegram-send --version 2>/dev/null | sed -n 1p",
-    "statusCmd": "test -f ~/.config/telegram-send/telegram-send.conf && echo authenticated",
+    "statusCmd": "test -f ~/.config/telegram-send.conf && echo authenticated",
     "description": "Send messages, send files & images, send video & audio, Markdown/HTML formatting, channel & group support"
   },
   "meta-ads": {
