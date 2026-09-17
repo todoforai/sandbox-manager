@@ -146,6 +146,7 @@ phase_auth() {
   check tfa-cli.models      'tfa-cli --list-models' '.'
   check tfa-memory.whoami   'tfa-memory whoami' 'authenticated as'
   check tfa-vault.whoami    'tfa-vault whoami'  'device session'
+  check tfa-settings.get    'tfa-settings get theme'
   check todoregistry.cats   'todoregistry-cli categories' '.'
   check tfa-wait.help       'tfa-wait --help'
   echo "== $PHASE: third-party statusCmd reports login state (rc 0 = logged in)"
