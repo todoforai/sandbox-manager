@@ -454,7 +454,7 @@
     "installer": "npm",
     "label": "TODOforAI",
     "summary": "Create and follow up on your TODOs, and show results in the chat.",
-    "description": "Manage the user's OWN TODOforAI tasks (not code `// TODO` comments). Delegate/spin off work: `tfa-cli \"prompt\"` creates a real TODO with its own agent and chat (`-n` wait for completion, `--no-watch` fire-and-forget, `--project/--agent/--model`, `--resume <id>`, `addmessage <id> \"text\"`). Inspect: `list [--status open]`, `--inspect <id>`. Surface results into chat: `show <file|-> [todo-id]` (renders by mimetype; `--card <name>` via project renderer; `--alias <name>` updates in place), `open <url>` embeds a live preview. This is the ONLY way to display a local file (image, pdf, html) in the chat: markdown `![](path.png)` with a local/relative path does NOT resolve to workspace files or attachments and 404s in the browser. `--template` for registry workflows.",
+    "description": "Manage the user's OWN TODOforAI tasks (not code `// TODO` comments). Delegate/spin off work: `tfa-cli \"prompt\"` creates a real TODO with its own agent and chat (`-n` wait for completion, `--no-watch` fire-and-forget, `--project/--agent/--model`, `--resume <id>`, `addmessage <id> \"text\"`). Inspect: `list [--status open]`, `--inspect <id>`. Edit any todo without opening it: `status <id> DONE|READY|ARCHIVED|POSTPONED|CANCELLED|DELETED` (close, reopen, shelve, trash — `todo restore <id>` undoes a delete) and `todo set <id|-> title=… group=… star=true schedule=<unix-ms> agent=… brand=…` (own todo fields). Both take ONE id, so a loop over `list --json | jq -r '.items[].id'` is how you close, retitle, refile or archive MANY todos at once; `project set|settings|groups …` (name, settings, todo groups), `agent create|update <agent> model=… sysmsg=…` (permissions/MCP/device wiring and delete are refused from an agent shell). Surface results into chat: `show <file|-> [todo-id]` (renders by mimetype; `--card <name>` via project renderer; `--alias <name>` updates in place), `open <url>` embeds a live preview. This is the ONLY way to display a local file (image, pdf, html) in the chat: markdown `![](path.png)` with a local/relative path does NOT resolve to workspace files or attachments and 404s in the browser. `--template` for registry workflows.",
     "installCmd": "npm install -g @todoforai/cli",
     "versionCmd": "tfa-cli --version 2>/dev/null | sed -n 1p",
     "preinstallCloud": true,
@@ -503,8 +503,15 @@
   "rclone": {
     "category": "cloud",
     "pkg": "rclone",
-    "installer": "system",
+    "installer": "binary",
     "preinstallCloud": true,
+    "binary": {
+      "linux-x86_64": { "url": "https://github.com/todoforai/rclone-backend/releases/download/v0.1.6/rclone-linux-amd64.tar.gz", "archive": "tar.gz", "extract": "rclone" },
+      "linux-aarch64": { "url": "https://github.com/todoforai/rclone-backend/releases/download/v0.1.6/rclone-linux-arm64.tar.gz", "archive": "tar.gz", "extract": "rclone" },
+      "darwin-x86_64": { "url": "https://github.com/todoforai/rclone-backend/releases/download/v0.1.6/rclone-darwin-amd64.tar.gz", "archive": "tar.gz", "extract": "rclone" },
+      "darwin-aarch64": { "url": "https://github.com/todoforai/rclone-backend/releases/download/v0.1.6/rclone-darwin-arm64.tar.gz", "archive": "tar.gz", "extract": "rclone" },
+      "windows-x86_64": { "url": "https://github.com/todoforai/rclone-backend/releases/download/v0.1.6/rclone-windows-amd64.zip", "archive": "zip", "extract": "rclone.exe" }
+    },
     "label": "Cloud Storage",
     "summary": "Move files between Google Drive, Dropbox, OneDrive, S3 and more.",
     "statusCmd": "rclone listremotes --long 2>/dev/null | tr -s ' ' | grep -v ' todoforai$' | grep -m20 .",
@@ -558,14 +565,14 @@
     "installer": "system",
     "label": "AWS",
     "summary": "Manage your AWS account and services.",
-    "installCmd": "curl -sS https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip -o /tmp/awscli.zip && unzip -qo /tmp/awscli.zip -d /tmp && sudo /tmp/aws/install --update",
+    "installCmd": "mkdir -p \"$HOME/.todoforai/tools/bin\"; if [ \"$(uname -s)\" = Darwin ]; then curl -fsSL https://awscli.amazonaws.com/AWSCLIV2.pkg -o /tmp/AWSCLIV2.pkg && printf '<?xml version=\"1.0\" encoding=\"UTF-8\"?>\\n<!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">\\n<plist version=\"1.0\"><array><dict><key>choiceAttribute</key><string>customLocation</string><key>attributeSetting</key><string>%s</string><key>choiceIdentifier</key><string>default</string></dict></array></plist>\\n' \"$HOME/.todoforai/tools\" > /tmp/aws-choices.xml && installer -pkg /tmp/AWSCLIV2.pkg -target CurrentUserHomeDirectory -applyChoiceChangesXML /tmp/aws-choices.xml && mkdir -p \"$HOME/.todoforai/tools/bin\" && ln -sf \"$HOME/.todoforai/tools/aws-cli/aws\" \"$HOME/.todoforai/tools/bin/aws\" && ln -sf \"$HOME/.todoforai/tools/aws-cli/aws_completer\" \"$HOME/.todoforai/tools/bin/aws_completer\"; rc=$?; rm -f /tmp/AWSCLIV2.pkg /tmp/aws-choices.xml; exit $rc; else ARCH=$(uname -m); case \"$ARCH\" in arm64|aarch64) ARCH=aarch64;; *) ARCH=x86_64;; esac; curl -fsSL \"https://awscli.amazonaws.com/awscli-exe-linux-$ARCH.zip\" -o /tmp/awscli.zip && rm -rf /tmp/aws && unzip -qo /tmp/awscli.zip -d /tmp && /tmp/aws/install --update --install-dir \"$HOME/.todoforai/tools/aws-cli\" --bin-dir \"$HOME/.todoforai/tools/bin\"; rc=$?; rm -rf /tmp/aws /tmp/awscli.zip; exit $rc; fi",
     "statusCmd": "aws sts get-caller-identity --query Arn --output text 2>/dev/null | sed 's/.*\\///' | grep -m1 .",
     "loginCmd": "aws configure",
     "loginNeedsPty": true,
     "credentialPaths": ["~/.aws/credentials", "~/.aws/config", "~/.aws/sso/cache"],
-    "description": "Official AWS CLI v2. Auth via `aws configure` (access keys) or `aws configure sso` + `aws sso login` (browser device flow).",
+    "description": "Official AWS CLI v2, installed user-locally into ~/.todoforai/tools (no sudo; Linux x86_64/aarch64 + macOS). Auth via `aws configure` (access keys) or `aws configure sso` + `aws sso login` (browser device flow).",
     "versionCmd": "aws --version 2>/dev/null | sed -n 1p",
-    "uninstallCmd": "sudo -n rm -rf /usr/local/aws-cli /usr/local/bin/aws /usr/local/bin/aws_completer 2>/dev/null || { echo \"aws was installed with sudo; remove it manually: sudo rm -rf /usr/local/aws-cli /usr/local/bin/aws /usr/local/bin/aws_completer\"; exit 1; }"
+    "uninstallCmd": "rm -rf \"$HOME/.todoforai/tools/aws-cli\" \"$HOME/.todoforai/tools/bin/aws\" \"$HOME/.todoforai/tools/bin/aws_completer\"; hash -r 2>/dev/null; ! command -v aws >/dev/null 2>&1 || { echo \"aws is still on PATH: $(command -v aws) (installed outside ~/.todoforai/tools, e.g. by sudo — remove manually: sudo rm -rf /usr/local/aws-cli /usr/local/bin/aws /usr/local/bin/aws_completer)\"; exit 1; }"
   },
   "gcloud": {
     "category": "cloud",
@@ -573,7 +580,7 @@
     "installer": "system",
     "label": "Google Cloud",
     "summary": "Manage your Google Cloud projects and services.",
-    "installCmd": "curl -sSL https://sdk.cloud.google.com | bash -s -- --disable-prompts",
+    "installCmd": "curl -sSL https://sdk.cloud.google.com | bash -s -- --disable-prompts && mkdir -p \"$HOME/.todoforai/tools/bin\" && ln -sf \"$HOME/google-cloud-sdk/bin/gcloud\" \"$HOME/.todoforai/tools/bin/gcloud\"",
     "statusCmd": "gcloud auth list --filter=status:ACTIVE --format=\"value(account)\" 2>/dev/null | tr -d '\\r' | grep -m1 .",
     "loginCmd": "gcloud auth login --no-launch-browser",
     "loginNeedsPty": true,
@@ -581,7 +588,7 @@
     "credentialPaths": ["~/.config/gcloud"],
     "description": "Official Google Cloud CLI. `gcloud auth login --no-launch-browser` prints the OAuth URL and waits for the pasted verification code.",
     "versionCmd": "gcloud --version 2>/dev/null | sed -n 1p",
-    "uninstallCmd": "rm -rf \"$HOME/google-cloud-sdk\" && ! command -v gcloud >/dev/null 2>&1 || { echo \"gcloud is still on PATH: $(command -v gcloud)\"; exit 1; }"
+    "uninstallCmd": "rm -rf \"$HOME/google-cloud-sdk\" \"$HOME/.todoforai/tools/bin/gcloud\"; hash -r 2>/dev/null; ! command -v gcloud >/dev/null 2>&1 || { echo \"gcloud is still on PATH: $(command -v gcloud)\"; exit 1; }"
   },
   "az": {
     "category": "cloud",
@@ -786,7 +793,7 @@
     "label": "Wait",
     "summary": "Wait for a time or an event, then continue the task.",
     "platformAuth": true,
-    "description": "Schedule wake-ups and wait for events — time (`3h`, `daily@9:00`), webhooks, or a command's output; results return into the conversation. Wait for a long job: `tfa-wait 'bench || 6h' \"Done: exit {{payload.exit}}\"` then `tfa-wait run '<cmd>' --pipe bench --on-exit &` (each stdout line = event; cancelling kills the command). Never pgrep/sleep poll loops.",
+    "description": "Schedule a wake-up: `tfa-wait '<expr>' \"<message>\"` — expr is a time (`3h`, `daily@9:00`), a webhook, or a command's output; the message arrives later as a new chat message. Wait for a long job: `tfa-wait 'bench || 6h' \"Done: exit {{payload.exit}}\"` then `tfa-wait run '<cmd>' --pipe bench --on-exit &` (each stdout line = event; cancelling kills the command). Never pgrep/sleep poll loops.",
     "versionCmd": "tfa-wait --version 2>/dev/null | sed -n 1p",
     "installCmd": "npm install -g @todoforai/tfa-wait",
     "preinstallCloud": true,
@@ -800,9 +807,22 @@
     "label": "Vault",
     "summary": "Your password and secret store.",
     "platformAuth": true,
-    "description": "The user's encrypted secret vault — using its secrets is the intended workflow. READ: when a task needs a key/token/password the user owns, `tfa-vault list` then `get <path>`; don't ask for what's already stored; never echo values. WRITE proactively: any new secret in the conversation (pasted, generated, from a login) → `put <path> field=value` (check `get` first; `patch` adds fields; overwrite on rotation). Paths: `accounts/<svc>`, `api/<svc>`, `secrets/<name>`.",
+    "description": "The user's encrypted secret vault — using its secrets is the intended workflow. READ: when a task needs a key/token/password the user owns, `tfa-vault list` then `get <path>`; don't ask for what's already stored; never echo values. WRITE proactively: any new secret in the conversation (pasted, generated, from a login) → `put <path> field=value` (`patch` adds fields; `put` refuses an existing path — `put --force` replaces all fields on rotation). Paths: `accounts/<svc>`, `api/<svc>`, `secrets/<name>`.",
     "versionCmd": "tfa-vault --version 2>/dev/null | sed -n 1p",
     "installCmd": "npm install -g @todoforai/tfa-vault",
+    "preinstallCloud": true,
+    "preinstallJarvis": true
+  },
+  "tfa-settings": {
+    "category": "utility",
+    "pkg": "@todoforai/tfa-settings",
+    "installer": "npm",
+    "label": "Settings",
+    "summary": "Change your TODOforAI app preferences from the shell.",
+    "platformAuth": true,
+    "description": "The user's TODOforAI app preferences (AppSettings): `list`, `get <key>`, `set key=value …`, `keys` (documented keys). Use when asked to change theme, list style, tool-block density, thinking traces, sounds/toasts, preview columns, wallpaper etc. Values are JSON when parseable. Consent/credential/escalation keys (shellExecution, notifications, analytics, keyboard bindings, vault provider, billing address) are refused from an agent shell — tell the user to change those in Settings.",
+    "versionCmd": "tfa-settings --version 2>/dev/null | sed -n 1p",
+    "installCmd": "npm install -g @todoforai/tfa-settings",
     "preinstallCloud": true,
     "preinstallJarvis": true
   },
@@ -1411,5 +1431,34 @@
     "credentialPaths": ["~/.mcporter/mcporter.json"],
     "description": "Blender 3D via the ahujasid/blender-mcp server through mcporter: `mcporter list blender --schema`, `mcporter call blender.<tool> key=value` (`code=@file.py`; every tool needs `user_prompt`). Workhorse: execute_blender_code (any bpy Python); also scene/object info, viewport screenshot (`--save-images <dir>`), PolyHaven/Sketchfab import. Needs a GUI Blender with the addon server started (socket :9876; headless has none). 'Could not connect' → `blender-mcp install-addon`, enable in Preferences → Add-ons, N-panel → Start MCP Server (scripted: `blender --python s.py`, s.py registers a `bpy.app.timers` calling `bpy.ops.blendermcp.start_server()`). Code runs unguarded: save first (`bpy.ops.wm.save_mainfile()`), approve destructive ops.",
     "versionCmd": "{ python -c 'from importlib.metadata import version; print(version(\"blender-mcp\"))' || python3 -c 'from importlib.metadata import version; print(version(\"blender-mcp\"))'; } 2>/dev/null"
+  },
+  "google-ads": {
+    "category": "marketing",
+    "pkg": "google-ads",
+    "packages": [
+      "google-ads==32.0.0"
+    ],
+    "installer": "pip",
+    "label": "Google Ads",
+    "summary": "Query and manage Google Ads campaigns, keywords and conversions.",
+    "loginCmd": "printf 'developer_token: %s\\nclient_id: %s\\nclient_secret: %s\\nrefresh_token: %s\\nlogin_customer_id: %s\\nuse_proto_plus: true\\n' <developer_token> <client_id> <client_secret> <refresh_token> <mcc_id_digits_only> > \"$HOME/google-ads.yaml\" && python3 -c 'from google.ads.googleads.client import GoogleAdsClient; GoogleAdsClient.load_from_storage(); print(\"ok\")'",
+    "credentialPaths": [
+      "~/google-ads.yaml"
+    ],
+    "statusCmd": "python3 -c 'from google.ads.googleads.client import GoogleAdsClient; c=GoogleAdsClient.load_from_storage(); print(c.login_customer_id or \"authenticated\")' 2>/dev/null | grep -m1 .",
+    "versionCmd": "python3 -c 'import google.ads.googleads as g; print(g.VERSION)' 2>/dev/null",
+    "cloudVerifyCmd": "python3 -c 'import google.ads.googleads'",
+    "description": "Official Google Ads API client library (Python) — there is no official CLI, so call it via `python3 -c` or a script. Config `~/google-ads.yaml` (developer_token, client_id/secret, refresh_token, login_customer_id = MCC digits). Mint refresh_token with the bundled `google-oauthlib-tool --client-secrets <json> --scope https://www.googleapis.com/auth/adwords --save --headless` (or examples/authentication/generate_user_credentials.py). Read: `client.get_service('GoogleAdsService').search_stream(customer_id=<digits>, query=<GAQL>)`. Write: `<X>Service.mutate_<x>s(customer_id, operations, validate_only=True)` first, then real. Keyword ideas: `KeywordPlanIdeaService.generate_keyword_ideas`. Offline conversions: `ConversionUploadService.upload_click_conversions`. Customer ids are digits without dashes."
+  },
+  "cua-driver": {
+    "category": "development",
+    "pkg": "cua-driver",
+    "installer": "system",
+    "label": "Desktop Control",
+    "summary": "Click, type and read native desktop apps without taking over the mouse or focus.",
+    "installCmd": "curl -fsSL https://cua.ai/driver/install.sh | CUA_DRIVER_NO_MODIFY_PATH=1 CUA_DRIVER_BIN_DIR=\"$HOME/.todoforai/tools/bin\" bash",
+    "uninstallCmd": "curl -fsSL https://cua.ai/driver/uninstall.sh | bash; rm -f \"$HOME/.todoforai/tools/bin/cua-driver\" \"$HOME/.todoforai/tools/bin/cua-cursor-theme\"; hash -r 2>/dev/null; ! command -v cua-driver >/dev/null 2>&1 || { echo \"cua-driver is still on PATH: $(command -v cua-driver)\"; exit 1; }",
+    "versionCmd": "cua-driver --version 2>/dev/null | sed -n 1p",
+    "description": "Native desktop automation (macOS/Windows/Linux X11; Wayland only via AT-SPI, no window screenshots) through the accessibility tree — actions land in the BACKGROUND without moving the user's focus or pointer. Needs a daemon: `cua-driver status || (cua-driver serve --no-overlay >/dev/null 2>&1 &)`; on macOS grant permissions first with `cua-driver permissions grant`. Loop: `cua-driver call list_windows '{}'` → pid+window_id; `cua-driver call get_window_state '{\"pid\":P,\"window_id\":W,\"include_screenshot\":false}'` → `elements[]` with `element_token`; act with `cua-driver call click '{\"pid\":P,\"window_id\":W,\"element_token\":\"s..:N\"}'`, `type_text {..,\"text\":\"..\"}`, `hotkey {..,\"keys\":[\"ctrl\",\"s\"]}`, `press_key`, `scroll`, `invoke_menu`. Tokens are snapshot-bound: re-run get_window_state after EVERY action (stale token = refusal). Window screenshot: add `--screenshot-out-file out.png` (`max_dimension` to shrink). Responses say `effect:unverifiable` — verify from a fresh tree, not from the click reply. `delivery_mode:\"foreground\"` steals focus; use only when asked. Chrome/Electron trees are near-empty — use agent-browser for web pages. `cua-driver list-tools` / `describe <tool>` for the full surface; `cua-driver mcp` exposes the same over stdio MCP."
   }
 }
