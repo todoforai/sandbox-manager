@@ -28,7 +28,7 @@ if [ "$SKIP_INSTALL" != 1 ]; then
   jqc 'to_entries[] | select(.value.preinstallCloud == true and (.value.cloudInstallCmd // "") != "") | "\(.key)\t\(.value.cloudInstallCmd)"' \
     | while IFS=$'\t' read -r k cmd; do echo "   [$k] $cmd"; bash -euo pipefail -c "$cmd" || echo "   INSTALL FAILED: $k"; done
   [ -n "$bun_pkgs" ] && bun add -g $bun_pkgs
-  [ -n "$pip_pkgs" ] && uv pip install --system --break-system-packages $pip_pkgs
+  [ -n "$pip_pkgs" ] && { set -f; uv pip install --system --break-system-packages $pip_pkgs; set +f; }
 fi
 
 echo; echo ">> probe (logged out, HOME=$HOME)"
