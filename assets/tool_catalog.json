@@ -860,7 +860,7 @@
     "label": "Surface",
     "summary": "See and control what is on your TODOforAI screen.",
     "platformAuth": true,
-    "description": "The user's live UI from the shell. `describe` shows what's open (todos, panels, focus, embedded-browser CDP URL; `--json`). `panel open changes|preview|browser|terminal [--url]`, `todo open|focus|close <id>`. Persistent state (plans, reports, live status) → `show chat.panel <todoId> \"...md\"` (stdin ok; re-show updates in place), `clear` removes; events go in chat. `card add|list|get|rm <name>` = project HTML renderers. Exit 2 = no frontend connected.",
+    "description": "The user's live UI from the shell. Everything on screen is a SURFACE holding one ref (a todo id, `<todoId>:<alias>` = a shown artifact, or a url). `describe` lists them (kind, id, ref, focus, embedded-browser CDP URL; `--json`). `open overlay <todoId>` (full page), `open window <ref>` (floating), `open panel changes|preview|browser|terminal [--url]` (a todo's side panel), `open card <ref> [--title] [--group <slug>]` (a persisted board card every member sees); `close|focus <kind> <id>`. Persistent state (plans, reports, live status) → `show chat.panel <todoId> \"...md\"` (stdin ok; re-show updates in place), `clear` removes; events go in chat. `card add|list|get|rm <name>` = project HTML renderers. Exit 2 = no frontend connected.",
     "versionCmd": "tfa-surface --version 2>/dev/null | sed -n 1p",
     "installCmd": "npm install -g @todoforai/tfa-surface",
     "internal": true
