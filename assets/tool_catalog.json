@@ -190,7 +190,11 @@
     "label": "Suno",
     "summary": "Generate music and songs from a prompt.",
     "versionCmd": "suno-api --version 2>/dev/null | sed -n 1p",
-    "statusCmd": "test -n \"$SUNO_API_KEY\" && echo authenticated",
+    "statusCmd": "test -f ~/.config/todoforai/suno.json -o -n \"$SUNO_API_KEY\" && echo authenticated",
+    "loginCmd": "suno-api auth <api_key>",
+    "credentialPaths": [
+      "~/.config/todoforai/suno.json"
+    ],
     "description": "AI music generation, custom lyrics, multiple genres."
   },
   "ntn": {
