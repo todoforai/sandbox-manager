@@ -153,7 +153,7 @@
     "label": "ElevenLabs",
     "summary": "Turn text into natural speech, in many voices and languages.",
     "versionCmd": "elevenlabs-api --version 2>/dev/null | sed -n 1p",
-    "statusCmd": "test -f ~/.config/todoforai/elevenlabs.json && echo authenticated || test -n \"$ELEVENLABS_API_KEY\" && echo authenticated",
+    "statusCmd": "test -f ~/.config/todoforai/elevenlabs.json -o -n \"$ELEVENLABS_API_KEY\" && echo authenticated",
     "loginCmd": "elevenlabs-api auth <api_key>",
     "credentialPaths": ["~/.config/todoforai/elevenlabs.json"],
     "description": "Text-to-speech, voice cloning, multiple languages."
@@ -317,12 +317,14 @@
     "label": "Firebase",
     "summary": "Deploy and manage Firebase hosting, database and functions.",
     "statusCmd": "firebase login:list 2>&1 | grep -oiE '[[:alnum:]._%+-]+@[[:alnum:].-]+\\.[[:alpha:]]{2,}' | grep -m1 .",
-    "loginCmd": "firebase login --no-localhost",
+    "loginCmd": "firebase login --no-localhost --reauth",
+    "loginNeedsPty": true,
+    "stdinPaste": true,
     "credentialPaths": ["~/.config/configstore/firebase-tools.json"],
     "description": "Deploy hosting/functions, manage Firestore/RTDB rules and data, auth users, emulators.",
     "versionCmd": "firebase --version 2>/dev/null | sed -n 1p",
     "oauthUrlPattern": "(https://auth\\.firebase\\.tools/login\\S+)",
-    "canStreamLogin": true
+    "sessionIdPattern": "session ID:\\s*([0-9A-Za-z]{4,8})"
   },
   "wrangler": {
     "preinstallCloud": true,
@@ -497,7 +499,7 @@
     "statusCmd": "vault token lookup >/dev/null 2>&1 && echo authenticated",
     "loginCmd": "vault login <token>",
     "credentialPaths": ["~/.vault-token"],
-    "versionCmd": "vault --version 2>/dev/null | sed -n 1p",
+    "versionCmd": "vault --version 2>/dev/null | sed -n '1s/ (.*//p'",
     "description": "HashiCorp Vault secrets management and dynamic credentials."
   },
   "rclone": {
@@ -572,7 +574,7 @@
     "credentialPaths": ["~/.aws/credentials", "~/.aws/config", "~/.aws/sso/cache"],
     "description": "Official AWS CLI v2, installed user-locally into ~/.todoforai/tools (no sudo; Linux x86_64/aarch64 + macOS). Auth via `aws configure` (access keys) or `aws configure sso` + `aws sso login` (browser device flow).",
     "versionCmd": "aws --version 2>/dev/null | sed -n 1p",
-    "uninstallCmd": "rm -rf \"$HOME/.todoforai/tools/aws-cli\" \"$HOME/.todoforai/tools/bin/aws\" \"$HOME/.todoforai/tools/bin/aws_completer\"; hash -r 2>/dev/null; ! command -v aws >/dev/null 2>&1 || { echo \"aws is still on PATH: $(command -v aws) (installed outside ~/.todoforai/tools, e.g. by sudo — remove manually: sudo rm -rf /usr/local/aws-cli /usr/local/bin/aws /usr/local/bin/aws_completer)\"; exit 1; }"
+    "uninstallCmd": "rm -rf \"$HOME/.todoforai/tools/aws-cli\" \"$HOME/.todoforai/tools/bin/aws\" \"$HOME/.todoforai/tools/bin/aws_completer\"; hash -r 2>/dev/null; ! command -v aws >/dev/null 2>&1 || { echo \"aws is still on PATH: $(command -v aws) — not installed by TODOforAI, remove it with the package manager that installed it (snap/apt/brew/sudo)\"; exit 1; }"
   },
   "gcloud": {
     "category": "cloud",
@@ -584,6 +586,7 @@
     "statusCmd": "gcloud auth list --filter=status:ACTIVE --format=\"value(account)\" 2>/dev/null | tr -d '\\r' | grep -m1 .",
     "loginCmd": "gcloud auth login --no-launch-browser",
     "loginNeedsPty": true,
+    "stdinPaste": true,
     "oauthUrlPattern": "(https://accounts\\.google\\.com/o/oauth2/auth\\S+)",
     "credentialPaths": ["~/.config/gcloud"],
     "description": "Official Google Cloud CLI. `gcloud auth login --no-launch-browser` prints the OAuth URL and waits for the pasted verification code.",
@@ -1313,13 +1316,13 @@
     "label": "Canva",
     "summary": "Build and deploy Canva apps.",
     "statusCmd": "test -s ~/.canva-cli/credentials && echo authenticated",
-    "loginCmd": "canva login",
+    "loginCmd": "canva login --mode manual --lite",
     "loginNeedsPty": true,
+    "stdinPaste": true,
     "credentialPaths": ["~/.canva-cli/credentials"],
     "description": "Official Canva CLI — app-development focused: `canva apps create/list/preview`. `canva mcp` starts the Canva Developer MCP server. For design/export automation use the Canva Connect REST API.",
     "versionCmd": "canva --version 2>/dev/null | sed -n 1p",
-    "oauthUrlPattern": "OPEN_URL: (https://www\\.canva\\.com/api/oauth/authorize\\S+)",
-    "oauthCallbackPort": 3030
+    "oauthUrlPattern": "OPEN_URL: (https://www\\.canva\\.com/api/oauth/authorize\\S+)"
   },
   "webflow": {
     "category": "development",
@@ -1458,7 +1461,9 @@
     "summary": "Click, type and read native desktop apps without taking over the mouse or focus.",
     "installCmd": "curl -fsSL https://cua.ai/driver/install.sh | CUA_DRIVER_NO_MODIFY_PATH=1 CUA_DRIVER_BIN_DIR=\"$HOME/.todoforai/tools/bin\" bash",
     "uninstallCmd": "curl -fsSL https://cua.ai/driver/uninstall.sh | bash; rm -f \"$HOME/.todoforai/tools/bin/cua-driver\" \"$HOME/.todoforai/tools/bin/cua-cursor-theme\"; hash -r 2>/dev/null; ! command -v cua-driver >/dev/null 2>&1 || { echo \"cua-driver is still on PATH: $(command -v cua-driver)\"; exit 1; }",
+    "installCmdWindows": "powershell.exe -NoProfile -ExecutionPolicy Bypass -Command '$ErrorActionPreference='\\''Stop'\\''; [Net.ServicePointManager]::SecurityProtocol=[Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12; $t=Join-Path $env:USERPROFILE '\\''.todoforai\\tools'\\''; $d=Join-Path $t '\\''bin'\\''; New-Item -ItemType Directory -Force -Path $d | Out-Null; $env:CUA_DRIVER_RS_INSTALL_DIR=Join-Path $t '\\''cua-driver\\bin'\\''; $f=Join-Path $env:TEMP '\\''cua-driver-install.ps1'\\''; Invoke-RestMethod -UseBasicParsing https://cua.ai/driver/install.ps1 | Set-Content -LiteralPath $f -Encoding UTF8; & $f -NoAutoStart -NoPathUpdate; if($LASTEXITCODE){exit $LASTEXITCODE}; $u=New-Object Text.UTF8Encoding $false; [IO.File]::WriteAllText((Join-Path $d '\\''cua-driver'\\''), \"#!/bin/sh`nexec `\"`$(dirname `\"`$0`\")/../cua-driver/bin/cua-driver.exe`\" `\"`$@`\"`n\", $u); [IO.File]::WriteAllText((Join-Path $d '\\''cua-driver.cmd'\\''), \"@echo off`r`n`\"%~dp0..\\cua-driver\\bin\\cua-driver.exe`\" %*`r`n\", $u)'",
+    "uninstallCmdWindows": "powershell.exe -NoProfile -ExecutionPolicy Bypass -Command '$ErrorActionPreference='\\''Continue'\\''; $t=Join-Path $env:USERPROFILE '\\''.todoforai\\tools'\\''; $d=Join-Path $t '\\''bin'\\''; $j=Join-Path $t '\\''cua-driver\\bin'\\''; $exe=Join-Path $j '\\''cua-driver.exe'\\''; if(Test-Path -LiteralPath $exe){& $exe stop 2>$null | Out-Null}; Stop-Process -Name cua-driver -Force -ErrorAction SilentlyContinue; $env:CUA_DRIVER_RS_UNINSTALL_FORCE='\\''1'\\''; $env:CUA_DRIVER_RS_INSTALL_DIR=$j; Invoke-RestMethod -UseBasicParsing https://cua.ai/driver/uninstall.ps1 | Invoke-Expression; Remove-Item -Force -ErrorAction SilentlyContinue (Join-Path $d '\\''cua-driver'\\''), (Join-Path $d '\\''cua-driver.cmd'\\''); if(Test-Path -LiteralPath $j){[IO.Directory]::Delete($j,$false)}; Remove-Item -Recurse -Force -ErrorAction SilentlyContinue (Join-Path $t '\\''cua-driver'\\'')'",
     "versionCmd": "cua-driver --version 2>/dev/null | sed -n 1p",
-    "description": "Native desktop automation (macOS/Windows/Linux X11; Wayland only via AT-SPI, no window screenshots) through the accessibility tree — actions land in the BACKGROUND without moving the user's focus or pointer. Needs a daemon: `cua-driver status || (cua-driver serve --no-overlay >/dev/null 2>&1 &)`; on macOS grant permissions first with `cua-driver permissions grant`. Loop: `cua-driver call list_windows '{}'` → pid+window_id; `cua-driver call get_window_state '{\"pid\":P,\"window_id\":W,\"include_screenshot\":false}'` → `elements[]` with `element_token`; act with `cua-driver call click '{\"pid\":P,\"window_id\":W,\"element_token\":\"s..:N\"}'`, `type_text {..,\"text\":\"..\"}`, `hotkey {..,\"keys\":[\"ctrl\",\"s\"]}`, `press_key`, `scroll`, `invoke_menu`. Tokens are snapshot-bound: re-run get_window_state after EVERY action (stale token = refusal). Window screenshot: add `--screenshot-out-file out.png` (`max_dimension` to shrink). Responses say `effect:unverifiable` — verify from a fresh tree, not from the click reply. `delivery_mode:\"foreground\"` steals focus; use only when asked. Chrome/Electron trees are near-empty — use agent-browser for web pages. `cua-driver list-tools` / `describe <tool>` for the full surface; `cua-driver mcp` exposes the same over stdio MCP."
+    "description": "Native desktop automation (macOS/Windows/Linux X11; Wayland only via AT-SPI, no window screenshots) through the accessibility tree — actions land in the BACKGROUND without moving the user's focus or pointer. Needs a daemon: `cua-driver status || (cua-driver serve --no-overlay >/dev/null 2>&1 &)`; on macOS grant permissions first with `cua-driver permissions grant`; on Windows the daemon must run in the interactive desktop session (`cua-driver autostart enable` registers a logon task). Loop: `cua-driver call list_windows '{}'` → pid+window_id; `cua-driver call get_window_state '{\"pid\":P,\"window_id\":W,\"include_screenshot\":false}'` → `elements[]` with `element_token`; act with `cua-driver call click '{\"pid\":P,\"window_id\":W,\"element_token\":\"s..:N\"}'`, `type_text {..,\"text\":\"..\"}`, `hotkey {..,\"keys\":[\"ctrl\",\"s\"]}`, `press_key`, `scroll`, `invoke_menu`. Tokens are snapshot-bound: re-run get_window_state after EVERY action (stale token = refusal). Window screenshot: add `--screenshot-out-file out.png` (`max_dimension` to shrink). Responses say `effect:unverifiable` — verify from a fresh tree, not from the click reply. `delivery_mode:\"foreground\"` steals focus; use only when asked. Chrome/Electron trees are near-empty — use agent-browser for web pages. `cua-driver list-tools` / `describe <tool>` for the full surface; `cua-driver mcp` exposes the same over stdio MCP."
   }
 }
