@@ -219,27 +219,33 @@ func (s *Store) PurgeUserIndexes(ctx context.Context, userID string) error {
 // ListByUserScan finds user sandboxes from authoritative records as a fallback
 // when the sandbox:user index is stale or missing.
 func (s *Store) ListByUserScan(ctx context.Context, userID string) ([]*Sandbox, error) {
-	var cursor uint64
+	keys, err := s.scanKeys(ctx, "sandbox:*")
+	if err != nil {
+		return nil, err
+	}
 	var out []*Sandbox
-	for {
-		keys, next, err := s.rdb.Scan(ctx, cursor, "sandbox:*", 200).Result()
-		if err != nil {
-			return nil, err
+	for _, key := range keys {
+		if strings.HasPrefix(key, "sandbox:user:") || key == "sandbox:active" {
+			continue
 		}
-		for _, key := range keys {
-			if strings.HasPrefix(key, "sandbox:user:") || key == "sandbox:active" {
-				continue
-			}
-			id := strings.TrimPrefix(key, "sandbox:")
-			if sb, err := s.Get(ctx, id); err == nil && sb != nil && sb.UserID == userID {
-				out = append(out, sb)
-			}
-		}
-		cursor = next
-		if cursor == 0 {
-			return out, nil
+		id := strings.TrimPrefix(key, "sandbox:")
+		if sb, err := s.Get(ctx, id); err == nil && sb != nil && sb.UserID == userID {
+			out = append(out, sb)
 		}
 	}
+	return out, nil
+}
+
+// scanKeys collects keys matching pattern via incremental SCAN. Never use KEYS:
+// the shared DB holds millions of keys, so a single KEYS blocks past the client
+// read timeout and fails every caller (reconcile, admin list → idle reaper).
+func (s *Store) scanKeys(ctx context.Context, pattern string) ([]string, error) {
+	var out []string
+	iter := s.rdb.Scan(ctx, 0, pattern, 10000).Iterator()
+	for iter.Next(ctx) {
+		out = append(out, iter.Val())
+	}
+	return out, iter.Err()
 }
 
 // List returns a user's sandboxes, or all sandboxes when userID == "" (admin).
@@ -251,7 +257,7 @@ func (s *Store) List(ctx context.Context, userID string) ([]*Sandbox, error) {
 			return nil, err
 		}
 	} else {
-		keys, err := s.rdb.Keys(ctx, "sandbox:user:*").Result()
+		keys, err := s.scanKeys(ctx, "sandbox:user:*")
 		if err != nil {
 			return nil, err
 		}
