@@ -65,6 +65,7 @@
     "versionCmd": "linkedin-api --version 2>/dev/null | sed -n 1p"
   },
   "figma-api": {
+    "preinstallCloud": true,
     "category": "design",
     "pkg": "@todoforai/figma-api",
     "installer": "npm",
@@ -209,7 +210,7 @@
     "statusCmd": "ntn doctor 2>&1 | grep -E 'Token valid\\s+✔' >/dev/null && echo authenticated",
     "loginCmd": "ntn login",
     "loginNeedsPty": true,
-    "oauthUrlPattern": "(https://www\\.notion\\.so/workers/cli-login\\S+)",
+    "oauthUrlPattern": "(https://(?:www\\.notion\\.so|app\\.notion\\.com)/workers/cli-login\\S+)",
     "sessionIdPattern": "verificationCode=([A-Z0-9-]{5,12})",
     "credentialPaths": ["~/.config/notion"],
     "versionCmd": "ntn --version 2>/dev/null | sed -n 1p",
@@ -259,6 +260,9 @@
     "preinstallCloud": true
   },
   "glab": {
+    "preinstallCloud": true,
+    "cloudInstallCmd": "curl -fsSL https://gitlab.com/gitlab-org/cli/-/releases/v1.119.0/downloads/glab_1.119.0_linux_amd64.tar.gz | tar -xz -C /tmp bin/glab && install -m0755 /tmp/bin/glab /usr/local/bin/glab",
+    "cloudVerifyCmd": "glab --version",
     "category": "development",
     "pkg": "glab",
     "installer": "binary",
@@ -290,6 +294,7 @@
     "canStreamLogin": true
   },
   "eas": {
+    "preinstallCloud": true,
     "category": "deployment",
     "pkg": "eas-cli",
     "installer": "npm",
@@ -305,6 +310,7 @@
     "versionCmd": "eas --version 2>/dev/null | sed -n 1p"
   },
   "netlify": {
+    "preinstallCloud": true,
     "category": "deployment",
     "pkg": "netlify-cli",
     "installer": "npm",
@@ -370,6 +376,9 @@
     "canStreamLogin": true
   },
   "flyctl": {
+    "preinstallCloud": true,
+    "cloudInstallCmd": "curl -fsSL https://github.com/superfly/flyctl/releases/download/v0.4.108/flyctl_0.4.108_Linux_x86_64.tar.gz | tar -xz -C /usr/local/bin flyctl",
+    "cloudVerifyCmd": "flyctl version",
     "category": "cloud",
     "pkg": "flyctl",
     "installer": "binary",
@@ -397,6 +406,7 @@
     "versionCmd": "supabase --version 2>/dev/null | sed -n 1p"
   },
   "railway": {
+    "preinstallCloud": true,
     "category": "cloud",
     "pkg": "@railway/cli",
     "installer": "npm",
@@ -438,6 +448,7 @@
     "versionCmd": "shop-app --version 2>/dev/null | sed -n 1p"
   },
   "datadog-ci": {
+    "preinstallCloud": true,
     "category": "monitoring",
     "pkg": "@datadog/datadog-ci",
     "installer": "npm",
@@ -466,7 +477,7 @@
     "installer": "npm",
     "label": "TODOforAI",
     "summary": "Create and follow up on your TODOs, and show results in the chat.",
-    "description": "Manage the user's OWN TODOforAI tasks (not code `// TODO` comments). Delegate/spin off work: `tfa-cli \"prompt\"` creates a real TODO with its own agent and chat (`-n` wait for completion, `--no-watch` fire-and-forget, `--project/--agent/--model`, `--resume <id>`, `addmessage <id> \"text\"`). Inspect: `list [--status open]`, `--inspect <id>`. Edit any todo without opening it: `status <id> DONE|READY|ARCHIVED|POSTPONED|CANCELLED|DELETED` (close, reopen, shelve, trash — `todo restore <id>` undoes a delete) and `todo set <id|-> title=… group=… star=true schedule=<unix-ms> agent=… brand=…` (own todo fields). Both take ONE id, so a loop over `list --json | jq -r '.items[].id'` is how you close, retitle, refile or archive MANY todos at once; `project set|settings|groups …` (name, settings, todo groups), `agent create|update <agent> model=… sysmsg=…` (permissions/MCP/device wiring and delete are refused from an agent shell). Surface results into chat: `show <file|-> [todo-id]` (renders by mimetype; `--card <name>` via project renderer; `--alias <name>` updates in place), `open <url>` embeds a live preview. Notifications: `inbox [needs-you|messages|activity] [--unread]` reads the user's bell feed (what finished/failed/needs them while away), `inbox seen [tab]` marks it read; `notify \"Title\" \"message\" [--href /t/<id>]` leaves a note in the user's Messages tab + phone push (shown as from you); `--to <email>` reaches a member of the current project instead (`project members` lists them, 20/day) — nobody else; same text is delivered once, max 10/day to the user, use for things they must see later (not chat replies). This is the ONLY way to display a local file (image, pdf, html) in the chat: markdown `![](path.png)` with a local/relative path does NOT resolve to workspace files or attachments and 404s in the browser. `--template` for registry workflows.",
+    "description": "Manage the user's OWN TODOforAI tasks (not code `// TODO` comments). Delegate/spin off work: `tfa-cli \"prompt\"` creates a real TODO with its own agent and chat (`-n` wait for completion, `--no-watch` fire-and-forget, `--project/--agent/--model`, `--resume <id>`, `addmessage <id> \"text\"`). Inspect: `list [--status open]`, `--inspect <id>`. Edit any todo without opening it: `status <id> DONE|READY|ARCHIVED|POSTPONED|CANCELLED|DELETED` (close, reopen, shelve, trash — `todo restore <id>` undoes a delete) and `todo set <id|-> title=… group=… star=true schedule=<unix-ms> agent=… brand=…` (own todo fields). Both take ONE id, so a loop over `list --json | jq -r '.items[].id'` is how you close, retitle, refile or archive MANY todos at once; `project set|settings|groups …` (name, settings, todo groups), `agent create|update <agent> model=… sysmsg=…` (permissions/MCP/device wiring and delete are refused from an agent shell). Surface results into chat: `show <file|-> [todo-id]` (renders by mimetype, private to the todo's readers; `--card <name>` via project renderer; `--alias <name>` updates in place, `--alias <todoId>:<name>` updates another todo's artifact; `show share <ref>` makes it public and prints the link, `show unshare <ref>` makes it private again), `open <url>` embeds a live preview. Pick by where the output lives: read once → plain reply; interactive, this chat only → `html_snippet`; kept/revised later → `show --alias`, then `show share` only if someone outside needs a link; format the user asked for (pptx, docx…) → `show` the file. Notifications: `inbox [needs-you|messages|activity] [--unread]` reads the user's bell feed (what finished/failed/needs them while away), `inbox seen [tab]` marks it read; `notify \"Title\" \"message\" [--href /t/<id>]` leaves a note in the user's Messages tab + phone push (shown as from you); `--to <email>` reaches a member of the current project instead (`project members` lists them, 20/day) — nobody else; same text is delivered once, max 10/day to the user, use for things they must see later (not chat replies). This is the ONLY way to display a local file (image, pdf, html) in the chat: markdown `![](path.png)` with a local/relative path does NOT resolve to workspace files or attachments and 404s in the browser. `--template` for registry workflows.",
     "installCmd": "npm install -g @todoforai/cli",
     "versionCmd": "tfa-cli --version 2>/dev/null | sed -n 1p",
     "preinstallCloud": true,
@@ -1234,8 +1245,10 @@
     "versionCmd": "facebook-pages-api --version 2>/dev/null | sed -n 1p"
   },
   "ews-api": {
+    "preinstallCloud": true,
     "category": "email",
     "pkg": "ews-api",
+    "packages": ["ews-api==0.2.0"],
     "installer": "pip",
     "label": "Exchange (EWS)",
     "summary": "Read and write mail on a company Exchange server.",
@@ -1263,6 +1276,7 @@
     "canStreamLogin": true
   },
   "neonctl": {
+    "preinstallCloud": true,
     "category": "database",
     "pkg": "neonctl",
     "installer": "npm",
@@ -1324,6 +1338,7 @@
     "versionCmd": "posthog-cli --version 2>/dev/null | sed -n 1p"
   },
   "canva": {
+    "preinstallCloud": true,
     "category": "design",
     "pkg": "@canva/cli",
     "installer": "npm",
@@ -1339,6 +1354,7 @@
     "oauthUrlPattern": "OPEN_URL: (https://www\\.canva\\.com/api/oauth/authorize\\S+)"
   },
   "webflow": {
+    "preinstallCloud": true,
     "category": "development",
     "pkg": "@webflow/webflow-cli",
     "installer": "npm",
@@ -1353,6 +1369,7 @@
     "versionCmd": "webflow --version 2>/dev/null | sed -n 1p"
   },
   "readwise": {
+    "preinstallCloud": true,
     "category": "productivity",
     "pkg": "@readwise/cli",
     "installer": "npm",
@@ -1423,6 +1440,7 @@
     "versionCmd": "exa --version 2>/dev/null | sed -n 1p"
   },
   "mobbin": {
+    "preinstallCloud": true,
     "category": "design",
     "pkg": "mobbin",
     "installer": "npm",
@@ -1450,9 +1468,10 @@
     "logoutCmd": "cd ~ && mcporter config remove blender",
     "credentialPaths": ["~/.mcporter/mcporter.json"],
     "description": "Blender 3D via the ahujasid/blender-mcp server through mcporter: `mcporter list blender --schema`, `mcporter call blender.<tool> key=value` (`code=@file.py`; every tool needs `user_prompt`). Workhorse: execute_blender_code (any bpy Python); also scene/object info, viewport screenshot (`--save-images <dir>`), PolyHaven/Sketchfab import. Needs a GUI Blender with the addon server started (socket :9876; headless has none). 'Could not connect' → `blender-mcp install-addon`, enable in Preferences → Add-ons, N-panel → Start MCP Server (scripted: `blender --python s.py`, s.py registers a `bpy.app.timers` calling `bpy.ops.blendermcp.start_server()`). Code runs unguarded: save first (`bpy.ops.wm.save_mainfile()`), approve destructive ops.",
-    "versionCmd": "{ python -c 'from importlib.metadata import version; print(version(\"blender-mcp\"))' || python3 -c 'from importlib.metadata import version; print(version(\"blender-mcp\"))'; } 2>/dev/null"
+    "versionCmd": "{ python -c 'import sys; from importlib.metadata import version; print(version(sys.argv[1]))' blender-mcp || python3 -c 'import sys; from importlib.metadata import version; print(version(sys.argv[1]))' blender-mcp; } 2>/dev/null"
   },
   "google-ads": {
+    "preinstallCloud": true,
     "category": "marketing",
     "pkg": "google-ads",
     "packages": [
