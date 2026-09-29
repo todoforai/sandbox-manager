@@ -1,0 +1,51 @@
+#!/bin/sh
+# cloud-ssh-setup <authorized-key-url>: idempotently prepare and start the
+# cloud sshd, then print the host public key (last line). Run as root by the
+# sandbox-manager via exec. Exits non-zero if sshd is not listening.
+set -eu
+PATH=/usr/sbin:/usr/bin:/sbin:/bin
+url=${1:-}
+case $url in https://*|http://*) ;; *) echo "usage: $0 <https-url>" >&2; exit 2 ;; esac
+umask 077
+cfg=/etc/ssh/cloud-sshd_config
+state=/root/.todoforai            # on the per-user persistent home.img
+keydir=$state/ssh-host
+key=$keydir/ssh_host_ed25519_key
+ws=$state/ssh-workspace
+
+mkdir -p /etc/todoforai "$keydir"
+chmod 700 "$keydir"
+printf '%s\n' "$url" > /etc/todoforai/cloud-ssh-auth-url.tmp
+mv /etc/todoforai/cloud-ssh-auth-url.tmp /etc/todoforai/cloud-ssh-auth-url
+
+# Per-user persistent host key (never the image's). Regenerate if missing or
+# corrupt (e.g. crash mid-write).
+if ! ssh-keygen -y -f "$key" > "$key.pub.tmp" 2>/dev/null; then
+    rm -f "$key" "$key.new" "$key.new.pub"
+    ssh-keygen -q -t ed25519 -N '' -C '' -f "$key.new"
+    mv "$key.new" "$key"
+    rm -f "$key.new.pub"
+    ssh-keygen -y -f "$key" > "$key.pub.tmp"
+fi
+mv "$key.pub.tmp" "$key.pub"
+
+# Workspace home: persisted on home.img, exposed only at /workspace.
+[ -L "$ws" ] && rm -f "$ws"
+mkdir -p "$ws"
+chown workspace:workspace "$ws"
+chmod 700 "$ws"
+mountpoint -q /workspace || mount --bind "$ws" /workspace
+
+mkdir -p /run/sshd
+chmod 755 /run/sshd
+if ! { [ -s /run/cloud-sshd.pid ] && kill -0 "$(cat /run/cloud-sshd.pid)" 2>/dev/null; }; then
+    /usr/sbin/sshd -t -f "$cfg"
+    setsid /usr/sbin/sshd -f "$cfg" -E /var/log/cloud-sshd.log </dev/null >/dev/null 2>&1
+fi
+i=0
+until ss -Hltn 'sport = :22' | grep -q .; do
+    i=$((i + 1))
+    [ "$i" -le 50 ] || { echo "cloud sshd not listening" >&2; tail -5 /var/log/cloud-sshd.log >&2 2>/dev/null; exit 1; }
+    sleep 0.1
+done
+cut -d' ' -f1,2 "$key.pub"

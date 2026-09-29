@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"regexp"
 	"strconv"
 	"strings"
 	"sync"
@@ -17,6 +18,7 @@ import (
 
 	"github.com/todoforai/sandbox-manager/internal/backend"
 	"github.com/todoforai/sandbox-manager/internal/config"
+	"github.com/todoforai/sandbox-manager/internal/sshrelay"
 	"github.com/todoforai/sandbox-manager/internal/store"
 	"github.com/todoforai/sandbox-manager/internal/userhome"
 	"github.com/todoforai/sandbox-manager/internal/vm"
@@ -29,6 +31,7 @@ var (
 	ErrForbidden = errors.New("forbidden")
 	ErrDiskFull  = errors.New("host disk capacity reached")
 	ErrCapacity  = errors.New("host VM capacity reached")
+	ErrSSH       = errors.New("cloud SSH unavailable")
 )
 
 const enrollTTLSec = 300
@@ -45,13 +48,15 @@ type Service struct {
 	vm               *vm.Manager
 	homes            *userhome.Store
 	backend          *backend.Client
-	admissionMu      sync.Mutex // guards pendingCreates and the admission check
-	pendingCreates   int        // admitted creates whose VM hasn't finished booting
+	ssh              *sshrelay.Relay // nil unless SSH_PUBLIC_HOST + port range are set
+	sshPrep          sync.Map        // sandbox id -> *sync.Mutex, serializes PrepareSSH per VM
+	admissionMu      sync.Mutex      // guards pendingCreates and the admission check
+	pendingCreates   int             // admitted creates whose VM hasn't finished booting
 	capacityRejected atomic.Uint64
 }
 
-func New(cfg *config.Config, st *store.Store, mgr *vm.Manager, homes *userhome.Store, be *backend.Client) *Service {
-	return &Service{cfg: cfg, store: st, vm: mgr, homes: homes, backend: be}
+func New(cfg *config.Config, st *store.Store, mgr *vm.Manager, homes *userhome.Store, be *backend.Client, ssh *sshrelay.Relay) *Service {
+	return &Service{cfg: cfg, store: st, vm: mgr, homes: homes, backend: be, ssh: ssh}
 }
 
 // Create enforces quota (one active sandbox per user) and anonymity, mints an
@@ -205,6 +210,7 @@ func (s *Service) Get(ctx context.Context, id store.Identity, sandboxID string) 
 	if !id.IsAdmin() && sb.UserID != id.UserID {
 		return nil, ErrForbidden
 	}
+	sb.SSHConnections = s.ssh.Connections(sb.ID)
 	return sb, nil
 }
 
@@ -246,6 +252,7 @@ func (s *Service) List(ctx context.Context, id store.Identity) ([]*store.Sandbox
 	// the backend re-creates and Create heals the held slot. Copy-on-mutate so
 	// we never touch the store's own object.
 	for i, sb := range list {
+		sb.SSHConnections = s.ssh.Connections(sb.ID)
 		if s.staleDead(ctx, sb) {
 			cp := *sb
 			cp.State = store.StateError
@@ -295,6 +302,8 @@ func (s *Service) Delete(ctx context.Context, id store.Identity, sandboxID strin
 	sb.State = store.StateTerminating
 	sb.LastActivity = store.NowMillis() // refresh so the grace window covers this delete
 	s.store.Put(ctx, sb)
+	s.ssh.Close(sandboxID)
+	s.sshPrep.Delete(sandboxID)
 
 	if err := s.vm.Delete(ctx, sandboxID); err != nil {
 		return err
@@ -368,6 +377,8 @@ func (s *Service) teardownDead(ctx context.Context, sb *store.Sandbox, who strin
 	if err := s.store.Put(ctx, &dead); err != nil {
 		log.Printf("%s publish error state %s: %v", who, sb.ID, err)
 	}
+	s.ssh.Close(sb.ID)
+	s.sshPrep.Delete(sb.ID)
 	s.vm.Delete(ctx, sb.ID)
 	if err := s.store.Delete(ctx, sb.ID); err != nil {
 		log.Printf("%s delete %s: %v", who, sb.ID, err)
@@ -408,7 +419,125 @@ func (s *Service) Reconcile(ctx context.Context) error {
 		}
 		s.teardownDead(ctx, sb, "reconcile")
 	}
+	s.reconcileSSH(ctx)
 	return nil
+}
+
+// reconcileSSH keeps relay listeners only for running sandboxes, and reopens
+// (on the remembered port) listeners that a manager restart dropped.
+func (s *Service) reconcileSSH(ctx context.Context) {
+	if s.ssh == nil {
+		return
+	}
+	all, err := s.store.List(ctx, "")
+	if err != nil {
+		return // keep current listeners; retry next pass
+	}
+	running := map[string]string{}
+	for _, sb := range all {
+		if sb.State == store.StateRunning && sb.IPAddress != "" {
+			running[sb.ID] = sb.IPAddress
+		}
+	}
+	s.ssh.Retain(running)
+	for id, ip := range running {
+		if port, err := s.store.SSHPort(ctx, id); err == nil && port > 0 {
+			got, err := s.ssh.Ensure(id, ip, port)
+			if err != nil {
+				log.Printf("reconcile ssh %s: %v", id, err)
+				continue
+			}
+			if got != port && s.store.SetSSHPort(ctx, id, got) != nil {
+				s.ssh.Close(id) // unrecorded port: backend re-prepares
+				continue
+			}
+			s.closeSSHUnlessRunning(ctx, id)
+		}
+	}
+}
+
+// closeSSHUnlessRunning re-reads the record after opening a listener: Delete
+// persists `terminating` before closing the relay, so either Delete's Close
+// runs after our Ensure, or we see the new state here and close ourselves.
+func (s *Service) closeSSHUnlessRunning(ctx context.Context, id string) bool {
+	if cur, err := s.store.Get(ctx, id); err == nil && cur != nil && cur.State == store.StateRunning {
+		return true
+	}
+	s.ssh.Close(id)
+	return false
+}
+
+// SSHEndpoint is the POST /sandbox/{id}/ssh response (backend contract).
+type SSHEndpoint struct {
+	Host          string `json:"host"`
+	Port          int    `json:"port"`
+	HostKey       string `json:"hostKey"`
+	User          string `json:"user"`
+	CloudDeviceID string `json:"cloudDeviceId"`
+}
+
+// sshPrepareTimeout bounds guest setup, independent of the caller's context.
+const sshPrepareTimeout = 25 * time.Second
+
+var hostKeyRe = regexp.MustCompile(`^ssh-ed25519 [A-Za-z0-9+/]{68}$`)
+
+// PrepareSSH starts the guest's cloud sshd (idempotent) via exec, reads the
+// sandbox's persistent host key from inside the VM (trusted channel, no
+// keyscan), and opens the relay port. Admin only. Deliberately does not touch
+// last_activity: the backend calls this periodically, and it must not keep an
+// idle VM awake.
+func (s *Service) PrepareSSH(ctx context.Context, id store.Identity, sandboxID string) (*SSHEndpoint, error) {
+	if !id.IsAdmin() {
+		return nil, ErrForbidden
+	}
+	if s.ssh == nil {
+		return nil, fmt.Errorf("%w: SSH relay not configured", ErrNotFound)
+	}
+	sb, err := s.store.Get(ctx, sandboxID)
+	if err != nil {
+		return nil, err
+	}
+	if sb == nil || sb.State != store.StateRunning || sb.IPAddress == "" || sb.DeviceID == "" {
+		return nil, fmt.Errorf("%w: sandbox not running with an attached device", ErrNotFound)
+	}
+	// One prepare per VM at a time: the guest setup writes key/config files.
+	mu, _ := s.sshPrep.LoadOrStore(sandboxID, &sync.Mutex{})
+	mu.(*sync.Mutex).Lock()
+	defer mu.(*sync.Mutex).Unlock()
+	ctx, cancel := context.WithTimeout(ctx, sshPrepareTimeout)
+	defer cancel()
+	out, code, err := s.vm.Exec(ctx, sandboxID, []string{"/usr/local/sbin/cloud-ssh-setup", s.cfg.SSHAuthURL})
+	if err != nil || code != 0 {
+		log.Printf("ssh setup %s: exit %d err %v: %s", sandboxID, code, err, lastLine(out))
+		return nil, fmt.Errorf("%w: guest sshd not ready", ErrSSH)
+	}
+	hostKey := lastLine(out)
+	if !hostKeyRe.MatchString(hostKey) {
+		return nil, fmt.Errorf("%w: bad guest host key", ErrSSH)
+	}
+	preferred, _ := s.store.SSHPort(ctx, sandboxID)
+	port, err := s.ssh.Ensure(sandboxID, sb.IPAddress, preferred)
+	if err != nil {
+		return nil, fmt.Errorf("%w: %v", ErrSSH, err)
+	}
+	if port != preferred {
+		// Unremembered port = not stable across a manager restart; fail.
+		if err := s.store.SetSSHPort(ctx, sandboxID, port); err != nil {
+			s.ssh.Close(sandboxID)
+			return nil, fmt.Errorf("%w: remember port: %v", ErrSSH, err)
+		}
+	}
+	// A concurrent delete may have run between the Get and Ensure; never leave
+	// a listener pointing at a released IP.
+	if !s.closeSSHUnlessRunning(ctx, sandboxID) {
+		return nil, fmt.Errorf("%w: sandbox stopped", ErrNotFound)
+	}
+	return &SSHEndpoint{Host: s.ssh.Host(), Port: port, HostKey: hostKey, User: "workspace", CloudDeviceID: sb.DeviceID}, nil
+}
+
+func lastLine(b []byte) string {
+	lines := strings.Split(strings.TrimSpace(string(b)), "\n")
+	return strings.TrimSpace(lines[len(lines)-1])
 }
 
 // reconcileGraceMillis is how long a sandbox may sit in creating/terminating

@@ -3,7 +3,10 @@ package config
 import (
 	"bufio"
 	"fmt"
+	"net"
+	"net/url"
 	"os"
+	"regexp"
 	"strings"
 )
 
@@ -83,6 +86,68 @@ type Config struct {
 	MaxVMs               int
 	HostMemoryReserveMiB uint64
 	VMMemoryMiB          uint64
+
+	// Cloud SSH relay. Off unless SSH_PUBLIC_HOST and SSH_PORT_START/END are
+	// all set; then each prepared running sandbox gets one public TCP port
+	// relayed to its guest :22. SSHAuthURL is what the guest sshd's
+	// AuthorizedKeysCommand calls (default BACKEND_URL + the route below).
+	SSHPublicHost string
+	SSHPortStart  int
+	SSHPortEnd    int
+	SSHAuthURL    string
+}
+
+// SSHEnabled reports whether the cloud SSH relay is configured.
+func (c *Config) SSHEnabled() bool { return c.SSHPublicHost != "" }
+
+const sshAuthPath = "/api/cloud-ssh/authorized-key"
+
+var hostRe = regexp.MustCompile(`^[a-zA-Z0-9](?:[a-zA-Z0-9.-]*[a-zA-Z0-9])?$`)
+
+func (c *Config) loadSSH() error {
+	c.SSHPublicHost = os.Getenv("SSH_PUBLIC_HOST")
+	start, end := os.Getenv("SSH_PORT_START"), os.Getenv("SSH_PORT_END")
+	if c.SSHPublicHost == "" && start == "" && end == "" {
+		return nil
+	}
+	if c.SSHPublicHost == "" || start == "" || end == "" {
+		return fmt.Errorf("SSH_PUBLIC_HOST, SSH_PORT_START and SSH_PORT_END must be set together")
+	}
+	if len(c.SSHPublicHost) > 253 || !hostRe.MatchString(c.SSHPublicHost) {
+		return fmt.Errorf("SSH_PUBLIC_HOST %q is not a valid hostname", c.SSHPublicHost)
+	}
+	var err error
+	if c.SSHPortStart, err = envInt("SSH_PORT_START", 0); err != nil {
+		return err
+	}
+	if c.SSHPortEnd, err = envInt("SSH_PORT_END", 0); err != nil {
+		return err
+	}
+	if c.SSHPortEnd > 65535 || c.SSHPortStart > c.SSHPortEnd {
+		return fmt.Errorf("invalid SSH port range %d-%d", c.SSHPortStart, c.SSHPortEnd)
+	}
+	c.SSHAuthURL = env("SSH_AUTH_URL", strings.TrimRight(c.BackendURL, "/")+sshAuthPath)
+	return validateSSHAuthURL(c.SSHAuthURL, os.Getenv("NODE_ENV"))
+}
+
+// validateSSHAuthURL: the guest posts its device secret here, so require
+// https. Plain http only when NODE_ENV is explicitly development/test AND the
+// host is loopback or a private IP (the dev backend via the CNI gateway).
+func validateSSHAuthURL(raw, nodeEnv string) error {
+	u, err := url.Parse(raw)
+	if err != nil || u.Host == "" || u.User != nil || u.RawQuery != "" || u.ForceQuery ||
+		u.Fragment != "" || u.Path != sshAuthPath {
+		return fmt.Errorf("SSH_AUTH_URL %q must be <scheme>://<host>%s with no credentials, query or fragment", raw, sshAuthPath)
+	}
+	if u.Scheme == "https" {
+		return nil
+	}
+	ip := net.ParseIP(u.Hostname())
+	local := u.Hostname() == "localhost" || (ip != nil && (ip.IsLoopback() || ip.IsPrivate()))
+	if u.Scheme == "http" && (nodeEnv == "development" || nodeEnv == "test") && local {
+		return nil
+	}
+	return fmt.Errorf("SSH_AUTH_URL %q must be https (http only for localhost/private IPs with NODE_ENV=development|test)", raw)
 }
 
 func env(key, def string) string {
@@ -148,6 +213,9 @@ func Load() (*Config, error) {
 		if v == "" {
 			return nil, fmt.Errorf("%s is required", k)
 		}
+	}
+	if err := c.loadSSH(); err != nil {
+		return nil, err
 	}
 	// In dev, NOISE_BACKEND_HOST MUST be set: otherwise the in-VM bridge falls
 	// through to its built-in prod default (api.todofor.ai) and every local VM

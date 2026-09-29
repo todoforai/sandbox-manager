@@ -28,6 +28,7 @@ func NewServer(st *store.Store, svc *service.Service) http.Handler {
 	mux.HandleFunc("DELETE /sandbox/{id}", s.auth(s.delete))
 	mux.HandleFunc("POST /sandbox/{id}/exec", s.auth(s.exec))
 	mux.HandleFunc("POST /sandbox/{id}/attach-device", s.auth(s.attachDevice))
+	mux.HandleFunc("POST /sandbox/{id}/ssh", s.admin(s.prepareSSH))
 	mux.HandleFunc("GET /stats", s.auth(s.stats))
 	mux.HandleFunc("GET /templates", s.auth(s.templates))
 
@@ -186,6 +187,15 @@ func (s *Server) attachDevice(w http.ResponseWriter, r *http.Request, id store.I
 	w.WriteHeader(http.StatusNoContent)
 }
 
+func (s *Server) prepareSSH(w http.ResponseWriter, r *http.Request, id store.Identity) {
+	ep, err := s.svc.PrepareSSH(r.Context(), id, r.PathValue("id"))
+	if err != nil {
+		writeServiceErr(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, ep)
+}
+
 func (s *Server) stats(w http.ResponseWriter, r *http.Request, _ store.Identity) {
 	st, err := s.svc.Stats(r.Context())
 	if err != nil {
@@ -215,7 +225,7 @@ func writeServiceErr(w http.ResponseWriter, err error) {
 		httpErr(w, http.StatusForbidden, err.Error())
 	case errors.Is(err, service.ErrQuota), errors.Is(err, service.ErrAnonymous):
 		httpErr(w, http.StatusConflict, err.Error())
-	case errors.Is(err, service.ErrDiskFull):
+	case errors.Is(err, service.ErrDiskFull), errors.Is(err, service.ErrSSH):
 		httpErr(w, http.StatusServiceUnavailable, err.Error())
 	case errors.Is(err, service.ErrCapacity):
 		w.Header().Set("Retry-After", "60")

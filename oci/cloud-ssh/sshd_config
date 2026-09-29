@@ -1,0 +1,36 @@
+# Cloud SSH: dedicated sshd for the unprivileged `workspace` user, reached only
+# through the sandbox-manager TCP relay. Keys are never stored: every login asks
+# the backend (authorized-key helper), so PC revocation applies to the next
+# connection. Started by cloud-ssh-setup, not at boot.
+Port 22
+HostKey /root/.todoforai/ssh-host/ssh_host_ed25519_key
+PidFile /run/cloud-sshd.pid
+AllowUsers workspace
+PermitRootLogin no
+UsePAM no
+PasswordAuthentication no
+KbdInteractiveAuthentication no
+PubkeyAuthentication yes
+PubkeyAcceptedAlgorithms ssh-ed25519
+AuthorizedKeysFile none
+AuthorizedKeysCommand /usr/local/libexec/cloud-ssh-authorized-key %t %k
+AuthorizedKeysCommandUser root
+DisableForwarding yes
+AllowTcpForwarding no
+AllowStreamLocalForwarding no
+AllowAgentForwarding no
+X11Forwarding no
+PermitTunnel no
+GatewayPorts no
+PermitUserEnvironment no
+PermitUserRC no
+# The relay counts a connection as a session after 30s; unauthenticated
+# connections must be gone by then.
+LoginGraceTime 20
+MaxAuthTries 3
+MaxStartups 8:30:16
+ClientAliveInterval 30
+ClientAliveCountMax 3
+UseDNS no
+PrintMotd no
+Subsystem sftp internal-sftp

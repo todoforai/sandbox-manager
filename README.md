@@ -25,7 +25,9 @@ The bridge is the container **entrypoint** (`oci/entrypoint.sh`): on first boot
 it redeems the `ENROLL_TOKEN` env var via `todoforai-bridge login --token`,
 saving creds onto the persistent `home.img`, then execs the daemon. Idempotent
 on restart. No MMDS, no guest `/init`, no SSH/vsock recovery (use
-`containerd task exec`).
+`containerd task exec`). The only SSH is the opt-in user-facing cloud SSH
+relay (off unless `SSH_PUBLIC_HOST` + `SSH_PORT_START`/`SSH_PORT_END` are set):
+see [docs/cloud-ssh.md](docs/cloud-ssh.md).
 
 ## Building the sandbox rootfs (OCI image)
 

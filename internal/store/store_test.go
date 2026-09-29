@@ -45,3 +45,18 @@ func TestSandboxWireFormat(t *testing.T) {
 		}
 	}
 }
+
+// ssh_connections is live-only: omitted when zero, never part of a Put.
+func TestSSHConnectionsOmitEmpty(t *testing.T) {
+	js, _ := json.Marshal(&Sandbox{ID: "i"})
+	var m map[string]any
+	json.Unmarshal(js, &m)
+	if _, ok := m["ssh_connections"]; ok {
+		t.Error("ssh_connections must be omitted when zero")
+	}
+	js, _ = json.Marshal(&Sandbox{ID: "i", SSHConnections: 2})
+	json.Unmarshal(js, &m)
+	if m["ssh_connections"] != float64(2) {
+		t.Errorf("ssh_connections = %v", m["ssh_connections"])
+	}
+}

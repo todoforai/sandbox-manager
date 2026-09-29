@@ -48,6 +48,10 @@ type Sandbox struct {
 	DeviceID     string  `json:"device_id,omitempty"`
 	CreatedAt    int64   `json:"created_at"`
 	LastActivity int64   `json:"last_activity"`
+	// SSHConnections is the live count of SSH relay sessions older than the
+	// guest's login grace (so, authenticated). Filled in at read time by the
+	// service and never persisted; 0 after a manager restart.
+	SSHConnections int `json:"ssh_connections,omitempty"`
 }
 
 // IsActive reports whether the sandbox holds resources / counts against quota.
@@ -155,7 +159,9 @@ func eventsChannel(userID string) string { return "sandbox:events:" + userID }
 // publishes the record to sandbox:events:<userId> in one pipeline so a
 // subscriber never sees a write without its event.
 func (s *Store) Put(ctx context.Context, sb *Sandbox) error {
-	js, err := json.Marshal(sb)
+	cp := *sb
+	cp.SSHConnections = 0 // live-only, never persisted
+	js, err := json.Marshal(&cp)
 	if err != nil {
 		return err
 	}
@@ -202,12 +208,30 @@ func (s *Store) Delete(ctx context.Context, id string) error {
 	}
 	ev, _ := json.Marshal(map[string]any{"id": id, "user_id": sb.UserID, "deleted": true})
 	pipe := s.rdb.TxPipeline()
-	pipe.Del(ctx, "sandbox:"+id)
+	pipe.Del(ctx, "sandbox:"+id, sshPortKey(id))
 	pipe.SRem(ctx, "sandbox:active", id)
 	pipe.SRem(ctx, "sandbox:user:"+sb.UserID, id)
 	pipe.Publish(ctx, eventsChannel(sb.UserID), ev)
 	_, err = pipe.Exec(ctx)
 	return err
+}
+
+func sshPortKey(id string) string { return "sandbox:ssh-port:" + id }
+
+// SetSSHPort remembers a sandbox's relay port so a restarted manager reopens
+// the same port. A separate key (not a Sandbox field) so it never races a
+// concurrent record Put. Removed by Delete.
+func (s *Store) SetSSHPort(ctx context.Context, id string, port int) error {
+	return s.rdb.Set(ctx, sshPortKey(id), port, 0).Err()
+}
+
+// SSHPort returns the remembered relay port, 0 if none.
+func (s *Store) SSHPort(ctx context.Context, id string) (int, error) {
+	n, err := s.rdb.Get(ctx, sshPortKey(id)).Int()
+	if err == redis.Nil {
+		return 0, nil
+	}
+	return n, err
 }
 
 // PurgeUserIndexes removes residual membership/quota keys after all user's

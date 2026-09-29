@@ -1,0 +1,23 @@
+#!/bin/sh
+# sshd AuthorizedKeysCommand (runs as root): cloud-ssh-authorized-key <type> <base64>.
+# Asks the backend whether this key belongs to a live paired PC of the cloud's
+# owner and prints it back when allowed. Prints nothing (= deny) on any error.
+# The device secret goes over stdin, never argv (argv is visible in ps).
+set -u
+PATH=/usr/sbin:/usr/bin:/sbin:/bin
+[ "$#" -eq 2 ] && [ "$1" = ssh-ed25519 ] || exit 0
+case $2 in *[!A-Za-z0-9+/=]*|'') exit 0 ;; esac
+key="$1 $2"
+creds=${CLOUD_SSH_CREDS:-/root/.config/todoforai/credentials.json}
+url=$(cat "${CLOUD_SSH_URL_FILE:-/etc/todoforai/cloud-ssh-auth-url}" 2>/dev/null) || exit 0
+case $url in https://*|http://*) ;; *) exit 0 ;; esac
+# Default profile; a dev VM (private NOISE_BACKEND_HOST) stores the bridge's
+# creds under the "dev" profile instead (see login_is_local_host in c-core).
+body=$(jq -ce --arg key "$key" '(if (.deviceId // "") != "" then . else (.sets.dev // {}) end)
+        | {deviceId, secret: .deviceSecret, key: $key}
+        | select((.deviceId // "") != "" and (.secret // "") != "")' "$creds" 2>/dev/null) || exit 0
+out=$(printf '%s' "$body" | curl -fsS --max-time 5 --proto =https,http \
+        -H 'Content-Type: application/json' --data-binary @- "$url" 2>/dev/null) || exit 0
+# Only ever emit the exact key being tried: no options, no other keys.
+[ "$(printf '%s' "$out" | tr -d '\n')" = "$key" ] && printf '%s\n' "$key"
+exit 0

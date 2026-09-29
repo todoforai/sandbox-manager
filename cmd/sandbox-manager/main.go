@@ -10,6 +10,7 @@ import (
 	"github.com/todoforai/sandbox-manager/internal/backend"
 	"github.com/todoforai/sandbox-manager/internal/config"
 	"github.com/todoforai/sandbox-manager/internal/service"
+	"github.com/todoforai/sandbox-manager/internal/sshrelay"
 	"github.com/todoforai/sandbox-manager/internal/store"
 	"github.com/todoforai/sandbox-manager/internal/userhome"
 	"github.com/todoforai/sandbox-manager/internal/vm"
@@ -39,7 +40,12 @@ func main() {
 
 	homes := userhome.New(cfg.UserHomesDir)
 	be := backend.New(cfg.BackendURL, cfg.BackendAPIKey)
-	svc := service.New(cfg, st, mgr, homes, be)
+	var ssh *sshrelay.Relay
+	if cfg.SSHEnabled() {
+		ssh = sshrelay.New(cfg.SSHPublicHost, cfg.SSHPortStart, cfg.SSHPortEnd)
+		log.Printf("cloud SSH relay: %s ports %d-%d", cfg.SSHPublicHost, cfg.SSHPortStart, cfg.SSHPortEnd)
+	}
+	svc := service.New(cfg, st, mgr, homes, be, ssh)
 
 	// Keep the Redis projection in sync with containerd lifecycle truth:
 	// reconcile at startup and periodically thereafter (a VM can die while
