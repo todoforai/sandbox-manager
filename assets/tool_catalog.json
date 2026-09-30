@@ -1299,7 +1299,7 @@
     "label": "Microsoft 365",
     "summary": "Work with Microsoft 365 mail, Teams, SharePoint and users.",
     "statusCmd": "m365 status --output text 2>/dev/null | tr -d '\"' | grep -vi 'logged out' | grep -m1 .",
-    "loginCmd": "m365 login --authType deviceCode --appId 04b07795-8ddb-461a-bbee-02f9e1bf7b46",
+    "loginCmd": "m365 login --authType deviceCode --appId 14d82eec-204b-4c2f-b7e8-296a70dab67e",
     "deviceCodePattern": "enter the code ([A-Z0-9]{8,}) to authenticate",
     "oauthUrlPattern": "open the page (https://\\S+) and enter",
     "credentialPaths": ["~/.cli-m365-msal.json", "~/.cli-m365-connection.json"],
