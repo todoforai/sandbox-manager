@@ -151,20 +151,14 @@ RUN if [ -s /usr/local/bin/rclone ]; then \
     fi
 
 # Cloud SSH (off until the manager's POST /sandbox/{id}/ssh runs
-# cloud-ssh-setup). Unprivileged `workspace` user: no sudo, no password
-# (a '*' hash: unusable for passwords but not "locked", which sshd with
-# UsePAM=no would treat as login-disabled even for pubkey). Home is /workspace,
-# bind-mounted at runtime from /root/.todoforai/ssh-workspace on home.img.
+# cloud-ssh-setup). Logs in as root, like the cloud agent. Root's '*' hash
+# (stock) rejects passwords but is not "locked", so pubkey works with UsePAM=no.
 # Drop the image-generated host keys and stock sshd service config: each
 # user's host key is generated on their own persistent disk, never shared.
 COPY cloud-ssh/sshd_config /etc/ssh/cloud-sshd_config
 COPY cloud-ssh/cloud-ssh-setup /usr/local/sbin/cloud-ssh-setup
 COPY cloud-ssh/cloud-ssh-authorized-key /usr/local/libexec/cloud-ssh-authorized-key
 RUN rm -f /etc/ssh/ssh_host_* \
- && { ! id ubuntu >/dev/null 2>&1 || userdel -r ubuntu 2>/dev/null || userdel ubuntu; } \
- && useradd --uid 1000 --user-group --home-dir /workspace --no-create-home --shell /bin/bash workspace \
- && usermod -p '*' workspace \
- && install -d -m 0755 -o root -g root /workspace \
  && chown root:root /etc/ssh/cloud-sshd_config /usr/local/sbin/cloud-ssh-setup /usr/local/libexec/cloud-ssh-authorized-key \
  && chmod 0644 /etc/ssh/cloud-sshd_config \
  && chmod 0755 /usr/local/sbin/cloud-ssh-setup /usr/local/libexec/cloud-ssh-authorized-key

@@ -532,7 +532,7 @@ func (s *Service) PrepareSSH(ctx context.Context, id store.Identity, sandboxID s
 	if !s.closeSSHUnlessRunning(ctx, sandboxID) {
 		return nil, fmt.Errorf("%w: sandbox stopped", ErrNotFound)
 	}
-	return &SSHEndpoint{Host: s.ssh.Host(), Port: port, HostKey: hostKey, User: "workspace", CloudDeviceID: sb.DeviceID}, nil
+	return &SSHEndpoint{Host: s.ssh.Host(), Port: port, HostKey: hostKey, User: "root", CloudDeviceID: sb.DeviceID}, nil
 }
 
 func lastLine(b []byte) string {

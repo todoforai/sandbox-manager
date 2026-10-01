@@ -1,12 +1,16 @@
-# Cloud SSH: dedicated sshd for the unprivileged `workspace` user, reached only
-# through the sandbox-manager TCP relay. Keys are never stored: every login asks
+# Cloud SSH: dedicated sshd for root (the same account the cloud agent uses, so
+# a PC gets the cloud's files, tools and logins), reached only through the
+# sandbox-manager TCP relay. Keys are never stored: every login asks
 # the backend (authorized-key helper), so PC revocation applies to the next
 # connection. Started by cloud-ssh-setup, not at boot.
 Port 22
 HostKey /root/.todoforai/ssh-host/ssh_host_ed25519_key
 PidFile /run/cloud-sshd.pid
-AllowUsers workspace
-PermitRootLogin no
+AllowUsers root
+PermitRootLogin prohibit-password
+# The agent's tool PATH (bridge env_path.c) + its browser; sshd's default PATH
+# would hide user-installed CLIs.
+SetEnv PATH=/root/.todoforai/tools/node_modules/.bin:/root/.todoforai/tools/venv/bin:/root/.todoforai/tools/bin:/root/.local/bin:/root/.bun/bin:/root/.deno/bin:/root/.cargo/bin:/root/go/bin:/root/.volta/bin:/root/.local/share/pnpm:/home/linuxbrew/.linuxbrew/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin AGENT_BROWSER_EXECUTABLE_PATH=/opt/agent-browser/chrome/chrome
 UsePAM no
 PasswordAuthentication no
 KbdInteractiveAuthentication no

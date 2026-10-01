@@ -29,25 +29,23 @@ k2=$(cloud-ssh-setup $URL | tail -1) || fail "setup 2 (idempotent)"
 ls /etc/ssh/ssh_host_* 2>/dev/null && fail "image host keys present"
 echo "127.0.0.1 $k1" > /tmp/kh
 S="ssh -F /dev/null -o BatchMode=yes -o UserKnownHostsFile=/tmp/kh -o StrictHostKeyChecking=yes -o IdentitiesOnly=yes"
-[ "$($S -i /tmp/pc workspace@127.0.0.1 'id -un; pwd; echo $HOME')" = "$(printf 'workspace\n/workspace\n/workspace')" ] || fail "login as workspace"
-$S -i /tmp/other workspace@127.0.0.1 true 2>/dev/null && fail "unknown key accepted"
-$S -i /tmp/rsa workspace@127.0.0.1 true 2>/dev/null && fail "rsa accepted"
-$S -i /tmp/pc root@127.0.0.1 true 2>/dev/null && fail "root accepted"
-$S -i /tmp/pc workspace@127.0.0.1 'sudo -n true' 2>/dev/null && fail "sudo works"
-chmod 755 /root; chmod 600 /root/.config/todoforai/credentials.json  # as on home.img
-$S -i /tmp/pc workspace@127.0.0.1 'cat /root/.config/todoforai/credentials.json' 2>/dev/null && fail "creds readable"
-$S -i /tmp/pc workspace@127.0.0.1 'cat /root/.todoforai/ssh-host/ssh_host_ed25519_key' 2>/dev/null && fail "host key readable"
-$S -i /tmp/pc -R 9999:127.0.0.1:8080 -o ExitOnForwardFailure=yes workspace@127.0.0.1 true 2>/dev/null && fail "remote forward allowed"
-$S -i /tmp/pc -W 127.0.0.1:8080 workspace@127.0.0.1 </dev/null 2>/dev/null | grep -q . && fail "stdio forward allowed"
+mkdir -p /root/.todoforai/mnt/todoforai && echo att > /root/.todoforai/mnt/todoforai/a.txt
+[ "$($S -i /tmp/pc root@127.0.0.1 'id -un; pwd; cat .todoforai/mnt/todoforai/a.txt; echo "$PATH"' | head -3)" = "$(printf 'root\n/root\natt')" ] || fail "login as root with cloud files"
+$S -i /tmp/pc root@127.0.0.1 'echo "$PATH"' | grep -q '^/root/.todoforai/tools/node_modules/.bin:' || fail "agent tool PATH"
+$S -i /tmp/other root@127.0.0.1 true 2>/dev/null && fail "unknown key accepted"
+$S -i /tmp/rsa root@127.0.0.1 true 2>/dev/null && fail "rsa accepted"
+id ubuntu >/dev/null 2>&1 && { $S -i /tmp/pc ubuntu@127.0.0.1 true 2>/dev/null && fail "non-root user accepted"; }
+$S -i /tmp/pc -R 9999:127.0.0.1:8080 -o ExitOnForwardFailure=yes root@127.0.0.1 true 2>/dev/null && fail "remote forward allowed"
+$S -i /tmp/pc -W 127.0.0.1:8080 root@127.0.0.1 </dev/null 2>/dev/null | grep -q . && fail "stdio forward allowed"
 echo hello > /tmp/f
-printf 'put /tmp/f up.txt\n' | sftp -F /dev/null -b - -o BatchMode=yes -o UserKnownHostsFile=/tmp/kh -o IdentitiesOnly=yes -i /tmp/pc workspace@127.0.0.1 >/dev/null || fail sftp
+printf 'put /tmp/f up.txt\n' | sftp -F /dev/null -b - -o BatchMode=yes -o UserKnownHostsFile=/tmp/kh -o IdentitiesOnly=yes -i /tmp/pc root@127.0.0.1 >/dev/null || fail sftp
 mkdir -p /tmp/src && echo r > /tmp/src/a
-rsync -a -e "$S -i /tmp/pc" /tmp/src/ workspace@127.0.0.1:dir/ || fail rsync
-[ "$(cat /root/.todoforai/ssh-workspace/up.txt /root/.todoforai/ssh-workspace/dir/a)" = "$(printf 'hello\nr')" ] || fail "persisted under ssh-workspace"
+rsync -a -e "$S -i /tmp/pc" /tmp/src/ root@127.0.0.1:dir/ || fail rsync
+[ "$(cat /root/up.txt /root/dir/a)" = "$(printf 'hello\nr')" ] || fail "landed in /root"
 grep -q '"s3cret"' /tmp/reqs || fail "helper did not send dev-profile creds"
 ps -eo args | grep -q '[s]3cret' && fail "secret in argv"
 # restart sshd: kill and setup again (readiness recovery)
 kill "$(cat /run/cloud-sshd.pid)"; sleep 0.3
 [ "$(cloud-ssh-setup $URL | tail -1)" = "$k1" ] || fail "setup after sshd death"
-$S -i /tmp/pc workspace@127.0.0.1 true || fail "login after restart"
+$S -i /tmp/pc root@127.0.0.1 true || fail "login after restart"
 echo SMOKE_OK

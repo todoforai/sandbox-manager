@@ -11,7 +11,6 @@ cfg=/etc/ssh/cloud-sshd_config
 state=/root/.todoforai            # on the per-user persistent home.img
 keydir=$state/ssh-host
 key=$keydir/ssh_host_ed25519_key
-ws=$state/ssh-workspace
 
 mkdir -p /etc/todoforai "$keydir"
 chmod 700 "$keydir"
@@ -28,13 +27,6 @@ if ! ssh-keygen -y -f "$key" > "$key.pub.tmp" 2>/dev/null; then
     ssh-keygen -y -f "$key" > "$key.pub.tmp"
 fi
 mv "$key.pub.tmp" "$key.pub"
-
-# Workspace home: persisted on home.img, exposed only at /workspace.
-[ -L "$ws" ] && rm -f "$ws"
-mkdir -p "$ws"
-chown workspace:workspace "$ws"
-chmod 700 "$ws"
-mountpoint -q /workspace || mount --bind "$ws" /workspace
 
 mkdir -p /run/sshd
 chmod 755 /run/sshd

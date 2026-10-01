@@ -9,13 +9,13 @@ until the backend prepares a sandbox.
 1. Backend (admin bearer) calls `POST /sandbox/{id}/ssh` (no body).
 2. Manager runs `/usr/local/sbin/cloud-ssh-setup <SSH_AUTH_URL>` in the guest
    over containerd exec (idempotent, serialized per sandbox, 25s bound). It
-   creates or reuses the per-user host key and the workspace home, starts the
+   creates or reuses the per-user host key, starts the
    dedicated sshd, waits until it listens on :22, and prints the host public key.
 3. Manager opens (or reuses) one TCP port from the range for that sandbox,
    relaying only to `<sandbox IP>:22`. It stores the port in Redis
    (`sandbox:ssh-port:<id>`) so a manager restart reopens the same port.
 4. Response `200`:
-   `{"host","port","hostKey":"ssh-ed25519 <b64>","user":"workspace","cloudDeviceId"}`.
+   `{"host","port","hostKey":"ssh-ed25519 <b64>","user":"root","cloudDeviceId"}`.
    `hostKey` comes from inside the VM over exec; it is never keyscanned.
    Errors: `404` (relay not configured, or sandbox not running or without
    `device_id`), `403` (non-admin), `503` (guest sshd not ready, port range
@@ -25,17 +25,14 @@ Prepare does not update `last_activity`.
 
 ## Guest
 
-- User `workspace` (uid 1000) has home `/workspace`, no sudo, and password
-  hash `*`. That hash rejects passwords but is not "locked", which matters
-  because sshd with `UsePAM no` refuses locked accounts even for pubkey.
-- `/workspace` is a bind mount of `/root/.todoforai/ssh-workspace` (0700,
-  owned by workspace) on the persistent home.img. `/root` permissions are
-  left unchanged (home.img root is 0755). Secrets are protected by their own
-  modes: `credentials.json` is 0600 and `ssh-host/` is 0700 root.
+- Logs in as `root`, the account the cloud agent and bridge use: home `/root`,
+  the agent's tool PATH (sshd `SetEnv`), logged-in CLIs, credentials and the
+  TODOforAI files mount. Root's stock `*` hash rejects passwords but is not
+  "locked", so pubkey works with `UsePAM no`.
 - Host key: `/root/.todoforai/ssh-host/` (0700 root). It is per user, persists
-  on home.img, and is outside the workspace. The image's generated host keys
+  on home.img. The image's generated host keys
   are deleted at build time.
-- sshd config `/etc/ssh/cloud-sshd_config`: `AllowUsers workspace`, ed25519
+- sshd config `/etc/ssh/cloud-sshd_config`: `AllowUsers root` + `PermitRootLogin prohibit-password`, ed25519
   pubkey only, no password or keyboard-interactive, `DisableForwarding yes`
   (no TCP, agent, X11 or tunnel forwarding), internal-sftp (so scp and SFTP
   work; rsync is installed), `LoginGraceTime 20`, and ClientAlive 30s×3.
@@ -72,11 +69,9 @@ authenticated terminal keeps the VM awake by design. Each sandbox is capped at
 - Set the three env vars and open exactly `SSH_PORT_START-SSH_PORT_END/tcp`
   inbound on the host firewall. The manager binds these ports on all
   interfaces.
-- SSH to the cloud does NOT isolate it from the PC: any paired PC key the
-  backend approves gets a shell as `workspace`. The shell can still reach the
-  network, and the cloud's own credentials stay root-only. Only the VM
-  boundary and the non-root user isolate the session. Treat the session as the
-  user's.
+- SSH gives an approved PC full root on the user's own cloud (same as the
+  cloud agent): its files, logins and secrets. Only the VM boundary isolates
+  users. Turn it off per PC in the device menu.
 - Known limitation: revoking or unpairing a PC blocks new logins
   immediately, but already-established sessions continue until they
   disconnect. There is no kill API.
