@@ -385,9 +385,7 @@
     "credentialPaths": ["~/.config/stripe/config.toml"],
     "description": "`stripe listen` forwards webhooks locally; `stripe get/post /v1/...` for raw API.",
     "versionCmd": "stripe --version 2>/dev/null | sed -n 1p",
-    "deviceCodePattern": "verification code:\\s*([A-Z0-9]{4}-[A-Z0-9]{4})",
-    "oauthUrlPattern": "(https://access\\.stripe\\.com/stripecli/\\S+)",
-    "canStreamLogin": true
+    "oauthUrlPattern": "(https://dashboard\\.stripe\\.com/stripecli/confirm_auth\\S+)"
   },
   "flyctl": {
     "preinstallCloud": true,
@@ -618,7 +616,7 @@
     "label": "Google Cloud",
     "summary": "Manage your Google Cloud projects and services.",
     "needsPython": true,
-    "installCmd": "curl -fsSL https://dl.google.com/dl/cloudsdk/channels/rapid/google-cloud-sdk.tar.gz | tar -xzC \"$HOME\" && CLOUDSDK_PYTHON=\"$py\" \"$HOME/google-cloud-sdk/install.sh\" --quiet --install-python false --usage-reporting false --path-update false --command-completion false && mkdir -p \"$HOME/.todoforai/tools/bin\" && rm -f \"$HOME/.todoforai/tools/bin/gcloud\" && printf '#!/bin/sh\\nCLOUDSDK_PYTHON=\"${CLOUDSDK_PYTHON:-%s}\" exec \"$HOME/google-cloud-sdk/bin/gcloud\" \"$@\"\\n' \"$py\" > \"$HOME/.todoforai/tools/bin/gcloud\" && chmod +x \"$HOME/.todoforai/tools/bin/gcloud\"",
+    "installCmd": "case \"$(uname -s)-$(uname -m)\" in Darwin-arm64) p=darwin-arm;; Darwin-*) p=darwin-x86_64;; Linux-aarch64|Linux-arm64) p=linux-arm;; *) p=linux-x86_64;; esac && tmp=\"$HOME/.gcloud-new.$$\" && rm -rf \"$tmp\" && mkdir -p \"$tmp\" && curl -fsSL \"https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-cli-$p.tar.gz\" | tar -xzC \"$tmp\" && rm -rf \"$HOME/google-cloud-sdk\" && mv \"$tmp/google-cloud-sdk\" \"$HOME/google-cloud-sdk\" && rm -rf \"$tmp\" && mkdir -p \"$HOME/.todoforai/tools/bin\" && rm -f \"$HOME/.todoforai/tools/bin/gcloud\" && printf '#!/bin/sh\\nCLOUDSDK_PYTHON=\"${CLOUDSDK_PYTHON:-%s}\" exec \"$HOME/google-cloud-sdk/bin/gcloud\" \"$@\"\\n' \"$py\" > \"$HOME/.todoforai/tools/bin/gcloud\" && chmod +x \"$HOME/.todoforai/tools/bin/gcloud\"",
     "statusCmd": "gcloud auth list --filter=status:ACTIVE --format=\"value(account)\" 2>/dev/null | tr -d '\\r' | grep -m1 .",
     "loginCmd": "gcloud auth login --no-launch-browser",
     "loginNeedsPty": true,
@@ -627,8 +625,7 @@
     "credentialPaths": ["~/.config/gcloud"],
     "description": "Official Google Cloud CLI. `gcloud auth login --no-launch-browser` prints the OAuth URL and waits for the pasted verification code.",
     "versionCmd": "gcloud --version 2>/dev/null | sed -n 1p",
-    "uninstallCmd": "rm -rf \"$HOME/google-cloud-sdk\" \"$HOME/.todoforai/tools/bin/gcloud\"; hash -r 2>/dev/null; ! command -v gcloud >/dev/null 2>&1 || { echo \"gcloud is still on PATH: $(command -v gcloud)\"; exit 1; }",
-    "updateCmd": "gcloud components update --quiet"
+    "uninstallCmd": "rm -rf \"$HOME/google-cloud-sdk\" \"$HOME/.todoforai/tools/bin/gcloud\"; hash -r 2>/dev/null; ! command -v gcloud >/dev/null 2>&1 || { echo \"gcloud is still on PATH: $(command -v gcloud)\"; exit 1; }"
   },
   "az": {
     "category": "cloud",
@@ -1231,6 +1228,21 @@
     "credentialPaths": ["~/.config/wordpress-api/credentials.json"],
     "description": "WordPress REST API CLI. `wordpress-api auth --site https://example.com --user <user> --password '<application password>'` (application password, not the login password). Reading published content needs no auth. `posts list|get|create|update|delete`, `pages`, `media`, `categories`. `posts create` saves a draft unless --status publish. On Elementor/JetEngine sites content.rendered comes back empty — fetch the post's public URL for the body.",
     "versionCmd": "wordpress-api --version 2>/dev/null | sed -n 1p"
+  },
+  "mailchimp-api": {
+    "category": "marketing",
+    "pkg": "@todoforai/mailchimp-api",
+    "installer": "npm",
+    "label": "Mailchimp",
+    "summary": "Manage Mailchimp audiences, contacts, email campaigns and reports.",
+    "loginCmd": "mailchimp-api auth --api-key <api_key>",
+    "oauthBroker": true,
+    "statusCmd": "mailchimp-api whoami 2>/dev/null | sed -n 's/.*\"account_name\"[[:space:]]*:[[:space:]]*\"\\([^\"]*\\)\".*/\\1/p' | grep -m1 .",
+    "credentialPaths": [
+      "~/.config/mailchimp-api/credentials.json"
+    ],
+    "versionCmd": "mailchimp-api --version 2>/dev/null | sed -n 1p",
+    "description": "Independent CLI over the official Mailchimp Marketing API: 155 endpoint commands for lists (email audiences), members (contacts; email or MD5), tags, segments, merge fields, interests, notes/events, campaigns/content/tests/scheduling, templates, reports, assets, landing pages, classic automations, journey triggers, webhooks and batches. JSON output; --data JSON|@file|-; --schema; --all pagination. Every write requires --yes; use --dry-run first. Raw request METHOD /path covers other Marketing endpoints. API-key auth, not OAuth onboarding. Plan/API restrictions apply; no Transactional/Mandrill or Open Commerce. Run --help for limits and consent cautions."
   },
   "facebook-pages-api": {
     "preinstallCloud": true,
