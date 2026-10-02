@@ -207,6 +207,11 @@ UNIT
                 IMAGE="$ROOTFS_TAG" IMPORT=1 CONTAINERD_NAMESPACE="$NS" \
                     ./scripts/build-oci.sh \
                     && echo "✅ rootfs imported: $ROOTFS_TAG (ns=$NS)" \
+                    && echo "Unpacking rootfs into devmapper (so no user create waits on it)..." \
+                    && mkdir -p /tmp/rootfs-prewarm \
+                    && ctr -n "$NS" images mount --snapshotter "${SANDBOX_SNAPSHOTTER:-devmapper}" "$ROOTFS_IMAGE" /tmp/rootfs-prewarm >/dev/null \
+                    && ctr -n "$NS" images unmount --snapshotter "${SANDBOX_SNAPSHOTTER:-devmapper}" --rm /tmp/rootfs-prewarm >/dev/null \
+                    && echo "✅ rootfs unpacked" \
                     || { echo "❌ rootfs build/import failed"; exit 1; }
             else
                 echo "⚠️  docker/ctr missing — skipping rootfs rebuild (VMs keep current image)"

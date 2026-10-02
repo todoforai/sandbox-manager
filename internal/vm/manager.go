@@ -7,6 +7,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -36,6 +37,14 @@ type Manager struct {
 	cfg    *config.Config
 	net    *Network
 	home   *homeDisk
+
+	unpackMu  sync.Mutex
+	unpacking *unpackJob // in-flight rootfs unpack, shared by all creates
+}
+
+type unpackJob struct {
+	done chan struct{}
+	err  error
 }
 
 func NewManager(cfg *config.Config) (*Manager, error) {
@@ -148,6 +157,75 @@ type Created struct {
 	IP string
 }
 
+// unpackTimeout bounds one rootfs unpack (~40s for the 1.8 GiB image on a
+// healthy pool).
+const unpackTimeout = 10 * time.Minute
+
+// ensureUnpacked unpacks the rootfs into the snapshotter if it isn't already.
+//
+// Incident 2026-10-02: the backend gives up on a create after 30s, the unpack
+// takes ~40s, and a cancelled unpack leaked its ~5 GiB "extract-*" thin
+// snapshot (containerd cleans up with the same cancelled ctx). Every retry
+// leaked another one until the devmapper pool filled and all VMs got EIO.
+//
+// So: a single background unpack, independent of any request. Callers wait
+// for it but can give up (ctx) without cancelling it; the next create finds
+// the rootfs unpacked.
+func (m *Manager) ensureUnpacked(ctx context.Context, image containerd.Image) error {
+	if ok, err := image.IsUnpacked(ctx, m.cfg.Snapshotter); err != nil {
+		return fmt.Errorf("check unpacked %s: %w", m.cfg.RootfsImage, err)
+	} else if ok {
+		return nil
+	}
+	m.unpackMu.Lock()
+	job := m.unpacking
+	if job == nil {
+		job = &unpackJob{done: make(chan struct{})}
+		m.unpacking = job
+		go func() {
+			job.err = m.unpack(image)
+			m.unpackMu.Lock()
+			m.unpacking = nil
+			m.unpackMu.Unlock()
+			close(job.done)
+		}()
+	}
+	m.unpackMu.Unlock()
+	select {
+	case <-job.done:
+		return job.err
+	case <-ctx.Done():
+		return fmt.Errorf("waiting for rootfs unpack: %w", ctx.Err())
+	}
+}
+
+// unpack runs under an explicit lease released on a fresh ctx, so even if the
+// unpack times out, its partial snapshots become unreferenced and containerd
+// GC reclaims them (the implicit lease would pin them for 24h).
+func (m *Manager) unpack(image containerd.Image) error {
+	ctx, cancel := context.WithTimeout(m.ctx(context.Background()), unpackTimeout)
+	defer cancel()
+	ctx, release, err := m.client.WithLease(ctx)
+	if err != nil {
+		return fmt.Errorf("unpack lease: %w", err)
+	}
+	defer func() {
+		rctx, rcancel := context.WithTimeout(m.ctx(context.Background()), 30*time.Second)
+		defer rcancel()
+		release(rctx)
+	}()
+	if err := image.Unpack(ctx, m.cfg.Snapshotter); err != nil {
+		return fmt.Errorf("unpack %s into %s: %w", m.cfg.RootfsImage, m.cfg.Snapshotter, err)
+	}
+	return nil
+}
+
+// cleanupCtx is for rollback after a failed create: the request ctx may
+// already be cancelled, and rollback must still release thin snapshots.
+func (m *Manager) cleanupCtx() (context.Context, context.CancelFunc) {
+	return context.WithTimeout(m.ctx(context.Background()), 30*time.Second)
+}
+
 // Create boots a microVM: pull rootfs, create the container with the Kata-fc
 // runtime + devmapper snapshot, start the task, and wire CNI networking.
 func (m *Manager) Create(ctx context.Context, s Spec) (*Created, error) {
@@ -158,7 +236,8 @@ func (m *Manager) Create(ctx context.Context, s Spec) (*Created, error) {
 	// supports locally-imported images (dev / air-gapped hosts).
 	image, err := m.client.GetImage(ctx, m.cfg.RootfsImage)
 	if err != nil {
-		image, err = m.client.Pull(ctx, m.cfg.RootfsImage, containerd.WithPullUnpack)
+		// No WithPullUnpack: unpacking goes through ensureUnpacked below.
+		image, err = m.client.Pull(ctx, m.cfg.RootfsImage)
 		if err != nil {
 			return nil, fmt.Errorf("pull %s: %w", m.cfg.RootfsImage, err)
 		}
@@ -168,12 +247,8 @@ func (m *Manager) Create(ctx context.Context, s Spec) (*Created, error) {
 	// its devmapper snapshot chain does not survive (loop-backed pool). Without
 	// the unpacked layers, NewContainer fails with "parent snapshot ... does
 	// not exist". Unpack on demand so the first create after a reboot heals it.
-	if unpacked, uerr := image.IsUnpacked(ctx, m.cfg.Snapshotter); uerr != nil {
-		return nil, fmt.Errorf("check unpacked %s: %w", m.cfg.RootfsImage, uerr)
-	} else if !unpacked {
-		if uerr := image.Unpack(ctx, m.cfg.Snapshotter); uerr != nil {
-			return nil, fmt.Errorf("unpack %s into %s: %w", m.cfg.RootfsImage, m.cfg.Snapshotter, uerr)
-		}
+	if err := m.ensureUnpacked(ctx, image); err != nil {
+		return nil, err
 	}
 
 	// The bridge is the image entrypoint; we only inject env + the home disk.
@@ -288,6 +363,15 @@ func (m *Manager) Create(ctx context.Context, s Spec) (*Created, error) {
 		),
 	)
 	if err != nil {
+		// NewContainer doesn't roll back a snapshot it prepared before failing.
+		// AlreadyExists means the snapshot isn't ours — leave it.
+		if !errdefs.IsAlreadyExists(err) {
+			cctx, cancel := m.cleanupCtx()
+			if rerr := m.client.SnapshotService(m.cfg.Snapshotter).Remove(cctx, s.ID+"-snap"); rerr != nil && !errdefs.IsNotFound(rerr) {
+				log.Printf("[vm] rollback snapshot %s-snap: %v", s.ID, rerr)
+			}
+			cancel()
+		}
 		teardownNet()
 		detachHome()
 		return nil, fmt.Errorf("new container: %w", err)
@@ -299,15 +383,19 @@ func (m *Manager) Create(ctx context.Context, s Spec) (*Created, error) {
 	// VM dies before /exec can reach it. Removed in Delete.
 	task, err := container.NewTask(ctx, cio.LogFile(guestLogPath(s.ID)))
 	if err != nil {
-		container.Delete(ctx, containerd.WithSnapshotCleanup)
+		cctx, cancel := m.cleanupCtx()
+		container.Delete(cctx, containerd.WithSnapshotCleanup)
+		cancel()
 		teardownNet()
 		detachHome()
 		return nil, fmt.Errorf("new task: %w", err)
 	}
 
 	if err := task.Start(ctx); err != nil {
-		task.Delete(ctx, containerd.WithProcessKill)
-		container.Delete(ctx, containerd.WithSnapshotCleanup)
+		cctx, cancel := m.cleanupCtx()
+		task.Delete(cctx, containerd.WithProcessKill)
+		container.Delete(cctx, containerd.WithSnapshotCleanup)
+		cancel()
 		teardownNet()
 		detachHome()
 		return nil, fmt.Errorf("task start: %w", err)
