@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"crypto/rand"
+	"crypto/sha256"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -103,10 +104,7 @@ func (s *Service) Create(ctx context.Context, id store.Identity, template, size 
 		size = "medium"
 	}
 	sid := newID()
-	// `vm_` (not `vm-`): the device name doubles as a tool-call alias suffix
-	// (`bash_<name>`) backend-side, so `_` keeps the displayed name identical
-	// to the alias.
-	deviceName := "vm_" + sid[:8]
+	deviceName := deviceNameFor(id.UserID)
 
 	// Atomic one-per-user gate. If the user already holds the slot, reject
 	// before doing any expensive work. Released on every failure path below
@@ -710,6 +708,16 @@ func diskSizeMiBForTier(size string) uint64 {
 	default:
 		return 2 * 1024
 	}
+}
+
+// deviceNameFor is stable per user (one VM per user), so the hostname and the
+// Device name survive stop/wake cycles instead of changing with every new
+// sandbox ID. `vm_` (not `vm-`): the device name doubles as a tool-call alias
+// suffix (`bash_<name>`) backend-side, so `_` keeps the displayed name
+// identical to the alias.
+func deviceNameFor(userID string) string {
+	h := sha256.Sum256([]byte(userID))
+	return "vm_" + hex.EncodeToString(h[:])[:8]
 }
 
 func newID() string {
