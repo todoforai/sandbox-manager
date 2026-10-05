@@ -37,6 +37,12 @@ if ! grep -Eqs '^[0-9a-f]{32}$' "$MID_FILE"; then
 fi
 cat "$MID_FILE" > /etc/machine-id || echo "machine-id: could not install to /etc" >&2
 
+# Package caches now live on the rootfs (Dockerfile ENV). Homes created before
+# that still hold old copies that only eat the quota — drop them, every boot
+# (cheap when absent). Never touches installed packages, only download caches.
+rm -rf "$HOME/.npm/_cacache" "$HOME/.npm/_npx" "$HOME/.bun/install/cache" \
+       "$HOME/.cache/pip" "$HOME/.cache/uv" 2>/dev/null || true
+
 # Fresh enrollment must not reuse a stale credentials.json (see NOTE above the
 # login); done before the mount waiter starts so it can't pick the stale one.
 [ -n "${ENROLL_TOKEN:-}" ] && { /usr/local/bin/todoforai-bridge logout >/dev/null 2>&1 || true; }

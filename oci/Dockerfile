@@ -173,5 +173,15 @@ RUN touch /etc/todoforai-sandbox
 # firewalls outbound DNS to its own resolvers.
 COPY resolv.conf /etc/resolv.conf
 
+# Package-manager download caches go on the ephemeral rootfs, not the user's
+# home.img: /root is a per-tier quota (500 MiB–20 GiB) and ~/.npm, ~/.bun/install/cache,
+# ~/.cache/{pip,uv} otherwise grow until it is full — then installs fail and a
+# connector can't even save its credentials. Caches are disposable; losing them
+# on stop/wake costs a re-download, never data. Set last so build layers are unaffected.
+ENV NPM_CONFIG_CACHE=/var/cache/pkg/npm \
+    BUN_INSTALL_CACHE_DIR=/var/cache/pkg/bun \
+    PIP_CACHE_DIR=/var/cache/pkg/pip \
+    UV_CACHE_DIR=/var/cache/pkg/uv
+
 WORKDIR /root
 ENTRYPOINT ["/usr/local/bin/sandbox-entrypoint"]
