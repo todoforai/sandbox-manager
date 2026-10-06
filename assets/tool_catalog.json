@@ -1,6 +1,6 @@
 {
   "zele": {
-    "category": "email",
+    "category": "communication",
     "pkg": "zele",
     "installer": "npm",
     "label": "Gmail",
@@ -19,7 +19,7 @@
   },
   "zele-calendar": {
     "preinstallCloud": true,
-    "category": "utility",
+    "category": "productivity",
     "pkg": "zele",
     "installer": "npm",
     "binName": "zele",
@@ -71,7 +71,7 @@
   },
   "figma-api": {
     "preinstallCloud": true,
-    "category": "design",
+    "category": "creative",
     "pkg": "@todoforai/figma-api",
     "installer": "npm",
     "label": "Figma",
@@ -86,7 +86,7 @@
     "preinstallCloud": true,
     "cloudInstallCmd": "curl -fsSL https://github.com/slackapi/slack-cli/releases/download/v4.2.0/slack_cli_4.2.0_linux_amd64.tar.gz | tar -xz -C /tmp bin/slack && install -m0755 /tmp/bin/slack /usr/local/bin/slack-cli && rm -rf /tmp/bin",
     "cloudVerifyCmd": "slack-cli --version",
-    "category": "social",
+    "category": "communication",
     "pkg": "slack-cli",
     "installer": "binary",
     "label": "Slack",
@@ -130,7 +130,7 @@
   "telegram-send": {
     "preinstallCloud": true,
     "packages": ["telegram-send==0.39.2"],
-    "category": "social",
+    "category": "communication",
     "pkg": "telegram-send",
     "installer": "pip",
     "label": "Telegram",
@@ -156,7 +156,7 @@
   },
   "elevenlabs-api": {
     "preinstallCloud": true,
-    "category": "media",
+    "category": "creative",
     "pkg": "@todoforai/elevenlabs-api",
     "installer": "npm",
     "label": "ElevenLabs",
@@ -169,7 +169,7 @@
   },
   "ffmpeg": {
     "commodity": true,
-    "category": "media",
+    "category": "creative",
     "pkg": "ffmpeg",
     "installer": "system",
     "label": "FFmpeg",
@@ -181,7 +181,7 @@
   },
   "tfa-imagegen": {
     "preinstallCloud": true,
-    "category": "media",
+    "category": "creative",
     "pkg": "@todoforai/image-api",
     "installer": "npm",
     "label": "Image Gen",
@@ -193,7 +193,7 @@
   },
   "suno-api": {
     "preinstallCloud": true,
-    "category": "media",
+    "category": "creative",
     "pkg": "@todoforai/suno-api",
     "installer": "npm",
     "label": "Suno",
@@ -208,7 +208,7 @@
   },
   "tfa-suno": {
     "preinstallCloud": true,
-    "category": "media",
+    "category": "creative",
     "pkg": "@todoforai/suno-api",
     "installer": "npm",
     "label": "Suno (TODOforAI)",
@@ -222,7 +222,7 @@
   },
   "ntn": {
     "preinstallCloud": true,
-    "category": "utility",
+    "category": "productivity",
     "pkg": "ntn",
     "installer": "npm",
     "label": "Notion",
@@ -238,7 +238,7 @@
   },
   "perplexity-api": {
     "preinstallCloud": true,
-    "category": "utility",
+    "category": "research",
     "pkg": "@todoforai/perplexity-api",
     "installer": "npm",
     "label": "Perplexity",
@@ -250,7 +250,7 @@
     "description": "AI-powered web search, chat completions, async chat, embeddings and agent runs"
   },
   "gh": {
-    "category": "development",
+    "category": "developer",
     "pkg": "gh",
     "installer": "binary",
     "preinstallCloud": true,
@@ -268,7 +268,7 @@
     "preinstallJarvis": true
   },
   "mcporter": {
-    "category": "development",
+    "category": "developer",
     "pkg": "mcporter",
     "installer": "npm",
     "label": "MCP (mcporter)",
@@ -283,7 +283,7 @@
     "preinstallCloud": true,
     "cloudInstallCmd": "curl -fsSL https://gitlab.com/gitlab-org/cli/-/releases/v1.119.0/downloads/glab_1.119.0_linux_amd64.tar.gz | tar -xz -C /tmp bin/glab && install -m0755 /tmp/bin/glab /usr/local/bin/glab",
     "cloudVerifyCmd": "glab --version",
-    "category": "development",
+    "category": "developer",
     "pkg": "glab",
     "installer": "binary",
     "label": "GitLab",
@@ -299,7 +299,7 @@
   },
   "vercel": {
     "preinstallCloud": true,
-    "category": "deployment",
+    "category": "cloud",
     "pkg": "vercel",
     "installer": "npm",
     "label": "Vercel",
@@ -315,7 +315,7 @@
   },
   "eas": {
     "preinstallCloud": true,
-    "category": "deployment",
+    "category": "cloud",
     "pkg": "eas-cli",
     "installer": "npm",
     "label": "Expo EAS",
@@ -331,7 +331,7 @@
   },
   "netlify": {
     "preinstallCloud": true,
-    "category": "deployment",
+    "category": "cloud",
     "pkg": "netlify-cli",
     "installer": "npm",
     "label": "Netlify",
@@ -346,7 +346,7 @@
   },
   "firebase": {
     "preinstallCloud": true,
-    "category": "deployment",
+    "category": "cloud",
     "pkg": "firebase-tools",
     "installer": "npm",
     "label": "Firebase",
@@ -363,7 +363,7 @@
   },
   "wrangler": {
     "preinstallCloud": true,
-    "category": "deployment",
+    "category": "cloud",
     "pkg": "wrangler",
     "installer": "npm",
     "label": "Cloudflare",
@@ -380,7 +380,7 @@
     "preinstallCloud": true,
     "cloudInstallCmd": "curl -fsSL https://github.com/stripe/stripe-cli/releases/download/v1.50.10/stripe_1.50.10_linux_x86_64.tar.gz | tar -xz -C /usr/local/bin stripe",
     "cloudVerifyCmd": "stripe --version",
-    "category": "payments",
+    "category": "finance",
     "pkg": "stripe",
     "installer": "binary",
     "label": "Stripe",
@@ -441,7 +441,7 @@
   },
   "shopify": {
     "preinstallCloud": true,
-    "category": "ecommerce",
+    "category": "commerce",
     "pkg": "@shopify/cli",
     "installer": "npm",
     "label": "Shopify",
@@ -457,7 +457,7 @@
   },
   "shop-app": {
     "preinstallCloud": true,
-    "category": "ecommerce",
+    "category": "commerce",
     "pkg": "@todoforai/shop-app",
     "installer": "npm",
     "label": "Shop",
@@ -467,7 +467,7 @@
   },
   "datadog-ci": {
     "preinstallCloud": true,
-    "category": "monitoring",
+    "category": "developer",
     "pkg": "@datadog/datadog-ci",
     "installer": "npm",
     "label": "Datadog",
@@ -478,7 +478,7 @@
   },
   "sentry-cli": {
     "preinstallCloud": true,
-    "category": "monitoring",
+    "category": "developer",
     "pkg": "@sentry/cli",
     "installer": "npm",
     "label": "Sentry",
@@ -490,7 +490,7 @@
     "versionCmd": "sentry-cli --version 2>/dev/null | sed -n 1p"
   },
   "tfa-cli": {
-    "category": "utility",
+    "category": "todoforai",
     "pkg": "@todoforai/cli",
     "installer": "npm",
     "label": "TODOforAI",
@@ -504,7 +504,7 @@
   },
   "curl": {
     "commodity": true,
-    "category": "networking",
+    "category": "developer",
     "pkg": "curl",
     "installer": "system",
     "label": "Web Request",
@@ -521,7 +521,7 @@
     "cloudInstallCmd": "curl -fsSL https://github.com/cloudflare/cloudflared/releases/download/2026.9.0/cloudflared-linux-amd64 -o /usr/local/bin/cloudflared && chmod 0755 /usr/local/bin/cloudflared",
     "cloudVerifyCmd": "cloudflared --version",
     "commodity": true,
-    "category": "networking",
+    "category": "cloud",
     "pkg": "cloudflared",
     "installer": "binary",
     "label": "Tunnel",
@@ -530,7 +530,7 @@
     "versionCmd": "cloudflared --version 2>/dev/null | sed -n 1p"
   },
   "vault": {
-    "category": "security",
+    "category": "cloud",
     "pkg": "vault",
     "installer": "binary",
     "label": "HashiCorp Vault",
@@ -683,7 +683,7 @@
     "versionCmd": "rdt --version 2>/dev/null | sed -n 1p"
   },
   "pymupdf": {
-    "category": "utility",
+    "category": "documents",
     "pkg": "pymupdf",
     "packages": ["pymupdf==1.28.2"],
     "installer": "pip",
@@ -696,7 +696,7 @@
     "description": "PDF read/edit/create via `python3 -c 'import pymupdf ...'`: text `doc[i].get_text()`, page count `doc.page_count`, page→PNG `page.get_pixmap(dpi=150).save()`, merge `a.insert_pdf(b)`, extract pages `doc.select([0,2])`, text/image→PDF `page.insert_textbox()` / `pymupdf.open(\"pdf\", pymupdf.open(png).convert_to_pdf())`, stamp `page.insert_text()` / `page.insert_image(rect, filename=)`. HTML/URL→PDF: `chrome --headless=new --no-pdf-header-footer --print-to-pdf=out.pdf <url>`."
   },
   "pyhanko": {
-    "category": "security",
+    "category": "documents",
     "pkg": "pyhanko-cli",
     "packages": ["pyhanko-cli==0.5.0", "pyHanko[pkcs11,image-support,opentype]==0.37.0"],
     "installer": "pip",
@@ -710,7 +710,7 @@
     "description": "Cryptographic PDF signing/validation (PAdES B-B..B-LTA). Sign: `pyhanko sign addsig --field Sig1 [--timestamp-url <tsa>] pkcs12 --passfile pass.txt in.pdf out.pdf cert.p12`; smart card/eID: `... pkcs11 --lib <pkcs11.so> in.pdf out.pdf`; verify: `pyhanko sign validate --pretty-print [--trust ca.pem] out.pdf`; list fields: `pyhanko sign list`. The signer's cert/key comes from the user (vault); self-signed certs validate only with `--trust`. Not for click-to-sign workflows."
   },
   "anydoc": {
-    "category": "utility",
+    "category": "documents",
     "pkg": "@firecrawl/anydoc",
     "installer": "npm",
     "binName": "anydoc",
@@ -722,7 +722,7 @@
     "preinstallJarvis": true
   },
   "agent-browser": {
-    "category": "development",
+    "category": "developer",
     "pkg": "agent-browser@0.30.1",
     "installer": "npm",
     "preinstallCloud": true,
@@ -733,7 +733,7 @@
     "preinstallJarvis": true
   },
   "browser-manager-cli": {
-    "category": "development",
+    "category": "developer",
     "pkg": "browser-manager-cli",
     "installer": "binary",
     "binName": "browser-manager-cli",
@@ -769,7 +769,7 @@
   },
   "tfa-explore": {
     "preinstallCloud": true,
-    "category": "development",
+    "category": "todoforai",
     "pkg": "@todoforai/tfa-explore",
     "installer": "npm",
     "label": "Explore",
@@ -782,7 +782,7 @@
   },
   "tfa-review": {
     "preinstallCloud": true,
-    "category": "development",
+    "category": "todoforai",
     "pkg": "@todoforai/tfa-review",
     "installer": "npm",
     "label": "Review",
@@ -795,7 +795,7 @@
   },
   "tfa-summary": {
     "preinstallCloud": true,
-    "category": "development",
+    "category": "todoforai",
     "pkg": "@todoforai/tfa-summary",
     "installer": "npm",
     "label": "Summary",
@@ -808,7 +808,7 @@
   },
   "tfa-handoff": {
     "preinstallCloud": true,
-    "category": "development",
+    "category": "todoforai",
     "pkg": "@todoforai/tfa-handoff",
     "installer": "npm",
     "label": "Handoff",
@@ -820,7 +820,7 @@
     "internal": true
   },
   "tfa-wait": {
-    "category": "development",
+    "category": "todoforai",
     "pkg": "@todoforai/tfa-wait",
     "installer": "npm",
     "label": "Wait",
@@ -834,7 +834,7 @@
     "preinstallJarvis": true
   },
   "tfa-cloud": {
-    "category": "infrastructure",
+    "category": "todoforai",
     "pkg": "tfa-cloud",
     "installer": "system",
     "internal": true,
@@ -842,10 +842,10 @@
     "summary": "SSH host alias for your TODOforAI cloud VM.",
     "description": "ssh host alias: `ssh tfa-cloud 'command'`, `scp`/`rsync` for files. Same root account, files, tools and logins as the cloud's own bash tool; local and cloud filesystems are separate. Cloud files under `~/.todoforai/mnt/todoforai/`: `todos/\"$TODOFORAI_TODO_ID\"` (this todo's attachments; double quotes: the id expands locally), `memory/` (your memory of this user). A stopped VM does not wake on connect.",
     "versionCmd": "sh -c 'ssh -G tfa-cloud 2>/dev/null' | awk '$1==\"hostname\" && $2!=\"tfa-cloud\"{print $2}'",
-    "statusCmd": "ssh tfa-cloud hostname 2>/dev/null | head -1"
+    "statusCmd": "ssh tfa-cloud hostname 2>/dev/null | tr -d '\\r' | grep -m1 ."
   },
   "tfa-vault": {
-    "category": "security",
+    "category": "todoforai",
     "pkg": "@todoforai/tfa-vault",
     "installer": "npm",
     "label": "Vault",
@@ -858,7 +858,7 @@
     "preinstallJarvis": true
   },
   "tfa-settings": {
-    "category": "utility",
+    "category": "todoforai",
     "pkg": "@todoforai/tfa-settings",
     "installer": "npm",
     "label": "Settings",
@@ -871,7 +871,7 @@
     "preinstallJarvis": true
   },
   "tfa-memory": {
-    "category": "productivity",
+    "category": "todoforai",
     "pkg": "@todoforai/tfa-memory",
     "installer": "npm",
     "label": "Memory",
@@ -884,7 +884,7 @@
     "preinstallJarvis": true
   },
   "todoregistry-cli": {
-    "category": "development",
+    "category": "todoforai",
     "pkg": "@todoforai/todoregistry-cli",
     "installer": "npm",
     "label": "TODO Registry",
@@ -898,7 +898,7 @@
   },
   "tfa-surface": {
     "preinstallCloud": true,
-    "category": "utility",
+    "category": "todoforai",
     "pkg": "@todoforai/tfa-surface",
     "installer": "npm",
     "label": "Surface",
@@ -911,7 +911,7 @@
   },
   "bun": {
     "commodity": true,
-    "category": "development",
+    "category": "developer",
     "pkg": "bun",
     "installer": "system",
     "label": "JS/TS Runtime",
@@ -926,7 +926,7 @@
   },
   "bunx": {
     "commodity": true,
-    "category": "development",
+    "category": "developer",
     "pkg": "bunx",
     "installer": "system",
     "label": "Bun Package Runner",
@@ -939,7 +939,7 @@
   },
   "node": {
     "commodity": true,
-    "category": "development",
+    "category": "developer",
     "pkg": "node",
     "installer": "system",
     "label": "JavaScript Runtime",
@@ -955,7 +955,7 @@
   },
   "python3": {
     "commodity": true,
-    "category": "development",
+    "category": "developer",
     "pkg": "python3",
     "installer": "system",
     "label": "Python",
@@ -970,7 +970,7 @@
   },
   "npm": {
     "commodity": true,
-    "category": "development",
+    "category": "developer",
     "pkg": "npm",
     "installer": "system",
     "label": "Node Package Manager",
@@ -983,7 +983,7 @@
   },
   "npx": {
     "commodity": true,
-    "category": "development",
+    "category": "developer",
     "pkg": "npx",
     "installer": "system",
     "label": "Node Package Runner",
@@ -999,7 +999,7 @@
     "cloudAptPackages": ["python3-pip"],
     "cloudVerifyCmd": "pip3 --version",
     "commodity": true,
-    "category": "development",
+    "category": "developer",
     "pkg": "pip3",
     "installer": "system",
     "label": "Python Package Installer",
@@ -1010,7 +1010,7 @@
   },
   "uv": {
     "commodity": true,
-    "category": "development",
+    "category": "developer",
     "pkg": "uv",
     "installer": "system",
     "label": "Python Package Manager",
@@ -1024,7 +1024,7 @@
   },
   "uvx": {
     "commodity": true,
-    "category": "development",
+    "category": "developer",
     "pkg": "uvx",
     "installer": "system",
     "label": "Python Tool Runner",
@@ -1037,7 +1037,7 @@
   },
   "ripgrep": {
     "commodity": true,
-    "category": "development",
+    "category": "developer",
     "pkg": "ripgrep",
     "installer": "binary",
     "label": "Search",
@@ -1077,7 +1077,7 @@
     "preinstallJarvis": true
   },
   "ast-grep": {
-    "category": "development",
+    "category": "developer",
     "pkg": "ast-grep",
     "installer": "binary",
     "label": "Structural Search",
@@ -1118,7 +1118,7 @@
   },
   "fd": {
     "commodity": true,
-    "category": "development",
+    "category": "developer",
     "pkg": "fd-find",
     "installer": "binary",
     "label": "Find Files",
@@ -1159,7 +1159,7 @@
   },
   "jq": {
     "commodity": true,
-    "category": "development",
+    "category": "developer",
     "pkg": "jq",
     "installer": "binary",
     "label": "JSON",
@@ -1195,7 +1195,7 @@
   },
   "patch": {
     "commodity": true,
-    "category": "development",
+    "category": "developer",
     "pkg": "patch",
     "installer": "system",
     "preinstallCloud": true,
@@ -1209,7 +1209,7 @@
   },
   "sed": {
     "commodity": true,
-    "category": "development",
+    "category": "developer",
     "pkg": "sed",
     "installer": "system",
     "preinstallCloud": true,
@@ -1223,7 +1223,7 @@
   },
   "grep": {
     "commodity": true,
-    "category": "development",
+    "category": "developer",
     "pkg": "grep",
     "installer": "system",
     "preinstallCloud": true,
@@ -1237,7 +1237,7 @@
   },
   "wordpress-api": {
     "preinstallCloud": true,
-    "category": "development",
+    "category": "marketing",
     "pkg": "@todoforai/wordpress-api",
     "installer": "npm",
     "label": "WordPress",
@@ -1292,7 +1292,7 @@
   },
   "ews-api": {
     "preinstallCloud": true,
-    "category": "email",
+    "category": "communication",
     "pkg": "ews-api",
     "packages": ["ews-api==0.2.0"],
     "installer": "pip",
@@ -1307,7 +1307,7 @@
   },
   "outlook-api": {
     "preinstallCloud": true,
-    "category": "email",
+    "category": "communication",
     "pkg": "@todoforai/outlook-api",
     "installer": "npm",
     "label": "Outlook (Graph)",
@@ -1324,7 +1324,7 @@
   },
   "neonctl": {
     "preinstallCloud": true,
-    "category": "database",
+    "category": "data",
     "pkg": "neonctl",
     "installer": "npm",
     "label": "Neon Postgres",
@@ -1369,7 +1369,7 @@
   },
   "hubspot": {
     "preinstallCloud": true,
-    "category": "marketing",
+    "category": "sales",
     "pkg": "@hubspot/cli",
     "installer": "npm",
     "label": "HubSpot",
@@ -1386,7 +1386,7 @@
   },
   "posthog-cli": {
     "preinstallCloud": true,
-    "category": "monitoring",
+    "category": "data",
     "pkg": "@posthog/cli",
     "installer": "npm",
     "label": "PostHog",
@@ -1400,7 +1400,7 @@
   },
   "canva": {
     "preinstallCloud": true,
-    "category": "design",
+    "category": "creative",
     "pkg": "@canva/cli",
     "installer": "npm",
     "label": "Canva",
@@ -1416,7 +1416,7 @@
   },
   "webflow": {
     "preinstallCloud": true,
-    "category": "development",
+    "category": "marketing",
     "pkg": "@webflow/webflow-cli",
     "installer": "npm",
     "label": "Webflow",
@@ -1476,7 +1476,7 @@
     "description": "Community Trello CLI (mheap/trello-cli, no official one exists). Auth is a Trello API key + token from https://trello.com/app-key — `trello auth:api-key <key>` then `trello auth:token <token>`. `board:list`, `list:list --board <name>`, `card:list --board <b> --list <l>`, `card:create --board <b> --list <l> --name <n> [--description ..] [--due <date>]`, `card:move`, `card:comment`, `label:*`, `search <q>`. Add `--format json` for piping. Names resolve via a local cache; run `trello board:list` once after login to warm it."
   },
   "mapps": {
-    "category": "development",
+    "category": "productivity",
     "pkg": "@mondaycom/apps-cli",
     "installer": "npm",
     "label": "monday.com",
@@ -1489,7 +1489,7 @@
   },
   "exa-cli": {
     "preinstallCloud": true,
-    "category": "utility",
+    "category": "research",
     "pkg": "exa-cli",
     "installer": "npm",
     "label": "Exa Search",
@@ -1502,7 +1502,7 @@
   },
   "mobbin": {
     "preinstallCloud": true,
-    "category": "design",
+    "category": "creative",
     "pkg": "mobbin",
     "installer": "npm",
     "label": "Mobbin",
@@ -1517,7 +1517,7 @@
   "blender-mcp": {
     "preinstallCloud": true,
     "packages": ["blender-mcp==1.9.1"],
-    "category": "design",
+    "category": "creative",
     "pkg": "blender-mcp",
     "installer": "pip",
     "label": "Blender",
@@ -1551,7 +1551,7 @@
     "description": "Official Google Ads API client library (Python) — there is no official CLI, so call it via `python3 -c` or a script. Config `~/google-ads.yaml` (developer_token, client_id/secret, refresh_token, login_customer_id = MCC digits). Mint refresh_token with the bundled `google-oauthlib-tool --client-secrets <json> --scope https://www.googleapis.com/auth/adwords --save --headless` (or examples/authentication/generate_user_credentials.py). Read: `client.get_service('GoogleAdsService').search_stream(customer_id=<digits>, query=<GAQL>)`. Write: `<X>Service.mutate_<x>s(customer_id, operations, validate_only=True)` first, then real. Keyword ideas: `KeywordPlanIdeaService.generate_keyword_ideas`. Offline conversions: `ConversionUploadService.upload_click_conversions`. Customer ids are digits without dashes."
   },
   "cua-driver": {
-    "category": "development",
+    "category": "developer",
     "pkg": "cua-driver",
     "installer": "system",
     "label": "Desktop Control",
@@ -1564,7 +1564,7 @@
     "description": "Native desktop automation (macOS/Windows/Linux X11; Wayland only via AT-SPI, no window screenshots) through the accessibility tree — actions land in the BACKGROUND without moving the user's focus or pointer. Needs a daemon: `cua-driver status || (cua-driver serve --no-overlay >/dev/null 2>&1 &)`; on macOS grant permissions first with `cua-driver permissions grant`; on Windows the daemon must run in the interactive desktop session (`cua-driver autostart enable` registers a logon task). Loop: `cua-driver call list_windows '{}'` → pid+window_id; `cua-driver call get_window_state '{\"pid\":P,\"window_id\":W,\"include_screenshot\":false}'` → `elements[]` with `element_token`; act with `cua-driver call click '{\"pid\":P,\"window_id\":W,\"element_token\":\"s..:N\"}'`, `type_text {..,\"text\":\"..\"}`, `hotkey {..,\"keys\":[\"ctrl\",\"s\"]}`, `press_key`, `scroll`, `invoke_menu`. Tokens are snapshot-bound: re-run get_window_state after EVERY action (stale token = refusal). Window screenshot: add `--screenshot-out-file out.png` (`max_dimension` to shrink). Responses say `effect:unverifiable` — verify from a fresh tree, not from the click reply. `delivery_mode:\"foreground\"` steals focus; use only when asked. Chrome/Electron trees are near-empty — use agent-browser for web pages. `cua-driver list-tools` / `describe <tool>` for the full surface; `cua-driver mcp` exposes the same over stdio MCP."
   },
   "gusto": {
-    "category": "productivity",
+    "category": "finance",
     "pkg": "gusto",
     "installer": "system",
     "installCmd": "t=\"${TMPDIR:-/tmp}/gusto-install.$$.sh\"; curl -fsSL https://cli.gusto.com/install.sh -o \"$t\" && GUSTO_INSTALL_DIR=\"$HOME/.todoforai/tools/bin\" sh \"$t\"; r=$?; rm -f \"$t\"; [ $r -eq 0 ]",
@@ -1579,7 +1579,7 @@
     "description": "Official Gusto CLI (payroll/HR), JSON on stdout when piped. Read: `gusto company get`, `employee list|get <uuid>`, `contractor list`, `payroll list|get`, `pay-schedule list`, `department list`, `job`, `compensation`, `ledger`, `report`; `--fields` filters keys, `--all` pages. Writes (payroll prepare/submit, timesheets, pay schedules) need `--confirm` in agent mode — they move real money, confirm with the user first. Production by default; `--env sandbox` (or GUSTO_ENVIRONMENT=sandbox) targets the demo company, each env has its own stored session. Headless auth: `printf '%s' \"$TOKEN\" | gusto <cmd> --token-stdin` or env GUSTO_ACCESS_TOKEN (+ GUSTO_COMPANY_UUID). `gusto api` calls any REST endpoint. GUSTO_CLI_AUTO_UPDATE=off skips self-update."
   },
   "tableau": {
-    "category": "productivity",
+    "category": "data",
     "pkg": "@tableau/mcp-server",
     "binName": "tableau-mcp-server",
     "installer": "npm",
@@ -1593,7 +1593,7 @@
     "versionCmd": "node -p \"const f=require('fs'),p=require('path'),n='@tableau/mcp-server',c=process.argv[1];let d=p.dirname(f.realpathSync(c)),r;for(;!r&&d!==p.dirname(d);d=p.dirname(d))try{const j=JSON.parse(f.readFileSync(p.join(d,'package.json')));if(j.name===n)r=j.version}catch{}r||JSON.parse(f.readFileSync(p.join(p.dirname(c),'..',n,'package.json'))).version\" \"$(command -v tableau-mcp-server)\" 2>/dev/null"
   },
   "xero": {
-    "category": "productivity",
+    "category": "finance",
     "pkg": "@xeroapi/xero-mcp-server",
     "binName": "xero-mcp-server",
     "installer": "npm",
@@ -1607,7 +1607,7 @@
     "versionCmd": "node -p \"const f=require('fs'),p=require('path'),n='@xeroapi/xero-mcp-server',c=process.argv[1];let d=p.dirname(f.realpathSync(c)),r;for(;!r&&d!==p.dirname(d);d=p.dirname(d))try{const j=JSON.parse(f.readFileSync(p.join(d,'package.json')));if(j.name===n)r=j.version}catch{}r||JSON.parse(f.readFileSync(p.join(p.dirname(c),'..',n,'package.json'))).version\" \"$(command -v xero-mcp-server)\" 2>/dev/null"
   },
   "quickbooks": {
-    "category": "productivity",
+    "category": "finance",
     "pkg": "intuit/quickbooks-online-mcp-server",
     "binName": "quickbooks-mcp",
     "installer": "system",
@@ -1624,7 +1624,7 @@
     "needsNode": true
   },
   "linkup": {
-    "category": "utility",
+    "category": "research",
     "pkg": "mcporter",
     "installer": "system",
     "binName": "mcporter",
@@ -1641,7 +1641,7 @@
     "description": "Linkup's official remote MCP (https://mcp.linkup.so/mcp) through mcporter, API key as a Bearer header. `mcporter call linkup.linkup-search query='…' depth=fast|standard|deep maxResults=5` (sourced web results), `mcporter call linkup.linkup-fetch url=https://…` (page → markdown), `linkup-research` + `linkup-get-research <id>` (async deep research). Pay per call (~$0.005/standard search, fetch from $0.001) from free signup credits; balance: `curl -H \"Authorization: Bearer $KEY\" https://api.linkup.so/v1/credits/balance`. Keys: https://app.linkup.so/api-keys. Docs: https://docs.linkup.so/llms.txt"
   },
   "assemblyai-api": {
-    "category": "media",
+    "category": "creative",
     "pkg": "@todoforai/assemblyai-api",
     "installer": "npm",
     "label": "AssemblyAI",
@@ -1656,7 +1656,7 @@
     "description": "Raw AssemblyAI speech-to-text CLI, JSON out. `assemblyai-api transcribe <url|local file> [--speaker-labels] [--language-code hu] [--data '{…TranscriptParams}'] --wait` (uploads local files, polls until completed), `get|delete <id>`, `list`, `sentences|paragraphs <id>`, `subtitles <id> srt|vtt`, `word-search <id> a,b`, `streaming-token`, LLM Gateway `chat --model m --prompt p` (paid plans only), raw `api <METHOD> <path>`. Key: env ASSEMBLYAI_API_KEY or `auth --key-stdin`; ASSEMBLYAI_REGION=eu for the EU zone. Limits/pricing in `--help`."
   },
   "google-maps": {
-    "category": "utility",
+    "category": "research",
     "pkg": "mcporter",
     "installer": "system",
     "binName": "mcporter",
@@ -1756,7 +1756,7 @@
     "versionCmd": "amazon-ads-api --version 2>/dev/null | sed -n 1p"
   },
   "attio-api": {
-    "category": "marketing",
+    "category": "sales",
     "pkg": "@todoforai/attio-api",
     "installer": "npm",
     "label": "Attio",
@@ -1771,7 +1771,7 @@
     "description": "Independent CLI over the Attio REST API v2 (raw 1:1 fields, JSON out). Token: Attio → Workspace settings → Developers → Access tokens (or ATTIO_API_KEY). Records are addressed by object slug (people, companies, deals, custom): `attio-api records create companies --data '{\"data\":{\"values\":{\"name\":\"Acme\",\"domains\":[\"acme.com\"]}}}'`, `records assert people --query matching_attribute=email_addresses --data …` (upsert), `records query <object> --data '{\"filter\":{…}}'`, `records search --data '{\"query\":\"acme\",\"objects\":[\"companies\"],\"request_as\":{\"type\":\"workspace\"}}'`. Also lists/entries, notes, tasks, comments, meetings/call recordings, webhooks; `attributes list objects people` shows value slugs. Anything else: `attio-api api <METHOD> /<path>`. DELETE needs --yes; --dry-run previews. Docs: https://docs.attio.com/llms.txt"
   },
   "twenty": {
-    "category": "marketing",
+    "category": "sales",
     "pkg": "mcporter",
     "installer": "npm",
     "binName": "mcporter",
@@ -1787,7 +1787,7 @@
     "description": "Twenty CRM through its official MCP server (mcporter server `twenty`). API key: Twenty → Settings → MCP & APIs → API → Create API key. Self-hosted: re-run `mcporter config add twenty --url https://<your-host>/mcp --header 'Authorization=Bearer <key>' --scope home`. Tools are generic: `mcporter call twenty.learn_tools --args '{\"toolNames\":[\"create_one_company\",\"find_many_people\"],\"aspects\":[\"schema\"]}'` gives schemas, then `mcporter call twenty.execute_tool --args '{\"toolName\":\"create_one_company\",\"arguments\":{\"name\":\"Acme\",\"domainName\":{\"primaryLinkUrl\":\"https://acme.com\"}}}'`. Names follow {create_one|create_many|update_one|delete_one|find_one|find_many}_{object} (person/people, company/companies, opportunity/opportunities, note/notes, task/tasks, or custom); find_many needs `select:[fields]` plus filter/orderBy/limit. `list_object_metadata_names` lists objects. REST alternative: curl https://api.twenty.com/rest/companies -H 'Authorization: Bearer <key>' (docs https://docs.twenty.com/developers/extend/api)."
   },
   "apollo": {
-    "category": "marketing",
+    "category": "sales",
     "pkg": "mcporter",
     "installer": "npm",
     "binName": "mcporter",
@@ -1803,7 +1803,7 @@
     "description": "Apollo.io through its official MCP server (mcporter server `apollo`, 85 tools, all plans incl. free). Key: https://developer.apollo.io/#/keys → Create new key → toggle 'Set as master key' (the MCP rejects scoped keys). `mcporter list apollo` shows every tool with its args. Prospecting: `mcporter call apollo.apollo_mixed_people_api_search --args '{\"q_organization_domains_list\":[\"acme.com\"],\"person_titles\":[\"cto\"],\"per_page\":10}'` (no credits, emails hidden), `apollo_people_match` (email/name+domain → enriched person, costs credits), `apollo_organizations_enrich domain=acme.com`, `apollo_mixed_companies_search`, `apollo_organizations_job_postings`. CRM: apollo_contacts_create/update/search, apollo_accounts_*, apollo_deals_*; sequences: apollo_emailer_campaigns_search, apollo_emailer_campaigns_add_contact_ids. Credits balance: apollo_users_api_profile. REST fallback: curl https://api.apollo.io/api/v1/... -H 'x-api-key: <key>' (docs https://docs.apollo.io/reference)."
   },
   "lusha": {
-    "category": "marketing",
+    "category": "sales",
     "pkg": "mcporter",
     "installer": "npm",
     "binName": "mcporter",
@@ -1914,7 +1914,7 @@
     "description": "MeisterTask's official remote MCP (https://mcp.meistertask.com/mcp) through mcporter, authenticated with a personal access token: https://www.mindmeister.com/api → Personal access tokens → Add, scopes userinfo.email userinfo.profile meistertask (MeisterTask accounts reach it via accounts.meister.co; enable the free MindMeister product first if the page redirects to Plans). `mcporter list meistertask --schema` for all ~40 tools; `mcporter call meistertask.<tool> key=value`. Chain: `mt_projects_list` → `mt_sections_list projectId=…` → `mt_tasks_create sectionId=… name=… notes=… assignedToId=… due=<iso>`; `mt_tasks_update id=… status=completed`, `mt_tasks_search text=… status='[\"open\"]'`, `mt_labels_list|create projectId=… name=… color=<hex>`, `mt_tasks_labels_add taskId=… labelId=…`, `mt_tasks_attachments_create_external taskId=… url=…` / `mt_tasks_attachments_upload`, `mt_checklists_create`, `mt_tasks_comments_create`, `mt_persons_list` (people), `mt_whoami`. Lists come back as compact TOON text; single objects as JSON. Raw REST (same token, Bearer): https://www.meistertask.com/api/<resource>, docs https://developers.meistertask.com/llms.txt."
   },
   "zoomadmin-api": {
-    "category": "productivity",
+    "category": "communication",
     "pkg": "@todoforai/zoomadmin-api",
     "installer": "npm",
     "label": "Zoom",
@@ -1929,7 +1929,7 @@
     "description": "Independent CLI over the Zoom REST API v2 (raw 1:1 fields, JSON out). Auth: a Server-to-Server OAuth app (marketplace.zoom.us → Develop → Build app → Server to Server OAuth; add meeting/webinar/cloud_recording/user :admin scopes; Activate) → account_id + client_id + client_secret, or env ZOOM_ACCOUNT_ID/ZOOM_CLIENT_ID/ZOOM_CLIENT_SECRET; ZOOM_ACCESS_TOKEN accepts any ready OAuth token. User-scoped commands take -u <id|email> (default me). Meetings: `meetings list`, `meetings create --data '{\"topic\":\"…\",\"type\":2,\"start_time\":\"2026-10-20T10:00:00Z\",\"duration\":30}'`, `meetings get|update|delete|end <id>`, `meetings participants <id>`. Registrants: `meeting-registrants add <id> --data '{\"email\":\"…\",\"first_name\":\"…\"}'`, `webinar-registrants list|add|status <webinarId>`. Webinars: `webinars list|create`, `webinars get|update|delete <id>`, `panelists list|add|delete`. Recordings: `recordings list --query from=YYYY-MM-DD`, `recordings get|delete <meetingId>`, `recordings transcript <meetingId>`. `users list|get`, `call-logs list` (Zoom Phone). Registrants/participants need a paid plan, webinars the Webinar add-on. Anything else: `zoomadmin-api api <METHOD> /<path>` (relative to /v2). DELETE needs --yes; --dry-run previews. Docs: https://developers.zoom.us/docs/api/"
   },
   "postmark-mcp": {
-    "category": "email",
+    "category": "communication",
     "pkg": "@activecampaign/postmark-mcp",
     "installer": "npm",
     "binName": "postmark-mcp",
@@ -1945,7 +1945,7 @@
     "description": "Postmark's official MCP (@activecampaign/postmark-mcp, stdio) via mcporter server `postmark`: `mcporter call postmark.<tool> key=value --output json`, schemas `mcporter list postmark --schema`. Tools: sendEmail (to, subject, textBody/htmlBody, from defaults to the sender given at login), sendEmailWithTemplate (templateId|templateAlias + templateModel), sendBatch/sendBatchWithTemplate, listTemplates/getTemplate/createTemplate/editTemplate/deleteTemplate/validateTemplate, searchOutboundMessages/getMessageDetails/diagnoseDelivery, searchBounces/getBounceDump/activateBounce, listSuppressions/createSuppressions/deleteSuppressions, getDeliveryStats, getServerInfo, listWebhooks/createWebhook/deleteWebhook. Server token: account.postmarkapp.com → Servers → API Tokens; the sender must be a confirmed Sender Signature. New accounts are in Test mode until Postmark approves them (only same-domain recipients). Other stream: re-run login with DEFAULT_MESSAGE_STREAM=<id>. Never install the unscoped `postmark-mcp` npm package (malicious, removed). REST: https://postmarkapp.com/developer (header X-Postmark-Server-Token)."
   },
   "mailgun-mcp": {
-    "category": "email",
+    "category": "communication",
     "pkg": "@mailgun/mcp-server",
     "installer": "npm",
     "binName": "mailgun-mcp-server",
@@ -1978,7 +1978,7 @@
     "description": "Brevo's official MCP (https://mcp.brevo.com/v1/brevo/mcp) via mcporter, OAuth login (works without an API key, which Brevo gates behind phone verification). Call: `mcporter call --http-url https://mcp.brevo.com/v1/brevo/mcp --name brevo <tool> key=value --output json`; schemas: `mcporter list https://mcp.brevo.com/v1/brevo/mcp --name brevo --schema`. ~280 tools prefixed by module: contacts_*/lists_*/attributes_* (contacts, lists, attributes), email_campaign_*/sms_*/whatsapp_* (campaigns), transac_* (send transactional email, templates, logs), templates_*, senders_*/domains_*, deals_*/companies_*/tasks_*/notes_* (CRM), ecommerce_*/loyalty_*/coupons_*, webhooks_*, accounts_get_account (plan, credits). Free plan: 300 emails/day. REST alternative: https://developers.brevo.com (header api-key)."
   },
   "maileroo": {
-    "category": "email",
+    "category": "communication",
     "pkg": "mcporter",
     "installer": "npm",
     "binName": "mcporter",
@@ -2063,7 +2063,7 @@
     "description": "beehiiv's official MCP (https://mcp.beehiiv.com/mcp) via mcporter, OAuth login. Call: `mcporter call --http-url https://mcp.beehiiv.com/mcp --name beehiiv <tool> key=value --output json`; schemas: `mcporter list https://mcp.beehiiv.com/mcp --name beehiiv --schema`. Tools: post drafts, templates and tags; subscribers, segments, custom fields, surveys and polls; signup forms and recommendations; paywalls, tiers and ads; automations; podcasts; website SEO and redirects. Publishing or scheduling posts and activating automations are not exposed. Free plan is read-only; paid plans can write. Several publications: append `?account=<id>` to the URL. REST alternative: https://developers.beehiiv.com (Bearer API key, paid plans)."
   },
   "freshdesk-api": {
-    "category": "productivity",
+    "category": "communication",
     "pkg": "@todoforai/freshdesk-api",
     "installer": "npm",
     "label": "Freshdesk",
@@ -2076,7 +2076,7 @@
     "versionCmd": "freshdesk-api --version 2>/dev/null | sed -n 1p"
   },
   "chatwoot-api": {
-    "category": "productivity",
+    "category": "communication",
     "pkg": "@todoforai/chatwoot-api",
     "installer": "npm",
     "label": "Chatwoot",
@@ -2089,7 +2089,7 @@
     "versionCmd": "chatwoot-api --version 2>/dev/null | sed -n 1p"
   },
   "discord-api": {
-    "category": "social",
+    "category": "communication",
     "pkg": "@todoforai/discord-api",
     "installer": "npm",
     "label": "Discord",
@@ -2115,7 +2115,7 @@
     "versionCmd": "twitch-api --version 2>/dev/null | sed -n 1p"
   },
   "whatsapp-api": {
-    "category": "social",
+    "category": "communication",
     "pkg": "@todoforai/whatsapp-api",
     "installer": "npm",
     "label": "WhatsApp",
@@ -2145,7 +2145,7 @@
     "description": "Tally's official MCP (https://api.tally.so/mcp) via mcporter, OAuth login. Call: `mcporter call --http-url https://api.tally.so/mcp --name tally <tool> key=value --output json`; schemas: `mcporter list https://api.tally.so/mcp --name tally --schema`. Tools: list_workspaces, list_forms, load_form, create_new_form, create_blocks/configure_blocks/update_text/remove_*, apply_logic, update_settings/update_styling, publish_form, fetch_submissions, fetch_insights, search_documentation. Headless alternative: API key (tally.so/settings/api-keys) as `--header 'Authorization=Bearer ${TALLY_API_KEY}'`, or REST `curl -H \"Authorization: Bearer $TALLY_API_KEY\" https://api.tally.so/forms` (docs: developers.tally.so/llms.txt, 100 req/min)."
   },
   "carbone-mcp": {
-    "category": "productivity",
+    "category": "documents",
     "pkg": "carbone-mcp",
     "installer": "npm",
     "label": "Carbone",
@@ -2208,7 +2208,7 @@
     "description": "Softr's official MCP (https://mcp.softr.io/mcp) via mcporter, authenticated with a personal access token (studio.softr.io → account menu → API tokens, `pat_…`). Call `mcporter call softr.<tool> key=value --output json`; schemas `mcporter list softr --schema`. ~108 tools: workspace_list, application_list/create/publish, application_add_user/remove_user/list_users (app users), database_list/create, database_list_tables/list_fields, database_create_record(s)/update_record/delete_record/search_records/list_records, workflow_*. Same token works on the Database REST API: `curl -H \"Softr-Api-Key: $SOFTR_TOKEN\" https://tables-api.softr.io/api/v1/databases/<db>/tables/<table>/records` (fields keyed by field id)."
   },
   "pdfco-mcp": {
-    "category": "productivity",
+    "category": "documents",
     "pkg": "pdfco-mcp",
     "packages": [
       "pdfco-mcp==0.0.9"
@@ -2225,7 +2225,7 @@
     "description": "PDF.co's official MCP (pdfco-mcp, stdio) via mcporter: `mcporter call pdfco.<tool> key=value --output json`, schemas `mcporter list pdfco --schema`. Inputs are URLs: local files go through upload_file(file_path) first; results come back as temporary S3 URLs (1h) — download with curl. Tools: html_to_pdf, webpage_to_pdf, document_to_pdf/image_to_pdf/excel_to_pdf, pdf_to_text/json/csv/xlsx/html/image, find_text, find_table, pdf_merge (comma-separated urls), pdf_split, fill_forms, read_pdf_forms_info, pdf_add_annotations_images_fields (text/images/barcodes), pdf_add_password/remove_password, pdf_make_searchable (OCR), ai_invoice_parser, wait_job_completion. API key at app.pdf.co (free trial 10k credits). REST: `curl -H \"x-api-key: $PDFCO_API_KEY\" https://api.pdf.co/v1/account/credit/balance`."
   },
   "pandadoc": {
-    "category": "productivity",
+    "category": "documents",
     "pkg": "mcporter",
     "installer": "npm",
     "binName": "mcporter",
@@ -2242,7 +2242,7 @@
     "description": "PandaDoc's official MCP (https://mcp.pandadoc.com/v1/mcp) via mcporter, OAuth login. Call: `mcporter call --http-url https://mcp.pandadoc.com/v1/mcp --name pandadoc <tool> key=value --output json`; schemas: `mcporter list https://mcp.pandadoc.com/v1/mcp --name pandadoc --schema`. Tools: documents_create (from template_uuid or url), documents_list/search/details_get/status_get/content_get/audit_trail_get, documents_send, documents_update, documents_reminder_send, recipients_*, templates_list/create/details_get, contacts_list, catalog_item_*, quotes_update. Document PDF download and attachments: REST with an API key (Settings → API and Webhooks → API dashboard; sandbox key free, 10 req/min): `curl -H \"Authorization: API-Key $PANDADOC_API_KEY\" https://api.pandadoc.com/public/v1/documents/<id>/download -o doc.pdf`."
   },
   "printful-api": {
-    "category": "ecommerce",
+    "category": "commerce",
     "pkg": "@todoforai/printful-api",
     "installer": "npm",
     "label": "Printful",
@@ -2256,7 +2256,7 @@
     "description": "Token: https://developers.printful.com/tokens (private token, account-level) or an OAuth access token. Independent CLI over the Printful API v1, generated from the official OpenAPI spec: 56 commands grouped by tag, named after operationIds — `printful-api catalog get-products --category_id 24`, `orders get-orders|create-order|get-order-by-id|update-order-by-id|confirm-order-by-id|estimate-order-costs`, `shipping-rate calculate-shipping-rates --data '{\"recipient\":{\"country_code\":\"US\"},\"items\":[{\"variant_id\":4012,\"quantity\":1}]}' --yes`, `products get-sync-products|update-sync-product`, `store-information get-stores`, files, webhooks, mockup-generator. `--schema` = body schema offline, `--dry-run`, `--data JSON|@file|-`; every write needs `--yes` (orders are drafts unless `--confirm true`; confirmed orders are charged). Account-level tokens need `--store-id` / PRINTFUL_STORE_ID for store endpoints (\"This endpoint requires store_id\"). v2 beta + anything else: `printful-api request GET /v2/catalog-products --query limit=5`. `whoami` = token scopes + stores. 120 req/min."
   },
   "square": {
-    "category": "payments",
+    "category": "finance",
     "pkg": "square-mcp-server",
     "installer": "npm",
     "binName": "square-mcp-server",
@@ -2272,7 +2272,7 @@
     "description": "Square's official MCP server (npm square-mcp-server by Block) through mcporter server `square`, personal access token (Developer Console → app → Credentials; sandbox or production, detected at login). Three tools covering every Square API service: `mcporter call square.get_service_info service=invoices` → methods, `mcporter call square.get_type_info service=invoices method=create` → request shape (call before writing), `mcporter call square.make_api_request service=customers method=create 'request={\"given_name\":\"Ada\",\"email_address\":\"ada@example.com\"}'`. Services: customers, orders, invoices (create → publish = send), payments, refunds, catalog, inventory, locations (list → location_id for orders/invoices), merchants, bookings, subscriptions, giftcards, loyalty, team, labor, webhooksubscriptions… Writes are live; add `--env DISALLOW_WRITES=true` to the config for read-only. No-install OAuth alternative: remote MCP https://mcp.squareup.com/mcp (`mcporter auth https://mcp.squareup.com/mcp`). REST fallback: `curl -H \"Authorization: Bearer $TOKEN\" -H 'Square-Version: 2025-10-16' https://connect.squareup.com/v2/locations`. Docs: https://developer.squareup.com/llms.txt"
   },
   "woocommerce-api": {
-    "category": "ecommerce",
+    "category": "commerce",
     "pkg": "@todoforai/woocommerce-api",
     "installer": "npm",
     "label": "WooCommerce",
@@ -2286,7 +2286,7 @@
     "description": "Independent CLI for one store's WooCommerce REST API (wc/v3), 155 commands generated from WooCommerce's own route index. Key: WP Admin → WooCommerce → Settings → Advanced → REST API → Add key (Read/Write) → ck_… / cs_…, or a WordPress application password (key = username); https only (localhost excepted). Commands `<group> <sub-resource->verb [ids]`: `woocommerce-api products list --search mug --per_page 20`, `products create --data '{\"name\":\"Mug\",\"type\":\"simple\",\"regular_price\":\"9.99\"}' --yes`, `products update|delete|variations-list|duplicate`, `orders list --status processing --all`, `orders update 123 --data '{\"status\":\"completed\"}' --yes`, `orders notes-create|refunds-create 123 --data … --yes`, `customers list --email a@b.com`, `coupons`, `reports sales-list`, `shipping zones-list`, `taxes`, `webhooks`, `settings`. Query params keep API names (--per_page, --after…); bodies go in `--data JSON|@file|-`; `--schema` lists fields offline; `--dry-run`; every write needs `--yes`; DELETE trashes unless `--force true`. Other namespaces/plugins: `woocommerce-api request GET /wp-json/wc-analytics/reports/revenue/stats`. Docs: https://woocommerce.github.io/woocommerce-rest-api-docs/"
   },
   "razorpay": {
-    "category": "payments",
+    "category": "finance",
     "pkg": "mcporter",
     "installer": "npm",
     "binName": "mcporter",
@@ -2302,7 +2302,7 @@
     "description": "Razorpay's official remote MCP (https://mcp.razorpay.com/mcp) via mcporter server `razorpay`, authenticated with an API key id + secret (Dashboard → Account & Settings → API Keys; rzp_test_… for test mode) sent as Basic auth. List tools: `mcporter list razorpay --schema`. Call: `mcporter call razorpay.create_payment_link amount=50000 currency=INR description='Invoice 42' --output json` (amounts in paise), `razorpay.create_order`, `razorpay.fetch_all_payments count=10`, `razorpay.fetch_payment payment_id=pay_…`, `razorpay.create_refund`, `razorpay.fetch_all_orders`, `razorpay.fetch_all_settlements`, QR codes, payouts, subscriptions where enabled. Writes are live in live mode — use rzp_test_ keys to try. REST fallback: `curl -u \"$KEY_ID:$KEY_SECRET\" https://api.razorpay.com/v1/payments?count=1`. Docs: https://razorpay.com/docs/mcp-server/remote/"
   },
   "paypal": {
-    "category": "payments",
+    "category": "finance",
     "pkg": "mcporter",
     "installer": "npm",
     "binName": "mcporter",
@@ -2319,7 +2319,7 @@
     "description": "PayPal's official remote MCP (https://mcp.paypal.com/mcp) via mcporter, OAuth login with your PayPal business account (dynamic client registration; no app needed). Call: `mcporter call --http-url https://mcp.paypal.com/mcp --name paypal <tool> key=value --output json`; list tools/schemas: `mcporter list https://mcp.paypal.com/mcp --name paypal --schema`. Tools cover invoices (create_invoice, list_invoices, send_invoice, send_invoice_reminder, cancel_sent_invoice, generate_invoice_qr_code), orders (create_order, get_order, pay_order), list_transactions, create_refund, disputes (list_disputes, get_dispute, accept_dispute_claim), create_shipment_tracking, products, subscription plans/subscriptions, get_merchant_insights. Writes are live. Headless/sandbox alternative: local stdio `npx -y @paypal/mcp --tools=all` with env PAYPAL_ACCESS_TOKEN (from client_credentials on a developer.paypal.com app) and PAYPAL_ENVIRONMENT=SANDBOX|PRODUCTION. Docs: https://developer.paypal.com/tools/mcp-server/"
   },
   "easypost-api": {
-    "category": "ecommerce",
+    "category": "commerce",
     "pkg": "@todoforai/easypost-api",
     "installer": "npm",
     "label": "EasyPost",
@@ -2333,7 +2333,7 @@
     "description": "API key: https://www.easypost.com/account/api-keys (test keys EZTK… never buy postage; production EZAK… do). Independent CLI over the EasyPost API v2 (Basic auth, key as username), generated from the official docs: 107 commands grouped by resource — `easypost-api shipments create --data '{\"shipment\":{\"from_address\":{…},\"to_address\":{…},\"parcel\":{…}}}' --yes` (returns rates), `shipments buy shp_… --data '{\"rate\":{\"id\":\"rate_…\"}}' --yes`, `shipments refund|rerate|label|insure`, `trackers create --data '{\"tracker\":{\"tracking_code\":\"EZ1000000001\"}}' --yes`, `addresses create --data '{\"address\":{…},\"verify\":true}' --yes`, batches, pickups, scan-forms, webhooks, reports. Each `--help` links its docs page for request fields; `--dry-run`, `--data JSON|@file|-`; every write needs `--yes`. Lists: `--param page_size=5 --param before_id=<last id>` while has_more. Anything else: `easypost-api request GET /carrier_types`. `whoami` = key valid + test/production mode."
   },
   "braintree-api": {
-    "category": "payments",
+    "category": "finance",
     "pkg": "@todoforai/braintree-api",
     "installer": "npm",
     "label": "Braintree",
@@ -2347,7 +2347,7 @@
     "description": "API keys: Braintree Control Panel → Settings → API (public + private key; sandbox at https://www.braintreepayments.com/sandbox). auth pings production then sandbox and saves whichever accepts the keys. Independent CLI over the Braintree GraphQL API (Braintree-Version 2019-01-01), generated from the official schema: 137 commands, `query <field>` / `mutation <field>` in kebab-case, each argument a JSON option — `braintree-api query transactions --input '{\"status\":{\"in\":[\"SETTLED\"]}}' --first 10`, `mutation charge-payment-method --input '{\"paymentMethodId\":\"…\",\"transaction\":{\"amount\":\"10.00\"}}' --yes`, `mutation create-customer|refund-transaction|vault-payment-method|create-recurring-billing-subscription`, `query viewer|customers|refunds|disputes`. `--schema` = document + input types offline, `--select` replaces the default selection, `--dry-run`; every mutation needs `--yes`. GraphQL errors (HTTP 200) exit 1. Anything else: `braintree-api graphql --query '…'`. `whoami` = keys valid + environment."
   },
   "ebay-api": {
-    "category": "ecommerce",
+    "category": "commerce",
     "pkg": "@todoforai/ebay-api",
     "installer": "npm",
     "label": "eBay",
@@ -2378,7 +2378,7 @@
     "description": "Linear's official remote MCP (https://mcp.linear.app/mcp) via mcporter, OAuth login (dynamic client registration — the user signs in with their own Linear account). List tools + schemas: `mcporter list https://mcp.linear.app/mcp --name linear --schema`. Call: `mcporter call --http-url https://mcp.linear.app/mcp --name linear <tool> key=value --output json`."
   },
   "airtable": {
-    "category": "database",
+    "category": "data",
     "pkg": "mcporter",
     "installer": "npm",
     "binName": "mcporter",
@@ -2395,7 +2395,7 @@
     "description": "Airtable's official remote MCP (https://mcp.airtable.com/mcp) via mcporter, OAuth login (dynamic client registration — the user signs in with their own Airtable account). List tools + schemas: `mcporter list https://mcp.airtable.com/mcp --name airtable --schema`. Call: `mcporter call --http-url https://mcp.airtable.com/mcp --name airtable <tool> key=value --output json`."
   },
   "sanity": {
-    "category": "development",
+    "category": "developer",
     "pkg": "mcporter",
     "installer": "npm",
     "binName": "mcporter",
@@ -2463,7 +2463,7 @@
     "description": "Repuso's official remote MCP (https://api.repuso.com/public/v1/mcp) via mcporter, OAuth login (dynamic client registration — the user signs in with their own Repuso account). List tools + schemas: `mcporter list https://api.repuso.com/public/v1/mcp --name repuso --schema`. Call: `mcporter call --http-url https://api.repuso.com/public/v1/mcp --name repuso <tool> key=value --output json`."
   },
   "predictleads": {
-    "category": "marketing",
+    "category": "sales",
     "pkg": "mcporter",
     "installer": "npm",
     "binName": "mcporter",
@@ -2497,7 +2497,7 @@
     "description": "Certifier's official remote MCP (https://api.certifier.io/v1/mcp) via mcporter, OAuth login (dynamic client registration — the user signs in with their own Certifier account). List tools + schemas: `mcporter list https://api.certifier.io/v1/mcp --name certifier --schema`. Call: `mcporter call --http-url https://api.certifier.io/v1/mcp --name certifier <tool> key=value --output json`."
   },
   "callingly": {
-    "category": "productivity",
+    "category": "communication",
     "pkg": "mcporter",
     "installer": "npm",
     "binName": "mcporter",
@@ -2514,7 +2514,7 @@
     "description": "Callingly's official remote MCP (https://api.callingly.com/mcp) via mcporter, OAuth login (dynamic client registration — the user signs in with their own Callingly account). List tools + schemas: `mcporter list https://api.callingly.com/mcp --name callingly --schema`. Call: `mcporter call --http-url https://api.callingly.com/mcp --name callingly <tool> key=value --output json`."
   },
   "parallel": {
-    "category": "utility",
+    "category": "research",
     "pkg": "mcporter",
     "installer": "npm",
     "binName": "mcporter",
@@ -2531,7 +2531,7 @@
     "description": "Parallel's official remote MCP (https://search-mcp.parallel.ai/mcp) via mcporter, OAuth login (dynamic client registration — the user signs in with their own Parallel account). List tools + schemas: `mcporter list https://search-mcp.parallel.ai/mcp --name parallel --schema`. Call: `mcporter call --http-url https://search-mcp.parallel.ai/mcp --name parallel <tool> key=value --output json`."
   },
   "quintadb": {
-    "category": "database",
+    "category": "data",
     "pkg": "mcporter",
     "installer": "npm",
     "binName": "mcporter",
@@ -2565,7 +2565,7 @@
     "description": "AppsFlyer's official remote MCP (https://mcp.appsflyer.com/auth/mcp) via mcporter, OAuth login (dynamic client registration — the user signs in with their own AppsFlyer account). List tools + schemas: `mcporter list https://mcp.appsflyer.com/auth/mcp --name appsflyer --schema`. Call: `mcporter call --http-url https://mcp.appsflyer.com/auth/mcp --name appsflyer <tool> key=value --output json`."
   },
   "lucid": {
-    "category": "design",
+    "category": "creative",
     "pkg": "mcporter",
     "installer": "npm",
     "binName": "mcporter",
@@ -2633,7 +2633,7 @@
     "description": "SimplyPrint's official remote MCP (https://simplyprint.io/api/mcp) via mcporter, OAuth login (dynamic client registration — the user signs in with their own SimplyPrint account). List tools + schemas: `mcporter list https://simplyprint.io/api/mcp --name simplyprint --schema`. Call: `mcporter call --http-url https://simplyprint.io/api/mcp --name simplyprint <tool> key=value --output json`."
   },
   "thoughtspot": {
-    "category": "monitoring",
+    "category": "data",
     "pkg": "mcporter",
     "installer": "npm",
     "binName": "mcporter",
@@ -2650,7 +2650,7 @@
     "description": "ThoughtSpot's official remote MCP (https://agent.thoughtspot.app/mcp) via mcporter, OAuth login (dynamic client registration — the user signs in with their own ThoughtSpot account). List tools + schemas: `mcporter list https://agent.thoughtspot.app/mcp --name thoughtspot --schema`. Call: `mcporter call --http-url https://agent.thoughtspot.app/mcp --name thoughtspot <tool> key=value --output json`."
   },
   "wachete": {
-    "category": "monitoring",
+    "category": "research",
     "pkg": "mcporter",
     "installer": "npm",
     "binName": "mcporter",
@@ -2667,7 +2667,7 @@
     "description": "Wachete's official remote MCP (https://api.wachete.com/mcp) via mcporter, OAuth login (dynamic client registration — the user signs in with their own Wachete account). List tools + schemas: `mcporter list https://api.wachete.com/mcp --name wachete --schema`. Call: `mcporter call --http-url https://api.wachete.com/mcp --name wachete <tool> key=value --output json`."
   },
   "huggingface": {
-    "category": "development",
+    "category": "developer",
     "pkg": "mcporter",
     "installer": "npm",
     "binName": "mcporter",
@@ -2684,7 +2684,7 @@
     "description": "Hugging Face's official remote MCP (https://huggingface.co/mcp?login) via mcporter, OAuth login (dynamic client registration — the user signs in with their own Hugging Face account). List tools + schemas: `mcporter list https://huggingface.co/mcp?login --name huggingface --schema`. Call: `mcporter call --http-url https://huggingface.co/mcp?login --name huggingface <tool> key=value --output json`."
   },
   "shotstack": {
-    "category": "media",
+    "category": "creative",
     "pkg": "mcporter",
     "installer": "npm",
     "binName": "mcporter",
@@ -2718,7 +2718,7 @@
     "description": "Typefully's official remote MCP (https://mcp.typefully.com/mcp) via mcporter, OAuth login (dynamic client registration — the user signs in with their own Typefully account). List tools + schemas: `mcporter list https://mcp.typefully.com/mcp --name typefully --schema`. Call: `mcporter call --http-url https://mcp.typefully.com/mcp --name typefully <tool> key=value --output json`."
   },
   "octoparse": {
-    "category": "utility",
+    "category": "research",
     "pkg": "mcporter",
     "installer": "npm",
     "binName": "mcporter",
@@ -2735,7 +2735,7 @@
     "description": "Octoparse's official remote MCP (https://mcp.octoparse.com) via mcporter, OAuth login (dynamic client registration — the user signs in with their own Octoparse account). List tools + schemas: `mcporter list https://mcp.octoparse.com --name octoparse --schema`. Call: `mcporter call --http-url https://mcp.octoparse.com --name octoparse <tool> key=value --output json`."
   },
   "tickettailor": {
-    "category": "ecommerce",
+    "category": "commerce",
     "pkg": "mcporter",
     "installer": "npm",
     "binName": "mcporter",
@@ -2752,7 +2752,7 @@
     "description": "Ticket Tailor's official remote MCP (https://mcp.tickettailor.ai/mcp) via mcporter, OAuth login (dynamic client registration — the user signs in with their own Ticket Tailor account). List tools + schemas: `mcporter list https://mcp.tickettailor.ai/mcp --name tickettailor --schema`. Call: `mcporter call --http-url https://mcp.tickettailor.ai/mcp --name tickettailor <tool> key=value --output json`."
   },
   "enigma": {
-    "category": "marketing",
+    "category": "sales",
     "pkg": "mcporter",
     "installer": "npm",
     "binName": "mcporter",
@@ -2769,7 +2769,7 @@
     "description": "Enigma's official remote MCP (https://mcp.enigma.com/http) via mcporter, OAuth login (dynamic client registration — the user signs in with their own Enigma account). List tools + schemas: `mcporter list https://mcp.enigma.com/http --name enigma --schema`. Call: `mcporter call --http-url https://mcp.enigma.com/http --name enigma <tool> key=value --output json`."
   },
   "explorium": {
-    "category": "marketing",
+    "category": "sales",
     "pkg": "mcporter",
     "installer": "npm",
     "binName": "mcporter",
@@ -2786,7 +2786,7 @@
     "description": "Explorium's official remote MCP (https://mcp-github-registry.explorium.ai/mcp) via mcporter, OAuth login (dynamic client registration — the user signs in with their own Explorium account). List tools + schemas: `mcporter list https://mcp-github-registry.explorium.ai/mcp --name explorium --schema`. Call: `mcporter call --http-url https://mcp-github-registry.explorium.ai/mcp --name explorium <tool> key=value --output json`."
   },
   "chatbase": {
-    "category": "productivity",
+    "category": "communication",
     "pkg": "mcporter",
     "installer": "npm",
     "binName": "mcporter",
@@ -2803,7 +2803,7 @@
     "description": "Chatbase's official remote MCP (https://mcp.chatbase.co/api/mcp) via mcporter, OAuth login (dynamic client registration — the user signs in with their own Chatbase account). List tools + schemas: `mcporter list https://mcp.chatbase.co/api/mcp --name chatbase --schema`. Call: `mcporter call --http-url https://mcp.chatbase.co/api/mcp --name chatbase <tool> key=value --output json`."
   },
   "postman": {
-    "category": "development",
+    "category": "developer",
     "pkg": "mcporter",
     "installer": "npm",
     "binName": "mcporter",
@@ -2820,7 +2820,7 @@
     "description": "Postman's official remote MCP (https://mcp.postman.com/mcp) via mcporter, OAuth login (dynamic client registration — the user signs in with their own Postman account). List tools + schemas: `mcporter list https://mcp.postman.com/mcp --name postman --schema`. Call: `mcporter call --http-url https://mcp.postman.com/mcp --name postman <tool> key=value --output json`."
   },
   "unstructured": {
-    "category": "utility",
+    "category": "documents",
     "pkg": "mcporter",
     "installer": "npm",
     "binName": "mcporter",
@@ -2837,7 +2837,7 @@
     "description": "Unstructured's official remote MCP (https://mcp.transform.unstructured.io) via mcporter, OAuth login (dynamic client registration — the user signs in with their own Unstructured account). List tools + schemas: `mcporter list https://mcp.transform.unstructured.io --name unstructured --schema`. Call: `mcporter call --http-url https://mcp.transform.unstructured.io --name unstructured <tool> key=value --output json`."
   },
   "jumpcloud": {
-    "category": "security",
+    "category": "cloud",
     "pkg": "mcporter",
     "installer": "npm",
     "binName": "mcporter",
@@ -2854,7 +2854,7 @@
     "description": "JumpCloud's official remote MCP (https://mcp.jumpcloud.com/v1) via mcporter, OAuth login (dynamic client registration — the user signs in with their own JumpCloud account). List tools + schemas: `mcporter list https://mcp.jumpcloud.com/v1 --name jumpcloud --schema`. Call: `mcporter call --http-url https://mcp.jumpcloud.com/v1 --name jumpcloud <tool> key=value --output json`."
   },
   "coinmarketcap": {
-    "category": "utility",
+    "category": "finance",
     "pkg": "mcporter",
     "installer": "npm",
     "binName": "mcporter",
@@ -2871,7 +2871,7 @@
     "description": "CoinMarketCap's official remote MCP (https://mcp.coinmarketcap.com/mcp) via mcporter, OAuth login (dynamic client registration — the user signs in with their own CoinMarketCap account). List tools + schemas: `mcporter list https://mcp.coinmarketcap.com/mcp --name coinmarketcap --schema`. Call: `mcporter call --http-url https://mcp.coinmarketcap.com/mcp --name coinmarketcap <tool> key=value --output json`."
   },
   "qase": {
-    "category": "testing",
+    "category": "developer",
     "pkg": "mcporter",
     "installer": "npm",
     "binName": "mcporter",
@@ -2888,7 +2888,7 @@
     "description": "Qase's official remote MCP (https://mcp.qase.io/mcp) via mcporter, OAuth login (dynamic client registration — the user signs in with their own Qase account). List tools + schemas: `mcporter list https://mcp.qase.io/mcp --name qase --schema`. Call: `mcporter call --http-url https://mcp.qase.io/mcp --name qase <tool> key=value --output json`."
   },
   "gtmetrix": {
-    "category": "monitoring",
+    "category": "developer",
     "pkg": "mcporter",
     "installer": "npm",
     "binName": "mcporter",
@@ -2905,7 +2905,7 @@
     "description": "GTmetrix's official remote MCP (https://gtmetrix.com/mcp) via mcporter, OAuth login (dynamic client registration — the user signs in with their own GTmetrix account). List tools + schemas: `mcporter list https://gtmetrix.com/mcp --name gtmetrix --schema`. Call: `mcporter call --http-url https://gtmetrix.com/mcp --name gtmetrix <tool> key=value --output json`."
   },
   "agilitycms": {
-    "category": "development",
+    "category": "developer",
     "pkg": "mcporter",
     "installer": "npm",
     "binName": "mcporter",
@@ -2922,7 +2922,7 @@
     "description": "Agility CMS's official remote MCP (https://mcp.agilitycms.com/api/mcp) via mcporter, OAuth login (dynamic client registration — the user signs in with their own Agility CMS account). List tools + schemas: `mcporter list https://mcp.agilitycms.com/api/mcp --name agilitycms --schema`. Call: `mcporter call --http-url https://mcp.agilitycms.com/api/mcp --name agilitycms <tool> key=value --output json`."
   },
   "keboola": {
-    "category": "database",
+    "category": "data",
     "pkg": "mcporter",
     "installer": "npm",
     "binName": "mcporter",
@@ -2939,7 +2939,7 @@
     "description": "Keboola's official remote MCP (https://mcp.us-east4.gcp.keboola.com/mcp) via mcporter, OAuth login (dynamic client registration — the user signs in with their own Keboola account). List tools + schemas: `mcporter list https://mcp.us-east4.gcp.keboola.com/mcp --name keboola --schema`. Call: `mcporter call --http-url https://mcp.us-east4.gcp.keboola.com/mcp --name keboola <tool> key=value --output json`."
   },
   "2chat": {
-    "category": "social",
+    "category": "communication",
     "pkg": "mcporter",
     "installer": "npm",
     "binName": "mcporter",
@@ -2973,7 +2973,7 @@
     "description": "Avaza's official remote MCP (https://mcp.avaza.com/mcp) via mcporter, OAuth login (dynamic client registration — the user signs in with their own Avaza account). List tools + schemas: `mcporter list https://mcp.avaza.com/mcp --name avaza --schema`. Call: `mcporter call --http-url https://mcp.avaza.com/mcp --name avaza <tool> key=value --output json`."
   },
   "whimsical": {
-    "category": "design",
+    "category": "creative",
     "pkg": "mcporter",
     "installer": "npm",
     "binName": "mcporter",
@@ -2990,7 +2990,7 @@
     "description": "Whimsical's official remote MCP (https://mcp.whimsical.com/mcp) via mcporter, OAuth login (dynamic client registration — the user signs in with their own Whimsical account). List tools + schemas: `mcporter list https://mcp.whimsical.com/mcp --name whimsical --schema`. Call: `mcporter call --http-url https://mcp.whimsical.com/mcp --name whimsical <tool> key=value --output json`."
   },
   "famulor": {
-    "category": "productivity",
+    "category": "communication",
     "pkg": "mcporter",
     "installer": "npm",
     "binName": "mcporter",
@@ -3007,7 +3007,7 @@
     "description": "Famulor's official remote MCP (https://app.famulor.io/mcp) via mcporter, OAuth login (dynamic client registration — the user signs in with their own Famulor account). List tools + schemas: `mcporter list https://app.famulor.io/mcp --name famulor --schema`. Call: `mcporter call --http-url https://app.famulor.io/mcp --name famulor <tool> key=value --output json`."
   },
   "apiverve": {
-    "category": "utility",
+    "category": "research",
     "pkg": "mcporter",
     "installer": "npm",
     "binName": "mcporter",
@@ -3024,7 +3024,7 @@
     "description": "APIVerve's official remote MCP (https://api.apiverve.com/v1/mcp) via mcporter, OAuth login (dynamic client registration — the user signs in with their own APIVerve account). List tools + schemas: `mcporter list https://api.apiverve.com/v1/mcp --name apiverve --schema`. Call: `mcporter call --http-url https://api.apiverve.com/v1/mcp --name apiverve <tool> key=value --output json`."
   },
   "uptimerobot": {
-    "category": "monitoring",
+    "category": "developer",
     "pkg": "mcporter",
     "installer": "npm",
     "binName": "mcporter",
@@ -3041,7 +3041,7 @@
     "description": "UptimeRobot's official remote MCP (https://mcp.uptimerobot.com/mcp) via mcporter, OAuth login (dynamic client registration — the user signs in with their own UptimeRobot account). List tools + schemas: `mcporter list https://mcp.uptimerobot.com/mcp --name uptimerobot --schema`. Call: `mcporter call --http-url https://mcp.uptimerobot.com/mcp --name uptimerobot <tool> key=value --output json`."
   },
   "spider": {
-    "category": "utility",
+    "category": "research",
     "pkg": "mcporter",
     "installer": "npm",
     "binName": "mcporter",
@@ -3058,7 +3058,7 @@
     "description": "Spider's official remote MCP (https://mcp.spider.cloud/mcp) via mcporter, OAuth login (dynamic client registration — the user signs in with their own Spider account). List tools + schemas: `mcporter list https://mcp.spider.cloud/mcp --name spider --schema`. Call: `mcporter call --http-url https://mcp.spider.cloud/mcp --name spider <tool> key=value --output json`."
   },
   "rootly": {
-    "category": "monitoring",
+    "category": "developer",
     "pkg": "mcporter",
     "installer": "npm",
     "binName": "mcporter",
@@ -3075,7 +3075,7 @@
     "description": "Rootly's official remote MCP (https://mcp.rootly.com/sse) via mcporter, OAuth login (dynamic client registration — the user signs in with their own Rootly account). List tools + schemas: `mcporter list https://mcp.rootly.com/sse --name rootly --schema`. Call: `mcporter call --http-url https://mcp.rootly.com/sse --name rootly <tool> key=value --output json`."
   },
   "alchemy": {
-    "category": "development",
+    "category": "developer",
     "pkg": "mcporter",
     "installer": "npm",
     "binName": "mcporter",
@@ -3092,7 +3092,7 @@
     "description": "Alchemy's official remote MCP (https://mcp.alchemy.com/mcp) via mcporter, OAuth login (dynamic client registration — the user signs in with their own Alchemy account). List tools + schemas: `mcporter list https://mcp.alchemy.com/mcp --name alchemy --schema`. Call: `mcporter call --http-url https://mcp.alchemy.com/mcp --name alchemy <tool> key=value --output json`."
   },
   "amplitude": {
-    "category": "monitoring",
+    "category": "data",
     "pkg": "mcporter",
     "installer": "npm",
     "binName": "mcporter",
@@ -3109,7 +3109,7 @@
     "description": "Amplitude's official remote MCP (https://mcp.amplitude.com/mcp) via mcporter, OAuth login (dynamic client registration — the user signs in with their own Amplitude account). List tools + schemas: `mcporter list https://mcp.amplitude.com/mcp --name amplitude --schema`. Call: `mcporter call --http-url https://mcp.amplitude.com/mcp --name amplitude <tool> key=value --output json`."
   },
   "abyssale": {
-    "category": "design",
+    "category": "creative",
     "pkg": "mcporter",
     "installer": "npm",
     "binName": "mcporter",
@@ -3125,7 +3125,7 @@
     "description": "Abyssale's official remote MCP (https://mcp.abyssale.com/mcp) via mcporter server `abyssale`, API-key login. Key: Abyssale → Settings → API key. Tools + schemas: `mcporter list abyssale --schema`. Call: `mcporter call abyssale.<tool> key=value --output json`. Some servers list tools even with a wrong key — a failing first call means re-connect with a correct key."
   },
   "altoviz": {
-    "category": "payments",
+    "category": "finance",
     "pkg": "mcporter",
     "installer": "npm",
     "binName": "mcporter",
@@ -3141,7 +3141,7 @@
     "description": "Altoviz's official remote MCP (https://mcp.altoviz.com) via mcporter server `altoviz`, API-key login. Key: Altoviz → Settings → API. Tools + schemas: `mcporter list altoviz --schema`. Call: `mcporter call altoviz.<tool> key=value --output json`. Some servers list tools even with a wrong key — a failing first call means re-connect with a correct key."
   },
   "apify": {
-    "category": "utility",
+    "category": "research",
     "pkg": "mcporter",
     "installer": "npm",
     "binName": "mcporter",
@@ -3157,7 +3157,7 @@
     "description": "Apify's official remote MCP (https://mcp.apify.com/) via mcporter server `apify`, API-key login. Key: https://console.apify.com/settings/integrations. Tools + schemas: `mcporter list apify --schema`. Call: `mcporter call apify.<tool> key=value --output json`. Some servers list tools even with a wrong key — a failing first call means re-connect with a correct key."
   },
   "apininjas": {
-    "category": "utility",
+    "category": "research",
     "pkg": "mcporter",
     "installer": "npm",
     "binName": "mcporter",
@@ -3189,7 +3189,7 @@
     "description": "Blotato's official remote MCP (https://mcp.blotato.com/mcp) via mcporter server `blotato`, API-key login. Key: https://my.blotato.com/settings/api. Tools + schemas: `mcporter list blotato --schema`. Call: `mcporter call blotato.<tool> key=value --output json`. Some servers list tools even with a wrong key — a failing first call means re-connect with a correct key."
   },
   "brandfetch": {
-    "category": "design",
+    "category": "creative",
     "pkg": "mcporter",
     "installer": "npm",
     "binName": "mcporter",
@@ -3205,7 +3205,7 @@
     "description": "Brandfetch's official remote MCP (https://mcp.brandfetch.io/mcp) via mcporter server `brandfetch`, API-key login. Key: https://developers.brandfetch.com/dashboard. Tools + schemas: `mcporter list brandfetch --schema`. Call: `mcporter call brandfetch.<tool> key=value --output json`. Some servers list tools even with a wrong key — a failing first call means re-connect with a correct key."
   },
   "circleci": {
-    "category": "deployment",
+    "category": "developer",
     "pkg": "mcporter",
     "installer": "npm",
     "binName": "mcporter",
@@ -3221,7 +3221,7 @@
     "description": "CircleCI's official remote MCP (https://mcp.circleci.com/v1/mcp) via mcporter server `circleci`, API-key login. Key: CircleCI → User Settings → Personal API Tokens. Tools + schemas: `mcporter list circleci --schema`. Call: `mcporter call circleci.<tool> key=value --output json`. Some servers list tools even with a wrong key — a failing first call means re-connect with a correct key."
   },
   "docsautomator": {
-    "category": "productivity",
+    "category": "documents",
     "pkg": "mcporter",
     "installer": "npm",
     "binName": "mcporter",
@@ -3237,7 +3237,7 @@
     "description": "DocsAutomator's official remote MCP (https://mcp.docsautomator.co/mcp) via mcporter server `docsautomator`, API-key login. Key: DocsAutomator → Settings → API. Tools + schemas: `mcporter list docsautomator --schema`. Call: `mcporter call docsautomator.<tool> key=value --output json`. Some servers list tools even with a wrong key — a failing first call means re-connect with a correct key."
   },
   "easyship": {
-    "category": "ecommerce",
+    "category": "commerce",
     "pkg": "mcporter",
     "installer": "npm",
     "binName": "mcporter",
@@ -3253,7 +3253,7 @@
     "description": "Easyship's official remote MCP (https://mcp.easyship.com/mcp) via mcporter server `easyship`, API-key login. Key: Easyship → Connect → API Integrations → access token. Tools + schemas: `mcporter list easyship --schema`. Call: `mcporter call easyship.<tool> key=value --output json`. Some servers list tools even with a wrong key — a failing first call means re-connect with a correct key."
   },
   "enrow": {
-    "category": "marketing",
+    "category": "sales",
     "pkg": "mcporter",
     "installer": "npm",
     "binName": "mcporter",
@@ -3285,7 +3285,7 @@
     "description": "Formcarry's official remote MCP (https://mcp.formcarry.com/mcp) via mcporter server `formcarry`, API-key login. Key: Formcarry → Account → API (fc_live_…). Tools + schemas: `mcporter list formcarry --schema`. Call: `mcporter call formcarry.<tool> key=value --output json`. Some servers list tools even with a wrong key — a failing first call means re-connect with a correct key."
   },
   "globalexchangerates": {
-    "category": "payments",
+    "category": "finance",
     "pkg": "mcporter",
     "installer": "npm",
     "binName": "mcporter",
@@ -3301,7 +3301,7 @@
     "description": "Global Exchange Rates's official remote MCP (https://api.globalexchangerates.org/v1/mcp) via mcporter server `globalexchangerates`, API-key login. Key: globalexchangerates.org → free API key. Tools + schemas: `mcporter list globalexchangerates --schema`. Call: `mcporter call globalexchangerates.<tool> key=value --output json`. Some servers list tools even with a wrong key — a failing first call means re-connect with a correct key."
   },
   "hasdata": {
-    "category": "utility",
+    "category": "research",
     "pkg": "mcporter",
     "installer": "npm",
     "binName": "mcporter",
@@ -3317,7 +3317,7 @@
     "description": "HasData's official remote MCP (https://mcp.hasdata.com/mcp) via mcporter server `hasdata`, API-key login. Key: https://app.hasdata.com/ → API key. Tools + schemas: `mcporter list hasdata --schema`. Call: `mcporter call hasdata.<tool> key=value --output json`. Some servers list tools even with a wrong key — a failing first call means re-connect with a correct key."
   },
   "heyreach": {
-    "category": "marketing",
+    "category": "sales",
     "pkg": "mcporter",
     "installer": "npm",
     "binName": "mcporter",
@@ -3333,7 +3333,7 @@
     "description": "HeyReach's official remote MCP (https://mcp.heyreach.io/mcp) via mcporter server `heyreach`, API-key login. Key: HeyReach → Integrations → API key. Tools + schemas: `mcporter list heyreach --schema`. Call: `mcporter call heyreach.<tool> key=value --output json`. Some servers list tools even with a wrong key — a failing first call means re-connect with a correct key."
   },
   "infobip": {
-    "category": "email",
+    "category": "communication",
     "pkg": "mcporter",
     "installer": "npm",
     "binName": "mcporter",
@@ -3349,7 +3349,7 @@
     "description": "Infobip's official remote MCP (https://mcp.infobip.com/sms) via mcporter server `infobip`, API-key login. Key: Infobip portal → Developers → API keys. Tools + schemas: `mcporter list infobip --schema`. Call: `mcporter call infobip.<tool> key=value --output json`. Some servers list tools even with a wrong key — a failing first call means re-connect with a correct key."
   },
   "jumpseller": {
-    "category": "ecommerce",
+    "category": "commerce",
     "pkg": "mcporter",
     "installer": "npm",
     "binName": "mcporter",
@@ -3381,7 +3381,7 @@
     "description": "Mobile Text Alerts's official remote MCP (https://mcp.mobile-text-alerts.com/mcp) via mcporter server `mobiletextalerts`, API-key login. Key: Mobile Text Alerts → Settings → API. Tools + schemas: `mcporter list mobiletextalerts --schema`. Call: `mcporter call mobiletextalerts.<tool> key=value --output json`. Some servers list tools even with a wrong key — a failing first call means re-connect with a correct key."
   },
   "mux": {
-    "category": "media",
+    "category": "creative",
     "pkg": "mcporter",
     "installer": "npm",
     "binName": "mcporter",
@@ -3397,7 +3397,7 @@
     "description": "Mux's official remote MCP (https://mcp.mux.com) via mcporter server `mux`, API-key login. Key: https://dashboard.mux.com/settings/access-tokens (ID + secret). Tools + schemas: `mcporter list mux --schema`. Call: `mcporter call mux.<tool> key=value --output json`. Some servers list tools even with a wrong key — a failing first call means re-connect with a correct key."
   },
   "newrelic": {
-    "category": "monitoring",
+    "category": "developer",
     "pkg": "mcporter",
     "installer": "npm",
     "binName": "mcporter",
@@ -3413,7 +3413,7 @@
     "description": "New Relic's official remote MCP (https://mcp.newrelic.com/mcp) via mcporter server `newrelic`, API-key login. Key: New Relic → API keys → User key (NRAK-…). Tools + schemas: `mcporter list newrelic --schema`. Call: `mcporter call newrelic.<tool> key=value --output json`. Some servers list tools even with a wrong key — a failing first call means re-connect with a correct key."
   },
   "newscatcher": {
-    "category": "utility",
+    "category": "research",
     "pkg": "mcporter",
     "installer": "npm",
     "binName": "mcporter",
@@ -3429,7 +3429,7 @@
     "description": "NewsCatcher's official remote MCP (https://catchall-mcp.newscatcherapi.com/mcp) via mcporter server `newscatcher`, API-key login. Key: https://www.newscatcherapi.com/ dashboard. Tools + schemas: `mcporter list newscatcher --schema`. Call: `mcporter call newscatcher.<tool> key=value --output json`. Some servers list tools even with a wrong key — a failing first call means re-connect with a correct key."
   },
   "onepagecrm": {
-    "category": "marketing",
+    "category": "sales",
     "pkg": "mcporter",
     "installer": "npm",
     "binName": "mcporter",
@@ -3445,7 +3445,7 @@
     "description": "OnePageCRM's official remote MCP (https://app.onepagecrm.com/mcp) via mcporter server `onepagecrm`, API-key login. Key: OnePageCRM → Apps → API. Tools + schemas: `mcporter list onepagecrm --schema`. Call: `mcporter call onepagecrm.<tool> key=value --output json`. Some servers list tools even with a wrong key — a failing first call means re-connect with a correct key."
   },
   "oxylabs": {
-    "category": "utility",
+    "category": "research",
     "pkg": "mcporter",
     "installer": "npm",
     "binName": "mcporter",
@@ -3477,7 +3477,7 @@
     "description": "Produktly's official remote MCP (https://api.produktly.com/api/mcp) via mcporter server `produktly`, API-key login. Key: Produktly → Settings → private API key. Tools + schemas: `mcporter list produktly --schema`. Call: `mcporter call produktly.<tool> key=value --output json`. Some servers list tools even with a wrong key — a failing first call means re-connect with a correct key."
   },
   "prospeo": {
-    "category": "marketing",
+    "category": "sales",
     "pkg": "mcporter",
     "installer": "npm",
     "binName": "mcporter",
@@ -3493,7 +3493,7 @@
     "description": "Prospeo's official remote MCP (https://mcp.prospeo.io) via mcporter server `prospeo`, API-key login. Key: https://app.prospeo.io/api. Tools + schemas: `mcporter list prospeo --schema`. Call: `mcporter call prospeo.<tool> key=value --output json`. Some servers list tools even with a wrong key — a failing first call means re-connect with a correct key."
   },
   "roboflow": {
-    "category": "development",
+    "category": "developer",
     "pkg": "mcporter",
     "installer": "npm",
     "binName": "mcporter",
@@ -3509,7 +3509,7 @@
     "description": "Roboflow's official remote MCP (https://mcp.roboflow.com/mcp) via mcporter server `roboflow`, API-key login. Key: Roboflow → Settings → API keys. Tools + schemas: `mcporter list roboflow --schema`. Call: `mcporter call roboflow.<tool> key=value --output json`. Some servers list tools even with a wrong key — a failing first call means re-connect with a correct key."
   },
   "scrapingant": {
-    "category": "utility",
+    "category": "research",
     "pkg": "mcporter",
     "installer": "npm",
     "binName": "mcporter",
@@ -3525,7 +3525,7 @@
     "description": "ScrapingAnt's official remote MCP (https://api.scrapingant.com/mcp/) via mcporter server `scrapingant`, API-key login. Key: https://app.scrapingant.com/dashboard. Tools + schemas: `mcporter list scrapingant --schema`. Call: `mcporter call scrapingant.<tool> key=value --output json`. Some servers list tools even with a wrong key — a failing first call means re-connect with a correct key."
   },
   "signatureapi": {
-    "category": "productivity",
+    "category": "documents",
     "pkg": "mcporter",
     "installer": "npm",
     "binName": "mcporter",
@@ -3541,7 +3541,7 @@
     "description": "SignatureAPI's official remote MCP (https://mcp.signatureapi.com/mcp) via mcporter server `signatureapi`, API-key login. Key: SignatureAPI dashboard → API keys. Tools + schemas: `mcporter list signatureapi --schema`. Call: `mcporter call signatureapi.<tool> key=value --output json`. Some servers list tools even with a wrong key — a failing first call means re-connect with a correct key."
   },
   "smartroutes": {
-    "category": "ecommerce",
+    "category": "commerce",
     "pkg": "mcporter",
     "installer": "npm",
     "binName": "mcporter",
@@ -3557,7 +3557,7 @@
     "description": "SmartRoutes's official remote MCP (https://mcp.smartroutes.io/mcp) via mcporter server `smartroutes`, API-key login. Key: SmartRoutes → Settings → API. Tools + schemas: `mcporter list smartroutes --schema`. Call: `mcporter call smartroutes.<tool> key=value --output json`. Some servers list tools even with a wrong key — a failing first call means re-connect with a correct key."
   },
   "topmessage": {
-    "category": "email",
+    "category": "communication",
     "pkg": "mcporter",
     "installer": "npm",
     "binName": "mcporter",
@@ -3573,7 +3573,7 @@
     "description": "TopMessage's official remote MCP (https://api.topmessage.com/mcp) via mcporter server `topmessage`, API-key login. Key: TopMessage dashboard → API key. Tools + schemas: `mcporter list topmessage --schema`. Call: `mcporter call topmessage.<tool> key=value --output json`. Some servers list tools even with a wrong key — a failing first call means re-connect with a correct key."
   },
   "vincario": {
-    "category": "utility",
+    "category": "research",
     "pkg": "mcporter",
     "installer": "npm",
     "binName": "mcporter",
@@ -3589,7 +3589,7 @@
     "description": "Vincario's official remote MCP (https://mcp.vincario.com/mcp) via mcporter server `vincario`, API-key login. Key: https://vincario.com/ → API key. Tools + schemas: `mcporter list vincario --schema`. Call: `mcporter call vincario.<tool> key=value --output json`. Some servers list tools even with a wrong key — a failing first call means re-connect with a correct key."
   },
   "apideck": {
-    "category": "development",
+    "category": "developer",
     "pkg": "mcporter",
     "installer": "npm",
     "binName": "mcporter",
@@ -3605,7 +3605,7 @@
     "description": "Apideck's official remote MCP (https://mcp.apideck.dev/mcp) via mcporter server `apideck`, API-key login. Key: Apideck → Configuration → API keys (key + app ID; consumer ID = your connected customer). Tools + schemas: `mcporter list apideck --schema`. Call: `mcporter call apideck.<tool> key=value --output json`. Some servers list tools even with a wrong key — a failing first call means re-connect with a correct key."
   },
   "blockscout": {
-    "category": "development",
+    "category": "developer",
     "pkg": "mcporter",
     "installer": "npm",
     "binName": "mcporter",
@@ -3615,7 +3615,7 @@
     "description": "Blockscout's official remote MCP (https://mcp.blockscout.com/mcp), no login needed. Tools + schemas: `mcporter list https://mcp.blockscout.com/mcp --name blockscout --schema`. Call: `mcporter call --http-url https://mcp.blockscout.com/mcp --name blockscout <tool> key=value --output json`."
   },
   "searchapi": {
-    "category": "utility",
+    "category": "research",
     "pkg": "mcporter",
     "installer": "npm",
     "binName": "mcporter",
