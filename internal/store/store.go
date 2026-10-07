@@ -168,6 +168,7 @@ func (s *Store) Put(ctx context.Context, sb *Sandbox) error {
 	pipe := s.rdb.TxPipeline()
 	pipe.Set(ctx, "sandbox:"+sb.ID, js, 0)
 	pipe.SAdd(ctx, "sandbox:user:"+sb.UserID, sb.ID)
+	pipe.SAdd(ctx, allKey, sb.ID)
 	if sb.IsActive() {
 		pipe.SAdd(ctx, "sandbox:active", sb.ID)
 	} else {
@@ -211,6 +212,7 @@ func (s *Store) Delete(ctx context.Context, id string) error {
 	pipe.Del(ctx, "sandbox:"+id, sshPortKey(id))
 	pipe.SRem(ctx, "sandbox:active", id)
 	pipe.SRem(ctx, "sandbox:user:"+sb.UserID, id)
+	pipe.SRem(ctx, allKey, id)
 	pipe.Publish(ctx, eventsChannel(sb.UserID), ev)
 	_, err = pipe.Exec(ctx)
 	return err
@@ -241,60 +243,35 @@ func (s *Store) PurgeUserIndexes(ctx context.Context, userID string) error {
 }
 
 // ListByUserScan finds user sandboxes from authoritative records as a fallback
-// when the sandbox:user index is stale or missing.
+// when the sandbox:user index is stale or missing. O(sandboxes), never a keyspace SCAN.
 func (s *Store) ListByUserScan(ctx context.Context, userID string) ([]*Sandbox, error) {
-	keys, err := s.scanKeys(ctx, "sandbox:*")
+	all, err := s.List(ctx, "")
 	if err != nil {
 		return nil, err
 	}
 	var out []*Sandbox
-	for _, key := range keys {
-		if strings.HasPrefix(key, "sandbox:user:") || key == "sandbox:active" {
-			continue
-		}
-		id := strings.TrimPrefix(key, "sandbox:")
-		if sb, err := s.Get(ctx, id); err == nil && sb != nil && sb.UserID == userID {
+	for _, sb := range all {
+		if sb.UserID == userID {
 			out = append(out, sb)
 		}
 	}
 	return out, nil
 }
 
-// scanKeys collects keys matching pattern via incremental SCAN. Never use KEYS:
-// the shared DB holds millions of keys, so a single KEYS blocks past the client
-// read timeout and fails every caller (reconcile, admin list → idle reaper).
-func (s *Store) scanKeys(ctx context.Context, pattern string) ([]string, error) {
-	var out []string
-	iter := s.rdb.Scan(ctx, 0, pattern, 10000).Iterator()
-	for iter.Next(ctx) {
-		out = append(out, iter.Val())
-	}
-	return out, iter.Err()
-}
+// allKey indexes every sandbox id, so admin/reconcile listing is one SMEMBERS.
+// Never SCAN for sandboxes: the shared DB holds ~8M keys, and the 30s reconcile
+// loop scanning `sandbox:user:*` cost ~20s of Dragonfly CPU per pass.
+const allKey = "sandbox:all"
 
 // List returns a user's sandboxes, or all sandboxes when userID == "" (admin).
 func (s *Store) List(ctx context.Context, userID string) ([]*Sandbox, error) {
-	var ids []string
+	key := allKey
 	if userID != "" {
-		var err error
-		if ids, err = s.rdb.SMembers(ctx, "sandbox:user:"+userID).Result(); err != nil {
-			return nil, err
-		}
-	} else {
-		keys, err := s.scanKeys(ctx, "sandbox:user:*")
-		if err != nil {
-			return nil, err
-		}
-		seen := map[string]struct{}{}
-		for _, k := range keys {
-			members, _ := s.rdb.SMembers(ctx, k).Result()
-			for _, m := range members {
-				seen[m] = struct{}{}
-			}
-		}
-		for id := range seen {
-			ids = append(ids, id)
-		}
+		key = "sandbox:user:" + userID
+	}
+	ids, err := s.rdb.SMembers(ctx, key).Result()
+	if err != nil {
+		return nil, err
 	}
 	out := make([]*Sandbox, 0, len(ids))
 	for _, id := range ids {
