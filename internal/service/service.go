@@ -46,7 +46,7 @@ const maxDiskPercent = 90
 type Service struct {
 	cfg              *config.Config
 	store            *store.Store
-	vm               *vm.Manager
+	vm               vmManager
 	homes            *userhome.Store
 	backend          *backend.Client
 	ssh              *sshrelay.Relay // nil unless SSH_PUBLIC_HOST + port range are set
@@ -54,6 +54,17 @@ type Service struct {
 	admissionMu      sync.Mutex      // guards pendingCreates and the admission check
 	pendingCreates   int             // admitted creates whose VM hasn't finished booting
 	capacityRejected atomic.Uint64
+}
+
+// vmManager keeps lifecycle recovery testable without a live containerd host.
+type vmManager interface {
+	Create(context.Context, vm.Spec) (*vm.Created, error)
+	Delete(context.Context, string) error
+	IsLive(context.Context, string) vm.Liveness
+	GuestLogTail(string, int) string
+	Exec(context.Context, string, []string) ([]byte, int, error)
+	CleanupStopped(context.Context) (int, error)
+	RunningCount(context.Context) (int, error)
 }
 
 func New(cfg *config.Config, st *store.Store, mgr *vm.Manager, homes *userhome.Store, be *backend.Client, ssh *sshrelay.Relay) *Service {
@@ -106,10 +117,22 @@ func (s *Service) Create(ctx context.Context, id store.Identity, template, size 
 	sid := newID()
 	deviceName := deviceNameFor(id.UserID)
 
+	sb := &store.Sandbox{
+		ID:           sid,
+		UserID:       id.UserID,
+		Template:     template,
+		Size:         size,
+		Kind:         "vm",
+		State:        store.StateCreating,
+		CostPerMin:   costPerMinute(size),
+		CreatedAt:    store.NowMillis(),
+		LastActivity: store.NowMillis(),
+	}
+
 	// Atomic one-per-user gate. If the user already holds the slot, reject
 	// before doing any expensive work. Released on every failure path below
 	// and on delete.
-	ok, err := s.store.ReserveUserSlot(ctx, id.UserID, sid)
+	ok, err := s.store.ReserveUserSlot(ctx, sb)
 	if err != nil {
 		return nil, err
 	}
@@ -120,7 +143,7 @@ func (s *Service) Create(ctx context.Context, id store.Identity, template, size 
 		// LIVE VM. Reconcile any non-live holders (delete + release), then
 		// retry the reservation once. Only a genuinely live VM yields ErrQuota.
 		s.reconcileUserSlot(ctx, id.UserID)
-		if ok, err = s.store.ReserveUserSlot(ctx, id.UserID, sid); err != nil {
+		if ok, err = s.store.ReserveUserSlot(ctx, sb); err != nil {
 			return nil, err
 		}
 		if !ok {
@@ -135,9 +158,20 @@ func (s *Service) Create(ctx context.Context, id store.Identity, template, size 
 		}
 	}
 
+	failCreate := func(err error) {
+		sb.State = store.StateError
+		sb.Error = err.Error()
+		rctx, rcancel := cleanupCtx()
+		defer rcancel()
+		if putErr := s.store.Put(rctx, sb); putErr != nil {
+			log.Printf("create %s: persist error: %v", sid, putErr)
+		}
+		releaseSlot()
+	}
+
 	homeImg, err := s.homes.EnsureDisk(id.UserID, diskSizeMiBForTier(size))
 	if err != nil {
-		releaseSlot()
+		failCreate(err)
 		return nil, fmt.Errorf("ensure home disk: %w", err)
 	}
 	// NOTE: the token has a short TTL (enrollTTLSec) and is minted before
@@ -146,24 +180,8 @@ func (s *Service) Create(ctx context.Context, id store.Identity, template, size 
 	// image before minting. Left simple until a live run shows it matters.
 	token, err := s.backend.MintEnrollToken(ctx, id.UserID, sid, enrollTTLSec)
 	if err != nil {
-		releaseSlot()
+		failCreate(err)
 		return nil, fmt.Errorf("mint enroll token: %w", err)
-	}
-
-	sb := &store.Sandbox{
-		ID:           sid,
-		UserID:       id.UserID,
-		Template:     template,
-		Size:         size,
-		Kind:         "vm",
-		State:        store.StateCreating,
-		CostPerMin:   costPerMinute(size),
-		CreatedAt:    store.NowMillis(),
-		LastActivity: store.NowMillis(),
-	}
-	if err := s.store.Put(ctx, sb); err != nil {
-		releaseSlot()
-		return nil, err
 	}
 
 	created, err := s.vm.Create(ctx, vm.Spec{
@@ -171,26 +189,22 @@ func (s *Service) Create(ctx context.Context, id store.Identity, template, size 
 		EnrollToken: token, HomeImg: homeImg, DeviceName: deviceName,
 	})
 	if err != nil {
-		sb.State = store.StateError
-		sb.Error = err.Error()
-		rctx, rcancel := cleanupCtx()
-		s.store.Put(rctx, sb)
-		rcancel()
-		releaseSlot()
+		failCreate(err)
 		return nil, err
 	}
 
 	sb.State = store.StateRunning
 	sb.IPAddress = created.IP
 	sb.LastActivity = store.NowMillis()
-	if err := s.store.Put(ctx, sb); err != nil {
+	if err := s.store.PutRunning(ctx, sb); err != nil {
 		// We have a running VM we can't record — don't leak it. Tear it down
 		// best-effort and free the slot, then surface the error. Teardown gets
 		// a fresh context: the create's may already be expired here.
 		rctx, rcancel := context.WithTimeout(context.WithoutCancel(ctx), 60*time.Second)
-		s.vm.Delete(rctx, sid)
+		if err := s.finishTeardown(rctx, sb); err != nil {
+			log.Printf("create %s: cleanup after persist failure: %v", sid, err)
+		}
 		rcancel()
-		releaseSlot()
 		return nil, fmt.Errorf("persist running sandbox: %w", err)
 	}
 	s.store.IncCreated(ctx)
@@ -299,21 +313,26 @@ func (s *Service) Delete(ctx context.Context, id store.Identity, sandboxID strin
 	// another while a VM may still be running.
 	sb.State = store.StateTerminating
 	sb.LastActivity = store.NowMillis() // refresh so the grace window covers this delete
-	s.store.Put(ctx, sb)
+	if err := s.store.Put(ctx, sb); err != nil {
+		return err
+	}
 	s.ssh.Close(sandboxID)
 	s.sshPrep.Delete(sandboxID)
 
-	if err := s.vm.Delete(ctx, sandboxID); err != nil {
+	return s.finishTeardown(ctx, sb)
+}
+
+// finishTeardown keeps quota held until the VM is definitively gone. Give the
+// final Redis transaction a fresh deadline: VM cleanup can consume the caller's
+// entire deadline, which previously stranded an error record and its slot.
+func (s *Service) finishTeardown(ctx context.Context, sb *store.Sandbox) error {
+	if err := s.vm.Delete(ctx, sb.ID); err != nil && s.vm.IsLive(ctx, sb.ID) != vm.LiveNo {
 		return err
 	}
-	// The Device row is intentionally kept: the VM's machine-id persists on
-	// the home.img, so the next boot re-enrolls as the SAME device (stable id
-	// across stop→wake). Explicit device revocation is backend-initiated and
-	// deletes the row there.
-	if err := s.store.Delete(ctx, sandboxID); err != nil {
-		return err
-	}
-	return s.store.ReleaseUserSlot(ctx, sb.UserID, sandboxID)
+	cleanupCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 30*time.Second)
+	defer cancel()
+	// The Device row and persistent home image survive stop/recovery.
+	return s.store.Delete(cleanupCtx, sb.ID)
 }
 
 // staleDead reports whether an active sandbox record's VM is actually gone and
@@ -337,20 +356,41 @@ func (s *Service) staleDead(ctx context.Context, sb *store.Sandbox) bool {
 }
 
 // reconcileUserSlot heals a single user's sandbox slot on the create/recover
-// path: any of their active sandboxes whose VM is dead (staleDead) is torn down
-// and its quota slot deleted, so a retry of ReserveUserSlot can succeed. The
+// path: finish failed teardowns and remove definitively dead or missing holders
+// so a retry of ReserveUserSlot can succeed. The
 // grace window in staleDead protects a concurrent in-flight create whose VM
 // hasn't booted yet.
 func (s *Service) reconcileUserSlot(ctx context.Context, userID string) {
-	all, err := s.store.List(ctx, userID)
-	if err != nil {
-		log.Printf("reconcileUserSlot list %s: %v", userID, err)
+	sid, err := s.store.UserSlot(ctx, userID)
+	if err != nil || sid == "" {
 		return
 	}
-	for _, sb := range all {
-		if s.staleDead(ctx, sb) {
-			s.teardownDead(ctx, sb, "reconcileUserSlot")
+	sb, err := s.store.Get(ctx, sid)
+	if err != nil {
+		log.Printf("reconcileUserSlot get %s: %v", sid, err)
+		return
+	}
+	if sb == nil {
+		// Reservation and record are now atomic. Only definitive absence permits
+		// cleanup; a containerd outage must never release a possibly live holder.
+		if s.vm.IsLive(ctx, sid) != vm.LiveNo {
+			return
 		}
+		if err := s.vm.Delete(ctx, sid); err != nil && s.vm.IsLive(ctx, sid) != vm.LiveNo {
+			log.Printf("reconcileUserSlot cleanup %s: %v", sid, err)
+			return
+		}
+		cleanupCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 30*time.Second)
+		defer cancel()
+		if err := s.store.ReleaseUserSlot(cleanupCtx, userID, sid); err != nil {
+			log.Printf("reconcileUserSlot release %s: %v", sid, err)
+		}
+	} else if sb.State == store.StateError {
+		if err := s.Delete(ctx, store.Identity{Role: "admin"}, sid); err != nil {
+			log.Printf("reconcileUserSlot delete %s: %v", sid, err)
+		}
+	} else if s.staleDead(ctx, sb) {
+		s.teardownDead(ctx, sb, "reconcileUserSlot")
 	}
 }
 
@@ -377,13 +417,8 @@ func (s *Service) teardownDead(ctx context.Context, sb *store.Sandbox, who strin
 	}
 	s.ssh.Close(sb.ID)
 	s.sshPrep.Delete(sb.ID)
-	s.vm.Delete(ctx, sb.ID)
-	if err := s.store.Delete(ctx, sb.ID); err != nil {
-		log.Printf("%s delete %s: %v", who, sb.ID, err)
-		return // keep the slot held rather than leak a stale record
-	}
-	if err := s.store.ReleaseUserSlot(ctx, sb.UserID, sb.ID); err != nil {
-		log.Printf("%s release slot %s: %v", who, sb.UserID, err)
+	if err := s.finishTeardown(ctx, sb); err != nil {
+		log.Printf("%s cleanup %s: %v", who, sb.ID, err)
 	}
 }
 
@@ -397,15 +432,21 @@ func (s *Service) Reconcile(ctx context.Context) error {
 		return err
 	}
 	for _, sb := range all {
-		// GC error tombstones (failed creates, legacy records): keep them
-		// visible briefly for debugging, then drop record + set membership.
-		// They hold no VM resources and no quota slot, so plain Delete is
-		// enough — without this they accumulate forever (one per failed
-		// create) and bloat every List.
+		// An error can still own its slot after an interrupted teardown. Finish
+		// cleanup immediately; unheld diagnostic tombstones keep their 24h lifetime.
 		if sb.State == store.StateError {
-			if store.NowMillis()-sb.LastActivity > errorGCMillis {
+			holder, err := s.store.UserSlot(ctx, sb.UserID)
+			if err != nil {
+				log.Printf("reconcile slot %s: %v", sb.UserID, err)
+				continue
+			}
+			if holder == sb.ID {
+				if err := s.Delete(ctx, store.Identity{Role: "admin"}, sb.ID); err != nil {
+					log.Printf("reconcile cleanup error %s: %v", sb.ID, err)
+				}
+			} else if store.NowMillis()-sb.LastActivity > errorGCMillis {
 				if err := s.store.Delete(ctx, sb.ID); err != nil {
-					log.Printf("reconcile gc error record %s: %v", sb.ID, err)
+					log.Printf("reconcile gc error %s: %v", sb.ID, err)
 				}
 			}
 			continue

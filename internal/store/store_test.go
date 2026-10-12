@@ -1,7 +1,10 @@
 package store
 
 import (
+	"context"
 	"encoding/json"
+	"fmt"
+	"github.com/alicebob/miniredis/v2"
 	"testing"
 )
 
@@ -58,5 +61,123 @@ func TestSSHConnectionsOmitEmpty(t *testing.T) {
 	json.Unmarshal(js, &m)
 	if m["ssh_connections"] != float64(2) {
 		t.Errorf("ssh_connections = %v", m["ssh_connections"])
+	}
+}
+
+func testStore(t *testing.T) *Store {
+	t.Helper()
+	server := miniredis.RunT(t)
+	st, err := New("redis://" + server.Addr())
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { st.rdb.Close() })
+	return st
+}
+
+func TestReserveUserSlotPersistsRecordAtomically(t *testing.T) {
+	st := testStore(t)
+	ctx := context.Background()
+	sb := &Sandbox{ID: "first", UserID: "user", State: StateCreating}
+	ok, err := st.ReserveUserSlot(ctx, sb)
+	if err != nil || !ok {
+		t.Fatalf("reserve: %v, %v", ok, err)
+	}
+	record, err := st.Get(ctx, sb.ID)
+	if err != nil || record == nil || record.State != StateCreating {
+		t.Fatalf("record: %+v, %v", record, err)
+	}
+	for _, key := range []string{"sandbox:user:user", allKey, "sandbox:active"} {
+		if !st.rdb.SIsMember(ctx, key, sb.ID).Val() {
+			t.Errorf("missing membership %s", key)
+		}
+	}
+	ok, err = st.ReserveUserSlot(ctx, &Sandbox{ID: "second", UserID: sb.UserID, State: StateCreating})
+	if err != nil || ok {
+		t.Fatalf("second reserve: %v, %v", ok, err)
+	}
+	if st.rdb.Exists(ctx, "sandbox:second").Val() != 0 {
+		t.Fatal("rejected create persisted a record")
+	}
+}
+
+func TestDeleteReleasesOnlyOwnedSlot(t *testing.T) {
+	for _, replaced := range []bool{false, true} {
+		t.Run(fmt.Sprint(replaced), func(t *testing.T) {
+			st := testStore(t)
+			ctx := context.Background()
+			sb := &Sandbox{ID: "old", UserID: "user", State: StateCreating}
+			if ok, err := st.ReserveUserSlot(ctx, sb); err != nil || !ok {
+				t.Fatal(ok, err)
+			}
+			if replaced {
+				st.rdb.Set(ctx, "sandbox:user-slot:user", "new", 0)
+			}
+			if err := st.Delete(ctx, sb.ID); err != nil {
+				t.Fatal(err)
+			}
+			slot, err := st.UserSlot(ctx, sb.UserID)
+			if err != nil {
+				t.Fatal(err)
+			}
+			want := ""
+			if replaced {
+				want = "new"
+			}
+			if slot != want {
+				t.Fatalf("slot = %q, want %q", slot, want)
+			}
+			if st.rdb.Exists(ctx, "sandbox:old").Val() != 0 {
+				t.Fatal("record remains")
+			}
+			for _, key := range []string{"sandbox:user:user", allKey, "sandbox:active"} {
+				if st.rdb.SIsMember(ctx, key, sb.ID).Val() {
+					t.Errorf("stale membership %s", key)
+				}
+			}
+		})
+	}
+}
+
+func TestPutRunningCannotUndoConcurrentDelete(t *testing.T) {
+	for _, state := range []string{"creating", "terminating", "deleted", "replaced"} {
+		t.Run(state, func(t *testing.T) {
+			st := testStore(t)
+			ctx := context.Background()
+			sb := &Sandbox{ID: "boot", UserID: "user", State: StateCreating}
+			if ok, err := st.ReserveUserSlot(ctx, sb); err != nil || !ok {
+				t.Fatal(ok, err)
+			}
+			switch state {
+			case "terminating":
+				sb.State = StateTerminating
+				if err := st.Put(ctx, sb); err != nil {
+					t.Fatal(err)
+				}
+			case "deleted", "replaced":
+				if err := st.Delete(ctx, sb.ID); err != nil {
+					t.Fatal(err)
+				}
+				if state == "replaced" {
+					if ok, err := st.ReserveUserSlot(ctx, &Sandbox{ID: "new", UserID: "user", State: StateCreating}); err != nil || !ok {
+						t.Fatal(ok, err)
+					}
+				}
+			}
+			sb.State = StateRunning
+			sb.SSHConnections = 2
+			err := st.PutRunning(ctx, sb)
+			if (err == nil) != (state == "creating") {
+				t.Fatalf("PutRunning returned %v", err)
+			}
+			record, _ := st.Get(ctx, sb.ID)
+			if state == "deleted" || state == "replaced" {
+				if record != nil {
+					t.Fatal("late boot recreated deleted record")
+				}
+			} else if state == "creating" && (record.State != StateRunning || record.SSHConnections != 0) {
+				t.Fatalf("running record %+v", record)
+			}
+		})
 	}
 }

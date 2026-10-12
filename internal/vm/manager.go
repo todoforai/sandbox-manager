@@ -626,6 +626,8 @@ func (m *Manager) Delete(ctx context.Context, id string) error {
 			task.Delete(ctx, containerd.WithProcessKill)
 		}
 		err = container.Delete(ctx, containerd.WithSnapshotCleanup)
+	} else if !errdefs.IsNotFound(lerr) {
+		err = lerr // a failed lookup must not authorize releasing a possibly live VM's slot
 	}
 	// This kata-fc version orphans the Firecracker VMM on task teardown: the
 	// shim exits but firecracker reparents to init and lingers (verified — even

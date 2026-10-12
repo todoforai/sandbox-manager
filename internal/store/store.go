@@ -179,6 +179,35 @@ func (s *Store) Put(ctx context.Context, sb *Sandbox) error {
 	return err
 }
 
+// PutRunning commits a boot only while its creating record still owns the slot.
+// A concurrent delete must not be undone by a late successful vm.Create.
+func (s *Store) PutRunning(ctx context.Context, sb *Sandbox) error {
+	cp := *sb
+	cp.SSHConnections = 0
+	js, err := json.Marshal(&cp)
+	if err != nil {
+		return err
+	}
+	n, err := putRunning.Run(ctx, s.rdb, []string{
+		"sandbox:user-slot:" + sb.UserID, "sandbox:" + sb.ID, eventsChannel(sb.UserID),
+	}, sb.ID, js).Int()
+	if err != nil {
+		return err
+	}
+	if n == 0 {
+		return fmt.Errorf("sandbox %s was deleted during creation", sb.ID)
+	}
+	return nil
+}
+
+var putRunning = redis.NewScript(`
+if redis.call('GET', KEYS[1]) ~= ARGV[1] then return 0 end
+local record = redis.call('GET', KEYS[2])
+if not record or cjson.decode(record).state ~= 'creating' then return 0 end
+redis.call('SET', KEYS[2], ARGV[2])
+redis.call('PUBLISH', KEYS[3], ARGV[2])
+return 1`)
+
 func (s *Store) Get(ctx context.Context, id string) (*Sandbox, error) {
 	js, err := s.rdb.Get(ctx, "sandbox:"+id).Bytes()
 	if err == redis.Nil {
@@ -201,22 +230,27 @@ func (s *Store) Get(ctx context.Context, id string) (*Sandbox, error) {
 	return &sb, nil
 }
 
-// Delete removes the record + set memberships and publishes a delete event.
+// Delete atomically removes the record, indexes and owned quota slot, then publishes a delete event.
 func (s *Store) Delete(ctx context.Context, id string) error {
 	sb, err := s.Get(ctx, id)
 	if err != nil || sb == nil {
 		return err
 	}
 	ev, _ := json.Marshal(map[string]any{"id": id, "user_id": sb.UserID, "deleted": true})
-	pipe := s.rdb.TxPipeline()
-	pipe.Del(ctx, "sandbox:"+id, sshPortKey(id))
-	pipe.SRem(ctx, "sandbox:active", id)
-	pipe.SRem(ctx, "sandbox:user:"+sb.UserID, id)
-	pipe.SRem(ctx, allKey, id)
-	pipe.Publish(ctx, eventsChannel(sb.UserID), ev)
-	_, err = pipe.Exec(ctx)
-	return err
+	return deleteSandbox.Run(ctx, s.rdb, []string{
+		"sandbox:" + id, sshPortKey(id), "sandbox:active", "sandbox:user:" + sb.UserID,
+		allKey, "sandbox:user-slot:" + sb.UserID, eventsChannel(sb.UserID),
+	}, id, ev).Err()
 }
+
+var deleteSandbox = redis.NewScript(`
+redis.call('DEL', KEYS[1], KEYS[2])
+redis.call('SREM', KEYS[3], ARGV[1])
+redis.call('SREM', KEYS[4], ARGV[1])
+redis.call('SREM', KEYS[5], ARGV[1])
+if redis.call('GET', KEYS[6]) == ARGV[1] then redis.call('DEL', KEYS[6]) end
+redis.call('PUBLISH', KEYS[7], ARGV[2])
+return 1`)
 
 func sshPortKey(id string) string { return "sandbox:ssh-port:" + id }
 
@@ -282,12 +316,37 @@ func (s *Store) List(ctx context.Context, userID string) ([]*Sandbox, error) {
 	return out, nil
 }
 
-// ReserveUserSlot atomically claims the single sandbox slot for userID via
-// SET NX, returning true if claimed. This is the enforcement point for
-// one-sandbox-per-user: a concurrent create for the same user fails the NX.
-// The slot is held until ReleaseUserSlot (on delete/error).
-func (s *Store) ReserveUserSlot(ctx context.Context, userID, sandboxID string) (bool, error) {
-	return s.rdb.SetNX(ctx, "sandbox:user-slot:"+userID, sandboxID, 0).Result()
+// ReserveUserSlot atomically claims the slot and persists its creating record.
+// A held slot without a record can therefore only be an interrupted legacy cleanup,
+// never a concurrent create between reservation and Put.
+func (s *Store) ReserveUserSlot(ctx context.Context, sb *Sandbox) (bool, error) {
+	js, err := json.Marshal(sb)
+	if err != nil {
+		return false, err
+	}
+	n, err := reserveUserSlot.Run(ctx, s.rdb, []string{
+		"sandbox:user-slot:" + sb.UserID, "sandbox:" + sb.ID,
+		"sandbox:user:" + sb.UserID, allKey, "sandbox:active", eventsChannel(sb.UserID),
+	}, sb.ID, js).Int()
+	return n == 1, err
+}
+
+var reserveUserSlot = redis.NewScript(`
+if not redis.call('SET', KEYS[1], ARGV[1], 'NX') then return 0 end
+redis.call('SET', KEYS[2], ARGV[2])
+redis.call('SADD', KEYS[3], ARGV[1])
+redis.call('SADD', KEYS[4], ARGV[1])
+redis.call('SADD', KEYS[5], ARGV[1])
+redis.call('PUBLISH', KEYS[6], ARGV[2])
+return 1`)
+
+// UserSlot returns the current owner, including orphaned legacy reservations.
+func (s *Store) UserSlot(ctx context.Context, userID string) (string, error) {
+	id, err := s.rdb.Get(ctx, "sandbox:user-slot:"+userID).Result()
+	if err == redis.Nil {
+		return "", nil
+	}
+	return id, err
 }
 
 // ReleaseUserSlot frees the slot only if sandboxID still owns it (so a late
