@@ -289,6 +289,7 @@
     "label": "GitLab",
     "summary": "Work with your GitLab repos, merge requests and pipelines.",
     "statusCmd": "glab auth status 2>&1 | grep -o 'Logged in to [^ ]* [a-z]* [^ ]*' | paste -sd ' ' - | grep -m1 .",
+    "logoutCmd": "glab auth logout --hostname gitlab.com 2>&1 </dev/null",
     "loginCmd": "glab auth login --device",
     "credentialPaths": ["~/.config/glab-cli/config.yml"],
     "description": "GitLab equivalent of `gh`.",
@@ -450,6 +451,7 @@
     "credentialPaths": ["~/.config/shopify-cli-kit-nodejs/config.json"],
     "versionCmd": "shopify version 2>/dev/null | tail -n 1",
     "statusCmd": "python3 -c \"import json,os,sys;p=os.path.expanduser('~/.config/shopify-cli-kit-nodejs/config.json');sys.exit(0 if json.load(open(p)).get('session') else 1)\" 2>/dev/null && echo authenticated",
+    "logoutCmd": "shopify auth logout",
     "deviceCodePattern": "verification code: ([A-Z0-9-]+)",
     "oauthUrlPattern": "(https://accounts\\.shopify\\.com/activate-with-code\\S*)",
     "canStreamLogin": true,
@@ -495,7 +497,7 @@
     "installer": "npm",
     "label": "TODOforAI",
     "summary": "Create and follow up on your TODOs, and show results in the chat.",
-    "description": "Manage the user's OWN TODOforAI tasks (not code `// TODO` comments). Delegate/spin off work: `tfa-cli \"prompt\"` creates a real TODO with its own agent and chat (`-n` wait for completion, `--no-watch` fire-and-forget, `--project/--agent/--model`, `--resume <id>`, `addmessage <id> \"text\"`). Inspect: `list [--status open]`, `--inspect <id>`. Edit any todo without opening it: `status <id> DONE|READY|ARCHIVED|POSTPONED|CANCELLED|DELETED` (close, reopen, shelve, trash — `todo restore <id>` undoes a delete) and `todo set <id|-> title=… group=… star=true schedule=<unix-ms> agent=… brand=…` (own todo fields). Both take ONE id, so a loop over `list --json | jq -r '.items[].id'` is how you close, retitle, refile or archive MANY todos at once; `project set|settings|groups …` (name, settings, todo groups), `agent create|update <agent> model=… sysmsg=…` (permissions/MCP/device wiring and delete are refused from an agent shell). Surface results into chat: `show <file|-> [todo-id]` (renders by mimetype, private to the todo's readers; `--card <name>` via project renderer; `--alias <name>` updates in place, `--alias <todoId>:<name>` updates another todo's artifact; `show share <ref>` makes it public and prints the link, `show unshare <ref>` makes it private again), `open <url>` embeds a live preview. Pick by where the output lives: read once → plain reply; interactive, this chat only → `html_snippet`; kept/revised later → `show --alias`, then `show share` only if someone outside needs a link; format the user asked for (pptx, docx…) → `show` the file. Notifications: `inbox [needs-you|messages|activity] [--unread]` reads the user's bell feed (what finished/failed/needs them while away), `inbox seen [tab]` marks it read; `notify \"Title\" \"message\" [--href /t/<id>]` leaves a note in the user's Messages tab + phone push (shown as from you); `--to <email>` reaches a member of the current project instead (`project members` lists them, 20/day) — nobody else; same text is delivered once, max 10/day to the user, use for things they must see later (not chat replies). This is the ONLY way to display a local file (image, pdf, html) in the chat: markdown `![](path.png)` with a local/relative path does NOT resolve to workspace files or attachments and 404s in the browser. `--template` for registry workflows.",
+    "description": "Manage the user's OWN TODOforAI tasks (not code `// TODO` comments). Delegate/spin off work: `tfa-cli \"prompt\"` creates a real TODO with its own agent and chat (`-n` wait for completion, `--no-watch` fire-and-forget, `--project/--agent/--model`, `--resume <id>`, `addmessage <id> \"text\"`). Inspect: `list [--status open]`, `--inspect <id>`. Edit any todo without opening it: `status <id> DONE|READY|ARCHIVED|POSTPONED|CANCELLED|DELETED` (close, reopen, shelve, trash — `todo restore <id>` undoes a delete) and `todo set <id|-> title=… group=… star=true schedule=<unix-ms> agent=… brand=…` (own todo fields). Both take ONE id, so a loop over `list --json | jq -r '.items[].id'` is how you close, retitle, refile or archive MANY todos at once; `project set|settings|groups …` (name, settings, todo groups), `agent create|update <agent> model=… sysmsg=…` (permissions/MCP/device wiring and delete are refused from an agent shell). Surface results into chat: `show <file|-> [todo-id]` (renders by mimetype, private to the todo's readers; `--card <name>` via project renderer; `--alias <name>` updates in place, `--alias <todoId>:<name>` updates another todo's artifact; `show share <ref>` makes it public and prints the link, `show unshare <ref>` makes it private again), `open <url>` embeds a live preview. Show viewer chrome: `--title` appears in the header; a kebab menu holds file actions, versions and sharing when available. Desktop floating previews add minimize (park in a tab), maximize/restore and close (X); inline blocks have no window controls. For authored HTML, do not duplicate the header/controls or add a rounded, bordered root card: the floating viewer owns the rounded frame. Keep content edge-to-edge; internal layout padding is fine. Pick by where the output lives: read once → plain reply; interactive, this chat only → `html_snippet`; kept/revised later → `show --alias`, then `show share` only if someone outside needs a link; format the user asked for (pptx, docx…) → `show` the file. Notifications: `inbox [needs-you|messages|activity] [--unread]` reads the user's bell feed (what finished/failed/needs them while away), `inbox seen [tab]` marks it read; `notify \"Title\" \"message\" [--href /t/<id>]` leaves a note in the user's Messages tab + phone push (shown as from you); `--to <email>` reaches a member of the current project instead (`project members` lists them, 20/day) — nobody else; same text is delivered once, max 10/day to the user, use for things they must see later (not chat replies). This is the ONLY way to display a local file (image, pdf, html) in the chat: markdown `![](path.png)` with a local/relative path does NOT resolve to workspace files or attachments and 404s in the browser. `--template` for registry workflows. Project files: `memory sync|path [--project <id>]` requires a project and checks out only projects/<id>/{memory,context} and projects/<id>/me/{memory,context}; legacy global files are read-only recovery. Voice commands use `--scope mine|project` (default mine, private within this project; project is shared).",
     "installCmd": "npm install -g @todoforai/cli",
     "versionCmd": "tfa-cli --version 2>/dev/null | sed -n 1p",
     "preinstallCloud": true,
@@ -547,11 +549,11 @@
     "installer": "binary",
     "preinstallCloud": true,
     "binary": {
-      "linux-x86_64": { "url": "https://github.com/todoforai/rclone-backend/releases/download/v0.1.7/rclone-linux-amd64.tar.gz", "archive": "tar.gz", "extract": "rclone" },
-      "linux-aarch64": { "url": "https://github.com/todoforai/rclone-backend/releases/download/v0.1.7/rclone-linux-arm64.tar.gz", "archive": "tar.gz", "extract": "rclone" },
-      "darwin-x86_64": { "url": "https://github.com/todoforai/rclone-backend/releases/download/v0.1.7/rclone-darwin-amd64.tar.gz", "archive": "tar.gz", "extract": "rclone" },
-      "darwin-aarch64": { "url": "https://github.com/todoforai/rclone-backend/releases/download/v0.1.7/rclone-darwin-arm64.tar.gz", "archive": "tar.gz", "extract": "rclone" },
-      "windows-x86_64": { "url": "https://github.com/todoforai/rclone-backend/releases/download/v0.1.7/rclone-windows-amd64.zip", "archive": "zip", "extract": "rclone.exe" }
+      "linux-x86_64": { "url": "https://github.com/todoforai/rclone-backend/releases/download/v0.1.8/rclone-linux-amd64.tar.gz", "archive": "tar.gz", "extract": "rclone" },
+      "linux-aarch64": { "url": "https://github.com/todoforai/rclone-backend/releases/download/v0.1.8/rclone-linux-arm64.tar.gz", "archive": "tar.gz", "extract": "rclone" },
+      "darwin-x86_64": { "url": "https://github.com/todoforai/rclone-backend/releases/download/v0.1.8/rclone-darwin-amd64.tar.gz", "archive": "tar.gz", "extract": "rclone" },
+      "darwin-aarch64": { "url": "https://github.com/todoforai/rclone-backend/releases/download/v0.1.8/rclone-darwin-arm64.tar.gz", "archive": "tar.gz", "extract": "rclone" },
+      "windows-x86_64": { "url": "https://github.com/todoforai/rclone-backend/releases/download/v0.1.8/rclone-windows-amd64.zip", "archive": "zip", "extract": "rclone.exe" }
     },
     "label": "Cloud Storage",
     "summary": "Move files between Google Drive, Dropbox, OneDrive, S3 and more.",
@@ -643,12 +645,13 @@
     "summary": "Manage your Microsoft Azure resources.",
     "binName": "az",
     "statusCmd": "az account show --query user.name -o tsv 2>/dev/null | tr -d '\\r' | grep -m1 .",
+    "logoutCmd": "az logout 2>&1; az account clear 2>&1",
     "loginCmd": "az login --use-device-code",
     "oauthUrlPattern": "(https://login\\.microsoft\\.com/device\\S*)",
     "deviceCodePattern": "enter the code ([A-Z0-9]+)",
     "canStreamLogin": true,
     "credentialPaths": ["~/.azure"],
-    "description": "Official Azure CLI. Device-code login: prints login.microsoft.com/device + a code, then polls — no callback port.",
+    "description": "Official Azure CLI. Device-code login: prints login.microsoft.com/device + a code, then polls — no callback port. Azure SQL: `az sql server list -o json`, `az sql db list -s <server> -g <rg>`, `az sql server firewall-rule create …`; run queries with go-sqlcmd (github.com/microsoft/go-sqlcmd): `sqlcmd -S <server>.database.windows.net -d <db> --authentication-method ActiveDirectoryDefault -Q \"SELECT …\"` (reuses the az login) or `-U user -P pass` for SQL auth.",
     "versionCmd": "az version -o tsv 2>/dev/null | cut -f1 | sed -n 1p"
   },
   "doctl": {
@@ -728,7 +731,7 @@
     "preinstallCloud": true,
     "label": "Browser",
     "summary": "Browse websites automatically: click, type, read and screenshot.",
-    "description": "Browser automation over CDP (`open`/`snapshot`/`click`/`type`/`fill`/`read`/`screenshot`/`eval`). `connect '<url>'` to a listed live browser (prefer the user's real Chrome), verify with `snapshot`; if empty, `close` (own session only) and reconnect once. NEVER `close --all`. Shared browser: `tab new` for your own tab, `tab <id>` before each command. No URL listed: cloud → browser-manager-cli; PC with display → Chrome `--remote-debugging-port=9222`, attach `--cdp 9222`.",
+    "description": "Browser automation over CDP (`open`/`snapshot`/`click`/`type`/`fill`/`read`/`screenshot`/`eval`). `connect '<url>'` to a listed live browser (prefer the user's real Chrome), verify with `snapshot`; if empty, `close` (own session only) and reconnect once. NEVER `close --all`. Shared browser: `tab new` for your own tab, `tab <id>` before each command. No URL listed: cloud → browser-manager-cli; PC with display → Chrome `--remote-debugging-port=9222`, attach `--cdp 9222`. Never `sleep`: `open` returns after load, but `click`/`fill` fail at once if the element isn't there yet — `wait '<sel>'`, `wait --text 'Done'`, `wait --url '**/dash'`, `wait --load networkidle` or `wait '#spinner' --state hidden` first. Extension browsers (WEB_EXTENSION) only: try sign-in with credentials from `tfa-vault`; request human help only for a step you cannot complete yourself (MFA/CAPTCHA/consent). Use Node/Bun WebSocket on the listed CDP URL; `Target.getTargets` or `device_list` gives `tab-N`, whose N is the numeric tabId. On the SAME socket send `{id: 1, method: 'TodoforAI.requestHumanHelp', params: {tabId: N, message: 'what to do'}}` (message 1–500 chars). This focuses and pauses the tab, sets its yellow `?` badge, and shows needs-you in the extension popup. Tell the user to click Resume control and reply here, then end your turn; Resume does not wake the agent. Afterwards reconnect and snapshot fresh. `TodoforAI.humanHelpStatus` with `{tabId}` remains available while paused. If bootstrap fails on a restricted target, direct CDP `Target.createTarget` with an ordinary URL opens your tab on the SAME socket; pass numeric N from returned `tab-N` as `tabId`.",
     "versionCmd": "agent-browser --version 2>/dev/null | sed -n 1p",
     "preinstallJarvis": true
   },
@@ -838,9 +841,9 @@
     "pkg": "tfa-cloud",
     "installer": "system",
     "internal": true,
-    "label": "Cloud SSH",
-    "summary": "SSH host alias for your TODOforAI cloud VM.",
-    "description": "ssh host alias: `ssh tfa-cloud 'command'`, `scp`/`rsync` for files. Same root account, files, tools and logins as the cloud's own bash tool; local and cloud filesystems are separate. Cloud files under `~/.todoforai/mnt/todoforai/`: `todos/\"$TODOFORAI_TODO_ID\"` (this todo's attachments; double quotes: the id expands locally), `memory/` (your memory of this user). A stopped VM does not wake on connect.",
+    "label": "TODOforAI Cloud",
+    "summary": "Your TODOforAI cloud files from this computer: attachments, memory and brand page.",
+    "description": "ssh host alias: `ssh tfa-cloud 'command'`, `scp`/`rsync` for files. Same root account, files, tools and logins as the cloud's own bash tool; local and cloud filesystems are separate. Cloud files under `~/.todoforai/mnt/todoforai/`: `todos/\"$TODOFORAI_TODO_ID\"` (this todo's attachments; double quotes: the id expands locally), `memory/` (your memory of this user), `projects/\"$TODOFORAI_PROJECT_ID\"/business-context` (brand page) and `voice-profile` beside it (writing voice, read-only). A stopped VM does not wake on connect.",
     "versionCmd": "sh -c 'ssh -G tfa-cloud 2>/dev/null' | awk '$1==\"hostname\" && $2!=\"tfa-cloud\"{print $2}'",
     "statusCmd": "ssh tfa-cloud hostname 2>/dev/null | tr -d '\\r' | grep -m1 ."
   },
@@ -869,6 +872,17 @@
     "installCmd": "npm install -g @todoforai/tfa-settings",
     "preinstallCloud": true,
     "preinstallJarvis": true
+  },
+  "tfa-find": {
+    "internal": true,
+    "category": "todoforai",
+    "pkg": "@todoforai/tfa-find",
+    "installer": "npm",
+    "label": "File Search",
+    "summary": "Find documents, photos and more by describing what you need.",
+    "description": "Search files in folders you choose on your machine. Register folders, build a search index, then find relevant documents, images, audio and video with natural-language queries. CLI: tfa-find.",
+    "versionCmd": "tfa-find --version 2>/dev/null | sed -n 1p",
+    "installCmd": "npm install -g @todoforai/tfa-find"
   },
   "tfa-memory": {
     "category": "todoforai",
@@ -1257,6 +1271,7 @@
     "loginCmd": "mailchimp-api auth --api-key <api_key>",
     "oauthBroker": true,
     "statusCmd": "mailchimp-api whoami 2>/dev/null | sed -n 's/.*\"account_name\"[[:space:]]*:[[:space:]]*\"\\([^\"]*\\)\".*/\\1/p' | grep -m1 .",
+    "logoutCmd": "rm -f ~/.config/mailchimp-api/credentials.json",
     "credentialPaths": [
       "~/.config/mailchimp-api/credentials.json"
     ],
@@ -1273,6 +1288,8 @@
     "summary": "Post to your Facebook Page and its linked Instagram account, and handle comments.",
     "statusCmd": "facebook-pages-api whoami 2>/dev/null | sed -n 's/.*\"name\"[[:space:]]*:[[:space:]]*\"\\([^\"]*\\)\".*/\\1/p' | grep -m10 .",
     "loginCmd": "facebook-pages-api auth --page-id <id> --page-token <token>",
+    "oauthBroker": true,
+    "logoutCmd": "rm -f ~/.config/facebook-pages-api/credentials.json",
     "credentialPaths": ["~/.config/facebook-pages-api/credentials.json"],
     "description": "Facebook Pages CLI (Meta Graph API). `auth --page-id <id> --page-token <token>` (or env FB_PAGE_ID/FB_PAGE_TOKEN). `feed`, `comments`, `insights`, `conversations`, `media`, and `request <GET|POST|DELETE> <path> [--data <json>]` = any Graph edge with the page token attached (use instead of curl). Writes are live: `feed create --published false` for tests; `comments reply` posts publicly — get human approval. Follower totals: `whoami --fields followers_count,fan_count` (many classic insights metrics are retired). Instagram (linked professional account, same page token): `ig whoami|media|get|stories|tags|limit`, `ig publish --image_url U | --video_url U [--media_type STORIES] | --carousel U1,U2 [--caption …]` (public URLs; container → wait → publish; `--create-only` = dry run; 100 posts/24h), `ig comments list|replies|create|reply|hide|delete|toggle`, `ig insights [media_id]` (needs instagram_manage_insights). `--help` for subcommands.",
     "versionCmd": "facebook-pages-api --version 2>/dev/null | sed -n 1p"
@@ -1314,6 +1331,7 @@
     "voiceChannel": "Outlook",
     "summary": "Read and write your Outlook mail.",
     "statusCmd": "outlook-api whoami 2>/dev/null | sed -n 's/.*\"userPrincipalName\"[[:space:]]*:[[:space:]]*\"\\([^\"]*\\)\".*/\\1/p' | grep -m10 .",
+    "logoutCmd": "outlook-api logout",
     "loginCmd": "outlook-api auth",
     "credentialPaths": ["~/.config/outlook-api/config.json"],
     "description": "Outlook/Hotmail/M365 mail over Microsoft Graph (on-prem Exchange → ews-api). `auth` = device-code flow; `--tenant consumers` (default, personal) | `organizations`. list/search/read/attachments are read-only; `draft`/`reply` stay in Drafts unless --send; `send <draftId>`. `get <path>` = raw Graph GET. JSON out.",
@@ -1346,6 +1364,7 @@
     "label": "Microsoft 365",
     "summary": "Work with Microsoft 365 mail, Teams, SharePoint and users.",
     "statusCmd": "m365 status --output text 2>/dev/null | tr -d '\"' | grep -vi 'logged out' | grep -m1 .",
+    "logoutCmd": "m365 logout",
     "loginCmd": "m365 login --authType deviceCode --appId 14d82eec-204b-4c2f-b7e8-296a70dab67e",
     "deviceCodePattern": "enter the code ([A-Z0-9]{8,}) to authenticate",
     "oauthUrlPattern": "open the page (https://\\S+) and enter",
@@ -3629,5 +3648,1693 @@
     ],
     "versionCmd": "mcporter --version 2>/dev/null | sed -n 1p",
     "description": "SearchApi's official remote MCP via mcporter server `searchapi`; the token rides in the URL. Token: https://www.searchapi.io/ → MCP integration token. Tools + schemas: `mcporter list searchapi --schema`. Call: `mcporter call searchapi.<tool> key=value --output json`."
+  },
+  "ngrok": {
+    "category": "developer",
+    "pkg": "ngrok",
+    "installer": "binary",
+    "label": "ngrok",
+    "summary": "Expose local servers to the internet and manage ngrok endpoints.",
+    "description": "Tunnel: `ngrok http 3000 --log stdout` (public URL in the log; run detached), `ngrok http 3000 --url <reserved-domain>`. API (JSON out): `ngrok api endpoints list`, `ngrok api reserved-domains list|create --domain x`, `ngrok api edges https list|create|get|update|delete <id>`, `ngrok api tunnels list`, `ngrok api <service> --help` for every resource. Authtoken from dashboard.ngrok.com/get-started/your-authtoken, API key from dashboard.ngrok.com/api-keys.",
+    "statusCmd": "out=$(ngrok api api-keys list 2>/dev/null) || exit 1; printf '%s\\n' \"$out\" | sed -n 's/.*\"owner_id\": *\"\\([^\"]*\\)\".*/\\1/p' | grep -m1 .",
+    "loginCmd": "ngrok config add-authtoken <authtoken> && ngrok config add-api-key <api_key>",
+    "credentialPaths": ["~/.config/ngrok/ngrok.yml", "~/Library/Application Support/ngrok/ngrok.yml"],
+    "versionCmd": "ngrok version 2>/dev/null | sed -n 1p",
+    "binary": {
+      "linux-x86_64": {
+        "url": "https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-linux-amd64.tgz",
+        "archive": "tar.gz",
+        "extract": "ngrok"
+      },
+      "linux-aarch64": {
+        "url": "https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-linux-arm64.tgz",
+        "archive": "tar.gz",
+        "extract": "ngrok"
+      },
+      "darwin-x86_64": {
+        "url": "https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-darwin-amd64.zip",
+        "archive": "zip",
+        "extract": "ngrok"
+      },
+      "darwin-aarch64": {
+        "url": "https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-darwin-arm64.zip",
+        "archive": "zip",
+        "extract": "ngrok"
+      },
+      "windows-x86_64": {
+        "url": "https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-windows-amd64.zip",
+        "archive": "zip",
+        "extract": "ngrok.exe"
+      }
+    }
+  },
+  "hookdeck": {
+    "category": "developer",
+    "pkg": "hookdeck-cli",
+    "installer": "npm",
+    "label": "Hookdeck",
+    "binName": "hookdeck",
+    "summary": "Receive, route and replay webhooks through Hookdeck.",
+    "description": "`hookdeck listen 3000 <source>` forwards webhooks to localhost (run detached). Manage resources: `hookdeck gateway connection|source|destination|event|request list|get|create|update|delete --output json`, `hookdeck gateway event retry <id>`, `hookdeck project list|use`. Project API key from dashboard.hookdeck.com → Settings → Secrets.",
+    "statusCmd": "hookdeck whoami </dev/null 2>/dev/null | grep 'Logged in as' | grep -m1 .",
+    "loginCmd": "hookdeck ci --api-key <api_key>",
+    "logoutCmd": "hookdeck logout",
+    "credentialPaths": ["~/.config/hookdeck/config.toml"],
+    "versionCmd": "hookdeck version 2>/dev/null | sed -n 1p"
+  },
+  "svix": {
+    "category": "developer",
+    "pkg": "svix-cli",
+    "installer": "npm",
+    "label": "Svix",
+    "summary": "Send and monitor outgoing webhooks with Svix.",
+    "description": "JSON out by default. `svix application list|create|get`, `svix event-type list|create`, `svix endpoint list|create <app_id>`, `svix message create <app_id> '{\"eventType\":\"x\",\"payload\":{}}'`, `svix message-attempt list-by-msg <app_id> <msg_id>`, `svix listen http://localhost:3000` (detached), `svix signature verify`. API key (region suffix like .eu) from dashboard.svix.com → API Access.",
+    "statusCmd": "svix authentication whoami 2>/dev/null | grep -o 'org_[A-Za-z0-9]*' | grep -m1 .",
+    "loginCmd": "mkdir -p ~/.config/svix && printf 'auth_token = \"%s\"\\n' <auth_token> > ~/.config/svix/config.toml && svix authentication whoami >/dev/null",
+    "credentialPaths": ["~/.config/svix/config.toml"],
+    "versionCmd": "svix --version 2>/dev/null | sed -n 1p"
+  },
+  "semgrep": {
+    "category": "developer",
+    "pkg": "semgrep",
+    "installer": "pip",
+    "label": "Semgrep",
+    "summary": "Scan code for security bugs and quality issues.",
+    "description": "Local scan, no login needed: `semgrep scan --config auto --json .` (or `--config p/owasp-top-ten`, `-e 'pattern' -l py`), `--sarif`, `--error` to fail on findings. Logged in: `semgrep ci` uploads findings to semgrep.dev and uses Pro rules. Token from semgrep.dev/orgs/-/settings/tokens.",
+    "statusCmd": "semgrep show deployment 2>&1 | grep -o '\"slug\":\"[^\"]*\"' | grep -m1 .",
+    "loginCmd": "SEMGREP_APP_TOKEN=<api_token> semgrep login",
+    "logoutCmd": "semgrep logout",
+    "credentialPaths": ["~/.semgrep/settings.yml"],
+    "versionCmd": "semgrep --version 2>/dev/null | sed -n 1p"
+  },
+  "snyk": {
+    "category": "developer",
+    "pkg": "snyk",
+    "installer": "npm",
+    "label": "Snyk",
+    "summary": "Find and fix vulnerabilities in code, dependencies and containers.",
+    "description": "`snyk test --json` (open-source deps), `snyk code test --json` (SAST), `snyk container test <image> --json`, `snyk iac test --json`, `snyk monitor` to snapshot a project into the dashboard; `--org=<slug>` picks the org, `--severity-threshold=high`. API token from app.snyk.io/account.",
+    "statusCmd": "out=$(snyk whoami --experimental 2>/dev/null) || exit 1; printf '%s\\n' \"$out\" | tr -d '\\r' | grep -m1 .",
+    "loginCmd": "snyk auth --auth-type=token <api_token>",
+    "logoutCmd": "snyk config unset api",
+    "credentialPaths": ["~/.config/configstore/snyk.json"],
+    "versionCmd": "snyk --version 2>/dev/null | sed -n 1p"
+  },
+  "socket": {
+    "category": "developer",
+    "pkg": "@socketsecurity/cli",
+    "installer": "npm",
+    "label": "Socket",
+    "binName": "socket",
+    "summary": "Check open-source dependencies for malware and supply-chain risk.",
+    "description": "Always add `--no-banner --json`. `socket package score npm lodash`, `socket scan create .` (full repo scan), `socket scan list|view <id>`, `socket ci` (fails when unhealthy), `socket fix`, `socket organization list`, `socket threat-feed`. API token from socket.dev/dashboard → Settings → API Tokens.",
+    "statusCmd": "out=$(socket organization list --json --no-banner 2>/dev/null) || exit 1; printf '%s\\n' \"$out\" | sed -n 's/.*\"slug\": *\"\\([^\"]*\\)\".*/\\1/p' | grep -m1 .",
+    "loginCmd": "socket config set apiToken <api_token> --no-banner",
+    "logoutCmd": "socket logout --no-banner",
+    "credentialPaths": ["~/.local/share/socket/settings/config.json", "~/Library/Application Support/socket/settings/config.json"],
+    "versionCmd": "socket --version 2>/dev/null | sed -n 1p"
+  },
+  "deepsource": {
+    "category": "developer",
+    "pkg": "deepsource",
+    "installer": "binary",
+    "label": "DeepSource",
+    "summary": "Review code quality and security issues found by DeepSource.",
+    "description": "Run inside a repo connected to DeepSource: `deepsource issues list --json` (or `--analyzer python`, path args), `deepsource repo status`, `deepsource repo view`, `deepsource report --analyzer test-coverage --key python --value-file coverage.xml` (needs DEEPSOURCE_DSN), `deepsource config generate|validate`. Personal access token from app.deepsource.com → Settings → Tokens.",
+    "statusCmd": "deepsource auth status 2>&1 | grep 'Logged in to DeepSource' | grep -m1 .",
+    "loginCmd": "deepsource auth login --with-token <access_token>",
+    "credentialPaths": ["~/.deepsource/config.toml"],
+    "versionCmd": "deepsource version 2>/dev/null | sed -n 1p",
+    "binary": {
+      "linux-x86_64": {
+        "url": "https://github.com/DeepSourceCorp/cli/releases/download/v0.10.1/deepsource_0.10.1_linux_amd64.tar.gz",
+        "archive": "tar.gz",
+        "extract": "deepsource"
+      },
+      "linux-aarch64": {
+        "url": "https://github.com/DeepSourceCorp/cli/releases/download/v0.10.1/deepsource_0.10.1_linux_arm64.tar.gz",
+        "archive": "tar.gz",
+        "extract": "deepsource"
+      },
+      "darwin-x86_64": {
+        "url": "https://github.com/DeepSourceCorp/cli/releases/download/v0.10.1/deepsource_0.10.1_darwin_amd64.tar.gz",
+        "archive": "tar.gz",
+        "extract": "deepsource"
+      },
+      "darwin-aarch64": {
+        "url": "https://github.com/DeepSourceCorp/cli/releases/download/v0.10.1/deepsource_0.10.1_darwin_arm64.tar.gz",
+        "archive": "tar.gz",
+        "extract": "deepsource"
+      },
+      "windows-x86_64": {
+        "url": "https://github.com/DeepSourceCorp/cli/releases/download/v0.10.1/deepsource_0.10.1_windows_amd64.tar.gz",
+        "archive": "tar.gz",
+        "extract": "deepsource.exe"
+      }
+    }
+  },
+  "bump": {
+    "category": "developer",
+    "pkg": "bump-cli",
+    "installer": "npm",
+    "label": "Bump.sh",
+    "summary": "Publish and diff OpenAPI and AsyncAPI docs on Bump.sh.",
+    "description": "No login command: pass the token per call, `--token \"$(cat ~/.config/bump/token)\"`. `bump deploy openapi.yaml --doc <slug> --token …` publishes, `--dry-run` validates, `bump diff old.yaml new.yaml` (no token) or `bump diff openapi.yaml --doc <slug> --token … --format json` shows breaking changes, `bump preview openapi.yaml`. Token from bump.sh → doc/hub/organization Settings → CI deployment.",
+    "statusCmd": "test -s ~/.config/bump/token && echo token saved",
+    "loginCmd": "bump --version >/dev/null && mkdir -p ~/.config/bump && printf '%s' <api_token> > ~/.config/bump/token && chmod 600 ~/.config/bump/token",
+    "logoutCmd": "rm -f ~/.config/bump/token",
+    "credentialPaths": ["~/.config/bump/token"],
+    "versionCmd": "bump --version 2>/dev/null | sed -n 1p"
+  },
+  "livekit": {
+    "category": "developer",
+    "pkg": "livekit-cli",
+    "installer": "binary",
+    "label": "LiveKit",
+    "binName": "lk",
+    "summary": "Manage LiveKit rooms, voice agents and access tokens.",
+    "description": "`lk room list --json`, `lk room create|delete <name>`, `lk room participants list <room>`, `lk token create --join --room r --identity u --valid-for 1h`, `lk dispatch create`, `lk agent create|deploy|status|logs` (LiveKit Cloud agents), `lk sip ...`. Add `-y` for non-interactive runs. URL, API key and secret from cloud.livekit.io → project Settings → API keys.",
+    "statusCmd": "lk room list -y </dev/null >/dev/null 2>&1 || exit 1; lk project list --json 2>/dev/null | sed -n 's/.*\"URL\": *\"\\([^\"]*\\)\".*/\\1/p' | grep -m1 .",
+    "loginCmd": "lk project remove cloud >/dev/null 2>&1; lk project add cloud --url <url> --api-key <api_key> --api-secret <api_secret> --default -y",
+    "logoutCmd": "lk project remove cloud",
+    "credentialPaths": ["~/.livekit/cli-config.yaml"],
+    "versionCmd": "lk --version 2>/dev/null | sed -n 1p",
+    "binary": {
+      "linux-x86_64": {
+        "url": "https://github.com/livekit/livekit-cli/releases/download/v2.18.8/lk_2.18.8_linux_amd64.tar.gz",
+        "archive": "tar.gz",
+        "extract": "lk"
+      },
+      "linux-aarch64": {
+        "url": "https://github.com/livekit/livekit-cli/releases/download/v2.18.8/lk_2.18.8_linux_arm64.tar.gz",
+        "archive": "tar.gz",
+        "extract": "lk"
+      },
+      "darwin-x86_64": {
+        "url": "https://github.com/livekit/livekit-cli/releases/download/v2.18.8/lk_2.18.8_darwin_amd64.tar.gz",
+        "archive": "tar.gz",
+        "extract": "lk"
+      },
+      "darwin-aarch64": {
+        "url": "https://github.com/livekit/livekit-cli/releases/download/v2.18.8/lk_2.18.8_darwin_arm64.tar.gz",
+        "archive": "tar.gz",
+        "extract": "lk"
+      },
+      "windows-x86_64": {
+        "url": "https://github.com/livekit/livekit-cli/releases/download/v2.18.8/lk_2.18.8_windows_amd64.zip",
+        "archive": "zip",
+        "extract": "lk.exe"
+      }
+    }
+  },
+  "daytona": {
+    "category": "developer",
+    "pkg": "daytona",
+    "installer": "binary",
+    "label": "Daytona",
+    "summary": "Create and run code in Daytona cloud sandboxes.",
+    "description": "`daytona create --snapshot <name>` (or `--dockerfile`), `daytona list -f json`, `daytona info <id> -f json`, `daytona exec <id> -- <cmd>`, `daytona preview-url <id> --port 3000`, `daytona ssh <id>`, `daytona start|stop|archive|delete <id>`, `daytona snapshot list`, `daytona volume list`. API key from app.daytona.io/dashboard/keys.",
+    "statusCmd": "daytona list -f json </dev/null >/dev/null 2>&1 && echo authenticated",
+    "loginCmd": "daytona login --api-key <api_key>",
+    "logoutCmd": "daytona logout",
+    "credentialPaths": ["~/.config/daytona/config.json", "~/Library/Application Support/daytona/config.json"],
+    "versionCmd": "daytona version 2>/dev/null | sed -n 1p",
+    "binary": {
+      "linux-x86_64": {
+        "url": "https://github.com/daytonaio/daytona/releases/download/v0.190.0/daytona-linux-amd64",
+        "archive": "raw"
+      },
+      "linux-aarch64": {
+        "url": "https://github.com/daytonaio/daytona/releases/download/v0.190.0/daytona-linux-arm64",
+        "archive": "raw"
+      },
+      "darwin-x86_64": {
+        "url": "https://github.com/daytonaio/daytona/releases/download/v0.190.0/daytona-darwin-amd64",
+        "archive": "raw"
+      },
+      "darwin-aarch64": {
+        "url": "https://github.com/daytonaio/daytona/releases/download/v0.190.0/daytona-darwin-arm64",
+        "archive": "raw"
+      },
+      "windows-x86_64": {
+        "url": "https://github.com/daytonaio/daytona/releases/download/v0.190.0/daytona-windows-amd64.exe",
+        "archive": "raw"
+      }
+    }
+  },
+  "render": {
+    "category": "cloud",
+    "pkg": "render",
+    "installer": "binary",
+    "label": "Render",
+    "summary": "Manage Render services, deploys, logs and databases.",
+    "binary": {
+      "linux-x86_64": {
+        "url": "https://github.com/render-oss/cli/releases/download/v2.28.0/cli_2.28.0_linux_amd64.zip",
+        "archive": "zip",
+        "extract": "cli_v2.28.0"
+      },
+      "linux-aarch64": {
+        "url": "https://github.com/render-oss/cli/releases/download/v2.28.0/cli_2.28.0_linux_arm64.zip",
+        "archive": "zip",
+        "extract": "cli_v2.28.0"
+      },
+      "darwin-x86_64": {
+        "url": "https://github.com/render-oss/cli/releases/download/v2.28.0/cli_2.28.0_darwin_amd64.zip",
+        "archive": "zip",
+        "extract": "cli_v2.28.0"
+      },
+      "darwin-aarch64": {
+        "url": "https://github.com/render-oss/cli/releases/download/v2.28.0/cli_2.28.0_darwin_arm64.zip",
+        "archive": "zip",
+        "extract": "cli_v2.28.0"
+      },
+      "windows-x86_64": {
+        "url": "https://github.com/render-oss/cli/releases/download/v2.28.0/cli_2.28.0_windows_amd64.zip",
+        "archive": "zip",
+        "extract": "render.exe"
+      }
+    },
+    "statusCmd": "DO_NOT_TRACK=1 render whoami -o text 2>/dev/null | grep '^Email' | grep -m1 .",
+    "loginCmd": "k=<api_key>; mkdir -p \"$HOME/.render\" && (umask 077; rm -f \"$HOME/.render/cli.yaml\"; printf 'version: 1\\napi:\\n  key: %s\\n' \"$k\" > \"$HOME/.render/cli.yaml\") && DO_NOT_TRACK=1 render whoami -o text",
+    "credentialPaths": ["~/.render/cli.yaml"],
+    "versionCmd": "render --version 2>/dev/null | sed -n 1p",
+    "description": "Official Render CLI. Login takes an API key (dashboard.render.com/u/settings#api-keys); pick a workspace once with `render workspace set`. Non-interactive: always pass `-o json` and `--confirm`. `render services -o json`, `render deploys create SRV_ID --wait --confirm`, `render logs -r SRV_ID -o text`, `render psql DB_ID`. Docs: render.com/docs/cli"
+  },
+  "runpodctl": {
+    "category": "cloud",
+    "pkg": "runpodctl",
+    "installer": "binary",
+    "label": "RunPod",
+    "summary": "Manage RunPod GPU pods, serverless endpoints and volumes.",
+    "binary": {
+      "linux-x86_64": {
+        "url": "https://github.com/runpod/runpodctl/releases/download/v2.14.0/runpodctl-linux-amd64",
+        "archive": "raw"
+      },
+      "linux-aarch64": {
+        "url": "https://github.com/runpod/runpodctl/releases/download/v2.14.0/runpodctl-linux-arm64",
+        "archive": "raw"
+      },
+      "darwin-x86_64": {
+        "url": "https://github.com/runpod/runpodctl/releases/download/v2.14.0/runpodctl-darwin-amd64",
+        "archive": "raw"
+      },
+      "darwin-aarch64": {
+        "url": "https://github.com/runpod/runpodctl/releases/download/v2.14.0/runpodctl-darwin-arm64",
+        "archive": "raw"
+      },
+      "windows-x86_64": {
+        "url": "https://github.com/runpod/runpodctl/releases/download/v2.14.0/runpodctl-windows-amd64.exe",
+        "archive": "raw"
+      }
+    },
+    "statusCmd": "runpodctl user -o json 2>/dev/null | python3 -c 'import json,sys; print(json.load(sys.stdin)[\"email\"])' 2>/dev/null | grep -m1 .",
+    "loginCmd": "k=<api_key>; mkdir -p \"$HOME/.runpod\" && (umask 077; rm -f \"$HOME/.runpod/config.toml\"; printf \"apikey = '%s'\\napiurl = 'https://api.runpod.io/graphql'\\n\" \"$k\" > \"$HOME/.runpod/config.toml\") && runpodctl user",
+    "credentialPaths": ["~/.runpod/config.toml"],
+    "versionCmd": "runpodctl version 2>/dev/null | sed -n 1p",
+    "description": "Official RunPod CLI. Login takes an API key (runpod.io/console/user/settings → API Keys). JSON output by default. `runpodctl pod list`, `runpodctl pod create --help`, `runpodctl pod stop ID`, `runpodctl serverless list`, `runpodctl gpu list`, `runpodctl network-volume list`, `runpodctl send FILE` / `receive CODE`. Docs: docs.runpod.io/runpodctl/overview"
+  },
+  "tnr": {
+    "category": "cloud",
+    "pkg": "tnr",
+    "installer": "binary",
+    "label": "Thunder Compute",
+    "summary": "Create and manage low-cost GPU instances on Thunder Compute.",
+    "binary": {
+      "linux-x86_64": {
+        "url": "https://github.com/Thunder-Compute/thunder-cli/releases/download/v2.1.0/tnr_2.1.0_linux_amd64.tar.gz",
+        "archive": "tar.gz",
+        "extract": "tnr"
+      },
+      "linux-aarch64": {
+        "url": "https://github.com/Thunder-Compute/thunder-cli/releases/download/v2.1.0/tnr_2.1.0_linux_arm64.tar.gz",
+        "archive": "tar.gz",
+        "extract": "tnr"
+      },
+      "darwin-x86_64": {
+        "url": "https://github.com/Thunder-Compute/thunder-cli/releases/download/v2.1.0/tnr_2.1.0_darwin_amd64.tar.gz",
+        "archive": "tar.gz",
+        "extract": "tnr"
+      },
+      "darwin-aarch64": {
+        "url": "https://github.com/Thunder-Compute/thunder-cli/releases/download/v2.1.0/tnr_2.1.0_darwin_arm64.tar.gz",
+        "archive": "tar.gz",
+        "extract": "tnr"
+      },
+      "windows-x86_64": {
+        "url": "https://github.com/Thunder-Compute/thunder-cli/releases/download/v2.1.0/tnr_2.1.0_windows_amd64.zip",
+        "archive": "zip",
+        "extract": "tnr.exe"
+      }
+    },
+    "statusCmd": "tnr status --json 2>/dev/null >/dev/null && echo authenticated",
+    "loginCmd": "tnr login --token <api_token>",
+    "credentialPaths": ["~/.thunder/cli_config.json"],
+    "versionCmd": "tnr --version 2>/dev/null | sed -n 1p",
+    "description": "Official Thunder Compute CLI. Login takes an API token (console.thundercompute.com → Settings → API tokens). Always pass `--json` (and `-y` for destructive ops) to stay non-interactive: `tnr status --json`, `tnr create --gpu a100 --json`, `tnr connect 0`, `tnr scp`, `tnr delete 0 -y`. Docs: thundercompute.com/docs"
+  },
+  "koyeb": {
+    "category": "cloud",
+    "pkg": "koyeb",
+    "installer": "binary",
+    "label": "Koyeb",
+    "summary": "Deploy and manage apps and services on Koyeb.",
+    "binary": {
+      "linux-x86_64": {
+        "url": "https://github.com/koyeb/koyeb-cli/releases/download/v5.12.0/koyeb-cli_5.12.0_linux_amd64.tar.gz",
+        "archive": "tar.gz",
+        "extract": "koyeb"
+      },
+      "linux-aarch64": {
+        "url": "https://github.com/koyeb/koyeb-cli/releases/download/v5.12.0/koyeb-cli_5.12.0_linux_arm64.tar.gz",
+        "archive": "tar.gz",
+        "extract": "koyeb"
+      },
+      "darwin-x86_64": {
+        "url": "https://github.com/koyeb/koyeb-cli/releases/download/v5.12.0/koyeb-cli_5.12.0_darwin_amd64.tar.gz",
+        "archive": "tar.gz",
+        "extract": "koyeb"
+      },
+      "darwin-aarch64": {
+        "url": "https://github.com/koyeb/koyeb-cli/releases/download/v5.12.0/koyeb-cli_5.12.0_darwin_arm64.tar.gz",
+        "archive": "tar.gz",
+        "extract": "koyeb"
+      },
+      "windows-x86_64": {
+        "url": "https://github.com/koyeb/koyeb-cli/releases/download/v5.12.0/koyeb-cli_5.12.0_windows_amd64.zip",
+        "archive": "zip",
+        "extract": "koyeb.exe"
+      }
+    },
+    "statusCmd": "koyeb profile -o json 2>/dev/null | python3 -c 'import json,sys; print(json.load(sys.stdin)[\"user\"][\"email\"])' 2>/dev/null | grep -m1 .",
+    "loginCmd": "k=<api_token>; (umask 077; rm -f \"$HOME/.koyeb.yaml\"; printf 'token: %s\\n' \"$k\" > \"$HOME/.koyeb.yaml\") && koyeb profile",
+    "credentialPaths": ["~/.koyeb.yaml"],
+    "versionCmd": "koyeb version 2>/dev/null | sed -n 1p",
+    "description": "Official Koyeb CLI. Login takes a USER API token (app.koyeb.com/user/settings/api; organization tokens can't run `profile`). `koyeb apps list`, `koyeb services list`, `koyeb deploy . APP/SVC`, `koyeb services logs SVC`, `koyeb secrets create`. Add `-o json` for parseable output. Docs: koyeb.com/docs/build-and-deploy/cli/reference"
+  },
+  "heroku": {
+    "category": "cloud",
+    "pkg": "heroku@11.11.0",
+    "installer": "npm",
+    "label": "Heroku",
+    "summary": "Deploy and manage apps, add-ons and databases on Heroku.",
+    "statusCmd": "heroku auth:whoami 2>/dev/null | tr -d '\\r' | grep -m1 .",
+    "loginCmd": "k=<api_key>; f=\"$HOME/.netrc\"; (umask 077; touch \"$f\"; chmod 600 \"$f\") && K=\"$k\" python3 -c 'import os,re,sys; f=sys.argv[1]; k=os.environ[\"K\"]; s=re.sub(r\"machine\\s+(api|git)\\.heroku\\.com\\s+login\\s+\\S+\\s+password\\s+\\S+\\s*\", \"\", open(f).read()); open(f, \"w\").write(s + \"\".join(\"machine %s.heroku.com\\n  login token\\n  password %s\\n\" % (h, k) for h in (\"api\", \"git\")))' \"$f\" && heroku auth:whoami",
+    "credentialPaths": ["~/.netrc"],
+    "versionCmd": "heroku --version 2>/dev/null | sed -n 1p",
+    "description": "Official Heroku CLI. Login takes an API key (dashboard.heroku.com/account → API Key, or `heroku authorizations:create`) and writes it to ~/.netrc; `heroku apps`, `heroku ps -a APP`, `heroku logs -a APP --tail`, `heroku config:set K=V -a APP`, `heroku releases -a APP`. Raw API: `heroku api GET /apps`. Docs: devcenter.heroku.com/categories/command-line"
+  },
+  "northflank": {
+    "category": "cloud",
+    "pkg": "@northflank/cli@0.13.0",
+    "installer": "npm",
+    "label": "Northflank",
+    "summary": "Manage Northflank projects, services, jobs and addons.",
+    "statusCmd": "northflank list projects -o json >/dev/null 2>&1 && echo authenticated",
+    "loginCmd": "northflank login --token <api_token> --name default --override",
+    "credentialPaths": ["~/.northflank/config.json"],
+    "versionCmd": "northflank --version 2>/dev/null | sed -n 1p",
+    "description": "Official Northflank CLI. Login takes a team API token (app.northflank.com → Team settings → API → Tokens). `northflank list projects -o json`, `northflank list services --projectId P`, `northflank get service logs --projectId P --serviceId S`, `northflank start build`, `northflank forward`. Docs: northflank.com/docs/v1/api/use-the-cli"
+  },
+  "linode-cli": {
+    "category": "cloud",
+    "pkg": "linode-cli",
+    "installer": "pip",
+    "label": "Akamai Linode",
+    "summary": "Manage Linode servers, volumes, domains and Kubernetes clusters.",
+    "statusCmd": "linode-cli profile view --text --no-headers --format username 2>/dev/null | tr -d '\\r' | grep -m1 .",
+    "loginCmd": "k=<api_token>; mkdir -p \"$HOME/.config\" && (umask 077; rm -f \"$HOME/.config/linode-cli\"; printf '[DEFAULT]\\ndefault-user = me\\n\\n[me]\\ntoken = %s\\nregion = us-east\\ntype = g6-nanode-1\\nimage = linode/ubuntu24.04\\n' \"$k\" > \"$HOME/.config/linode-cli\") && linode-cli profile view --text --no-headers --format username",
+    "credentialPaths": ["~/.config/linode-cli"],
+    "versionCmd": "linode-cli --version 2>/dev/null | sed -n 1p",
+    "description": "Official Akamai/Linode CLI (pip `linode-cli`). Login takes a personal access token (cloud.linode.com/profile/tokens). Output: `--json` or `--text`. `linode-cli linodes list --json`, `linode-cli linodes create --label X --root_pass P`, `linode-cli domains list`, `linode-cli lke clusters-list`, `linode-cli obj ls`. Docs: techdocs.akamai.com/cloud-computing/docs/cli"
+  },
+  "oci": {
+    "category": "cloud",
+    "pkg": "oci-cli",
+    "installer": "pip",
+    "label": "Oracle Cloud",
+    "summary": "Manage Oracle Cloud Infrastructure compute, storage and networking.",
+    "statusCmd": "oci os ns get --query data --raw-output 2>/dev/null | tr -d '\\r' | grep -m1 .",
+    "loginCmd": "mkdir -p \"$HOME/.oci\" && (umask 077; rm -f \"$HOME/.oci/oci_api_key.pem\" \"$HOME/.oci/config\"; printf '%s\\n' <private_key_pem> > \"$HOME/.oci/oci_api_key.pem\" && printf '[DEFAULT]\\nuser=%s\\nfingerprint=%s\\ntenancy=%s\\nregion=%s\\nkey_file=%s\\n' <user_ocid> <fingerprint> <tenancy_ocid> <region> \"$HOME/.oci/oci_api_key.pem\" > \"$HOME/.oci/config\") && oci os ns get --query data --raw-output",
+    "credentialPaths": ["~/.oci/config", "~/.oci/oci_api_key.pem"],
+    "versionCmd": "oci --version 2>/dev/null | sed -n 1p",
+    "description": "Official OCI CLI (pip `oci-cli`). Login takes an API signing key: Console → Profile → API keys → Add API key gives user OCID, tenancy OCID, fingerprint, region and the private key PEM. `oci iam compartment list`, `oci compute instance list -c COMPARTMENT`, `oci os object list -bn BUCKET`, `oci raw-request --http-method GET --target-uri URL`. Docs: docs.oracle.com/iaas/tools/oci-cli/latest"
+  },
+  "aliyun": {
+    "category": "cloud",
+    "pkg": "aliyun",
+    "installer": "binary",
+    "label": "Alibaba Cloud",
+    "summary": "Manage Alibaba Cloud servers, storage and other cloud services.",
+    "binary": {
+      "linux-x86_64": {
+        "url": "https://github.com/aliyun/aliyun-cli/releases/download/v3.5.1/aliyun-cli-linux-3.5.1-amd64.tgz",
+        "archive": "tar.gz",
+        "extract": "aliyun"
+      },
+      "linux-aarch64": {
+        "url": "https://github.com/aliyun/aliyun-cli/releases/download/v3.5.1/aliyun-cli-linux-3.5.1-arm64.tgz",
+        "archive": "tar.gz",
+        "extract": "aliyun"
+      },
+      "darwin-x86_64": {
+        "url": "https://github.com/aliyun/aliyun-cli/releases/download/v3.5.1/aliyun-cli-macosx-3.5.1-amd64.tgz",
+        "archive": "tar.gz",
+        "extract": "aliyun"
+      },
+      "darwin-aarch64": {
+        "url": "https://github.com/aliyun/aliyun-cli/releases/download/v3.5.1/aliyun-cli-macosx-3.5.1-arm64.tgz",
+        "archive": "tar.gz",
+        "extract": "aliyun"
+      },
+      "windows-x86_64": {
+        "url": "https://github.com/aliyun/aliyun-cli/releases/download/v3.5.1/aliyun-cli-windows-3.5.1-amd64.zip",
+        "archive": "zip",
+        "extract": "aliyun.exe"
+      }
+    },
+    "statusCmd": "aliyun sts GetCallerIdentity 2>/dev/null | python3 -c 'import json,sys; print(json.load(sys.stdin)[\"Arn\"])' 2>/dev/null | grep -m1 .",
+    "loginCmd": "aliyun configure set --mode AK --access-key-id <access_key_id> --access-key-secret <access_key_secret> --region <region> && aliyun sts GetCallerIdentity",
+    "credentialPaths": ["~/.aliyun/config.json"],
+    "versionCmd": "aliyun version 2>/dev/null | sed -n 1p",
+    "description": "Official Alibaba Cloud CLI. Login takes a RAM AccessKey pair (ram.console.aliyun.com → AccessKey) and a region such as cn-hangzhou or ap-southeast-1. Calls are `aliyun <product> <Action> --Param v`: `aliyun ecs DescribeInstances --RegionId R`, `aliyun oss ls`, `aliyun fc ListFunctions`. Docs: alibabacloud.com/help/en/cli"
+  },
+  "cx": {
+    "category": "cloud",
+    "pkg": "cx",
+    "installer": "binary",
+    "label": "Cloud 66",
+    "summary": "Manage Cloud 66 application stacks, servers and deploys.",
+    "binary": {
+      "linux-x86_64": {
+        "url": "https://s3.amazonaws.com/downloads.cloud66.com/cx/cx_0.3.4_linux_amd64.tar.gz",
+        "archive": "tar.gz",
+        "extract": "cx_0.3.4_linux_amd64/cx"
+      },
+      "linux-aarch64": {
+        "url": "https://s3.amazonaws.com/downloads.cloud66.com/cx/cx_0.3.4_linux_arm64.tar.gz",
+        "archive": "tar.gz",
+        "extract": "cx_0.3.4_linux_arm64/cx"
+      },
+      "darwin-x86_64": {
+        "url": "https://s3.amazonaws.com/downloads.cloud66.com/cx/cx_0.3.4_darwin_amd64.zip",
+        "archive": "zip",
+        "extract": "cx_0.3.4_darwin_amd64/cx"
+      },
+      "darwin-aarch64": {
+        "url": "https://s3.amazonaws.com/downloads.cloud66.com/cx/cx_0.3.4_darwin_arm64.zip",
+        "archive": "zip",
+        "extract": "cx_0.3.4_darwin_arm64/cx"
+      },
+      "windows-x86_64": {
+        "url": "https://s3.amazonaws.com/downloads.cloud66.com/cx/cx_0.3.4_windows_amd64.zip",
+        "archive": "zip",
+        "extract": "cx_0.3.4_windows_amd64/cx.exe"
+      }
+    },
+    "statusCmd": "grep -qs access_token ~/.cloud66/cx.json 2>/dev/null && echo authenticated",
+    "loginCmd": "cx login",
+    "loginTerminalHint": "Run `cx login` in a terminal on this host: it opens app.cloud66.com to approve access and receives the code on 127.0.0.1:34543, so the browser must run on the same machine.",
+    "credentialPaths": ["~/.cloud66/cx.json", "~/.cloud66/cxprofiles.json"],
+    "versionCmd": "cx version 2>/dev/null | sed -n 1p",
+    "description": "Official Cloud 66 toolbelt `cx`. `cx stacks list`, `cx redeploy -s STACK`, `cx env-vars list -s STACK`, `cx servers list -s STACK`, `cx run -s STACK --server S 'cmd'`, `cx ssh -s STACK S`. Login is browser OAuth (no personal token flag). Docs: help.cloud66.com/docs/toolbelt/using-cloud66-toolbelt"
+  },
+  "terraform": {
+    "category": "cloud",
+    "pkg": "terraform",
+    "installer": "binary",
+    "label": "Terraform",
+    "summary": "Provision cloud infrastructure as code and run HCP Terraform workspaces.",
+    "statusCmd": "python3 -c 'import json,os,urllib.request as u; t=json.load(open(os.path.expanduser(\"~/.terraform.d/credentials.tfrc.json\")))[\"credentials\"][\"app.terraform.io\"][\"token\"]; a=json.load(u.urlopen(u.Request(\"https://app.terraform.io/api/v2/account/details\",headers={\"Authorization\":\"Bearer \"+t})))[\"data\"][\"attributes\"]; print(a[\"username\"]+\" \"+a[\"email\"])' 2>/dev/null | grep -m1 .",
+    "loginCmd": "t=<api_token>; mkdir -p ~/.terraform.d && (umask 077; printf '{\"credentials\":{\"app.terraform.io\":{\"token\":\"%s\"}}}\\n' \"$t\" > ~/.terraform.d/credentials.tfrc.json) && terraform version >/dev/null 2>&1 && echo saved",
+    "logoutCmd": "terraform logout",
+    "credentialPaths": [
+      "~/.terraform.d/credentials.tfrc.json"
+    ],
+    "description": "HashiCorp Terraform CLI. Local IaC: `terraform init`, `terraform plan -out=tfplan`, `terraform apply tfplan`, `terraform show -json`, `terraform output -json`, `terraform state list`; works without login. The HCP Terraform login (user API token from https://app.terraform.io/app/settings/tokens) is only needed for `cloud {}` blocks / remote state and the HCP API: `curl -H \"Authorization: Bearer $(jq -r '.credentials[\"app.terraform.io\"].token' ~/.terraform.d/credentials.tfrc.json)\" https://app.terraform.io/api/v2/organizations` (workspaces: `/organizations/<org>/workspaces`, runs: `/workspaces/<ws-id>/runs`, POST `/runs` to queue one).",
+    "versionCmd": "terraform version 2>/dev/null | sed -n 1p",
+    "binary": {
+      "linux-x86_64": {
+        "url": "https://releases.hashicorp.com/terraform/1.16.5/terraform_1.16.5_linux_amd64.zip",
+        "archive": "zip",
+        "extract": "terraform"
+      },
+      "linux-aarch64": {
+        "url": "https://releases.hashicorp.com/terraform/1.16.5/terraform_1.16.5_linux_arm64.zip",
+        "archive": "zip",
+        "extract": "terraform"
+      },
+      "darwin-x86_64": {
+        "url": "https://releases.hashicorp.com/terraform/1.16.5/terraform_1.16.5_darwin_amd64.zip",
+        "archive": "zip",
+        "extract": "terraform"
+      },
+      "darwin-aarch64": {
+        "url": "https://releases.hashicorp.com/terraform/1.16.5/terraform_1.16.5_darwin_arm64.zip",
+        "archive": "zip",
+        "extract": "terraform"
+      },
+      "windows-x86_64": {
+        "url": "https://releases.hashicorp.com/terraform/1.16.5/terraform_1.16.5_windows_amd64.zip",
+        "archive": "zip",
+        "extract": "terraform.exe"
+      }
+    }
+  },
+  "pulumi": {
+    "category": "cloud",
+    "pkg": "pulumi",
+    "installer": "system",
+    "installCmd": "curl -fsSL https://get.pulumi.com | sh -s -- --version 3.267.0 --install-root \"$HOME/.todoforai/tools/pulumi\" --no-edit-path && mkdir -p \"$HOME/.todoforai/tools/bin\" && ln -sf \"$HOME/.todoforai/tools/pulumi/bin/pulumi\" \"$HOME/.todoforai/tools/bin/pulumi\"",
+    "uninstallCmd": "rm -rf \"$HOME/.todoforai/tools/pulumi\" \"$HOME/.todoforai/tools/bin/pulumi\"; hash -r 2>/dev/null; ! command -v pulumi >/dev/null 2>&1 || { echo \"pulumi is still on PATH: $(command -v pulumi)\"; exit 1; }",
+    "installCmdWindows": "powershell.exe -NoProfile -ExecutionPolicy Bypass -Command \"& ([scriptblock]::Create((New-Object System.Net.WebClient).DownloadString('https://get.pulumi.com/install.ps1'))) -Version 3.267.0\"",
+    "label": "Pulumi",
+    "summary": "Define and deploy cloud infrastructure as code with Pulumi.",
+    "statusCmd": "pulumi whoami --non-interactive 2>/dev/null | tr -d '\\r' | grep -m1 .",
+    "loginCmd": "PULUMI_ACCESS_TOKEN=<access_token> pulumi login --non-interactive",
+    "logoutCmd": "pulumi logout --non-interactive",
+    "credentialPaths": [
+      "~/.pulumi/credentials.json"
+    ],
+    "description": "Pulumi CLI (state in Pulumi Cloud after login; `pulumi login --local` for file state). Always pass `--non-interactive --yes`: `pulumi stack ls --json`, `pulumi stack select <org>/<project>/<stack>`, `pulumi preview --json`, `pulumi up --yes --skip-preview`, `pulumi config set [--secret] <k> <v>`, `pulumi stack output --json`, `pulumi destroy --yes`, `pulumi new <template> --yes`. `pulumi whoami -v` shows orgs. Access token: https://app.pulumi.com/account/tokens.",
+    "versionCmd": "pulumi version 2>/dev/null | sed -n 1p"
+  },
+  "buildkite": {
+    "category": "developer",
+    "pkg": "bk",
+    "installer": "binary",
+    "binName": "bk",
+    "label": "Buildkite",
+    "summary": "Trigger and inspect Buildkite CI builds, jobs, logs and artifacts.",
+    "statusCmd": "bk whoami --no-input 2>/dev/null | sed -n 's/^Current organization: *//p;s/^API Token user email: *//p' | paste -sd ' ' - | grep -m1 .",
+    "loginCmd": "bk auth login --org <org_slug> --token <api_token>",
+    "logoutCmd": "bk auth logout --all --yes",
+    "credentialPaths": [
+      "~/.config/bk.yaml"
+    ],
+    "description": "Official Buildkite CLI `bk` (token kept in the OS keychain, /dev/shm fallback on headless Linux; org list in ~/.config/bk.yaml). Most commands take `-o json` and `-p <pipeline>`: `bk pipeline list`, `bk build list -p <pipeline> -o json`, `bk build create -p <pipeline> --branch main --commit HEAD -m \"msg\"`, `bk build view <number> -p <pipeline>`, `bk build rebuild <number>`, `bk job log <job-id>`, `bk job retry <job-id>`, `bk artifacts list <build>`, `bk artifacts download <id>`, raw REST: `bk api /pipelines`. API access token (scopes read_builds, write_builds, read_pipelines, read_artifacts, read_build_logs, read_user): https://buildkite.com/user/api-access-tokens; org slug is the part after buildkite.com/.",
+    "versionCmd": "bk version 2>/dev/null | sed -n 1p",
+    "binary": {
+      "linux-x86_64": {
+        "url": "https://github.com/buildkite/cli/releases/download/v3.59.1/bk_3.59.1_linux_amd64.tar.gz",
+        "archive": "tar.gz",
+        "extract": "bk_3.59.1_linux_amd64/bk"
+      },
+      "linux-aarch64": {
+        "url": "https://github.com/buildkite/cli/releases/download/v3.59.1/bk_3.59.1_linux_arm64.tar.gz",
+        "archive": "tar.gz",
+        "extract": "bk_3.59.1_linux_arm64/bk"
+      },
+      "darwin-x86_64": {
+        "url": "https://github.com/buildkite/cli/releases/download/v3.59.1/bk_3.59.1_macOS_amd64.zip",
+        "archive": "zip",
+        "extract": "bk_3.59.1_macOS_amd64/bk"
+      },
+      "darwin-aarch64": {
+        "url": "https://github.com/buildkite/cli/releases/download/v3.59.1/bk_3.59.1_macOS_arm64.zip",
+        "archive": "zip",
+        "extract": "bk_3.59.1_macOS_arm64/bk"
+      },
+      "windows-x86_64": {
+        "url": "https://github.com/buildkite/cli/releases/download/v3.59.1/bk_3.59.1_windows_amd64.zip",
+        "archive": "zip",
+        "extract": "bk.exe"
+      }
+    }
+  },
+  "capgo": {
+    "category": "developer",
+    "pkg": "@capgo/cli",
+    "installer": "npm",
+    "label": "Capgo",
+    "summary": "Push live updates to Capacitor mobile apps through Capgo.",
+    "statusCmd": "capgo account whoami 2>/dev/null | grep -o '[[:alnum:]._%+-]*@[[:alnum:].-]*\\.[[:alpha:]]*' | grep -m1 .",
+    "loginCmd": "capgo login <api_key>",
+    "credentialPaths": [
+      "~/.capgo"
+    ],
+    "description": "Official Capgo CLI (`capgo`, also `npx @capgo/cli@latest`); API key saved to ~/.capgo, `-a <key>` overrides per command. Run from the Capacitor project dir: `capgo app list`, `capgo bundle upload --channel production` (`-b <version>`, `-p <dist dir>`), `capgo bundle list <appId>`, `capgo channel list <appId>`, `capgo channel set <channel> <appId> --bundle <version>`, `capgo channel promote <from> <to>`, `capgo app debug` / device logs, `capgo organization list`, `capgo account whoami`. API key (all or upload mode): https://console.capgo.app/apikeys.",
+    "versionCmd": "capgo --version 2>/dev/null | sed -n 1p"
+  },
+  "buddy": {
+    "category": "developer",
+    "pkg": "bdy",
+    "installer": "npm",
+    "binName": "bdy",
+    "label": "Buddy",
+    "summary": "Run and monitor Buddy CI/CD pipelines, sandboxes and artifacts.",
+    "statusCmd": "bdy whoami --format json 2>/dev/null | node -e 'let s=\"\";process.stdin.on(\"data\",d=>s+=d).on(\"end\",()=>{let o={};try{o=JSON.parse(s)}catch{};if(!o.User)process.exit(1);console.log(o.User+\" @ \"+o.Workspace)})' | grep -m1 .",
+    "loginCmd": "bdy login --token <personal_access_token> --region <region> --workspace <workspace>",
+    "logoutCmd": "bdy logout",
+    "credentialPaths": [
+      "~/.bdy/cfg.json"
+    ],
+    "description": "Official Buddy (buddy.works) CLI `bdy`; region is us, eu or as (host of your app URL), workspace = URL handle in app.buddy.works/<workspace>. Most commands take `--format json`: `bdy project list`, `bdy pipeline list -p <project>`, `bdy pipeline run start <pipeline> -p <project> --no-follow --format jsonl`, `bdy pipeline run status <pipeline> <run-id> --failed-logs`, `bdy pipeline run list <pipeline>`, `bdy pipeline run logs|cancel|retry|approve`, `bdy pipeline yaml|create|update`, `bdy sandbox list|create|exec`, `bdy artifact list|download`, raw REST: `bdy api get /workspaces/<ws>/projects`. Personal access token (scopes WORKSPACE, PIPELINE_READ, PIPELINE_RUN, plus what you need): https://app.buddy.works/my-id/api-tokens.",
+    "versionCmd": "bdy version 2>/dev/null | sed -n 1p"
+  },
+  "codefresh": {
+    "category": "developer",
+    "pkg": "codefresh",
+    "installer": "npm",
+    "label": "Codefresh",
+    "summary": "Run and inspect Codefresh CI/CD pipelines, builds and logs.",
+    "statusCmd": "codefresh auth current-context 2>/dev/null | awk '$NF==\"Valid\"{print $2\" \"$(NF-1)}' | grep -m1 .",
+    "loginCmd": "codefresh auth create-context --api-key <api_key>",
+    "credentialPaths": [
+      "~/.cfconfig"
+    ],
+    "description": "Codefresh classic CLI (contexts in ~/.cfconfig; `CF_API_KEY` env also works; `--url` for on-prem). `-o json|yaml|wide` on get commands: `codefresh get pipelines`, `codefresh get builds --pipeline-name <name> --limit 10 -o json`, `codefresh run <project>/<pipeline> -b main -v KEY=val -d` (detach), `codefresh logs <build-id>`, `codefresh restart <build-id>`, `codefresh approve|deny <build-id>`, `codefresh get projects`, `codefresh validate codefresh.yml`, `codefresh auth get-contexts`. API key: https://g.codefresh.io/user/settings (API Keys). New Codefresh Cloud signups are closed since the Octopus Deploy merger.",
+    "versionCmd": "codefresh version 2>/dev/null | sed -n 1p"
+  },
+  "octopusdeploy": {
+    "category": "developer",
+    "pkg": "octopus",
+    "installer": "binary",
+    "binName": "octopus",
+    "label": "Octopus Deploy",
+    "summary": "Create releases, run deployments and runbooks, and inspect Octopus Deploy projects.",
+    "statusCmd": "octopus space list -f basic --no-prompt >/dev/null 2>&1 && octopus config get url 2>/dev/null | tr -d '\\r' | grep -m1 .",
+    "loginCmd": "octopus login --server <server_url> --api-key <api_key> --no-prompt",
+    "logoutCmd": "octopus logout",
+    "credentialPaths": [
+      "~/.config/octopus/cli_config.json"
+    ],
+    "description": "Official Octopus CLI (server URL + API key in ~/.config/octopus/cli_config.json; OCTOPUS_URL/OCTOPUS_API_KEY env also work). Pass --no-prompt and -f json for scripting, -s <space> to pick a space: `octopus project list -f json`, `octopus release create -p <project> --version 1.2.3 --no-prompt`, `octopus release deploy -p <project> --version 1.2.3 -e Production --no-prompt`, `octopus deployment list -p <project>`, `octopus runbook run -p <project> -n <runbook> -e <env> --no-prompt`, `octopus task view <task-id>`, `octopus environment list`, `octopus package upload --package app.1.0.0.zip`. API key: Octopus web UI → profile → My API Keys; server URL is e.g. https://<instance>.octopus.app.",
+    "versionCmd": "octopus version 2>/dev/null | sed -n 1p",
+    "binary": {
+      "linux-x86_64": {
+        "url": "https://github.com/OctopusDeploy/cli/releases/download/v2.27.0/octopus_2.27.0_linux_amd64.tar.gz",
+        "archive": "tar.gz",
+        "extract": "octopus"
+      },
+      "linux-aarch64": {
+        "url": "https://github.com/OctopusDeploy/cli/releases/download/v2.27.0/octopus_2.27.0_linux_arm64.tar.gz",
+        "archive": "tar.gz",
+        "extract": "octopus"
+      },
+      "darwin-x86_64": {
+        "url": "https://github.com/OctopusDeploy/cli/releases/download/v2.27.0/octopus_2.27.0_macOS_amd64.tar.gz",
+        "archive": "tar.gz",
+        "extract": "octopus"
+      },
+      "darwin-aarch64": {
+        "url": "https://github.com/OctopusDeploy/cli/releases/download/v2.27.0/octopus_2.27.0_macOS_arm64.tar.gz",
+        "archive": "tar.gz",
+        "extract": "octopus"
+      },
+      "windows-x86_64": {
+        "url": "https://github.com/OctopusDeploy/cli/releases/download/v2.27.0/octopus_2.27.0_windows_amd64.zip",
+        "archive": "zip",
+        "extract": "octopus.exe"
+      }
+    }
+  },
+  "appcircle": {
+    "category": "developer",
+    "pkg": "@appcircle/cli",
+    "installer": "npm",
+    "binName": "appcircle",
+    "label": "Appcircle",
+    "summary": "Trigger mobile CI builds, manage signing and distribute iOS/Android apps on Appcircle.",
+    "statusCmd": "appcircle -o json organization view </dev/null 2>/dev/null | grep -o '\"name\":\"[^\"]*\"' | sed -n '1s/\"name\":\"\\(.*\\)\"/\\1/p' | grep -m1 .",
+    "loginCmd": "appcircle login personal-access-key --secret <personal_access_key>",
+    "logoutCmd": "appcircle logout </dev/null",
+    "credentialPaths": [
+      "~/.config/@appcircle/cli-nodejs/config.json"
+    ],
+    "description": "Official Appcircle CLI. Always pass every required option (or redirect </dev/null) — missing options open an interactive prompt. `-o json` for JSON: `appcircle -o json build profile list`, `appcircle build start --profile <name> --branch main --workflow <name>`, `appcircle build active-list`, `appcircle build view --profile <p> --branch <b> --commitHash <sha> --buildId <id>`, `appcircle build download-log ...`, `appcircle testing-distribution upload --distProfile <name> --app ./app.ipa --message \"notes\"`, `appcircle publish profile list --platform ios`, `appcircle signing-identity certificate list`, `appcircle organization view`. Personal access key: https://my.appcircle.io → My Organization → Security → Personal Access Keys. Self-hosted: `appcircle config set API_HOSTNAME <url>` and AUTH_HOSTNAME.",
+    "versionCmd": "appcircle --version 2>/dev/null | tail -1"
+  },
+  "saucelabs": {
+    "category": "developer",
+    "pkg": "saucectl",
+    "installer": "npm",
+    "binName": "saucectl",
+    "label": "Sauce Labs",
+    "summary": "Run cross-browser and real-device tests on Sauce Labs and inspect jobs and artifacts.",
+    "statusCmd": "saucectl jobs list -s 1 -o json </dev/null >/dev/null 2>&1 && sed -n 's/^username: *//p' ~/.sauce/credentials.yml | tr -d '\\r' | grep -m1 .",
+    "loginCmd": "saucectl configure -u <username> -a <access_key>",
+    "logoutCmd": "rm -f ~/.sauce/credentials.yml",
+    "credentialPaths": [
+      "~/.sauce/credentials.yml"
+    ],
+    "description": "Official Sauce Labs CLI saucectl (creds in ~/.sauce/credentials.yml; SAUCE_USERNAME/SAUCE_ACCESS_KEY env also work; `--region us-west-1|eu-central-1`). `saucectl init` scaffolds .sauce/config.yml for Playwright/Cypress/Espresso/XCUITest/etc., `saucectl run` executes it; `saucectl jobs list -o json --status failed`, `saucectl jobs get <id> -o json`, `saucectl builds list --source vdc -o json`, `saucectl artifacts list <job-id>`, `saucectl artifacts download <job-id> <file>`, `saucectl storage list`, `saucectl storage upload app.apk`, `saucectl devices list`. REST fallback: curl -u \"$SAUCE_USERNAME:$SAUCE_ACCESS_KEY\" https://api.us-west-1.saucelabs.com/rest/v1/$SAUCE_USERNAME/jobs. Username + access key: https://app.saucelabs.com/user-settings.",
+    "versionCmd": "saucectl --version 2>/dev/null | sed -n 1p"
+  },
+  "semaphore": {
+    "category": "developer",
+    "pkg": "sem",
+    "installer": "system",
+    "binName": "sem",
+    "label": "Semaphore CI",
+    "summary": "Run and inspect Semaphore CI workflows, pipelines, jobs and logs.",
+    "statusCmd": "sem get projects >/dev/null 2>&1 && sem context 2>/dev/null | sed -n 's/^\\* //p' | grep -m1 .",
+    "loginCmd": "sem connect <org_host> <api_token>",
+    "credentialPaths": [
+      "~/.sem.yaml"
+    ],
+    "installCmd": "os=$(uname -s); a=$(uname -m); case $a in aarch64|arm64) a=arm64;; *) a=x86_64;; esac; d=\"$HOME/.todoforai/tools/bin\"; t=\"${TMPDIR:-/tmp}/sem.$$\"; mkdir -p \"$d\" \"$t\" && curl -fsSL \"https://github.com/semaphoreci/cli/releases/download/v0.37.0/sem_${os}_${a}.tar.gz\" | tar xz -C \"$t\" sem && mv \"$t/sem\" \"$d/sem\" && chmod 0755 \"$d/sem\" && rm -rf \"$t\"",
+    "uninstallCmd": "rm -f \"$HOME/.todoforai/tools/bin/sem\"; hash -r 2>/dev/null; ! command -v sem >/dev/null 2>&1 || { echo \"sem is still on PATH: $(command -v sem)\"; exit 1; }",
+    "description": "Official Semaphore CI CLI `sem` (Linux/macOS only; contexts in ~/.sem.yaml). Org host is <org>.semaphoreci.com: `sem get projects`, `sem get workflows <project>`, `sem get pipelines -p <project>`, `sem get ppl <pipeline-id>`, `sem get jobs`, `sem logs <job-id>`, `sem rebuild wf <workflow-id>`, `sem stop ppl <pipeline-id>`, `sem run <workflow-or-task>`, `sem get secrets`, `sem create secret <name> -e KEY=val`, `sem apply -f resource.yml`. API token: https://me.semaphoreci.com/account (API Token).",
+    "versionCmd": "sem version 2>/dev/null | cut -d, -f1"
+  },
+  "influx": {
+    "category": "data",
+    "pkg": "influx",
+    "installer": "binary",
+    "label": "InfluxDB Cloud",
+    "summary": "Write and query time-series data in InfluxDB Cloud.",
+    "description": "Official InfluxDB v2 CLI (`influx`) for InfluxDB Cloud. Connect with the region URL (e.g. https://us-east-1-1.aws.cloud2.influxdata.com), the organization name and an API token (Load Data → API Tokens). `influx bucket list`, `influx write -b <bucket> 'm,tag=a v=1'`, `influx query 'from(bucket:\"b\") |> range(start:-1h)'`.",
+    "loginCmd": "influx config rm todoforai >/dev/null 2>&1; influx config create --config-name todoforai --host-url <host> --org <org> --token <token> --active",
+    "statusCmd": "influx org list --json 2>/dev/null | sed -n 's/.*\"name\": *\"\\([^\"]*\\)\".*/\\1/p' | grep -m1 .",
+    "versionCmd": "influx version 2>/dev/null | sed -n 1p",
+    "credentialPaths": ["~/.influxdbv2/configs"],
+    "binary": {
+      "linux-x86_64": {
+        "url": "https://dl.influxdata.com/influxdb/releases/influxdb2-client-2.8.0-linux-amd64.tar.gz",
+        "archive": "tar.gz",
+        "extract": "influx"
+      },
+      "linux-aarch64": {
+        "url": "https://dl.influxdata.com/influxdb/releases/influxdb2-client-2.8.0-linux-arm64.tar.gz",
+        "archive": "tar.gz",
+        "extract": "influx"
+      },
+      "darwin-x86_64": {
+        "url": "https://dl.influxdata.com/influxdb/releases/influxdb2-client-2.8.0-darwin-amd64.tar.gz",
+        "archive": "tar.gz",
+        "extract": "influx"
+      },
+      "darwin-aarch64": {
+        "url": "https://dl.influxdata.com/influxdb/releases/influxdb2-client-2.8.0-darwin-amd64.tar.gz",
+        "archive": "tar.gz",
+        "extract": "influx"
+      },
+      "windows-x86_64": {
+        "url": "https://dl.influxdata.com/influxdb/releases/influxdb2-client-2.8.0-windows-amd64.zip",
+        "archive": "zip",
+        "extract": "influx.exe"
+      }
+    }
+  },
+  "tinybird": {
+    "category": "data",
+    "pkg": "tinybird",
+    "installer": "system",
+    "binName": "tb",
+    "label": "Tinybird",
+    "summary": "Build and query real-time analytics APIs on Tinybird.",
+    "description": "Official Tinybird CLI (`tb`, Forward). Connect with the region API host (e.g. https://api.tinybird.co, https://api.europe-west2.gcp.tinybird.co) and the Workspace admin token (Tokens page). Run from `~` or a project dir: `tb --cloud workspace current`, `tb --cloud datasource ls`, `tb --cloud sql 'select 1'`, `tb --cloud deploy`.",
+    "installCmd": "command -v uv >/dev/null 2>&1 || curl -LsSf https://astral.sh/uv/install.sh | sh; PATH=\"$HOME/.local/bin:$PATH\" UV_TOOL_BIN_DIR=\"$HOME/.todoforai/tools/bin\" uv tool install tinybird==4.6.22 --python 3.11 --force",
+    "uninstallCmd": "PATH=\"$HOME/.local/bin:$PATH\" UV_TOOL_BIN_DIR=\"$HOME/.todoforai/tools/bin\" uv tool uninstall tinybird",
+    "loginCmd": "printf '{\"host\":\"%s\",\"token\":\"%s\"}\\n' <host> <token> > ~/.tinyb && cd ~ && tb --cloud workspace current >/dev/null",
+    "statusCmd": "cd ~ && tb --cloud workspace current 2>/dev/null | sed -n 's/^name: //p' | grep -m1 .",
+    "versionCmd": "tb --version 2>/dev/null | sed -n 1p",
+    "credentialPaths": ["~/.tinyb"]
+  },
+  "xata": {
+    "category": "data",
+    "pkg": "xata",
+    "installer": "binary",
+    "label": "Xata",
+    "summary": "Manage Xata Postgres databases and branches.",
+    "description": "Official Xata CLI. Connect with an API key (console.xata.io → Account settings → API keys). `xata organization list`, `xata project list`, `xata branch list`, `xata branch create`.",
+    "loginCmd": "xata auth login --force --api-key <api_key>",
+    "statusCmd": "xata organization list --json 2>/dev/null | sed -n 's/.*\"name\": *\"\\([^\"]*\\)\".*/\\1/p' | grep -m1 .",
+    "versionCmd": "xata --version 2>/dev/null | sed -n 1p",
+    "credentialPaths": ["~/.config/xata/config.json"],
+    "binary": {
+      "linux-x86_64": {
+        "url": "https://xata-cli-versions.s3.amazonaws.com/versions/1.16.1-latest/xata-linux-x64",
+        "archive": "raw"
+      },
+      "linux-aarch64": {
+        "url": "https://xata-cli-versions.s3.amazonaws.com/versions/1.16.1-latest/xata-linux-arm64",
+        "archive": "raw"
+      },
+      "darwin-x86_64": {
+        "url": "https://xata-cli-versions.s3.amazonaws.com/versions/1.16.1-latest/xata-darwin-x64",
+        "archive": "raw"
+      },
+      "darwin-aarch64": {
+        "url": "https://xata-cli-versions.s3.amazonaws.com/versions/1.16.1-latest/xata-darwin-arm64",
+        "archive": "raw"
+      },
+      "windows-x86_64": {
+        "url": "https://xata-cli-versions.s3.amazonaws.com/versions/1.16.1-latest/xata-windows-x64.exe",
+        "archive": "raw"
+      }
+    }
+  },
+  "chroma": {
+    "category": "data",
+    "pkg": "chromadb@3.5.0",
+    "installer": "npm",
+    "label": "Chroma Cloud",
+    "summary": "Manage Chroma Cloud vector databases.",
+    "description": "Official Chroma CLI (from the chromadb npm package). Connect with a Chroma Cloud API key (trychroma.com → Settings → API keys). `chroma db list`, `chroma db create <name>`, `chroma db connect <name> --env-file`, `chroma browse <collection> --db <name>`.",
+    "loginCmd": "chroma login --profile default --api-key <api_key>",
+    "statusCmd": "chroma profile show 2>/dev/null | sed 's/\\x1b\\[[0-9;]*m//g' | grep -v -e ':' -e 'rofile' | grep -m1 .",
+    "versionCmd": "chroma --version 2>/dev/null | sed -n 1p",
+    "credentialPaths": [
+      "~/.chroma/credentials",
+      "~/.chroma/config.json"
+    ]
+  },
+  "pinecone": {
+    "category": "data",
+    "pkg": "pinecone",
+    "installer": "binary",
+    "binName": "pc",
+    "label": "Pinecone",
+    "summary": "Create and query Pinecone vector indexes.",
+    "description": "Official Pinecone CLI (`pc`). Connect with a project API key (app.pinecone.io → API keys). `pc index list`, `pc index create --name <n> --dimension 1536 --metric cosine --cloud aws --region us-east-1`, `pc index describe --name <n>`.",
+    "loginCmd": "pc auth configure --api-key <api_key>",
+    "statusCmd": "pc index list --json >/dev/null 2>&1 && echo authenticated",
+    "versionCmd": "pc version 2>/dev/null | sed -n 1p",
+    "credentialPaths": [
+      "~/.config/pinecone/secrets.yaml",
+      "~/.config/pinecone/config.yaml",
+      "~/.config/pinecone/state.yaml"
+    ],
+    "binary": {
+      "linux-x86_64": {
+        "url": "https://github.com/pinecone-io/cli/releases/download/v1.0.1/pc_Linux_x86_64.tar.gz",
+        "archive": "tar.gz",
+        "extract": "pc"
+      },
+      "linux-aarch64": {
+        "url": "https://github.com/pinecone-io/cli/releases/download/v1.0.1/pc_Linux_arm64.tar.gz",
+        "archive": "tar.gz",
+        "extract": "pc"
+      },
+      "darwin-x86_64": {
+        "url": "https://github.com/pinecone-io/cli/releases/download/v1.0.1/pc_Darwin_all.tar.gz",
+        "archive": "tar.gz",
+        "extract": "pc"
+      },
+      "darwin-aarch64": {
+        "url": "https://github.com/pinecone-io/cli/releases/download/v1.0.1/pc_Darwin_all.tar.gz",
+        "archive": "tar.gz",
+        "extract": "pc"
+      },
+      "windows-x86_64": {
+        "url": "https://github.com/pinecone-io/cli/releases/download/v1.0.1/pc_Windows_x86_64.zip",
+        "archive": "zip",
+        "extract": "pc.exe"
+      }
+    }
+  },
+  "databricks": {
+    "category": "data",
+    "pkg": "databricks",
+    "installer": "binary",
+    "label": "Databricks",
+    "summary": "Run SQL, jobs and notebooks on your Databricks workspace.",
+    "description": "Official Databricks CLI. Connect with the workspace URL (https://<id>.cloud.databricks.com) and a personal access token (User Settings → Developer → Access tokens). `databricks current-user me`, `databricks jobs list`, `databricks api post /api/2.0/sql/statements --json '{...}'`, `databricks fs ls dbfs:/`.",
+    "loginCmd": "printf '%s\\n' <token> | databricks configure --host <host>",
+    "statusCmd": "databricks current-user me -o json 2>/dev/null | sed -n 's/.*\"userName\": *\"\\([^\"]*\\)\".*/\\1/p' | grep -m1 .",
+    "versionCmd": "databricks --version 2>/dev/null | sed -n 1p",
+    "credentialPaths": ["~/.databrickscfg"],
+    "binary": {
+      "linux-x86_64": {
+        "url": "https://github.com/databricks/cli/releases/download/v1.19.0/databricks_cli_1.19.0_linux_amd64.tar.gz",
+        "archive": "tar.gz",
+        "extract": "databricks"
+      },
+      "linux-aarch64": {
+        "url": "https://github.com/databricks/cli/releases/download/v1.19.0/databricks_cli_1.19.0_linux_arm64.tar.gz",
+        "archive": "tar.gz",
+        "extract": "databricks"
+      },
+      "darwin-x86_64": {
+        "url": "https://github.com/databricks/cli/releases/download/v1.19.0/databricks_cli_1.19.0_darwin_amd64.tar.gz",
+        "archive": "tar.gz",
+        "extract": "databricks"
+      },
+      "darwin-aarch64": {
+        "url": "https://github.com/databricks/cli/releases/download/v1.19.0/databricks_cli_1.19.0_darwin_arm64.tar.gz",
+        "archive": "tar.gz",
+        "extract": "databricks"
+      },
+      "windows-x86_64": {
+        "url": "https://github.com/databricks/cli/releases/download/v1.19.0/databricks_cli_1.19.0_windows_amd64.zip",
+        "archive": "zip",
+        "extract": "databricks.exe"
+      }
+    }
+  },
+  "turso": {
+    "category": "data",
+    "pkg": "turso",
+    "installer": "system",
+    "label": "Turso",
+    "summary": "Create and manage Turso SQLite databases.",
+    "description": "Official Turso CLI. Connect with a platform API token (app.turso.tech → Settings → API Tokens, or `turso auth api-tokens mint`). `turso db list`, `turso db create <name>`, `turso db shell <name> 'select 1'`, `turso db tokens create <name>`. No Windows build: use WSL.",
+    "installCmd": "mkdir -p \"$HOME/.todoforai/tools/bin\" && case \"$(uname -s)-$(uname -m)\" in Darwin-arm64) p=Darwin_arm64;; Darwin-*) p=Darwin_x86_64;; Linux-aarch64|Linux-arm64) p=Linux_arm64;; *) p=Linux_x86_64;; esac && curl -fsSL \"https://github.com/tursodatabase/turso-cli/releases/download/v1.0.33/turso-cli_$p.tar.gz\" | tar -xzC \"$HOME/.todoforai/tools/bin\" turso",
+    "uninstallCmd": "rm -f \"$HOME/.todoforai/tools/bin/turso\"",
+    "loginCmd": "turso config set token <api_token>",
+    "statusCmd": "turso auth whoami 2>/dev/null | grep -v 'not logged in' | grep -m1 .",
+    "versionCmd": "turso --version 2>/dev/null | sed -n 1p",
+    "credentialPaths": [
+      "~/.config/turso/settings.json",
+      "~/Library/Application Support/turso/settings.json"
+    ]
+  },
+  "snowflake": {
+    "category": "data",
+    "pkg": "snowflake-cli",
+    "packages": ["snowflake-cli==3.28.0"],
+    "installer": "pip",
+    "binName": "snow",
+    "label": "Snowflake",
+    "summary": "Query and manage your Snowflake data warehouse.",
+    "description": "Official Snowflake CLI (`snow`). Connect with the account identifier (Account menu → View account details, e.g. `abc12345.eu-central-1` or `orgname-acctname`), username and password (or a programmatic access token as the password). `snow sql -q 'select current_version()'`, `snow object list table`, `snow stage copy`.",
+    "loginCmd": "snow connection add --connection-name default --account <account> --user <username> --password <password> --default --no-interactive",
+    "statusCmd": "snow connection test >/dev/null 2>&1 && echo authenticated",
+    "versionCmd": "snow --version 2>/dev/null | sed -n 1p",
+    "credentialPaths": [
+      "~/.config/snowflake/config.toml",
+      "~/.snowflake/config.toml"
+    ]
+  },
+  "confluent": {
+    "category": "data",
+    "pkg": "confluent",
+    "installer": "binary",
+    "label": "Confluent",
+    "summary": "Manage Kafka clusters, topics and connectors on Confluent Cloud.",
+    "description": "Official Confluent CLI. Login uses your Confluent Cloud email and password (SSO accounts: `confluent login --no-browser` and paste the token). `confluent kafka cluster list`, `confluent kafka topic list --cluster <id>`, `confluent kafka topic produce/consume`, `confluent connect cluster list`.",
+    "loginCmd": "CONFLUENT_CLOUD_EMAIL=<email> CONFLUENT_CLOUD_PASSWORD=<password> confluent login --save",
+    "statusCmd": "confluent organization describe >/dev/null 2>&1 && echo authenticated",
+    "versionCmd": "confluent version 2>/dev/null | sed -n 's/^Version: *//p' | grep -m1 .",
+    "credentialPaths": ["~/.confluent/config.json"],
+    "binary": {
+      "linux-x86_64": {
+        "url": "https://github.com/confluentinc/cli/releases/download/v4.78.0/confluent_4.78.0_linux_amd64.tar.gz",
+        "archive": "tar.gz",
+        "extract": "confluent/confluent"
+      },
+      "linux-aarch64": {
+        "url": "https://github.com/confluentinc/cli/releases/download/v4.78.0/confluent_4.78.0_linux_arm64.tar.gz",
+        "archive": "tar.gz",
+        "extract": "confluent/confluent"
+      },
+      "darwin-x86_64": {
+        "url": "https://github.com/confluentinc/cli/releases/download/v4.78.0/confluent_4.78.0_darwin_amd64.tar.gz",
+        "archive": "tar.gz",
+        "extract": "confluent/confluent"
+      },
+      "darwin-aarch64": {
+        "url": "https://github.com/confluentinc/cli/releases/download/v4.78.0/confluent_4.78.0_darwin_arm64.tar.gz",
+        "archive": "tar.gz",
+        "extract": "confluent/confluent"
+      },
+      "windows-x86_64": {
+        "url": "https://github.com/confluentinc/cli/releases/download/v4.78.0/confluent_4.78.0_windows_amd64.zip",
+        "archive": "zip",
+        "extract": "confluent/confluent.exe"
+      }
+    }
+  },
+  "surreal": {
+    "category": "data",
+    "pkg": "surreal",
+    "installer": "binary",
+    "label": "SurrealDB",
+    "summary": "Query a SurrealDB or Surreal Cloud database.",
+    "description": "Official SurrealDB CLI. It has no saved login: pass the instance per call, e.g. `surreal sql -e wss://<instance>.surreal.cloud -u <user> -p <pass> --ns <ns> --db <db>`, or pipe a query into it. Also `surreal export/import` and `surreal start memory` for a local server.",
+    "versionCmd": "surreal version 2>/dev/null | sed -n 1p",
+    "binary": {
+      "linux-x86_64": {
+        "url": "https://github.com/surrealdb/surrealdb/releases/download/v3.3.0/surreal-v3.3.0.linux-amd64.tgz",
+        "archive": "tar.gz",
+        "extract": "surreal"
+      },
+      "linux-aarch64": {
+        "url": "https://github.com/surrealdb/surrealdb/releases/download/v3.3.0/surreal-v3.3.0.linux-arm64.tgz",
+        "archive": "tar.gz",
+        "extract": "surreal"
+      },
+      "darwin-x86_64": {
+        "url": "https://github.com/surrealdb/surrealdb/releases/download/v3.3.0/surreal-v3.3.0.darwin-amd64.tgz",
+        "archive": "tar.gz",
+        "extract": "surreal"
+      },
+      "darwin-aarch64": {
+        "url": "https://github.com/surrealdb/surrealdb/releases/download/v3.3.0/surreal-v3.3.0.darwin-arm64.tgz",
+        "archive": "tar.gz",
+        "extract": "surreal"
+      },
+      "windows-x86_64": {
+        "url": "https://github.com/surrealdb/surrealdb/releases/download/v3.3.0/surreal-v3.3.0.windows-amd64.exe",
+        "archive": "raw"
+      }
+    }
+  },
+  "appwrite": {
+    "category": "cloud",
+    "pkg": "appwrite-cli",
+    "installer": "npm",
+    "label": "Appwrite",
+    "summary": "Manage your Appwrite backend: users, teams, databases, storage and functions.",
+    "statusCmd": "appwrite whoami 2>/dev/null | sed -n 's/^Email *: *//p' | grep -m1 .",
+    "loginCmd": "appwrite login",
+    "deviceCodePattern": "user_code=([A-Z0-9]+)",
+    "oauthUrlPattern": "(https://appwrite\\.io/oauth2/device\\S*)",
+    "canStreamLogin": true,
+    "logoutCmd": "appwrite logout",
+    "credentialPaths": ["~/.appwrite/prefs.json"],
+    "versionCmd": "appwrite --version 2>/dev/null | sed -n 1p",
+    "description": "Official Appwrite CLI (Cloud or self-hosted). `appwrite login` is a device flow (appwrite.io/oauth2/device?user_code=…); self-hosted: `appwrite login --endpoint <url>/v1 --email … --password …`. Account: `appwrite whoami`, `appwrite list-organizations`, `appwrite list-projects --json`. Per project: `appwrite client --project-id <id>` (or `--key <api_key>` for a project API key from Console → Overview → API keys), then `appwrite users list --json`, `appwrite teams create --team-id unique() --name X`, `appwrite tablesdb list-rows|create-row`, `appwrite storage …`, `appwrite functions …`; `appwrite pull|push` sync appwrite.config.json. `-j` JSON, `-R` raw."
+  },
+  "doppler": {
+    "category": "developer",
+    "pkg": "doppler",
+    "installer": "binary",
+    "label": "Doppler",
+    "summary": "Read and manage secrets and configs in Doppler.",
+    "statusCmd": "doppler me --json 2>/dev/null | sed -n 's/.*\"workplace\":{\"name\":\"\\([^\"]*\\)\".*/workplace: \\1/p' | grep -m1 .",
+    "loginCmd": "doppler configure set token=<api_token> --scope /",
+    "logoutCmd": "doppler configure unset token --scope /",
+    "credentialPaths": ["~/.doppler/.doppler.yaml"],
+    "versionCmd": "doppler --version 2>/dev/null | sed -n 1p",
+    "description": "Official Doppler CLI. Token: dashboard.doppler.com → Tokens → Personal (dp.pt.…; a service token dp.st.… is scoped to one config). `doppler projects --json`, `doppler configs -p <proj> --json`, `doppler secrets -p <proj> -c <config> --json`, `doppler secrets get KEY --plain`, `doppler secrets set KEY=value`, `doppler secrets download --no-file --format env`, `doppler run -p <proj> -c <config> -- <cmd>` injects secrets, `doppler configs tokens create <name> -p … -c …` makes a service token.",
+    "binary": {
+      "linux-x86_64": {
+        "url": "https://github.com/DopplerHQ/cli/releases/download/3.76.6/doppler_3.76.6_linux_amd64.tar.gz",
+        "archive": "tar.gz",
+        "extract": "doppler"
+      },
+      "linux-aarch64": {
+        "url": "https://github.com/DopplerHQ/cli/releases/download/3.76.6/doppler_3.76.6_linux_arm64.tar.gz",
+        "archive": "tar.gz",
+        "extract": "doppler"
+      },
+      "darwin-x86_64": {
+        "url": "https://github.com/DopplerHQ/cli/releases/download/3.76.6/doppler_3.76.6_macOS_amd64.tar.gz",
+        "archive": "tar.gz",
+        "extract": "doppler"
+      },
+      "darwin-aarch64": {
+        "url": "https://github.com/DopplerHQ/cli/releases/download/3.76.6/doppler_3.76.6_macOS_arm64.tar.gz",
+        "archive": "tar.gz",
+        "extract": "doppler"
+      },
+      "windows-x86_64": {
+        "url": "https://github.com/DopplerHQ/cli/releases/download/3.76.6/doppler_3.76.6_windows_amd64.zip",
+        "archive": "zip",
+        "extract": "doppler.exe"
+      }
+    }
+  },
+  "permit": {
+    "category": "developer",
+    "pkg": "@permitio/cli",
+    "installer": "npm",
+    "label": "Permit.io",
+    "summary": "Manage Permit.io roles, tenants and access policies.",
+    "statusCmd": "out=$(P=$(readlink -f \"$(command -v permit)\") && node -e 'require(process.argv[1]).getPassword(\"Permit.io\",\"PERMIT_DEFAULT_ENV\").then(async k=>{const h={headers:{Authorization:\"Bearer \"+k}},j=u=>fetch(\"https://api.permit.io/v2/\"+u,h).then(r=>r.ok?r.json():Promise.reject(r.status)),s=await j(\"api-key/scope\"),o=await j(\"orgs/\"+s.organization_id),e=s.environment_id?await j(\"projects/\"+s.project_id+\"/envs/\"+s.environment_id):null;console.log(o.name+(e?\" / \"+e.name:\"\"))}).catch(()=>process.exit(1))' \"${P%/dist/cli.js}/node_modules/keytar\" 2>/dev/null); rc=$?; printf '%s\\n' \"$out\" | grep -m1 .; exit $rc",
+    "loginCmd": "permit login --api-key <api_key> 2>&1 | grep 'Logged in'",
+    "logoutCmd": "permit logout",
+    "credentialPaths": [],
+    "versionCmd": "node -p \"require(require('path').resolve(require('fs').realpathSync(process.argv[1]),'../../package.json')).version\" \"$(command -v permit)\" 2>/dev/null",
+    "description": "Official Permit.io CLI. Login needs an ENVIRONMENT-scoped key (app.permit.io → Settings → API Keys → Environments API Keys); an org/project key opens an interactive picker. The key lives in the OS keychain (libsecret on Linux). `permit api users list|assign|unassign`, `permit env create|copy|export|select`, `permit policy create`, `permit pdp check --user u --action read --resource doc`, `permit pdp run`. Anything else (tenants, relationship tuples, role assignments): REST `https://api.permit.io/v2/facts/<proj>/<env>/…` with `Authorization: Bearer <key>`; `GET /v2/api-key/scope` returns the proj/env ids."
+  },
+  "bw": {
+    "category": "developer",
+    "pkg": "@bitwarden/cli",
+    "installer": "npm",
+    "label": "Bitwarden",
+    "summary": "Read and manage items in your Bitwarden password vault.",
+    "statusCmd": "bw status 2>/dev/null | sed -n 's/.*\"userEmail\":\"\\([^\"]*\\)\".*\"status\":\"\\([^\"]*\\)\".*/\\1 (\\2)/p' | grep -m1 .",
+    "loginCmd": "BW_CLIENTID=<client_id> BW_CLIENTSECRET=<client_secret> bw login --apikey",
+    "logoutCmd": "bw logout",
+    "credentialPaths": ["~/.config/Bitwarden CLI/data.json"],
+    "versionCmd": "bw --version 2>/dev/null | tail -n 1",
+    "description": "Official Bitwarden CLI. API key: vault.bitwarden.com → Settings → Security → Keys → View API key (client_id user.…). Login leaves the vault LOCKED: `export BW_SESSION=$(bw unlock --passwordenv BW_PASSWORD --raw)` (master password from the user) before reading. `bw sync`, `bw list items --search X`, `bw get item|password|totp <id|name>`, `bw create item <base64 json>` (`bw get template item | jq … | bw encode`), `bw list organizations|collections|org-members --organizationid <id>`. Self-hosted: `bw config server <url>` first."
+  },
+  "ory": {
+    "category": "developer",
+    "pkg": "@ory/cli",
+    "installer": "npm",
+    "label": "Ory",
+    "summary": "Manage Ory Network identities, OAuth2 clients and permissions.",
+    "statusCmd": "python3 -c \"import json,os;d=json.load(open(os.path.expanduser('~/.ory-cloud.json')));print(d['session_identity_traits']['email'] if d.get('access_token') else '')\" 2>/dev/null | grep -m1 .",
+    "loginCmd": "ory auth",
+    "oauthUrlPattern": "(https://project\\.console\\.ory\\.com/oauth2/auth\\S+)",
+    "canStreamLogin": true,
+    "logoutCmd": "ory auth logout",
+    "credentialPaths": ["~/.ory-cloud.json"],
+    "versionCmd": "ory version 2>/dev/null | sed -n 's/^Version: *//p'",
+    "description": "Official Ory Network CLI. `ory auth` signs in via browser (loopback callback on a random port). Then `ory list workspaces|projects --format json`, `ory use project <id>`, `ory list identities --format json`, `ory create identity`, `ory get identity <id>`, `ory list oauth2-clients`, `ory create oauth2-client --name X --grant-type client_credentials`, `ory list relationships`, `ory revoke` sessions/tokens, `ory get|patch project` config. Headless alternative: ORY_WORKSPACE_API_KEY / ORY_PROJECT_API_KEY env vars (keys from console.ory.com)."
+  },
+  "auth0": {
+    "category": "developer",
+    "pkg": "auth0",
+    "installer": "binary",
+    "label": "Auth0",
+    "binary": {
+      "linux-x86_64": {
+        "url": "https://github.com/auth0/auth0-cli/releases/download/v1.37.0/auth0-cli_1.37.0_Linux_x86_64.tar.gz",
+        "archive": "tar.gz",
+        "extract": "auth0"
+      },
+      "linux-aarch64": {
+        "url": "https://github.com/auth0/auth0-cli/releases/download/v1.37.0/auth0-cli_1.37.0_Linux_arm64.tar.gz",
+        "archive": "tar.gz",
+        "extract": "auth0"
+      },
+      "darwin-x86_64": {
+        "url": "https://github.com/auth0/auth0-cli/releases/download/v1.37.0/auth0-cli_1.37.0_Darwin_x86_64.tar.gz",
+        "archive": "tar.gz",
+        "extract": "auth0"
+      },
+      "darwin-aarch64": {
+        "url": "https://github.com/auth0/auth0-cli/releases/download/v1.37.0/auth0-cli_1.37.0_Darwin_arm64.tar.gz",
+        "archive": "tar.gz",
+        "extract": "auth0"
+      },
+      "windows-x86_64": {
+        "url": "https://github.com/auth0/auth0-cli/releases/download/v1.37.0/auth0-cli_1.37.0_Windows_x86_64.zip",
+        "archive": "zip",
+        "extract": "auth0.exe"
+      }
+    },
+    "summary": "Manage Auth0 users, roles, applications and logs.",
+    "statusCmd": "auth0 tenants list --json-compact 2>/dev/null | sed -n 's/.*\"active\":true,\"name\":\"\\([^\"]*\\)\".*/\\1/p' | grep -m1 .",
+    "loginCmd": "auth0 login --domain <domain> --client-id <client_id> --client-secret <client_secret>",
+    "logoutCmd": "for t in $(auth0 tenants list --json-compact 2>/dev/null | grep -o '\"name\":\"[^\"]*\"' | cut -d'\"' -f4); do auth0 logout \"$t\"; done",
+    "credentialPaths": ["~/.config/auth0/config.json"],
+    "versionCmd": "auth0 --version 2>/dev/null | sed -n 1p",
+    "description": "Official Auth0 CLI over the Management API. Machine login: in the tenant create a Machine-to-Machine app authorized for the Auth0 Management API (Dashboard → Applications → APIs → Auth0 Management API → Machine to Machine Applications), then use its domain/client id/secret. User login alternative: `AUTH0_AGENT_MODE=true auth0 login --no-input` prints a device URL+code as JSON. `auth0 users search --query 'email:\"x@y\"' --json`, `auth0 users create|update|delete`, `auth0 roles list`, `auth0 users roles assign <user-id> --roles <id>`, `auth0 logs list --json`, `auth0 apps list --json`, raw: `auth0 api get \"users?q=…\"` / `auth0 api post client-grants --data '{…}'`."
+  },
+  "hasura": {
+    "category": "cloud",
+    "pkg": "hasura",
+    "installer": "binary",
+    "label": "Hasura",
+    "summary": "Manage Hasura GraphQL Engine metadata, migrations and permissions.",
+    "versionCmd": "hasura version --skip-update-check 2>&1 | sed -n 's/.*\"version\":\"\\(v[^\"]*\\)\".*/\\1/p' | sed -n 1p",
+    "description": "Hasura GraphQL Engine v2 CLI; no account login, every command targets one engine: `--endpoint https://<app>.hasura.app --admin-secret <secret>` (or HASURA_GRAPHQL_ENDPOINT / HASURA_GRAPHQL_ADMIN_SECRET, or config.yaml from `hasura init`). `hasura metadata export|apply|reload|inconsistency list`, `hasura migrate create|apply|status --database-name default`, `hasura seed apply`, `hasura console`. Ad-hoc query: `curl -s $HASURA_GRAPHQL_ENDPOINT/v1/graphql -H \"x-hasura-admin-secret: $S\" -d '{\"query\":\"{…}\"}'`. Add `--skip-update-check`. Hasura DDN (v3) uses the separate `ddn` CLI (`ddn auth login --access-token <pat>`).",
+    "binary": {
+      "linux-x86_64": {
+        "url": "https://github.com/hasura/graphql-engine/releases/download/v2.50.3/cli-hasura-linux-amd64",
+        "archive": "raw"
+      },
+      "linux-aarch64": {
+        "url": "https://github.com/hasura/graphql-engine/releases/download/v2.50.3/cli-hasura-linux-arm64",
+        "archive": "raw"
+      },
+      "darwin-x86_64": {
+        "url": "https://github.com/hasura/graphql-engine/releases/download/v2.50.3/cli-hasura-darwin-amd64",
+        "archive": "raw"
+      },
+      "darwin-aarch64": {
+        "url": "https://github.com/hasura/graphql-engine/releases/download/v2.50.3/cli-hasura-darwin-arm64",
+        "archive": "raw"
+      },
+      "windows-x86_64": {
+        "url": "https://github.com/hasura/graphql-engine/releases/download/v2.50.3/cli-hasura-windows-amd64.exe",
+        "archive": "raw"
+      }
+    }
+  },
+  "domo": {
+    "category": "data",
+    "pkg": "ryuu",
+    "installer": "npm",
+    "label": "Domo",
+    "summary": "Build and publish Domo custom apps.",
+    "statusCmd": "python3 -c \"import glob,os;f=sorted(glob.glob(os.path.expanduser('~/.config/configstore/ryuu/*.json')));print(os.path.basename(f[0])[:-5] if f else '')\" 2>/dev/null | grep -m1 .",
+    "loginCmd": "domo login -i <instance> -t <developer_token> --no-upgrade-check",
+    "credentialPaths": ["~/.config/configstore/ryuu"],
+    "versionCmd": "domo --version 2>/dev/null | tail -n 1",
+    "description": "Official Domo App Dev Studio CLI (npm ryuu). Instance like `acme.domo.com`; developer token from Admin → Authentication → Access tokens. `domo ls`, `domo init`, `domo dev`, `domo publish`, `domo download`, `domo owner add <email>`. It only covers custom apps: for datasets/users/groups use the Domo Platform API with curl — client credentials from developer.domo.com → My Account → New Client, `curl -u ID:SECRET 'https://api.domo.com/oauth/token?grant_type=client_credentials&scope=data user'`, then `GET https://api.domo.com/v1/datasets`, `/v1/datasets/<id>/data` (CSV export), `PUT` the same to upload CSV, `POST /v1/datasets/query/execute/<id>` with `{\"sql\":\"SELECT …\"}`, `/v1/users`."
+  },
+  "algolia": {
+    "category": "developer",
+    "pkg": "@algolia/cli",
+    "installer": "npm",
+    "label": "Algolia",
+    "summary": "Manage Algolia search indices, records and API keys.",
+    "description": "Official Algolia CLI (`algolia`). Records: `algolia objects import <index> -F data.ndjson`, `algolia objects browse <index>`, `algolia objects delete <index> --object-ids a,b --confirm`; search: `algolia search <index> --query \"q\"`; indices: `algolia indices list`, `algolia indices clear|delete <index>`; plus `settings`, `rules`, `synonyms`, `apikeys` (admin key). Output is JSON by default (`--output json`). Credentials: Application ID + an API key (admin key for writes) from https://dashboard.algolia.com/account/api-keys; `algolia describe` prints the full command tree as JSON.",
+    "statusCmd": "algolia indices list >/dev/null 2>&1 && algolia application current 2>/dev/null | sed -n 's/.*Current application: *//p' | sed 's/\\x1b\\[[0-9;]*m//g' | grep -m1 .",
+    "loginCmd": "algolia profile remove default -y >/dev/null 2>&1; algolia profile add --name default --app-id <application_id> --api-key <api_key> --default",
+    "logoutCmd": "algolia profile remove default -y",
+    "credentialPaths": ["~/.config/algolia/config.toml"],
+    "versionCmd": "algolia --version 2>/dev/null | sed -n 1p"
+  },
+  "cloudinary": {
+    "category": "creative",
+    "pkg": "cloudinary-cli",
+    "installer": "pip",
+    "label": "Cloudinary",
+    "binName": "cld",
+    "summary": "Upload, search and transform images and videos on Cloudinary.",
+    "description": "Official Cloudinary CLI (`cld`, wraps the Python SDK). Upload: `cld uploader upload <file> public_id=<id> folder=<f>`; find: `cld search 'public_id:<id>'` / `cld search 'tags=x' -n 20`; delete: `cld uploader destroy <public_id>`; transform URL: `cld url <public_id> 'w_400,c_fill,f_auto'`; usage: `cld admin usage`; any Admin/Upload API method via `cld admin <method>` / `cld uploader <method>`; bulk: `cld upload_dir`, `cld sync`. Output is JSON. Credentials (cloud name, API key, API secret) from https://console.cloudinary.com/settings/api-keys.",
+    "statusCmd": "cld admin ping >/dev/null 2>&1 && cld config -j 2>/dev/null | sed -n 's/.*\"cloud_name\": \"\\([^\"]*\\)\".*/cloud: \\1/p' | grep -m1 .",
+    "loginCmd": "cld config --from_url cloudinary://<api_key>:<api_secret>@<cloud_name> --set-default",
+    "logoutCmd": "rm -rf ~/.cloudinary-cli",
+    "credentialPaths": ["~/.cloudinary-cli/config.json"],
+    "versionCmd": "cld --version 2>/dev/null | sed -n 1p"
+  },
+  "contentful": {
+    "category": "marketing",
+    "pkg": "contentful-cli",
+    "installer": "npm",
+    "label": "Contentful",
+    "summary": "Manage Contentful spaces, content types and content.",
+    "description": "Official Contentful CLI. `contentful space list`, `contentful space use --space-id <id>`, `contentful content-type list`, `contentful space export --space-id <id> --content-file out.json` (entries, assets, locales as JSON), `contentful space import --content-file in.json`, `contentful space migration <script.js>` for schema changes, `contentful organization list`. For single entries/assets use the CMA via curl with the same token (`Authorization: Bearer <token>` on https://api.contentful.com/spaces/<id>/environments/master/entries). Token: Personal access token (CFPAT-…) from https://app.contentful.com/account/profile/cma_tokens.",
+    "statusCmd": "contentful organization list >/dev/null 2>&1 && echo authenticated",
+    "loginCmd": "contentful login --management-token <management_token>",
+    "logoutCmd": "contentful config remove --management-token",
+    "credentialPaths": ["~/.contentfulrc.json"],
+    "versionCmd": "contentful --version 2>/dev/null | sed -n 1p"
+  },
+  "csdx": {
+    "category": "marketing",
+    "pkg": "@contentstack/cli",
+    "installer": "npm",
+    "label": "Contentstack",
+    "summary": "Manage Contentstack stacks, content and deployments.",
+    "description": "Official Contentstack CLI (`csdx`). `csdx cm:stacks:export -k <stack_api_key> -d ./export`, `csdx cm:stacks:import -k <key> -d ./export`, `csdx cm:entries:publish`, `csdx cm:stacks:seed`, `csdx launch` (hosting); stack-scoped tokens: `csdx auth:tokens:add -a <alias> -k <stack_api_key> --management --token <token>` then pass `-a <alias>`. Login is email+password for the NA region (EU/Azure: `csdx config:set:region EU` first); SSO accounts use `csdx auth:login --oauth`. Signup: https://www.contentstack.com/try-for-free.",
+    "statusCmd": "csdx auth:whoami 2>/dev/null | grep -oE '[[:alnum:]._%+-]+@[[:alnum:].-]+\\.[[:alpha:]]+' | grep -m1 .",
+    "loginCmd": "csdx config:set:region NA >/dev/null 2>&1; csdx auth:login -u <email> -p <password>",
+    "logoutCmd": "csdx auth:logout -y",
+    "credentialPaths": ["~/.config/@contentstack/cli-utilities-nodejs/contentstack_cli.json"],
+    "versionCmd": "csdx --version 2>/dev/null | sed -n 1p"
+  },
+  "datocms": {
+    "category": "marketing",
+    "pkg": "datocms",
+    "installer": "npm",
+    "label": "DatoCMS",
+    "summary": "Manage DatoCMS projects, schema and content.",
+    "description": "Official DatoCMS CLI. `datocms projects:list`, `datocms link --site-id <id>` (per directory), then `datocms cma:call items list --params '{\"filter\":{\"type\":\"article\"}}'` / `cma:call items create --data '{…}'` / `cma:call uploads list` (any CMA method, JSON out, `cma:docs` to browse), `datocms migrations:new|run`, `datocms environments:fork|promote`, `datocms schema:generate`. Per-project API token (Settings > API tokens) can be passed as `--api-token`. Login is browser OAuth (callback on localhost:7651).",
+    "statusCmd": "datocms whoami 2>/dev/null | sed -n 's/.*Email: *//p' | grep -m1 .",
+    "loginCmd": "datocms login",
+    "logoutCmd": "datocms logout",
+    "oauthUrlPattern": "(https://oauth\\.datocms\\.com/oauth/authorize\\S+)",
+    "oauthCallbackPort": 7651,
+    "credentialPaths": ["~/.config/datocms-cli/credentials.json"],
+    "versionCmd": "datocms --version 2>/dev/null | sed -n 1p"
+  },
+  "crowdin": {
+    "category": "productivity",
+    "pkg": "@crowdin/cli",
+    "installer": "npm",
+    "label": "Crowdin",
+    "summary": "Sync source files and translations with Crowdin projects.",
+    "description": "Official Crowdin CLI. `crowdin project list`, `crowdin init` writes crowdin.yml (project_id, files) in the repo, then `crowdin upload sources`, `crowdin download` (translations), `crowdin status` (progress), `crowdin string list|add`, `crowdin file list`, `crowdin auto-translate`. `-o json` on any command; `-i <project_id>` overrides the config. Token: Personal access token from https://crowdin.com/settings#api-key, stored in ~/.crowdin.yml (read by every command).",
+    "statusCmd": "command -v crowdin >/dev/null 2>&1 && t=$(sed -n 's/^api_token: *//p' ~/.crowdin.yml 2>/dev/null) && curl -sf -H \"Authorization: Bearer $t\" https://api.crowdin.com/api/v2/user 2>/dev/null | sed -n 's/.*\"username\":\"\\([^\"]*\\)\".*/\\1/p' | grep -m1 .",
+    "loginCmd": "printf 'api_token: %s\\n' <api_token> > ~/.crowdin.yml && chmod 600 ~/.crowdin.yml && crowdin --version",
+    "logoutCmd": "rm -f ~/.crowdin.yml",
+    "credentialPaths": ["~/.crowdin.yml"],
+    "versionCmd": "crowdin --version 2>/dev/null | sed -n 1p"
+  },
+  "lokalise2": {
+    "category": "productivity",
+    "pkg": "lokalise-cli-2",
+    "installer": "binary",
+    "label": "Lokalise",
+    "summary": "Upload and download translation files and keys in Lokalise.",
+    "description": "Official Lokalise CLI v2 (`lokalise2`). ALWAYS pass `--config ~/.lokalise.yml` (it holds the token; the CLI otherwise only reads ./config.yml). `lokalise2 --config ~/.lokalise.yml project list`, `file upload --project-id <id> --file en.json --lang-iso en`, `file download --project-id <id> --format json --unzip-to ./locales`, `key list --project-id <id>`, `translation list`, `language list`, `team list`. Output is JSON. Token: https://app.lokalise.com/profile#apitokens.",
+    "statusCmd": "lokalise2 --config ~/.lokalise.yml team list 2>/dev/null | sed -n 's/.*\"name\": \"\\([^\"]*\\)\".*/\\1/p' | grep -m1 .",
+    "loginCmd": "printf 'token: %s\\n' <api_token> > ~/.lokalise.yml && chmod 600 ~/.lokalise.yml && lokalise2 --version",
+    "logoutCmd": "rm -f ~/.lokalise.yml",
+    "credentialPaths": ["~/.lokalise.yml"],
+    "versionCmd": "lokalise2 --version 2>/dev/null | sed -n 1p",
+    "binary": {
+      "linux-x86_64": {
+        "url": "https://github.com/lokalise/lokalise-cli-2-go/releases/download/v3.1.7/lokalise2_linux_x86_64.tar.gz",
+        "archive": "tar.gz",
+        "extract": "lokalise2"
+      },
+      "linux-aarch64": {
+        "url": "https://github.com/lokalise/lokalise-cli-2-go/releases/download/v3.1.7/lokalise2_linux_arm64.tar.gz",
+        "archive": "tar.gz",
+        "extract": "lokalise2"
+      },
+      "darwin-x86_64": {
+        "url": "https://github.com/lokalise/lokalise-cli-2-go/releases/download/v3.1.7/lokalise2_darwin_x86_64.tar.gz",
+        "archive": "tar.gz",
+        "extract": "lokalise2"
+      },
+      "darwin-aarch64": {
+        "url": "https://github.com/lokalise/lokalise-cli-2-go/releases/download/v3.1.7/lokalise2_darwin_arm64.tar.gz",
+        "archive": "tar.gz",
+        "extract": "lokalise2"
+      },
+      "windows-x86_64": {
+        "url": "https://github.com/lokalise/lokalise-cli-2-go/releases/download/v3.1.7/lokalise2_windows_x86_64.zip",
+        "archive": "zip",
+        "extract": "lokalise2.exe"
+      }
+    },
+    "aliases": ["lokalise"]
+  },
+  "phrase": {
+    "category": "productivity",
+    "pkg": "phrase-cli",
+    "installer": "binary",
+    "label": "Phrase Strings",
+    "summary": "Push and pull translations and manage Phrase Strings projects.",
+    "description": "Official Phrase Strings CLI (wraps the full API, JSON out). `phrase projects list`, `phrase init` writes .phrase.yml (project_id, push/pull sources) in the repo, then `phrase push` / `phrase pull`; `phrase keys list --project_id <id>`, `phrase translations list --project_id <id>`, `phrase locales list --project_id <id>`, `phrase uploads create`. Token: Access token with read/write scope from https://app.phrase.com/settings/oauth_access_tokens (EU host; US accounts: set host to https://api.us.app.phrase.com/v2 in ~/.phrase.yml).",
+    "statusCmd": "phrase users user 2>/dev/null | sed -n 's/.*\"email\": \"\\([^\"]*\\)\".*/\\1/p' | grep -m1 .",
+    "loginCmd": "printf 'phrase:\\n  access_token: %s\\n  host: https://api.phrase.com/v2\\n' <access_token> > ~/.phrase.yml && chmod 600 ~/.phrase.yml && phrase version",
+    "logoutCmd": "rm -f ~/.phrase.yml",
+    "credentialPaths": ["~/.phrase.yml"],
+    "versionCmd": "phrase version 2>/dev/null | sed -n 1p",
+    "binary": {
+      "linux-x86_64": {
+        "url": "https://github.com/phrase/phrase-cli/releases/download/2.69.1/phrase_linux_amd64",
+        "archive": "raw"
+      },
+      "linux-aarch64": {
+        "url": "https://github.com/phrase/phrase-cli/releases/download/2.69.1/phrase_linux_arm64",
+        "archive": "raw"
+      },
+      "darwin-x86_64": {
+        "url": "https://github.com/phrase/phrase-cli/releases/download/2.69.1/phrase_macosx_amd64",
+        "archive": "raw"
+      },
+      "darwin-aarch64": {
+        "url": "https://github.com/phrase/phrase-cli/releases/download/2.69.1/phrase_macosx_arm64",
+        "archive": "raw"
+      },
+      "windows-x86_64": {
+        "url": "https://github.com/phrase/phrase-cli/releases/download/2.69.1/phrase_windows_amd64.exe",
+        "archive": "raw"
+      }
+    }
+  },
+  "tx": {
+    "category": "productivity",
+    "pkg": "transifex-cli",
+    "installer": "binary",
+    "label": "Transifex",
+    "summary": "Push source files and pull translations from Transifex.",
+    "description": "Official Transifex CLI (`tx`). In a repo: `tx init`, `tx add --organization <o> --project <p> --resource <r> --file-filter 'locale/<lang>.json' --type KEYVALUEJSON locale/en.json`, then `tx push -s` (sources), `tx push -t` (translations), `tx pull -a` (all translations), `tx status`. No list/whoami commands: for org/project/resource listing call the REST API with the same token (`curl -H \"Authorization: Bearer $t\" https://rest.api.transifex.com/projects?filter[organization]=o:<org>`, t from ~/.transifexrc). Token: https://app.transifex.com/user/settings/api/.",
+    "statusCmd": "command -v tx >/dev/null 2>&1 && t=$(sed -n 's/^token *= *//p' ~/.transifexrc 2>/dev/null) && curl -sf -o /dev/null -H \"Authorization: Bearer $t\" https://rest.api.transifex.com/organizations 2>/dev/null && echo authenticated",
+    "loginCmd": "printf '[https://app.transifex.com]\\nrest_hostname = https://rest.api.transifex.com\\ntoken = %s\\n' <api_token> > ~/.transifexrc && chmod 600 ~/.transifexrc && tx --version",
+    "logoutCmd": "rm -f ~/.transifexrc",
+    "credentialPaths": ["~/.transifexrc"],
+    "versionCmd": "tx --version 2>/dev/null | sed -n 1p",
+    "binary": {
+      "linux-x86_64": {
+        "url": "https://github.com/transifex/cli/releases/download/v1.6.17/tx-linux-amd64.tar.gz",
+        "archive": "tar.gz",
+        "extract": "tx"
+      },
+      "linux-aarch64": {
+        "url": "https://github.com/transifex/cli/releases/download/v1.6.17/tx-linux-arm64.tar.gz",
+        "archive": "tar.gz",
+        "extract": "tx"
+      },
+      "darwin-x86_64": {
+        "url": "https://github.com/transifex/cli/releases/download/v1.6.17/tx-darwin-amd64.tar.gz",
+        "archive": "tar.gz",
+        "extract": "tx"
+      },
+      "darwin-aarch64": {
+        "url": "https://github.com/transifex/cli/releases/download/v1.6.17/tx-darwin-arm64.tar.gz",
+        "archive": "tar.gz",
+        "extract": "tx"
+      },
+      "windows-x86_64": {
+        "url": "https://github.com/transifex/cli/releases/download/v1.6.17/tx-windows-amd64.zip",
+        "archive": "zip",
+        "extract": "tx.exe"
+      }
+    },
+    "aliases": ["transifex"]
+  },
+  "configcat": {
+    "category": "developer",
+    "pkg": "configcat-cli",
+    "installer": "binary",
+    "label": "ConfigCat",
+    "summary": "Manage ConfigCat feature flags, configs and environments.",
+    "description": "Official ConfigCat CLI. Pass `-ni` (non-interactive) always. `configcat ls --json` (all product/config/environment IDs), `configcat flag ls --config-id <id> --json`, `configcat flag create -c <config> -n Name -k key -t boolean`, `configcat flag value update -i <flagId> -e <envId> -f true` (toggle), `configcat environment ls`, `configcat sdk-key ls`, `configcat scan <dir>` (flag usages in code), `configcat eval`. Credentials: Public Management API basic-auth username + password from https://app.configcat.com/my-account/public-api-credentials.",
+    "statusCmd": "configcat p ls --json -ni 2>/dev/null | sed -n 's/.*\"organization\":{[^}]*\"name\":\"\\([^\"]*\\)\".*/org: \\1/p' | grep -m1 .",
+    "loginCmd": "configcat setup -H api.configcat.com -u <username> -p <password>",
+    "logoutCmd": "rm -f ~/.configcat/cli.json",
+    "credentialPaths": ["~/.configcat/cli.json"],
+    "versionCmd": "configcat --version 2>/dev/null | tr -d '\\033' | sed -n 's/^[^0-9]*//p' | grep -m1 .",
+    "binary": {
+      "linux-x86_64": {
+        "url": "https://github.com/configcat/cli/releases/download/v2.6.1/configcat-cli_2.6.1_linux-x64.tar.gz",
+        "archive": "tar.gz",
+        "extract": "configcat"
+      },
+      "linux-aarch64": {
+        "url": "https://github.com/configcat/cli/releases/download/v2.6.1/configcat-cli_2.6.1_linux-arm64.tar.gz",
+        "archive": "tar.gz",
+        "extract": "configcat"
+      },
+      "darwin-x86_64": {
+        "url": "https://github.com/configcat/cli/releases/download/v2.6.1/configcat-cli_2.6.1_osx-x64.tar.gz",
+        "archive": "tar.gz",
+        "extract": "configcat"
+      },
+      "darwin-aarch64": {
+        "url": "https://github.com/configcat/cli/releases/download/v2.6.1/configcat-cli_2.6.1_osx-arm64.tar.gz",
+        "archive": "tar.gz",
+        "extract": "configcat"
+      },
+      "windows-x86_64": {
+        "url": "https://github.com/configcat/cli/releases/download/v2.6.1/configcat-cli_2.6.1_win-x64.zip",
+        "archive": "zip",
+        "extract": "win-x64/configcat.exe"
+      }
+    }
+  },
+  "twilio": {
+    "category": "communication",
+    "pkg": "twilio-cli",
+    "installer": "npm",
+    "binName": "twilio",
+    "label": "Twilio",
+    "summary": "Send SMS, make calls and look up phone numbers with Twilio.",
+    "statusCmd": "twilio profiles:list -o json 2>/dev/null | sed -n 's/.*\"accountSid\": *\"\\([^\"]*\\)\".*/\\1/p' | grep -m1 .",
+    "loginCmd": "twilio profiles:create <account_sid> --auth-token <auth_token> -p default --force",
+    "credentialHint": "Twilio Console → Account Info: copy the `Account SID` and `Auth Token`. The CLI turns them into an API key stored in its profile.",
+    "logoutCmd": "twilio profiles:remove default",
+    "credentialPaths": [
+      "~/.twilio-cli/config.json"
+    ],
+    "description": "Official Twilio CLI (`twilio api:<domain>:<version>:<resource>:<action>`). SMS: `twilio api:core:messages:create --from +1… --to +1… --body hi`; calls: `twilio api:core:calls:create --from … --to … --url <twiml>`; lookup: `twilio api:lookups:v2:phone-numbers:fetch --phone-number +1…`; verify: `twilio api:verify:v2:services:verifications:create`. Add `-o json`.",
+    "versionCmd": "twilio --version 2>/dev/null | sed -n 1p"
+  },
+  "salesforce": {
+    "category": "sales",
+    "pkg": "@salesforce/cli",
+    "installer": "npm",
+    "binName": "sf",
+    "label": "Salesforce",
+    "summary": "Query and update Salesforce CRM records.",
+    "statusCmd": "sf org display --json 2>/dev/null | sed -n 's/.*\"username\": *\"\\([^\"]*\\)\".*/\\1/p' | grep -m1 .",
+    "loginCmd": "sf org login web -s",
+    "oauthUrlPattern": "(https://login\\.salesforce\\.com/services/oauth2/authorize\\S+)",
+    "oauthCallbackPort": 1717,
+    "logoutCmd": "sf org logout -o {{ACCOUNT}} -p",
+    "credentialPaths": [
+      "~/.sfdx",
+      "~/.sf"
+    ],
+    "description": "Official Salesforce CLI. SOQL: `sf data query -q \"SELECT Id,Name FROM Account LIMIT 10\" --json`; records: `sf data create|update|get|delete record -s Lead -v \"LastName=X Company=Y\"`; raw REST: `sf api request rest /services/data/v62.0/sobjects`. Sandbox: `sf org login web -r https://test.salesforce.com`. Headless alternative: `echo <sfdxAuthUrl> | sf org login sfdx-url --sfdx-url-stdin -s`.",
+    "versionCmd": "sf --version 2>/dev/null | sed -n 1p"
+  },
+  "launchdarkly": {
+    "category": "developer",
+    "pkg": "@launchdarkly/ldcli",
+    "installer": "npm",
+    "binName": "ldcli",
+    "label": "LaunchDarkly",
+    "summary": "Manage LaunchDarkly feature flags, environments and rollouts.",
+    "statusCmd": "ldcli members get --id me -o json 2>/dev/null | sed -n 's/.*\"email\": *\"\\([^\"]*\\)\".*/\\1/p' | grep -m1 .",
+    "loginCmd": "ldcli login",
+    "deviceCodePattern": "Your code is ([0-9]{4}-[0-9]{4})",
+    "oauthUrlPattern": "(https://app\\.launchdarkly\\.com/confirm-auth/\\S+)",
+    "canStreamLogin": true,
+    "logoutCmd": "ldcli config --unset access-token",
+    "credentialPaths": [
+      "~/.config/ldcli/config.yml"
+    ],
+    "description": "Official LaunchDarkly CLI. `ldcli flags list --project <proj> -o json`, `ldcli flags get --project <proj> --flag <key>`, `ldcli flags toggle-on|toggle-off --project <proj> --environment <env> --flag <key>`, `ldcli environments list --project <proj>`. Token alternative: `ldcli config --set access-token <api-…>`.",
+    "versionCmd": "ldcli --version 2>/dev/null | sed -n 1p"
+  },
+  "devcycle": {
+    "category": "developer",
+    "pkg": "@devcycle/cli",
+    "installer": "npm",
+    "binName": "dvc",
+    "label": "DevCycle",
+    "summary": "Manage DevCycle feature flags, variables and targeting.",
+    "statusCmd": "dvc projects list --headless >/dev/null 2>&1 && echo authenticated",
+    "loginCmd": "mkdir -p ~/.config/devcycle && printf 'clientCredentials:\\n  client_id: %s\\n  client_secret: %s\\n' <client_id> <client_secret> > ~/.config/devcycle/auth.yml && dvc projects list --headless",
+    "credentialHint": "DevCycle dashboard → Settings → API Credentials: copy the organization `Client ID` and `Client Secret`.",
+    "logoutCmd": "dvc logout",
+    "credentialPaths": [
+      "~/.config/devcycle/auth.yml"
+    ],
+    "description": "Official DevCycle CLI; always pass `--headless` (JSON out, no prompts). `dvc projects select --project <key> --headless`, `dvc features list --headless`, `dvc variables list --headless`, `dvc targeting get <feature> <env> --headless`, `dvc features create --key k --name N --headless`. Browser alternative: `dvc login sso --org <org>`.",
+    "versionCmd": "dvc --version 2>/dev/null | sed -n 1p"
+  },
+  "kaggle": {
+    "category": "research",
+    "pkg": "kaggle",
+    "installer": "pip",
+    "label": "Kaggle",
+    "summary": "Download Kaggle datasets, submit to competitions and run notebooks.",
+    "statusCmd": "kaggle config view 2>/dev/null | sed -n 's/.*username: *//p' | grep -m1 .",
+    "loginCmd": "mkdir -p ~/.kaggle && printf %s <api_token> > ~/.kaggle/access_token && chmod 600 ~/.kaggle/access_token && kaggle config view",
+    "credentialHint": "kaggle.com → Settings → API → Generate New Token, then copy the token.",
+    "logoutCmd": "rm -f ~/.kaggle/access_token",
+    "credentialPaths": [
+      "~/.kaggle/access_token"
+    ],
+    "description": "Official Kaggle CLI. `kaggle datasets list -s <q>`, `kaggle datasets download -d <owner/ds> --unzip`, `kaggle competitions list`, `kaggle competitions submit -c <comp> -f sub.csv -m msg`, `kaggle kernels list --mine`, `kaggle models list`.",
+    "versionCmd": "kaggle --version 2>/dev/null | sed -n 1p"
+  },
+  "smartthings": {
+    "category": "productivity",
+    "pkg": "@smartthings/cli",
+    "installer": "npm",
+    "label": "SmartThings",
+    "summary": "Control SmartThings devices, scenes and automations.",
+    "statusCmd": "grep -q 'token:' ~/.config/@smartthings/cli/config.yaml 2>/dev/null && echo authenticated",
+    "loginCmd": "mkdir -p ~/.config/@smartthings/cli && printf 'default:\\n  token: %s\\n' <token> > ~/.config/@smartthings/cli/config.yaml && smartthings locations -j",
+    "credentialHint": "account.smartthings.com/tokens → Generate new token (personal access tokens expire after 24 hours).",
+    "logoutCmd": "rm -f ~/.config/@smartthings/cli/config.yaml",
+    "credentialPaths": [
+      "~/.config/@smartthings/cli/config.yaml"
+    ],
+    "description": "Official SmartThings CLI; add `-j` for JSON. `smartthings locations`, `smartthings devices`, `smartthings devices:status <id>`, `smartthings devices:commands <id> 'switch:on'`, `smartthings scenes`, `smartthings scenes:execute <id>`, `smartthings rules`. Never run it without a token configured: it then starts a browser login on localhost:61973 and blocks.",
+    "versionCmd": "smartthings --version 2>/dev/null | sed -n 1p"
+  },
+  "gitea": {
+    "category": "developer",
+    "pkg": "tea",
+    "installer": "binary",
+    "binName": "tea",
+    "label": "Gitea",
+    "summary": "Work with Gitea repos, issues and pull requests.",
+    "binary": {
+      "linux-x86_64": {
+        "url": "https://dl.gitea.com/tea/0.16.0/tea-0.16.0-linux-amd64",
+        "archive": "raw"
+      },
+      "linux-aarch64": {
+        "url": "https://dl.gitea.com/tea/0.16.0/tea-0.16.0-linux-arm64",
+        "archive": "raw"
+      },
+      "darwin-aarch64": {
+        "url": "https://dl.gitea.com/tea/0.16.0/tea-0.16.0-darwin-arm64",
+        "archive": "raw"
+      },
+      "darwin-x86_64": {
+        "url": "https://dl.gitea.com/tea/0.16.0/tea-0.16.0-darwin-amd64",
+        "archive": "raw"
+      },
+      "windows-x86_64": {
+        "url": "https://dl.gitea.com/tea/0.16.0/tea-0.16.0-windows-amd64.exe",
+        "archive": "raw"
+      }
+    },
+    "statusCmd": "tea api user 2>/dev/null | sed -n 's/.*\"login\": *\"\\([^\"]*\\)\".*/\\1/p' | grep -m1 .",
+    "loginCmd": "tea login add --name default --url <url> --token <token>",
+    "credentialHint": "Your Gitea instance (e.g. https://gitea.com) → Settings → Applications → Generate New Token.",
+    "logoutCmd": "tea logins delete default",
+    "credentialPaths": [
+      "~/.config/tea/config.yml"
+    ],
+    "description": "Official Gitea CLI (also works with Forgejo/Codeberg). `tea repos list -o json`, `tea issues list -r owner/repo`, `tea issues create -r owner/repo -t T -d D`, `tea pulls list|create|merge`, `tea comment <idx> \"text\"`; raw REST: `tea api /repos/{owner}/{repo}`.",
+    "versionCmd": "tea --version 2>/dev/null | sed -n 1p"
+  },
+  "zoo": {
+    "category": "creative",
+    "pkg": "zoo",
+    "installer": "binary",
+    "label": "Zoo",
+    "summary": "Generate and convert 3D CAD models from text with Zoo.",
+    "binary": {
+      "linux-x86_64": {
+        "url": "https://github.com/KittyCAD/cli/releases/download/v0.2.202/zoo-x86_64-unknown-linux-musl",
+        "archive": "raw"
+      },
+      "linux-aarch64": {
+        "url": "https://github.com/KittyCAD/cli/releases/download/v0.2.202/zoo-aarch64-unknown-linux-musl",
+        "archive": "raw"
+      },
+      "darwin-aarch64": {
+        "url": "https://github.com/KittyCAD/cli/releases/download/v0.2.202/zoo-aarch64-apple-darwin",
+        "archive": "raw"
+      },
+      "darwin-x86_64": {
+        "url": "https://github.com/KittyCAD/cli/releases/download/v0.2.202/zoo-x86_64-apple-darwin",
+        "archive": "raw"
+      },
+      "windows-x86_64": {
+        "url": "https://github.com/KittyCAD/cli/releases/download/v0.2.202/zoo-x86_64-pc-windows-gnu",
+        "archive": "raw"
+      }
+    },
+    "statusCmd": "zoo user view --format json 2>/dev/null | sed -n 's/.*\"email\": *\"\\([^\"]*\\)\".*/\\1/p' | grep -m1 .",
+    "loginCmd": "zoo auth login --web",
+    "logoutCmd": "printf 'y\\n' | zoo --host api.zoo.dev auth logout",
+    "loginNeedsPty": true,
+    "deviceCodePattern": "user code: ([A-Z0-9]{4}-[A-Z0-9]{4})",
+    "oauthUrlPattern": "(https://api\\.zoo\\.dev/oauth2/device/verify\\?[^\\s']+)",
+    "canStreamLogin": true,
+    "credentialPaths": [
+      "~/.config/zoo/hosts.toml"
+    ],
+    "description": "Official Zoo (KittyCAD) CLI. Text-to-CAD: `zoo ml text-to-cad export --output-format step \"a 40mm gear\"`; convert: `zoo file convert in.obj out/ --output-format step`; mass/volume: `zoo file mass|volume <file>`; KCL: `zoo kcl export|snapshot`; raw: `zoo api /user`. Token alternative: `echo <token> | zoo auth login --with-token`.",
+    "versionCmd": "zoo --version 2>/dev/null | sed -n 1p"
+  },
+  "python-docx": {
+    "category": "documents",
+    "pkg": "python-docx",
+    "pipModules": ["docx"],
+    "installer": "pip",
+    "label": "Word documents",
+    "summary": "Create, read and edit Word documents.",
+    "versionCmd": "{ \"$HOME/.todoforai/tools/venv/bin/python\" -c 'import docx; print(docx.__version__)' || python -c 'import docx; print(docx.__version__)' || python3 -c 'import docx; print(docx.__version__)' || py -c 'import docx; print(docx.__version__)'; } 2>/dev/null",
+    "description": "Python python-docx library. Use python3 to create, save, reopen and edit Office files; no Microsoft account required."
+  },
+  "openpyxl": {
+    "category": "documents",
+    "pkg": "openpyxl",
+    "pipModules": ["openpyxl"],
+    "installer": "pip",
+    "label": "Excel workbooks",
+    "summary": "Create, read and edit Excel workbooks.",
+    "versionCmd": "{ \"$HOME/.todoforai/tools/venv/bin/python\" -c 'import openpyxl; print(openpyxl.__version__)' || python -c 'import openpyxl; print(openpyxl.__version__)' || python3 -c 'import openpyxl; print(openpyxl.__version__)' || py -c 'import openpyxl; print(openpyxl.__version__)'; } 2>/dev/null",
+    "description": "Python openpyxl library. Use python3 to create, save, reopen and edit Office files; no Microsoft account required."
+  },
+  "python-pptx": {
+    "category": "documents",
+    "pkg": "python-pptx",
+    "pipModules": ["pptx"],
+    "installer": "pip",
+    "label": "PowerPoint decks",
+    "summary": "Create, read and edit PowerPoint decks.",
+    "versionCmd": "{ \"$HOME/.todoforai/tools/venv/bin/python\" -c 'import pptx; print(pptx.__version__)' || python -c 'import pptx; print(pptx.__version__)' || python3 -c 'import pptx; print(pptx.__version__)' || py -c 'import pptx; print(pptx.__version__)'; } 2>/dev/null",
+    "description": "Python python-pptx library. Use python3 to create, save, reopen and edit Office files; no Microsoft account required."
+  },
+  "modal-h3": {
+    "category": "creative",
+    "pkg": "@todoforai/modal-h3",
+    "installer": "npm",
+    "label": "MiniMax-H3 on Modal",
+    "summary": "Generate videos with sound using MiniMax-H3 on your own Modal GPUs.",
+    "versionCmd": "modal-h3 --version 2>/dev/null | sed -n 1p",
+    "statusCmd": "modal-h3 whoami 2>/dev/null | grep '\"authenticated\": true' >/dev/null && echo authenticated",
+    "loginCmd": "printf '%s' <proxy_token> | modal-h3 auth --token-stdin --fl2va-url <fl2va_url> --ref2va-url <ref2va_url>",
+    "credentialPaths": ["~/.config/modal-h3/credentials.json"],
+    "description": "MiniMax-H3 text/image/reference-to-video+audio on a self-deployed Modal app (SGLang, 4x H200, scale-to-zero). `modal-h3 generate -p '…' [--first @a.png] [--last …] [--ref-image|--ref-video|--ref-audio <url|@file>] [--duration 4-15] [--ratio 16:9|auto] [--quality high] -o out.mp4` (task inferred, retries 503 during cold start, polls, downloads), `warmup`, `status|download|delete <id>`, `list`, `api <METHOD> <path>`. Deploy once with `modal run modal/serve.py::download` + `modal deploy modal/serve.py`. Costs ~$18/h of 4x H200 while a container is up (cold start minutes, ~75 s per 5 s 768p clip warm); every request wakes a container, `whoami` is offline. Jobs live in container memory. 2K needs `minimax-api regenerate`."
   }
 }
