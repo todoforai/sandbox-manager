@@ -555,50 +555,104 @@
       "darwin-aarch64": { "url": "https://github.com/todoforai/rclone-backend/releases/download/v0.1.8/rclone-darwin-arm64.tar.gz", "archive": "tar.gz", "extract": "rclone" },
       "windows-x86_64": { "url": "https://github.com/todoforai/rclone-backend/releases/download/v0.1.8/rclone-windows-amd64.zip", "archive": "zip", "extract": "rclone.exe" }
     },
+    "internal": true,
     "label": "Cloud Storage",
-    "summary": "Move files between Google Drive, Dropbox, OneDrive, S3 and more.",
-    "statusCmd": "rclone listremotes --long 2>/dev/null | tr -s ' ' | grep -v ' todoforai *$' | grep -m20 .",
-    "loginCmd": "rclone config",
-    "loginTerminalHint": "Connect a storage from its own tile (Google Drive, OneDrive, Dropbox…). For other backends run `rclone config` in a terminal on this host.",
-    "oauthUrlPattern": "(https?://127\\.0\\.0\\.1:\\d+/auth\\?\\S+)",
-    "oauthCallbackPort": 53682,
+    "summary": "The rclone program behind the Google Drive, OneDrive, Dropbox and S3 connectors.",
     "credentialPaths": ["~/.config/rclone/rclone.conf"],
-    "subProviders": {
-      "gdrive": {
-        "label": "Google Drive",
-        "authType": "oauth",
-        "connectCmd": "rclone config create {{REMOTE}} drive",
-        "remoteName": "gdrive",
-        "rcloneType": "drive",
-        "userInfoCmd": "TOKEN=$(rclone config dump 2>/dev/null | python3 -c \"import json,sys; print(json.loads(json.load(sys.stdin)['{{REMOTE}}']['token'])['access_token'])\") && curl -sf 'https://www.googleapis.com/drive/v3/about?fields=user' -H \"Authorization: Bearer $TOKEN\" | python3 -c \"import json,sys; print(json.load(sys.stdin)['user']['emailAddress'])\" 2>/dev/null"
-      },
-      "onedrive": {
-        "label": "OneDrive",
-        "authType": "oauth",
-        "connectCmd": "rclone config create {{REMOTE}} onedrive",
-        "remoteName": "onedrive",
-        "rcloneType": "onedrive",
-        "userInfoCmd": "TOKEN=$(rclone config dump 2>/dev/null | python3 -c \"import json,sys; print(json.loads(json.load(sys.stdin)['{{REMOTE}}']['token'])['access_token'])\") && curl -sf 'https://graph.microsoft.com/v1.0/me' -H \"Authorization: Bearer $TOKEN\" | python3 -c \"import json,sys; d=json.load(sys.stdin); print(d.get('mail') or d.get('userPrincipalName',''))\" 2>/dev/null"
-      },
-      "dropbox": {
-        "label": "Dropbox",
-        "authType": "oauth",
-        "connectCmd": "rclone config create {{REMOTE}} dropbox",
-        "remoteName": "dropbox",
-        "rcloneType": "dropbox",
-        "userInfoCmd": "TOKEN=$(rclone config dump 2>/dev/null | python3 -c \"import json,sys; print(json.loads(json.load(sys.stdin)['{{REMOTE}}']['token'])['access_token'])\") && curl -sf -X POST 'https://api.dropboxapi.com/2/users/get_current_account' -H \"Authorization: Bearer $TOKEN\" | python3 -c \"import json,sys; print(json.load(sys.stdin)['email'])\" 2>/dev/null"
-      },
-      "s3": {
-        "label": "Amazon S3",
-        "authType": "credentials",
-        "connectCmd": "rclone config create {{REMOTE}} s3",
-        "remoteName": "s3",
-        "rcloneType": "s3"
-      }
-    },
     "versionCmd": "rclone version 2>/dev/null | sed -n 1p",
     "preinstallJarvis": true,
     "description": "Access Google Drive, OneDrive, Dropbox, S3, and 40+ cloud providers. List, copy, sync, move, and mount files; use `rclone config create <name> <provider>` to connect."
+  },
+  "gdrive": {
+    "category": "cloud",
+    "pkg": "rclone",
+    "installer": "binary",
+    "binName": "rclone",
+    "binary": {
+      "linux-x86_64": { "url": "https://github.com/todoforai/rclone-backend/releases/download/v0.1.8/rclone-linux-amd64.tar.gz", "archive": "tar.gz", "extract": "rclone" },
+      "linux-aarch64": { "url": "https://github.com/todoforai/rclone-backend/releases/download/v0.1.8/rclone-linux-arm64.tar.gz", "archive": "tar.gz", "extract": "rclone" },
+      "darwin-x86_64": { "url": "https://github.com/todoforai/rclone-backend/releases/download/v0.1.8/rclone-darwin-amd64.tar.gz", "archive": "tar.gz", "extract": "rclone" },
+      "darwin-aarch64": { "url": "https://github.com/todoforai/rclone-backend/releases/download/v0.1.8/rclone-darwin-arm64.tar.gz", "archive": "tar.gz", "extract": "rclone" },
+      "windows-x86_64": { "url": "https://github.com/todoforai/rclone-backend/releases/download/v0.1.8/rclone-windows-amd64.zip", "archive": "zip", "extract": "rclone.exe" }
+    },
+    "label": "Google Drive",
+    "summary": "Browse, read and write files in your Google Drive.",
+    "rcloneType": "drive",
+    "statusCmd": "rclone listremotes --long 2>/dev/null | while read -r n t d; do [ \"$t\" = drive ] && { case \"$d\" in \"\"|*[[:space:]]*) a=${n%:};; *) a=$d;; esac; echo \"$a\"; }; done | paste -sd ' ' - | grep -m1 .",
+    "loginCmd": "rclone config",
+    "oauthBroker": true,
+    "logoutCmd": "x={{ACCOUNT}}; rclone listremotes --long 2>/dev/null | while read -r n t d; do [ \"$t\" = drive ] || continue; case \"$d\" in \"\"|*[[:space:]]*) a=${n%:};; *) a=$d;; esac; [ -z \"$x\" ] || [ \"$a\" = \"$x\" ] && rclone config delete \"${n%:}\"; done; true",
+    "credentialPaths": ["~/.config/rclone/rclone.conf"],
+    "versionCmd": "rclone version 2>/dev/null | sed -n 1p",
+    "description": "Google Drive connector. Uses the rclone CLI: `rclone listremotes --long` lists every connected storage as `name: type account`; `rclone lsf <remote>:<path>`, `rclone copy|sync|move <src> <dst>`, `rclone cat`, `rclone mkdir`, `rclone deletefile` work on any of them (Google Drive = type drive, OneDrive = onedrive, Dropbox = dropbox, S3 = s3). Never run `rclone config` interactively; connect new accounts with `todo.connect('<key>')`."
+  },
+  "onedrive": {
+    "category": "cloud",
+    "pkg": "rclone",
+    "installer": "binary",
+    "binName": "rclone",
+    "binary": {
+      "linux-x86_64": { "url": "https://github.com/todoforai/rclone-backend/releases/download/v0.1.8/rclone-linux-amd64.tar.gz", "archive": "tar.gz", "extract": "rclone" },
+      "linux-aarch64": { "url": "https://github.com/todoforai/rclone-backend/releases/download/v0.1.8/rclone-linux-arm64.tar.gz", "archive": "tar.gz", "extract": "rclone" },
+      "darwin-x86_64": { "url": "https://github.com/todoforai/rclone-backend/releases/download/v0.1.8/rclone-darwin-amd64.tar.gz", "archive": "tar.gz", "extract": "rclone" },
+      "darwin-aarch64": { "url": "https://github.com/todoforai/rclone-backend/releases/download/v0.1.8/rclone-darwin-arm64.tar.gz", "archive": "tar.gz", "extract": "rclone" },
+      "windows-x86_64": { "url": "https://github.com/todoforai/rclone-backend/releases/download/v0.1.8/rclone-windows-amd64.zip", "archive": "zip", "extract": "rclone.exe" }
+    },
+    "label": "OneDrive",
+    "summary": "Browse, read and write files in your OneDrive.",
+    "rcloneType": "onedrive",
+    "statusCmd": "rclone listremotes --long 2>/dev/null | while read -r n t d; do [ \"$t\" = onedrive ] && { case \"$d\" in \"\"|*[[:space:]]*) a=${n%:};; *) a=$d;; esac; echo \"$a\"; }; done | paste -sd ' ' - | grep -m1 .",
+    "loginCmd": "rclone config",
+    "oauthBroker": true,
+    "logoutCmd": "x={{ACCOUNT}}; rclone listremotes --long 2>/dev/null | while read -r n t d; do [ \"$t\" = onedrive ] || continue; case \"$d\" in \"\"|*[[:space:]]*) a=${n%:};; *) a=$d;; esac; [ -z \"$x\" ] || [ \"$a\" = \"$x\" ] && rclone config delete \"${n%:}\"; done; true",
+    "credentialPaths": ["~/.config/rclone/rclone.conf"],
+    "versionCmd": "rclone version 2>/dev/null | sed -n 1p",
+    "description": "OneDrive connector. Uses the rclone CLI: `rclone listremotes --long` lists every connected storage as `name: type account`; `rclone lsf <remote>:<path>`, `rclone copy|sync|move <src> <dst>`, `rclone cat`, `rclone mkdir`, `rclone deletefile` work on any of them (Google Drive = type drive, OneDrive = onedrive, Dropbox = dropbox, S3 = s3). Never run `rclone config` interactively; connect new accounts with `todo.connect('<key>')`."
+  },
+  "dropbox": {
+    "category": "cloud",
+    "pkg": "rclone",
+    "installer": "binary",
+    "binName": "rclone",
+    "binary": {
+      "linux-x86_64": { "url": "https://github.com/todoforai/rclone-backend/releases/download/v0.1.8/rclone-linux-amd64.tar.gz", "archive": "tar.gz", "extract": "rclone" },
+      "linux-aarch64": { "url": "https://github.com/todoforai/rclone-backend/releases/download/v0.1.8/rclone-linux-arm64.tar.gz", "archive": "tar.gz", "extract": "rclone" },
+      "darwin-x86_64": { "url": "https://github.com/todoforai/rclone-backend/releases/download/v0.1.8/rclone-darwin-amd64.tar.gz", "archive": "tar.gz", "extract": "rclone" },
+      "darwin-aarch64": { "url": "https://github.com/todoforai/rclone-backend/releases/download/v0.1.8/rclone-darwin-arm64.tar.gz", "archive": "tar.gz", "extract": "rclone" },
+      "windows-x86_64": { "url": "https://github.com/todoforai/rclone-backend/releases/download/v0.1.8/rclone-windows-amd64.zip", "archive": "zip", "extract": "rclone.exe" }
+    },
+    "label": "Dropbox",
+    "summary": "Browse, read and write files in your Dropbox.",
+    "rcloneType": "dropbox",
+    "statusCmd": "rclone listremotes --long 2>/dev/null | while read -r n t d; do [ \"$t\" = dropbox ] && { case \"$d\" in \"\"|*[[:space:]]*) a=${n%:};; *) a=$d;; esac; echo \"$a\"; }; done | paste -sd ' ' - | grep -m1 .",
+    "loginCmd": "rclone config",
+    "oauthBroker": true,
+    "logoutCmd": "x={{ACCOUNT}}; rclone listremotes --long 2>/dev/null | while read -r n t d; do [ \"$t\" = dropbox ] || continue; case \"$d\" in \"\"|*[[:space:]]*) a=${n%:};; *) a=$d;; esac; [ -z \"$x\" ] || [ \"$a\" = \"$x\" ] && rclone config delete \"${n%:}\"; done; true",
+    "credentialPaths": ["~/.config/rclone/rclone.conf"],
+    "versionCmd": "rclone version 2>/dev/null | sed -n 1p",
+    "description": "Dropbox connector. Uses the rclone CLI: `rclone listremotes --long` lists every connected storage as `name: type account`; `rclone lsf <remote>:<path>`, `rclone copy|sync|move <src> <dst>`, `rclone cat`, `rclone mkdir`, `rclone deletefile` work on any of them (Google Drive = type drive, OneDrive = onedrive, Dropbox = dropbox, S3 = s3). Never run `rclone config` interactively; connect new accounts with `todo.connect('<key>')`."
+  },
+  "s3": {
+    "category": "cloud",
+    "pkg": "rclone",
+    "installer": "binary",
+    "binName": "rclone",
+    "binary": {
+      "linux-x86_64": { "url": "https://github.com/todoforai/rclone-backend/releases/download/v0.1.8/rclone-linux-amd64.tar.gz", "archive": "tar.gz", "extract": "rclone" },
+      "linux-aarch64": { "url": "https://github.com/todoforai/rclone-backend/releases/download/v0.1.8/rclone-linux-arm64.tar.gz", "archive": "tar.gz", "extract": "rclone" },
+      "darwin-x86_64": { "url": "https://github.com/todoforai/rclone-backend/releases/download/v0.1.8/rclone-darwin-amd64.tar.gz", "archive": "tar.gz", "extract": "rclone" },
+      "darwin-aarch64": { "url": "https://github.com/todoforai/rclone-backend/releases/download/v0.1.8/rclone-darwin-arm64.tar.gz", "archive": "tar.gz", "extract": "rclone" },
+      "windows-x86_64": { "url": "https://github.com/todoforai/rclone-backend/releases/download/v0.1.8/rclone-windows-amd64.zip", "archive": "zip", "extract": "rclone.exe" }
+    },
+    "label": "Amazon S3",
+    "summary": "Browse, read and write files in your Amazon S3 buckets.",
+    "rcloneType": "s3",
+    "statusCmd": "rclone listremotes --long 2>/dev/null | while read -r n t d; do [ \"$t\" = s3 ] && { case \"$d\" in \"\"|*[[:space:]]*) a=${n%:};; *) a=$d;; esac; echo \"$a\"; }; done | paste -sd ' ' - | grep -m1 .",
+    "loginCmd": "k=<access_key_id> s=<secret_access_key> r=<region>; RCLONE_S3_PROVIDER=AWS RCLONE_S3_ENV_AUTH=false RCLONE_S3_ACCESS_KEY_ID=\"$k\" RCLONE_S3_SECRET_ACCESS_KEY=\"$s\" RCLONE_S3_REGION=\"$r\" rclone lsd :s3: --config /dev/null --ask-password=false --contimeout 10s --timeout 15s --retries 1 --low-level-retries 1 >/dev/null 2>&1 || { echo 'S3 access check failed: check the keys, the region and the s3:ListAllMyBuckets permission.'; exit 2; }; rclone config create --non-interactive --ask-password=false \"s3_$(date +%s)\" s3 provider AWS env_auth false access_key_id \"$k\" secret_access_key \"$s\" region \"$r\" >/dev/null && echo 'S3 connected.'",
+    "logoutCmd": "x={{ACCOUNT}}; rclone listremotes --long 2>/dev/null | while read -r n t d; do [ \"$t\" = s3 ] || continue; case \"$d\" in \"\"|*[[:space:]]*) a=${n%:};; *) a=$d;; esac; [ -z \"$x\" ] || [ \"$a\" = \"$x\" ] && rclone config delete \"${n%:}\"; done; true",
+    "credentialPaths": ["~/.config/rclone/rclone.conf"],
+    "versionCmd": "rclone version 2>/dev/null | sed -n 1p",
+    "description": "Amazon S3 connector. Uses the rclone CLI: `rclone listremotes --long` lists every connected storage as `name: type account`; `rclone lsf <remote>:<path>`, `rclone copy|sync|move <src> <dst>`, `rclone cat`, `rclone mkdir`, `rclone deletefile` work on any of them (Google Drive = type drive, OneDrive = onedrive, Dropbox = dropbox, S3 = s3). Never run `rclone config` interactively; connect new accounts with `todo.connect('<key>')`."
   },
   "aws": {
     "preinstallCloud": true,
