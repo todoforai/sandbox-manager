@@ -189,7 +189,7 @@
     "platformAuth": true,
     "versionCmd": "tfa-imagegen --version 2>/dev/null | sed -n 1p",
     "credentialPaths": ["~/.config/todoforai/credentials.json"],
-    "description": "AI image generation & editing via TODOFORAI backend (gpt-image-2, nano-banana, mai-image-2.6)"
+    "description": "AI image generation & editing via TODOFORAI backend (gpt-image, nano-banana, nano-banana-pro, mai-image-2.6)"
   },
   "suno-api": {
     "preinstallCloud": true,
