@@ -184,4 +184,7 @@ ENV NPM_CONFIG_CACHE=/var/cache/pkg/npm \
     UV_CACHE_DIR=/var/cache/pkg/uv
 
 WORKDIR /root
-ENTRYPOINT ["/usr/local/bin/sandbox-entrypoint"]
+# tini as PID 1: otherwise the bridge (or `bridge login`, which stays as the
+# daemon) is init and never reaps orphaned probe processes — zombies fill the
+# process table until PTY spawns fail with EAGAIN.
+ENTRYPOINT ["/usr/bin/tini", "--", "/usr/local/bin/sandbox-entrypoint"]

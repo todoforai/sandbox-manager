@@ -184,7 +184,7 @@ func (s *Service) Create(ctx context.Context, id store.Identity, template, size 
 		failCreate(err)
 		return nil, fmt.Errorf("ensure home disk: %w", err)
 	}
-	sb.Resources.DiskMiB = s.homes.DiskMiB(id.UserID)
+	sb.DiskMiB = s.homes.DiskMiB(id.UserID)
 	// NOTE: the token has a short TTL (enrollTTLSec) and is minted before
 	// vm.Create — which includes the image pull. On a cold pull this can eat
 	// into the redeem window; if that proves flaky in practice, pull/cache the
@@ -754,7 +754,7 @@ func costPerMinute(size string) float64 {
 func diskSizeMiBForTier(size string) uint64 {
 	switch size {
 	case "small":
-		return 500
+		return 512
 	case "medium":
 		return 2 * 1024
 	case "large":

@@ -45,8 +45,10 @@ type Sandbox struct {
 	State      State   `json:"state"`
 	IPAddress  string  `json:"ip_address,omitempty"`
 	CostPerMin float64 `json:"cost_per_minute"`
-	// Resources are the purchased overrides on top of Size (zero = none).
+	// Resources are the requested overrides on top of Size (zero = none);
+	// DiskMiB is the home disk's real size after boot (a shrink can be refused).
 	Resources    vm.Resources `json:"resources"`
+	DiskMiB      uint64       `json:"disk_mib,omitempty"`
 	Error        string       `json:"error,omitempty"`
 	DeviceID     string       `json:"device_id,omitempty"`
 	CreatedAt    int64        `json:"created_at"`

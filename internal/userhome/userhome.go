@@ -64,36 +64,36 @@ func (s *Store) dir(userID string) (string, error) {
 const shrinkHeadroom = 1.2
 
 // shrinkDisk shrinks an unmounted ext4 image to size bytes only when its data
-// fits with headroom; otherwise it leaves the image untouched and returns false.
-func shrinkDisk(path string, size int64) (bool, error) {
+// fits with headroom; otherwise it leaves the image untouched.
+func shrinkDisk(path string, size int64) error {
 	if out, err := exec.Command("e2fsck", "-fp", path).CombinedOutput(); err != nil {
 		if ee, ok := err.(*exec.ExitError); !ok || ee.ExitCode() > 1 {
-			return false, fmt.Errorf("e2fsck %s: %v: %s", path, err, out)
+			return fmt.Errorf("e2fsck %s: %v: %s", path, err, out)
 		}
 	}
 	out, err := exec.Command("resize2fs", "-P", path).CombinedOutput()
 	if err != nil {
-		return false, fmt.Errorf("resize2fs -P %s: %v: %s", path, err, out)
+		return fmt.Errorf("resize2fs -P %s: %v: %s", path, err, out)
 	}
 	minBlocks, err := lastNumber(out)
 	if err != nil {
-		return false, fmt.Errorf("parse resize2fs -P %q: %v", out, err)
+		return fmt.Errorf("parse resize2fs -P %q: %v", out, err)
 	}
 	hdr, err := exec.Command("dumpe2fs", "-h", path).Output()
 	if err != nil {
-		return false, fmt.Errorf("dumpe2fs %s: %v", path, err)
+		return fmt.Errorf("dumpe2fs %s: %v", path, err)
 	}
 	blockSize, err := lastNumber(blockSizeLine.Find(hdr))
 	if err != nil {
-		return false, fmt.Errorf("parse block size: %v", err)
+		return fmt.Errorf("parse block size: %v", err)
 	}
 	if float64(minBlocks*blockSize)*shrinkHeadroom > float64(size) {
-		return false, nil
+		return nil
 	}
 	if out, err := exec.Command("resize2fs", path, fmt.Sprintf("%dK", size/1024)).CombinedOutput(); err != nil {
-		return false, fmt.Errorf("resize2fs %s: %v: %s", path, err, out)
+		return fmt.Errorf("resize2fs %s: %v: %s", path, err, out)
 	}
-	return true, os.Truncate(path, size)
+	return os.Truncate(path, size)
 }
 
 var blockSizeLine = regexp.MustCompile(`(?m)^Block size:\s*\d+`)
@@ -124,8 +124,7 @@ func (s *Store) ShrinkDisk(userID string, sizeMiB uint64) error {
 		return nil
 	}
 	dir, _ := s.dir(userID)
-	_, err := shrinkDisk(filepath.Join(dir, "home.img"), int64(sizeMiB)*1024*1024)
-	return err
+	return shrinkDisk(filepath.Join(dir, "home.img"), int64(sizeMiB)*1024*1024)
 }
 
 // EnsureDisk returns the path to the user's home.img, creating + formatting it

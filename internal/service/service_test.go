@@ -25,7 +25,7 @@ func TestCostPerMinute(t *testing.T) {
 
 func TestDiskSizeMiBForTier(t *testing.T) {
 	cases := map[string]uint64{
-		"small": 500, "medium": 2048, "large": 8192, "xlarge": 20480,
+		"small": 512, "medium": 2048, "large": 8192, "xlarge": 20480,
 		"": 2048, "bogus": 2048,
 	}
 	for size, want := range cases {
