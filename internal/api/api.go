@@ -101,6 +101,10 @@ func (s *Server) create(w http.ResponseWriter, r *http.Request, id store.Identit
 	if id.IsAdmin() && req.UserID != "" {
 		id.UserID = req.UserID
 	}
+	// Size and resources are paid for through the backend; only it picks them.
+	if !id.IsAdmin() {
+		req.Size, req.Resources = "", vm.Resources{}
+	}
 	sb, err := s.svc.Create(r.Context(), id, req.Template, req.Size, req.Resources)
 	if err != nil {
 		writeServiceErr(w, err)

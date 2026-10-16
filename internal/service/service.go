@@ -53,6 +53,7 @@ type Service struct {
 	sshPrep          sync.Map        // sandbox id -> *sync.Mutex, serializes PrepareSSH per VM
 	admissionMu      sync.Mutex      // guards pendingCreates and the admission check
 	pendingCreates   int             // admitted creates whose VM hasn't finished booting
+	pendingMiB       uint64          // their memory, at real size
 	capacityRejected atomic.Uint64
 }
 
@@ -171,11 +172,19 @@ func (s *Service) Create(ctx context.Context, id store.Identity, template, size 
 		releaseSlot()
 	}
 
+	// An explicit smaller disk is a request to shrink back: done only when the
+	// files fit, otherwise the disk stays and the record reports its real size.
+	if res.DiskMiB > 0 {
+		if err := s.homes.ShrinkDisk(id.UserID, max(diskSizeMiBForTier(size), res.DiskMiB)); err != nil {
+			log.Printf("create %s: shrink home disk: %v", sid, err)
+		}
+	}
 	homeImg, err := s.homes.EnsureDisk(id.UserID, max(diskSizeMiBForTier(size), res.DiskMiB))
 	if err != nil {
 		failCreate(err)
 		return nil, fmt.Errorf("ensure home disk: %w", err)
 	}
+	sb.Resources.DiskMiB = s.homes.DiskMiB(id.UserID)
 	// NOTE: the token has a short TTL (enrollTTLSec) and is minted before
 	// vm.Create — which includes the image pull. On a cold pull this can eat
 	// into the redeem window; if that proves flaky in practice, pull/cache the
@@ -650,15 +659,18 @@ func (s *Service) admit(ctx context.Context, vmMiB uint64) (release func(), err 
 	}
 	// Pending VMs haven't faulted their memory in yet, so MemAvailable doesn't
 	// reflect them — budget each one at full size on top of the reserve.
-	// A VM bigger than the per-VM budget is budgeted at its real size.
-	requiredMiB := s.cfg.HostMemoryReserveMiB + uint64(s.pendingCreates)*s.cfg.VMMemoryMiB + max(vmMiB, s.cfg.VMMemoryMiB)
+	// Each VM is budgeted at its real size, never below the per-VM default.
+	vmMiB = max(vmMiB, s.cfg.VMMemoryMiB)
+	requiredMiB := s.cfg.HostMemoryReserveMiB + s.pendingMiB + vmMiB
 	if availableMiB < requiredMiB {
 		return nil, fmt.Errorf("%w: %d MiB available, %d MiB required", ErrCapacity, availableMiB, requiredMiB)
 	}
 	s.pendingCreates++
+	s.pendingMiB += vmMiB
 	return func() {
 		s.admissionMu.Lock()
 		s.pendingCreates--
+		s.pendingMiB -= vmMiB
 		s.admissionMu.Unlock()
 	}, nil
 }

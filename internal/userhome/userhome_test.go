@@ -1,7 +1,9 @@
 package userhome
 
 import (
+	"crypto/rand"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"testing"
 )
@@ -49,4 +51,44 @@ func TestDirValidation(t *testing.T) {
 			t.Errorf("dir(%q) = %q, want %q", good, got, want)
 		}
 	}
+}
+
+func TestShrinkDisk(t *testing.T) {
+	if _, err := exec.LookPath("resize2fs"); err != nil {
+		t.Skip("e2fsprogs not installed")
+	}
+	s := New(t.TempDir())
+	if _, err := s.EnsureDisk("u", 200); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.ShrinkDisk("u", 64); err != nil {
+		t.Fatal(err)
+	}
+	if got := s.DiskMiB("u"); got != 64 {
+		t.Fatalf("empty disk not shrunk: %d MiB", got)
+	}
+	// Data that doesn't fit with headroom: the disk is left alone.
+	img := filepath.Join(s.root, "u", "home.img")
+	blob := filepath.Join(t.TempDir(), "blob")
+	if err := os.WriteFile(blob, randomBytes(40<<20), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if out, err := exec.Command("debugfs", "-w", "-R", "write "+blob+" blob", img).CombinedOutput(); err != nil {
+		t.Fatalf("debugfs: %v %s", err, out)
+	}
+	if err := s.ShrinkDisk("u", 40); err != nil {
+		t.Fatal(err)
+	}
+	if got := s.DiskMiB("u"); got != 64 {
+		t.Fatalf("full disk was shrunk: %d MiB", got)
+	}
+	if out, err := exec.Command("e2fsck", "-fn", img).CombinedOutput(); err != nil {
+		t.Fatalf("fs damaged: %v %s", err, out)
+	}
+}
+
+func randomBytes(n int) []byte {
+	b := make([]byte, n)
+	rand.Read(b)
+	return b
 }
