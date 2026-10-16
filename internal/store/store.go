@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/todoforai/sandbox-manager/internal/vm"
 	"strings"
 	"time"
 
@@ -40,14 +41,16 @@ type Sandbox struct {
 	// (`syncToTier` matches `kind === 'vm'`), so we must emit it — a missing
 	// kind makes the backend never recognise an existing VM as aligned and it
 	// loops creating new ones (→ 409 "user already has an active sandbox").
-	Kind         string  `json:"kind"`
-	State        State   `json:"state"`
-	IPAddress    string  `json:"ip_address,omitempty"`
-	CostPerMin   float64 `json:"cost_per_minute"`
-	Error        string  `json:"error,omitempty"`
-	DeviceID     string  `json:"device_id,omitempty"`
-	CreatedAt    int64   `json:"created_at"`
-	LastActivity int64   `json:"last_activity"`
+	Kind       string  `json:"kind"`
+	State      State   `json:"state"`
+	IPAddress  string  `json:"ip_address,omitempty"`
+	CostPerMin float64 `json:"cost_per_minute"`
+	// Resources are the purchased overrides on top of Size (zero = none).
+	Resources    vm.Resources `json:"resources"`
+	Error        string       `json:"error,omitempty"`
+	DeviceID     string       `json:"device_id,omitempty"`
+	CreatedAt    int64        `json:"created_at"`
+	LastActivity int64        `json:"last_activity"`
 	// SSHConnections is the live count of SSH relay sessions older than the
 	// guest's login grace (so, authenticated). Filled in at read time by the
 	// service and never persisted; 0 after a manager restart.

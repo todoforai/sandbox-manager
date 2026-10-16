@@ -8,6 +8,7 @@ import (
 
 	"github.com/todoforai/sandbox-manager/internal/service"
 	"github.com/todoforai/sandbox-manager/internal/store"
+	"github.com/todoforai/sandbox-manager/internal/vm"
 )
 
 // Server is the HTTP API. The whole public surface the old service had, minus
@@ -88,6 +89,7 @@ func (s *Server) create(w http.ResponseWriter, r *http.Request, id store.Identit
 		UserID   string `json:"user_id"`
 		Template string `json:"template"`
 		Size     string `json:"size"`
+		vm.Resources
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		httpErr(w, http.StatusBadRequest, "invalid JSON body")
@@ -99,7 +101,7 @@ func (s *Server) create(w http.ResponseWriter, r *http.Request, id store.Identit
 	if id.IsAdmin() && req.UserID != "" {
 		id.UserID = req.UserID
 	}
-	sb, err := s.svc.Create(r.Context(), id, req.Template, req.Size)
+	sb, err := s.svc.Create(r.Context(), id, req.Template, req.Size, req.Resources)
 	if err != nil {
 		writeServiceErr(w, err)
 		return

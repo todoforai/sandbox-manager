@@ -74,7 +74,7 @@ func New(cfg *config.Config, st *store.Store, mgr *vm.Manager, homes *userhome.S
 // Create enforces quota (one active sandbox per user) and anonymity, mints an
 // enrollment token, ensures the user's home.img, boots the microVM, and
 // records it. The whole flow is linear because containerd owns recovery.
-func (s *Service) Create(ctx context.Context, id store.Identity, template, size string) (*store.Sandbox, error) {
+func (s *Service) Create(ctx context.Context, id store.Identity, template, size string, res vm.Resources) (*store.Sandbox, error) {
 	if id.IsAnonymous {
 		return nil, ErrAnonymous
 	}
@@ -92,7 +92,8 @@ func (s *Service) Create(ctx context.Context, id store.Identity, template, size 
 	// Host-wide admission: the lock covers only the capacity check + pending
 	// reservation, never the VM boot, so one slow/stuck create can't block
 	// every other create. STOPPED-orphan cleanup runs in ReconcileLoop.
-	release, err := s.admit(ctx)
+	res = res.Clamp()
+	release, err := s.admit(ctx, uint64(vm.MemoryFor(size, res)))
 	if err != nil {
 		s.capacityRejected.Add(1)
 		return nil, err
@@ -125,6 +126,7 @@ func (s *Service) Create(ctx context.Context, id store.Identity, template, size 
 		Kind:         "vm",
 		State:        store.StateCreating,
 		CostPerMin:   costPerMinute(size),
+		Resources:    res,
 		CreatedAt:    store.NowMillis(),
 		LastActivity: store.NowMillis(),
 	}
@@ -169,7 +171,7 @@ func (s *Service) Create(ctx context.Context, id store.Identity, template, size 
 		releaseSlot()
 	}
 
-	homeImg, err := s.homes.EnsureDisk(id.UserID, diskSizeMiBForTier(size))
+	homeImg, err := s.homes.EnsureDisk(id.UserID, max(diskSizeMiBForTier(size), res.DiskMiB))
 	if err != nil {
 		failCreate(err)
 		return nil, fmt.Errorf("ensure home disk: %w", err)
@@ -185,7 +187,7 @@ func (s *Service) Create(ctx context.Context, id store.Identity, template, size 
 	}
 
 	created, err := s.vm.Create(ctx, vm.Spec{
-		ID: sid, UserID: id.UserID, Template: template, Size: size,
+		ID: sid, UserID: id.UserID, Template: template, Size: size, Resources: res,
 		EnrollToken: token, HomeImg: homeImg, DeviceName: deviceName,
 	})
 	if err != nil {
@@ -630,7 +632,7 @@ const admissionTimeout = 15 * time.Second
 // MaxVMs and MemAvailable covers the reserve plus every in-flight VM. Fail
 // closed: an unreadable count/meminfo rejects the create. The returned release
 // MUST be called (success or failure) once the boot attempt is over.
-func (s *Service) admit(ctx context.Context) (release func(), err error) {
+func (s *Service) admit(ctx context.Context, vmMiB uint64) (release func(), err error) {
 	ctx, cancel := context.WithTimeout(ctx, admissionTimeout)
 	defer cancel()
 	s.admissionMu.Lock()
@@ -648,7 +650,8 @@ func (s *Service) admit(ctx context.Context) (release func(), err error) {
 	}
 	// Pending VMs haven't faulted their memory in yet, so MemAvailable doesn't
 	// reflect them — budget each one at full size on top of the reserve.
-	requiredMiB := s.cfg.HostMemoryReserveMiB + uint64(s.pendingCreates+1)*s.cfg.VMMemoryMiB
+	// A VM bigger than the per-VM budget is budgeted at its real size.
+	requiredMiB := s.cfg.HostMemoryReserveMiB + uint64(s.pendingCreates)*s.cfg.VMMemoryMiB + max(vmMiB, s.cfg.VMMemoryMiB)
 	if availableMiB < requiredMiB {
 		return nil, fmt.Errorf("%w: %d MiB available, %d MiB required", ErrCapacity, availableMiB, requiredMiB)
 	}

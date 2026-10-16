@@ -116,6 +116,41 @@ type machineResources struct {
 	vCPUs     uint32
 }
 
+// Purchasable resource ceilings: what a user's credit can buy on top of their
+// plan's size. Requests above are clamped, never refused.
+const (
+	MaxMemoryMiB = 16 * 1024
+	MaxVCPUs     = 4
+	MaxDiskMiB   = 50 * 1024
+)
+
+// Resources are explicit per-VM overrides; zero fields keep the size's value.
+type Resources struct {
+	MemoryMiB uint32 `json:"memory_mib,omitempty"`
+	VCPUs     uint32 `json:"vcpus,omitempty"`
+	DiskMiB   uint64 `json:"disk_mib,omitempty"`
+}
+
+// Clamp bounds the overrides to the purchasable ceilings.
+func (r Resources) Clamp() Resources {
+	r.MemoryMiB = min(r.MemoryMiB, MaxMemoryMiB)
+	r.VCPUs = min(r.VCPUs, MaxVCPUs)
+	r.DiskMiB = min(r.DiskMiB, MaxDiskMiB)
+	return r
+}
+
+// MemoryFor is the guest memory a VM of this size + overrides gets.
+func MemoryFor(size string, r Resources) uint32 {
+	return machineResourcesFor(size, r).memoryMiB
+}
+
+func machineResourcesFor(size string, r Resources) machineResources {
+	m := machineResourcesForSize(size)
+	m.memoryMiB = max(m.memoryMiB, r.MemoryMiB)
+	m.vCPUs = max(m.vCPUs, r.VCPUs)
+	return m
+}
+
 // machineResourcesForSize is the actual Firecracker allocation. Kata 3.10.1
 // rejects VMs below 256 MiB, so small starts at that hard minimum.
 func machineResourcesForSize(size string) machineResources {
@@ -131,8 +166,8 @@ func machineResourcesForSize(size string) machineResources {
 	}
 }
 
-func machineResourceAnnotations(size string) map[string]string {
-	resources := machineResourcesForSize(size)
+func machineResourceAnnotations(size string, r Resources) map[string]string {
+	resources := machineResourcesFor(size, r)
 	vCPUs := strconv.FormatUint(uint64(resources.vCPUs), 10)
 	return map[string]string{
 		kataDefaultVCPUsAnnotation:    vCPUs,
@@ -147,6 +182,7 @@ type Spec struct {
 	UserID      string // owner — stamped as a container label for recovery
 	Template    string // stamped as a container label
 	Size        string // stamped as a container label
+	Resources   Resources
 	EnrollToken string // injected as ENROLL_TOKEN env — bridge redeems it
 	HomeImg     string // host path to the user's home.img (attached as /root)
 	DeviceName  string // friendly bridge device name (vm_<id8>)
@@ -335,7 +371,7 @@ func (m *Manager) Create(ctx context.Context, s Spec) (*Created, error) {
 			// These are hypervisor overrides, not container cgroup limits. With
 			// Kata's static resource management, cgroup limits would be added on
 			// top of the 2 GiB default instead of replacing it.
-			oci.WithAnnotations(machineResourceAnnotations(s.Size)),
+			oci.WithAnnotations(machineResourceAnnotations(s.Size, s.Resources)),
 			oci.WithEnv(env),
 			oci.WithMounts(mounts),
 			// DeviceName uses `vm_` (tool-alias suffix), but underscores are

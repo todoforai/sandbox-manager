@@ -19,7 +19,7 @@ func TestMachineResourcesForSize(t *testing.T) {
 }
 
 func TestMachineResourceAnnotations(t *testing.T) {
-	got := machineResourceAnnotations("large")
+	got := machineResourceAnnotations("large", Resources{})
 	want := map[string]string{
 		kataDefaultVCPUsAnnotation:    "2",
 		kataDefaultMaxVCPUsAnnotation: "2",
@@ -29,5 +29,16 @@ func TestMachineResourceAnnotations(t *testing.T) {
 		if got[key] != value {
 			t.Errorf("annotation %q = %q, want %q", key, got[key], value)
 		}
+	}
+}
+
+func TestResourceOverrides(t *testing.T) {
+	r := Resources{MemoryMiB: 64 * 1024, VCPUs: 1, DiskMiB: 100 * 1024}.Clamp()
+	if r != (Resources{MemoryMiB: MaxMemoryMiB, VCPUs: 1, DiskMiB: MaxDiskMiB}) {
+		t.Fatalf("Clamp = %+v", r)
+	}
+	// Overrides only raise: vCPUs 1 < large's 2 keeps 2.
+	if got := machineResourcesFor("large", r); got != (machineResources{memoryMiB: MaxMemoryMiB, vCPUs: 2}) {
+		t.Fatalf("machineResourcesFor = %+v", got)
 	}
 }

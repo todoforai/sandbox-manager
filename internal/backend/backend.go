@@ -58,4 +58,3 @@ func (c *Client) MintEnrollToken(ctx context.Context, userID, sandboxID string, 
 	}
 	return out.Token, nil
 }
-
