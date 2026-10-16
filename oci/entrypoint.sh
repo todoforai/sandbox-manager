@@ -155,4 +155,7 @@ fi
 # device goes "offline" while the VM looks healthy (live-debugged on prod).
 # A guest-local log file both avoids the deadlock and keeps logs inspectable
 # via exec.
-exec /usr/local/bin/todoforai-bridge >>"$BRIDGE_LOG" 2>&1
+# tini as PID 1: the bridge would otherwise be init and inherit every orphan
+# (timed-out / OOM-killed probe pipelines) without reaping it — zombies fill the
+# process table until PTY spawns fail with EAGAIN.
+exec /usr/bin/tini -- /usr/local/bin/todoforai-bridge >>"$BRIDGE_LOG" 2>&1

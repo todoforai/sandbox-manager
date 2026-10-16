@@ -11,7 +11,7 @@ FROM ubuntu:24.04
 
 # make/g++: bun runs `node-gyp rebuild` for any dep that ships a binding.gyp
 # (better-sqlite3 via trello-cli), and agents pip/npm-install native modules.
-ARG PACKAGES="iproute2 ca-certificates bash coreutils util-linux fuse3 curl wget jq unzip openssh-client openssh-server rsync socat sudo ripgrep fd-find patch gh git xvfb ffmpeg xdotool x11-utils make g++"
+ARG PACKAGES="tini iproute2 ca-certificates bash coreutils util-linux fuse3 curl wget jq unzip openssh-client openssh-server rsync socat sudo ripgrep fd-find patch gh git xvfb ffmpeg xdotool x11-utils make g++"
 
 ENV DEBIAN_FRONTEND=noninteractive LC_ALL=C HOME=/root
 
