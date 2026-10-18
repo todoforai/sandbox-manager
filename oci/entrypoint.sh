@@ -136,8 +136,15 @@ mount_cloud() {
     done
 } 2>>"$BRIDGE_LOG" &
 
+# This script is the bridge's supervisor. A self-update ends in exit(0)
+# expecting a restart; with `exec` the bridge was tini's child, so that exit
+# ended the whole VM. The loop below restarts it instead, and INVOCATION_ID is
+# how the bridge (now this shell's child) knows it is supervised (update.c).
+export INVOCATION_ID=sandbox-entrypoint
+
 # NOTE: on success `login` falls through INTO the daemon (it does not return),
-# so the exec below only runs on the no-token path or after a login failure.
+# so the loop below only starts on the no-token path, after a login failure, or
+# after that login-daemon applied a self-update.
 # Both invocations therefore need the log redirect (see comment at exec).
 if [ -n "${ENROLL_TOKEN:-}" ]; then
     /usr/local/bin/todoforai-bridge login \
@@ -155,4 +162,8 @@ fi
 # device goes "offline" while the VM looks healthy (live-debugged on prod).
 # A guest-local log file both avoids the deadlock and keeps logs inspectable
 # via exec.
-exec /usr/local/bin/todoforai-bridge >>"$BRIDGE_LOG" 2>&1
+#
+# Restart only on exit 0 (an applied self-update; re-armed at most every 12h):
+# a crash or a bad binary exits non-zero with its status, ends the container,
+# and the manager's reconcile takes over — never a hot crash-loop.
+while :; do /usr/local/bin/todoforai-bridge >>"$BRIDGE_LOG" 2>&1 || exit; sleep 1; done

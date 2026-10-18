@@ -1,10 +1,11 @@
 # Note: how a sandbox VM picks up a new bridge / rootfs
 
 ## TL;DR
-There is **no in-place self-update inside a running VM** — and that's by design.
-A VM gets a new bridge (and preinstalled CLIs like `@todoforai/cli`) by being
-**deleted + recreated** onto a freshly-built rootfs. Guest `reboot` alone is
-NOT enough — it keeps the old containerd snapshot.
+A running VM's bridge self-updates like a desktop one: once idle it installs
+the latest release and exits 0, and `oci/entrypoint.sh` (its supervisor —
+it exports `INVOCATION_ID`, the signal `update.c` requires) starts the new
+binary. Any other exit ends the container. The rootfs (and preinstalled CLIs)
+still only change on delete + recreate; guest `reboot` keeps the old snapshot.
 
 ## The chain
 1. The bridge binary is **baked into the rootfs** at image-build time:
@@ -19,9 +20,9 @@ NOT enough — it keeps the old containerd snapshot.
    packages resolve latest.
 3. `deploy.sh` (on every prod deploy) runs `build-oci.sh` with `IMPORT=1` so
    containerd gets the new image. `SKIP_ROOTFS=1` skips for binary-only rollouts.
-4. The guest entrypoint ends in `exec /usr/local/bin/todoforai-bridge`
-   (`oci/entrypoint.sh`), so the bridge **is** the guest's pid 1 — no in-guest
-   supervisor, hence no `kill -TERM`-based self-update.
+4. tini is PID 1; the entrypoint runs the bridge in a loop that restarts it
+   only on exit 0 (an applied self-update). The pin sets the version a fresh
+   VM boots with, so keep it near the latest release.
 
 ## How a running VM picks up the new image
 - **Explicit update**: backend `DeviceService.updateBridge` for a sandbox device
@@ -38,7 +39,8 @@ each VM. New VMs always get the current image.
 ## Deliberately rejected alternatives
 - **Manager-side restart/recreate** — wrong layer; recreate is the backend's
   job. Adding it here fights the existing separation.
-- **Unbounded entrypoint loop** (`while :; do bridge; done`) — dangerous:
+- **Unbounded entrypoint loop** (`while :; do bridge; done`; the shipped loop
+  restarts only on exit 0 and exits with any failure's status) — dangerous:
   a crash/bad-binary becomes a hot crash-loop (100% CPU, log spam, a botched
   self-update respawns forever). If in-VM hot-update is ever wanted, it must be
   a *bounded* loop (exponential backoff + crash-loop cap that exits after N
