@@ -1407,7 +1407,7 @@
     "summary": "Read and write your Outlook mail.",
     "statusCmd": "outlook-api whoami 2>/dev/null | sed -n 's/.*\"userPrincipalName\"[[:space:]]*:[[:space:]]*\"\\([^\"]*\\)\".*/\\1/p' | grep -m10 .",
     "logoutCmd": "outlook-api logout",
-    "loginCmd": "outlook-api auth",
+    "loginCmd": "outlook-api auth --tenant common",
     "credentialPaths": ["~/.config/outlook-api/config.json"],
     "description": "Outlook/Hotmail/M365 mail over Microsoft Graph (on-prem Exchange → ews-api). `auth` = device-code flow; `--tenant consumers` (default, personal) | `organizations`. list/search/read/attachments are read-only; `draft`/`reply` stay in Drafts unless --send; `send <draftId>`. `get <path>` = raw Graph GET. JSON out.",
     "versionCmd": "outlook-api --version 2>/dev/null | sed -n 1p",
