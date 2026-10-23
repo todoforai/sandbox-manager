@@ -19,6 +19,7 @@
     "description": "Gmail (multi-account, OAuth login): inbox, search, send, reply, contacts. Google Calendar via `zele cal`: list/create/update/delete events (Meet links, recurrence), respond to invites, free/busy."
   },
   "zele-calendar": {
+    "subcommands": ["cal"],
     "preinstallCloud": true,
     "category": "productivity",
     "pkg": "zele",
@@ -470,7 +471,7 @@
     "loginCmd": "shopify auth login --alias tfa",
     "credentialPaths": ["~/.config/shopify-cli-kit-nodejs/config.json"],
     "versionCmd": "shopify version 2>/dev/null | tail -n 1",
-    "statusCmd": "python3 -c \"import json,os,sys;p=os.path.expanduser('~/.config/shopify-cli-kit-nodejs/config.json');sys.exit(0 if json.load(open(p)).get('session') else 1)\" 2>/dev/null && echo authenticated",
+    "statusCmd": "python3 -c \"import json,os,sys;p=os.path.expanduser('~/.config/shopify-cli-kit-nodejs/config.json');sys.exit(0 if json.load(open(p)).get('currentSessionId') else 1)\" 2>/dev/null && echo authenticated",
     "logoutCmd": "shopify auth logout",
     "deviceCodePattern": "verification code: ([A-Z0-9-]+)",
     "oauthUrlPattern": "(https://accounts\\.shopify\\.com/activate-with-code\\S*)",
@@ -517,7 +518,7 @@
     "installer": "npm",
     "label": "TODOforAI",
     "summary": "Create and follow up on your TODOs, and show results in the chat.",
-    "description": "Manage the user's OWN TODOforAI tasks (not code `// TODO` comments). Delegate/spin off work: `tfa-cli \"prompt\"` creates a real TODO with its own agent and chat (`-n` wait for completion, `--no-watch` fire-and-forget, `--project/--agent/--model`, `--resume <id>`, `addmessage <id> \"text\"`). Inspect: `list [--status open]`, `--inspect <id>`. Edit any todo without opening it: `status <id> DONE|READY|ARCHIVED|POSTPONED|CANCELLED|DELETED` (close, reopen, shelve, trash — `todo restore <id>` undoes a delete) and `todo set <id|-> title=… group=… star=true schedule=<unix-ms> agent=… brand=…` (own todo fields). Both take ONE id, so a loop over `list --json | jq -r '.items[].id'` is how you close, retitle, refile or archive MANY todos at once; `project set|settings|groups …` (name, settings, todo groups), `agent create|update <agent> model=… sysmsg=…` (permissions/MCP/device wiring and delete are refused from an agent shell). Surface results into chat: `show <file|-> [todo-id]` (renders by mimetype, private to the todo's readers; `--card <name>` via project renderer; `--alias <name>` updates in place, `--alias <todoId>:<name>` updates another todo's artifact; `show share <ref>` makes it public and prints the link, `show unshare <ref>` makes it private again), `open <url>` embeds a live preview. Show viewer chrome: `--title` appears in the header; a kebab menu holds file actions, versions and sharing when available. Desktop floating previews add minimize (park in a tab), maximize/restore and close (X); inline blocks have no window controls. For authored HTML, do not duplicate the header/controls or add a rounded, bordered root card: the floating viewer owns the rounded frame. Keep content edge-to-edge; internal layout padding is fine. Pick by where the output lives: read once → plain reply; interactive, this chat only → `html_snippet`; kept/revised later → `show --alias`, then `show share` only if someone outside needs a link; format the user asked for (pptx, docx…) → `show` the file. Notifications: `inbox [needs-you|messages|activity] [--unread]` reads the user's bell feed (what finished/failed/needs them while away), `inbox seen [tab]` marks it read; `notify \"Title\" \"message\" [--href /t/<id>]` leaves a note in the user's Messages tab + phone push (shown as from you); `--to <email>` reaches a member of the current project instead (`project members` lists them, 20/day) — nobody else; same text is delivered once, max 10/day to the user, use for things they must see later (not chat replies). This is the ONLY way to display a local file (image, pdf, html) in the chat: markdown `![](path.png)` with a local/relative path does NOT resolve to workspace files or attachments and 404s in the browser. `--template` for registry workflows. Project files: `memory sync|path [--project <id>]` requires a project and checks out only projects/<id>/{memory,context} and projects/<id>/me/{memory,context}; legacy global files are read-only recovery. Voice commands use `--scope mine|project` (default mine, private within this project; project is shared).",
+    "description": "Manage the user's OWN TODOforAI tasks (not code `// TODO` comments). Delegate/spin off work: `tfa-cli \"prompt\"` creates a real TODO with its own agent and chat (`-n` wait for completion, `--no-watch` fire-and-forget, `--project/--agent/--model`, `--resume <id>`, `addmessage <id> \"text\"`). Inspect: `list [--status open]` (your own todos; `--project-wide` for every member's), `--inspect <id>`. Edit any todo without opening it: `status <id> DONE|READY|ARCHIVED|POSTPONED|CANCELLED|DELETED` (close, reopen, shelve, trash — `todo restore <id>` undoes a delete) and `todo set <id|-> title=… group=… star=true schedule=<unix-ms> agent=… brand=…` (own todo fields). Both take ONE id, so a loop over `list --json | jq -r '.items[].id'` is how you close, retitle, refile or archive MANY todos at once; `project set|settings|groups …` (name, settings, todo groups), `agent create|update <agent> model=… sysmsg=…` (permissions/MCP/device wiring and delete are refused from an agent shell). Surface results into chat: `show <file|-> [todo-id]` (renders by mimetype, private to the todo's readers; `--card <name>` via project renderer; `--alias <name>` updates in place, `--alias <todoId>:<name>` updates another todo's artifact; `show share <ref>` makes it public and prints the link, `show unshare <ref>` makes it private again), `open <url>` embeds a live preview. Show viewer chrome: `--title` appears in the header; a kebab menu holds file actions, versions and sharing when available. Desktop floating previews add minimize (park in a tab), maximize/restore and close (X); inline blocks have no window controls. For authored HTML, do not duplicate the header/controls or add a rounded, bordered root card: the floating viewer owns the rounded frame. Keep content edge-to-edge; internal layout padding is fine. Pick by where the output lives: read once → plain reply; interactive, this chat only → `html_snippet`; kept/revised later → `show --alias`, then `show share` only if someone outside needs a link; format the user asked for (pptx, docx…) → `show` the file. Notifications: `inbox [needs-you|messages|activity] [--unread]` reads the user's bell feed (what finished/failed/needs them while away), `inbox seen [tab]` marks it read; `notify \"Title\" \"message\" [--href /t/<id>] [--url <link>: tap opens it on the phone, e.g. a Google Maps navigation link]` leaves a note in the user's Messages tab + phone push (shown as from you); `--to <email>` reaches a member of the current project instead (`project members` lists them, 20/day) — nobody else; same text is delivered once, max 10/day to the user, use for things they must see later (not chat replies). This is the ONLY way to display a local file (image, pdf, html) in the chat: markdown `![](path.png)` with a local/relative path does NOT resolve to workspace files or attachments and 404s in the browser. `--template` for registry workflows. Project files: `memory sync|path [--project <id>]` requires a project and checks out only projects/<id>/{memory,context} and projects/<id>/me/{memory,context}; legacy global files are read-only recovery. Voice commands use `--scope mine|project` (default mine, private within this project; project is shared).",
     "installCmd": "npm install -g @todoforai/cli",
     "versionCmd": "tfa-cli --version 2>/dev/null | sed -n 1p",
     "preinstallCloud": true,
@@ -569,11 +570,11 @@
     "installer": "binary",
     "preinstallCloud": true,
     "binary": {
-      "linux-x86_64": { "url": "https://github.com/todoforai/rclone-backend/releases/download/v0.1.8/rclone-linux-amd64.tar.gz", "archive": "tar.gz", "extract": "rclone" },
-      "linux-aarch64": { "url": "https://github.com/todoforai/rclone-backend/releases/download/v0.1.8/rclone-linux-arm64.tar.gz", "archive": "tar.gz", "extract": "rclone" },
-      "darwin-x86_64": { "url": "https://github.com/todoforai/rclone-backend/releases/download/v0.1.8/rclone-darwin-amd64.tar.gz", "archive": "tar.gz", "extract": "rclone" },
-      "darwin-aarch64": { "url": "https://github.com/todoforai/rclone-backend/releases/download/v0.1.8/rclone-darwin-arm64.tar.gz", "archive": "tar.gz", "extract": "rclone" },
-      "windows-x86_64": { "url": "https://github.com/todoforai/rclone-backend/releases/download/v0.1.8/rclone-windows-amd64.zip", "archive": "zip", "extract": "rclone.exe" }
+      "linux-x86_64": { "url": "https://github.com/todoforai/rclone-backend/releases/download/v0.1.9/rclone-linux-amd64.tar.gz", "archive": "tar.gz", "extract": "rclone" },
+      "linux-aarch64": { "url": "https://github.com/todoforai/rclone-backend/releases/download/v0.1.9/rclone-linux-arm64.tar.gz", "archive": "tar.gz", "extract": "rclone" },
+      "darwin-x86_64": { "url": "https://github.com/todoforai/rclone-backend/releases/download/v0.1.9/rclone-darwin-amd64.tar.gz", "archive": "tar.gz", "extract": "rclone" },
+      "darwin-aarch64": { "url": "https://github.com/todoforai/rclone-backend/releases/download/v0.1.9/rclone-darwin-arm64.tar.gz", "archive": "tar.gz", "extract": "rclone" },
+      "windows-x86_64": { "url": "https://github.com/todoforai/rclone-backend/releases/download/v0.1.9/rclone-windows-amd64.zip", "archive": "zip", "extract": "rclone.exe" }
     },
     "internal": true,
     "label": "Cloud Storage",
@@ -589,11 +590,11 @@
     "installer": "binary",
     "binName": "rclone",
     "binary": {
-      "linux-x86_64": { "url": "https://github.com/todoforai/rclone-backend/releases/download/v0.1.8/rclone-linux-amd64.tar.gz", "archive": "tar.gz", "extract": "rclone" },
-      "linux-aarch64": { "url": "https://github.com/todoforai/rclone-backend/releases/download/v0.1.8/rclone-linux-arm64.tar.gz", "archive": "tar.gz", "extract": "rclone" },
-      "darwin-x86_64": { "url": "https://github.com/todoforai/rclone-backend/releases/download/v0.1.8/rclone-darwin-amd64.tar.gz", "archive": "tar.gz", "extract": "rclone" },
-      "darwin-aarch64": { "url": "https://github.com/todoforai/rclone-backend/releases/download/v0.1.8/rclone-darwin-arm64.tar.gz", "archive": "tar.gz", "extract": "rclone" },
-      "windows-x86_64": { "url": "https://github.com/todoforai/rclone-backend/releases/download/v0.1.8/rclone-windows-amd64.zip", "archive": "zip", "extract": "rclone.exe" }
+      "linux-x86_64": { "url": "https://github.com/todoforai/rclone-backend/releases/download/v0.1.9/rclone-linux-amd64.tar.gz", "archive": "tar.gz", "extract": "rclone" },
+      "linux-aarch64": { "url": "https://github.com/todoforai/rclone-backend/releases/download/v0.1.9/rclone-linux-arm64.tar.gz", "archive": "tar.gz", "extract": "rclone" },
+      "darwin-x86_64": { "url": "https://github.com/todoforai/rclone-backend/releases/download/v0.1.9/rclone-darwin-amd64.tar.gz", "archive": "tar.gz", "extract": "rclone" },
+      "darwin-aarch64": { "url": "https://github.com/todoforai/rclone-backend/releases/download/v0.1.9/rclone-darwin-arm64.tar.gz", "archive": "tar.gz", "extract": "rclone" },
+      "windows-x86_64": { "url": "https://github.com/todoforai/rclone-backend/releases/download/v0.1.9/rclone-windows-amd64.zip", "archive": "zip", "extract": "rclone.exe" }
     },
     "label": "Google Drive",
     "summary": "Browse, read and write files in your Google Drive.",
@@ -612,11 +613,11 @@
     "installer": "binary",
     "binName": "rclone",
     "binary": {
-      "linux-x86_64": { "url": "https://github.com/todoforai/rclone-backend/releases/download/v0.1.8/rclone-linux-amd64.tar.gz", "archive": "tar.gz", "extract": "rclone" },
-      "linux-aarch64": { "url": "https://github.com/todoforai/rclone-backend/releases/download/v0.1.8/rclone-linux-arm64.tar.gz", "archive": "tar.gz", "extract": "rclone" },
-      "darwin-x86_64": { "url": "https://github.com/todoforai/rclone-backend/releases/download/v0.1.8/rclone-darwin-amd64.tar.gz", "archive": "tar.gz", "extract": "rclone" },
-      "darwin-aarch64": { "url": "https://github.com/todoforai/rclone-backend/releases/download/v0.1.8/rclone-darwin-arm64.tar.gz", "archive": "tar.gz", "extract": "rclone" },
-      "windows-x86_64": { "url": "https://github.com/todoforai/rclone-backend/releases/download/v0.1.8/rclone-windows-amd64.zip", "archive": "zip", "extract": "rclone.exe" }
+      "linux-x86_64": { "url": "https://github.com/todoforai/rclone-backend/releases/download/v0.1.9/rclone-linux-amd64.tar.gz", "archive": "tar.gz", "extract": "rclone" },
+      "linux-aarch64": { "url": "https://github.com/todoforai/rclone-backend/releases/download/v0.1.9/rclone-linux-arm64.tar.gz", "archive": "tar.gz", "extract": "rclone" },
+      "darwin-x86_64": { "url": "https://github.com/todoforai/rclone-backend/releases/download/v0.1.9/rclone-darwin-amd64.tar.gz", "archive": "tar.gz", "extract": "rclone" },
+      "darwin-aarch64": { "url": "https://github.com/todoforai/rclone-backend/releases/download/v0.1.9/rclone-darwin-arm64.tar.gz", "archive": "tar.gz", "extract": "rclone" },
+      "windows-x86_64": { "url": "https://github.com/todoforai/rclone-backend/releases/download/v0.1.9/rclone-windows-amd64.zip", "archive": "zip", "extract": "rclone.exe" }
     },
     "label": "OneDrive",
     "summary": "Browse, read and write files in your OneDrive.",
@@ -635,11 +636,11 @@
     "installer": "binary",
     "binName": "rclone",
     "binary": {
-      "linux-x86_64": { "url": "https://github.com/todoforai/rclone-backend/releases/download/v0.1.8/rclone-linux-amd64.tar.gz", "archive": "tar.gz", "extract": "rclone" },
-      "linux-aarch64": { "url": "https://github.com/todoforai/rclone-backend/releases/download/v0.1.8/rclone-linux-arm64.tar.gz", "archive": "tar.gz", "extract": "rclone" },
-      "darwin-x86_64": { "url": "https://github.com/todoforai/rclone-backend/releases/download/v0.1.8/rclone-darwin-amd64.tar.gz", "archive": "tar.gz", "extract": "rclone" },
-      "darwin-aarch64": { "url": "https://github.com/todoforai/rclone-backend/releases/download/v0.1.8/rclone-darwin-arm64.tar.gz", "archive": "tar.gz", "extract": "rclone" },
-      "windows-x86_64": { "url": "https://github.com/todoforai/rclone-backend/releases/download/v0.1.8/rclone-windows-amd64.zip", "archive": "zip", "extract": "rclone.exe" }
+      "linux-x86_64": { "url": "https://github.com/todoforai/rclone-backend/releases/download/v0.1.9/rclone-linux-amd64.tar.gz", "archive": "tar.gz", "extract": "rclone" },
+      "linux-aarch64": { "url": "https://github.com/todoforai/rclone-backend/releases/download/v0.1.9/rclone-linux-arm64.tar.gz", "archive": "tar.gz", "extract": "rclone" },
+      "darwin-x86_64": { "url": "https://github.com/todoforai/rclone-backend/releases/download/v0.1.9/rclone-darwin-amd64.tar.gz", "archive": "tar.gz", "extract": "rclone" },
+      "darwin-aarch64": { "url": "https://github.com/todoforai/rclone-backend/releases/download/v0.1.9/rclone-darwin-arm64.tar.gz", "archive": "tar.gz", "extract": "rclone" },
+      "windows-x86_64": { "url": "https://github.com/todoforai/rclone-backend/releases/download/v0.1.9/rclone-windows-amd64.zip", "archive": "zip", "extract": "rclone.exe" }
     },
     "label": "Dropbox",
     "summary": "Browse, read and write files in your Dropbox.",
@@ -658,11 +659,11 @@
     "installer": "binary",
     "binName": "rclone",
     "binary": {
-      "linux-x86_64": { "url": "https://github.com/todoforai/rclone-backend/releases/download/v0.1.8/rclone-linux-amd64.tar.gz", "archive": "tar.gz", "extract": "rclone" },
-      "linux-aarch64": { "url": "https://github.com/todoforai/rclone-backend/releases/download/v0.1.8/rclone-linux-arm64.tar.gz", "archive": "tar.gz", "extract": "rclone" },
-      "darwin-x86_64": { "url": "https://github.com/todoforai/rclone-backend/releases/download/v0.1.8/rclone-darwin-amd64.tar.gz", "archive": "tar.gz", "extract": "rclone" },
-      "darwin-aarch64": { "url": "https://github.com/todoforai/rclone-backend/releases/download/v0.1.8/rclone-darwin-arm64.tar.gz", "archive": "tar.gz", "extract": "rclone" },
-      "windows-x86_64": { "url": "https://github.com/todoforai/rclone-backend/releases/download/v0.1.8/rclone-windows-amd64.zip", "archive": "zip", "extract": "rclone.exe" }
+      "linux-x86_64": { "url": "https://github.com/todoforai/rclone-backend/releases/download/v0.1.9/rclone-linux-amd64.tar.gz", "archive": "tar.gz", "extract": "rclone" },
+      "linux-aarch64": { "url": "https://github.com/todoforai/rclone-backend/releases/download/v0.1.9/rclone-linux-arm64.tar.gz", "archive": "tar.gz", "extract": "rclone" },
+      "darwin-x86_64": { "url": "https://github.com/todoforai/rclone-backend/releases/download/v0.1.9/rclone-darwin-amd64.tar.gz", "archive": "tar.gz", "extract": "rclone" },
+      "darwin-aarch64": { "url": "https://github.com/todoforai/rclone-backend/releases/download/v0.1.9/rclone-darwin-arm64.tar.gz", "archive": "tar.gz", "extract": "rclone" },
+      "windows-x86_64": { "url": "https://github.com/todoforai/rclone-backend/releases/download/v0.1.9/rclone-windows-amd64.zip", "archive": "zip", "extract": "rclone.exe" }
     },
     "label": "Amazon S3",
     "summary": "Browse, read and write files in your Amazon S3 buckets.",
@@ -904,7 +905,7 @@
     "label": "Wait",
     "summary": "Wait for a time or an event, then continue the task.",
     "platformAuth": true,
-    "description": "Schedule a wake-up: `tfa-wait '<expr>' \"<message>\"` — expr is a time (`3h`, `daily@9:00`), a webhook, or a command's output; the message arrives later as a new chat message. Wait for a long job: `tfa-wait 'bench || 6h' \"Done: exit {{payload.exit}}\"` then `tfa-wait run '<cmd>' --pipe bench --on-exit &` (each stdout line = event; cancelling kills the command). Never pgrep/sleep poll loops.",
+    "description": "Schedule a wake-up: `tfa-wait '<expr>' \"<message>\"` — expr is a time (`3h`, `daily@9:00`), a webhook, or a command's output; the message arrives later as a new chat message. Wait for a long job: `tfa-wait 'bench || 6h' \"Done: exit {{payload.exit}}\"` then `tfa-wait run '<cmd>' --pipe bench --on-exit &` (each stdout line = event; cancelling kills the command). Never pgrep/sleep poll loops. Standing automation (\"when X happens, do Y\" — survives this chat, shown under the agent's Automations): first test a check command that prints the FULL current list, one JSON line per item with a stable id, then `tfa-wait <word> --repeat --forever --new-todo --name \"<label>\" --watch '<check>' --every 5m \"<what to do with {{payload.x}}>\"` — the server runs it on this machine, fires only on new items; a failing check shows red in `tfa-wait list` and the UI.",
     "versionCmd": "tfa-wait --version 2>/dev/null | sed -n 1p",
     "installCmd": "npm install -g @todoforai/tfa-wait",
     "preinstallCloud": true,
@@ -1409,7 +1410,26 @@
     "logoutCmd": "outlook-api logout",
     "loginCmd": "outlook-api auth --tenant common",
     "credentialPaths": ["~/.config/outlook-api/config.json"],
-    "description": "Outlook/Hotmail/M365 mail over Microsoft Graph (on-prem Exchange → ews-api). `auth` = device-code flow; `--tenant consumers` (default, personal) | `organizations`. list/search/read/attachments are read-only; `draft`/`reply` stay in Drafts unless --send; `send <draftId>`. `get <path>` = raw Graph GET. JSON out.",
+    "description": "Outlook/Hotmail/M365 mail and calendar over Microsoft Graph (on-prem Exchange → ews-api). `auth` = device-code flow; `--tenant consumers` (default, personal) | `organizations`. list/search/read/attachments are read-only; `draft`/`reply` stay in Drafts unless --send; `send <draftId>`. Calendar: `events [--days N|--start|--end] [--tz Europe/Budapest]` (calendarView, recurrences expanded), `event <id>`, `calendars`, `freebusy <emails…>`; writes: `event-create`, `event-respond <id> accept|tentativelyAccept|decline`, `event-delete`. `get <path>` = raw Graph GET. JSON out.",
+    "versionCmd": "outlook-api --version 2>/dev/null | sed -n 1p",
+    "deviceCodePattern": "enter the code ([A-Z0-9]+)",
+    "oauthUrlPattern": "(https://(?:www\\.microsoft\\.com/link|login\\.microsoft\\.com/device))",
+    "canStreamLogin": true
+  },
+  "outlook-calendar": {
+    "subcommands": ["calendars", "events", "event", "freebusy", "event-create", "event-respond", "event-delete"],
+    "binName": "outlook-api",
+    "preinstallCloud": true,
+    "category": "productivity",
+    "pkg": "@todoforai/outlook-api",
+    "installer": "npm",
+    "label": "Outlook Calendar",
+    "summary": "See your Outlook calendar and book, respond to or cancel events.",
+    "statusCmd": "outlook-api whoami 2>/dev/null | sed -n 's/.*\"userPrincipalName\"[[:space:]]*:[[:space:]]*\"\\([^\"]*\\)\".*/\\1/p' | grep -m10 .",
+    "logoutCmd": "outlook-api logout",
+    "loginCmd": "outlook-api auth --tenant common",
+    "credentialPaths": ["~/.config/outlook-api/config.json"],
+    "description": "Outlook/M365 calendar via `outlook-api`: `events [--days N|--start|--end] [--tz Europe/Budapest]` (calendarView, recurrences expanded), `event <id>`, `calendars`, `freebusy <emails…>` (getSchedule; work/school accounts only); writes: `event-create --subject --start --end [--tz] [--attendee …] [--online]`, `event-respond <id> accept|tentativelyAccept|decline`, `event-delete <id>`. Same sign-in as Outlook mail (`auth`, device code).",
     "versionCmd": "outlook-api --version 2>/dev/null | sed -n 1p",
     "deviceCodePattern": "enter the code ([A-Z0-9]+)",
     "oauthUrlPattern": "(https://(?:www\\.microsoft\\.com/link|login\\.microsoft\\.com/device))",
