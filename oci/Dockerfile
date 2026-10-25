@@ -12,7 +12,8 @@ FROM ubuntu:24.04
 # xz-utils: npm CLIs that fetch .tar.xz release binaries (svix-cli) fail without it.
 # make/g++: bun runs `node-gyp rebuild` for any dep that ships a binding.gyp
 # (better-sqlite3 via trello-cli), and agents pip/npm-install native modules.
-ARG PACKAGES="tini iproute2 ca-certificates bash coreutils util-linux fuse3 curl wget jq unzip xz-utils openssh-client openssh-server rsync socat sudo ripgrep fd-find patch gh git xvfb ffmpeg xdotool x11-utils make g++"
+# adb: the bridge's `adb connect "<phone>"` shim relays to the user's phone; it needs the real adb client.
+ARG PACKAGES="tini iproute2 ca-certificates bash coreutils util-linux fuse3 curl wget jq unzip xz-utils openssh-client openssh-server rsync socat sudo ripgrep fd-find patch gh git xvfb ffmpeg xdotool x11-utils make g++ adb"
 
 ENV DEBIAN_FRONTEND=noninteractive LC_ALL=C HOME=/root
 
