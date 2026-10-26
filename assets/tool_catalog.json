@@ -885,6 +885,16 @@
     "installCmd": "npm install -g @todoforai/tfa-summary",
     "internal": true
   },
+  "tfa-cat": {
+    "category": "todoforai",
+    "pkg": "tfa-cat",
+    "installer": "system",
+    "label": "Cat",
+    "summary": "Show images and PDFs from the shell to the agent.",
+    "description": "`cat` that lets you SEE media: `tfa-cat shot.png` (or `… | tfa-cat`) attaches images/PDFs to this bash result; text prints like cat; its stdout redirected/piped → raw bytes. Also `todoforai:<path>` files (`tfa-cat todoforai:todos/<id>/data.csv > data.csv`; binaries like docx/xlsx: redirect, then edit with your tools). Big text costs context: read what you need (`| head`, `| sed -n 40,80p`, `| grep -n`).",
+    "versionCmd": "tfa-cat --version 2>/dev/null | sed -n 1p",
+    "internal": true
+  },
   "tfa-handoff": {
     "preinstallCloud": true,
     "category": "todoforai",
