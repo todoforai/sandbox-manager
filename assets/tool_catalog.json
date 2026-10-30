@@ -1648,7 +1648,7 @@
     "installer": "pip",
     "label": "Blender",
     "summary": "Model, texture and render 3D scenes in a running Blender.",
-    "statusCmd": "command -v blender-mcp >/dev/null && mcporter call blender.get_addon_status --output json 2>/dev/null | grep -o '\"blender_version\": \"[^\"]*\"' | grep -m1 .",
+    "statusCmd": "command -v blender-mcp >/dev/null && mcporter call blender.get_addon_status --output json 2>/dev/null | grep -o 'blender_version[^,}]*' | grep -m1 .",
     "loginNoBrowser": true,
     "loginTerminalHint": "Needs Blender (blender.org) open on this host: in Blender, Edit → Preferences → Add-ons, enable `Blender MCP`, then press N in the 3D view → BlenderMCP tab → Connect / Start MCP server. Then press Connect here.",
     "loginCmd": "blender-mcp install-addon >/dev/null 2>&1; command -v mcporter >/dev/null 2>&1 || npm install -g --prefix \"$HOME/.local\" mcporter; mcporter config add blender --command blender-mcp --env BLENDER_MCP_DISABLE_TELEMETRY=1 --description 'Blender 3D via ahujasid/blender-mcp addon' --scope home",
