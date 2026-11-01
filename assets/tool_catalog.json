@@ -85,6 +85,22 @@
     "description": "Figma REST API CLI. File commands take a file key or Figma URL. Canvas writes (frames/text/shapes) use `figma-api run` via the plugin bridge. Run `figma-api <cmd> --help` for params.",
     "versionCmd": "figma-api --version 2>/dev/null | sed -n 1p"
   },
+  "slack-api": {
+    "oauthBroker": true,
+    "category": "communication",
+    "pkg": "@todoforai/slack-api",
+    "installer": "npm",
+    "label": "Slack",
+    "summary": "Read and answer your Slack as yourself: DMs and mentions, search, history, threads.",
+    "loginCmd": "slack-api auth --token <user_token>",
+    "statusCmd": "slack-api whoami 2>/dev/null | sed -n 's/.*\"user\"[[:space:]]*:[[:space:]]*\"\\([^\"]*\\)\".*/\\1/p' | grep -m1 .",
+    "logoutCmd": "slack-api logout",
+    "credentialPaths": [
+      "~/.config/slack-api/credentials.json"
+    ],
+    "versionCmd": "slack-api --version 2>/dev/null | sed -n 1p",
+    "description": "Slack Web API as the signed-in user (user token xoxp-, sees exactly what the user sees), JSON out. Sign-in: Connect (TODOforAI Slack app, user scopes) or `slack-api auth --stdin` / env SLACK_USER_TOKEN. `slack-api inbox [--days 3]` = DMs to you + @mentions, newest first, one JSON line each {id, thread, from, chat, subject, text, url, date} — a ready Feed source: `tfa-wait slack --feed --draft --repeat --forever --watch 'slack-api inbox' --every 2m --name Slack \"{{payload.text}}\"` (send-ready reply drafts in the Feed). Also `search '<slack query>'`, `history <C…|D…>`, `thread <channel> <ts>`, `conversations`, `user <U…>`, `dm <U…>`, `send <channel> <text> [--thread ts] --yes` (posts AS the user; without --yes only previews), `api <method> --param k=v` for any Web API method. search.messages is Tier 2 (~20/min); on ratelimited the error has retry_after. For Slack app development use slack-cli instead."
+  },
   "slack-cli": {
     "preinstallCloud": true,
     "cloudInstallCmd": "curl -fsSL https://github.com/slackapi/slack-cli/releases/download/v4.2.0/slack_cli_4.2.0_linux_amd64.tar.gz | tar -xz -C /tmp bin/slack && install -m0755 /tmp/bin/slack /usr/local/bin/slack-cli && rm -rf /tmp/bin",
