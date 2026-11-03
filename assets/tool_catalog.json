@@ -264,7 +264,7 @@
     "installer": "pip",
     "label": "treg",
     "summary": "Call 4000+ paid data/SEO/enrichment APIs through one prepaid key, no vendor accounts.",
-    "statusCmd": "python3 -c \"import json,os;d=json.load(open(os.path.expanduser('~/.treg/config.json')));print(d.get('email') or '' if d.get('token') else '')\" 2>/dev/null | grep -m1 .",
+    "statusCmd": "treg balance --limit 1 >/dev/null 2>&1 && python3 -c \"import json,os;print(json.load(open(os.path.expanduser('~/.treg/config.json'))).get('email') or 'authenticated')\" 2>/dev/null",
     "loginCmd": "treg login",
     "oauthUrlPattern": "(https://treg\\.to/login\\?\\S+)",
     "sessionIdPattern": "#code=([A-Z0-9]{4,8})",
@@ -738,12 +738,9 @@
     "binName": "az",
     "statusCmd": "az account show --query user.name -o tsv 2>/dev/null | tr -d '\\r' | grep -m1 .",
     "logoutCmd": "az logout 2>&1; az account clear 2>&1",
-    "loginCmd": "az login --use-device-code",
-    "oauthUrlPattern": "(https://login\\.microsoft\\.com/device\\S*)",
-    "deviceCodePattern": "enter the code ([A-Z0-9]+)",
-    "canStreamLogin": true,
+    "loginCmd": "az login --allow-no-subscriptions",
     "credentialPaths": ["~/.azure"],
-    "description": "Official Azure CLI. Device-code login: prints login.microsoft.com/device + a code, then polls — no callback port. Azure SQL: `az sql server list -o json`, `az sql db list -s <server> -g <rg>`, `az sql server firewall-rule create …`; run queries with go-sqlcmd (github.com/microsoft/go-sqlcmd): `sqlcmd -S <server>.database.windows.net -d <db> --authentication-method ActiveDirectoryDefault -Q \"SELECT …\"` (reuses the az login) or `-U user -P pass` for SQL auth.",
+    "description": "Official Azure CLI. Browser login with a localhost callback (device code is blocked by Entra Security Defaults on new tenants); `--allow-no-subscriptions` so tenants without a subscription still sign in. Azure SQL: `az sql server list -o json`, `az sql db list -s <server> -g <rg>`, `az sql server firewall-rule create …`; run queries with go-sqlcmd (github.com/microsoft/go-sqlcmd): `sqlcmd -S <server>.database.windows.net -d <db> --authentication-method ActiveDirectoryDefault -Q \"SELECT …\"` (reuses the az login) or `-U user -P pass` for SQL auth.",
     "versionCmd": "az version -o tsv 2>/dev/null | cut -f1 | sed -n 1p"
   },
   "doctl": {
@@ -907,7 +904,7 @@
     "installer": "system",
     "label": "Cat",
     "summary": "Show images and PDFs from the shell to the agent.",
-    "description": "`cat` that lets you SEE media: `tfa-cat shot.png` (or `… | tfa-cat`) attaches images/PDFs to this bash result; text prints like cat; its stdout redirected/piped → raw bytes. Also `todoforai:<path>` files (`tfa-cat todoforai:todos/<id>/data.csv > data.csv`; binaries like docx/xlsx: redirect, then edit with your tools). Big text costs context: read what you need (`| head`, `| sed -n 40,80p`, `| grep -n`).",
+    "description": "`cat` that lets you SEE media: `tfa-cat shot.png` (or `… | tfa-cat`) attaches images/PDFs to this bash result; text prints like cat; its stdout redirected/piped → raw bytes. Also `todoforai:<path>` files (`tfa-cat todoforai:todos/<id>/data.csv > data.csv`; binaries like docx/xlsx: redirect, then edit with your tools). Big text costs context: read what you need (`tfa-cat f.py:40:80` = lines 40-80, also on `todoforai:` refs; `| grep -n`).",
     "versionCmd": "tfa-cat --version 2>/dev/null | sed -n 1p",
     "internal": true
   },
@@ -1435,11 +1432,12 @@
     "statusCmd": "outlook-api whoami 2>/dev/null | sed -n 's/.*\"userPrincipalName\"[[:space:]]*:[[:space:]]*\"\\([^\"]*\\)\".*/\\1/p' | grep -m10 .",
     "logoutCmd": "outlook-api logout",
     "loginCmd": "outlook-api auth --tenant common",
+    "oauthBroker": true,
     "credentialPaths": ["~/.config/outlook-api/config.json"],
-    "description": "Outlook/Hotmail/M365 mail and calendar over Microsoft Graph (on-prem Exchange → ews-api). `auth` = device-code flow; `--tenant consumers` (default, personal) | `organizations`. list/search/read/attachments are read-only; `draft`/`reply` stay in Drafts unless --send; `send <draftId>`. Calendar: `events [--days N|--start|--end] [--tz Europe/Budapest]` (calendarView, recurrences expanded), `event <id>`, `calendars`, `freebusy <emails…>`; writes: `event-create`, `event-respond <id> accept|tentativelyAccept|decline`, `event-delete`. `get <path>` = raw Graph GET. JSON out.",
+    "description": "Outlook/Hotmail/M365 mail and calendar over Microsoft Graph (on-prem Exchange → ews-api). `auth --tenant common` = browser login, redirect to localhost:8644 (`--device` = device code for headless hosts). list/search/read/attachments are read-only; `draft`/`reply` stay in Drafts unless --send; `send <draftId>`. Calendar: `events [--days N|--start|--end] [--tz Europe/Budapest]` (calendarView, recurrences expanded), `event <id>`, `calendars`, `freebusy <emails…>`; writes: `event-create`, `event-respond <id> accept|tentativelyAccept|decline`, `event-delete`. `get <path>` = raw Graph GET. JSON out.",
     "versionCmd": "outlook-api --version 2>/dev/null | sed -n 1p",
-    "deviceCodePattern": "enter the code ([A-Z0-9]+)",
-    "oauthUrlPattern": "(https://(?:www\\.microsoft\\.com/link|login\\.microsoft\\.com/device))",
+    "oauthUrlPattern": "(https://login\\.microsoftonline\\.com/\\S+/oauth2/v2\\.0/authorize\\S+)",
+    "oauthCallbackPort": 8644,
     "canStreamLogin": true
   },
   "outlook-calendar": {
@@ -1454,11 +1452,12 @@
     "statusCmd": "outlook-api whoami 2>/dev/null | sed -n 's/.*\"userPrincipalName\"[[:space:]]*:[[:space:]]*\"\\([^\"]*\\)\".*/\\1/p' | grep -m10 .",
     "logoutCmd": "outlook-api logout",
     "loginCmd": "outlook-api auth --tenant common",
+    "oauthBroker": true,
     "credentialPaths": ["~/.config/outlook-api/config.json"],
     "description": "Outlook/M365 calendar via `outlook-api`: `events [--days N|--start|--end] [--tz Europe/Budapest]` (calendarView, recurrences expanded), `event <id>`, `calendars`, `freebusy <emails…>` (getSchedule; work/school accounts only); writes: `event-create --subject --start --end [--tz] [--attendee …] [--online]`, `event-respond <id> accept|tentativelyAccept|decline`, `event-delete <id>`. Same sign-in as Outlook mail (`auth`, device code).",
     "versionCmd": "outlook-api --version 2>/dev/null | sed -n 1p",
-    "deviceCodePattern": "enter the code ([A-Z0-9]+)",
-    "oauthUrlPattern": "(https://(?:www\\.microsoft\\.com/link|login\\.microsoft\\.com/device))",
+    "oauthUrlPattern": "(https://login\\.microsoftonline\\.com/\\S+/oauth2/v2\\.0/authorize\\S+)",
+    "oauthCallbackPort": 8644,
     "canStreamLogin": true
   },
   "neonctl": {
@@ -1486,11 +1485,9 @@
     "summary": "Work with Microsoft 365 mail, Teams, SharePoint and users.",
     "statusCmd": "m365 status --output text 2>/dev/null | tr -d '\"' | grep -vi 'logged out' | grep -m1 .",
     "logoutCmd": "m365 logout",
-    "loginCmd": "m365 login --authType deviceCode --appId 14d82eec-204b-4c2f-b7e8-296a70dab67e",
-    "deviceCodePattern": "enter the code ([A-Z0-9]{8,}) to authenticate",
-    "oauthUrlPattern": "open the page (https://\\S+) and enter",
+    "loginCmd": "m365 login --authType browser --appId 14d82eec-204b-4c2f-b7e8-296a70dab67e",
     "credentialPaths": ["~/.cli-m365-msal.json", "~/.cli-m365-connection.json"],
-    "description": "Microsoft 365 from the shell: `m365 outlook message list`, `m365 teams team list`, `m365 spo site list`. Device-code login; add `--output json` for parseable output.",
+    "description": "Microsoft 365 from the shell: `m365 outlook message list`, `m365 teams team list`, `m365 spo site list`. Browser login with a localhost callback (device code is blocked by Entra Security Defaults); add `--output json` for parseable output.",
     "versionCmd": "m365 version 2>/dev/null | tr -d '\"' | sed -n 1p"
   },
   "gws": {
