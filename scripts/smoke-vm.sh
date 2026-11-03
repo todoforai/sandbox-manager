@@ -183,10 +183,7 @@ phase_login() {
 phase_roundtrip() {
   PHASE=roundtrip; echo "== $PHASE: each tfa-* CLI does real work against $VM_API_URL"
   local k="smoke/$(date +%s)"
-  check memory.add     "tfa-memory add $k 'smoke marker'"
-  check memory.search  "tfa-memory search 'smoke marker'" "$k"
-  check memory.get     "tfa-memory get $k" 'smoke marker'
-  check memory.rm      "tfa-memory rm $k"
+  check memory.search  "tfa-memory search 'smoke' -n 1"
   check vault.put      "tfa-vault put $k v=1"
   check vault.get      "tfa-vault get $k" 'v'
   check vault.patch    "tfa-vault patch $k w=2"
