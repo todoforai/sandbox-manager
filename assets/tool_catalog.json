@@ -239,6 +239,24 @@
     ],
     "description": "Suno music generation via TODOforAI — no Suno key needed, billed to the user's TODOforAI credit (generate $0.12 for 2 songs, refunded if the task fails). Same commands as suno-api: `generate [prompt] [--customMode --lyrics <file> --style --title] [--instrumental] [--model V6]` polls until done and prints audio URLs; `--no-poll` + `details <taskId> [--wait]`; `stems`, `midi`, `lyrics-ts`, `replace-section`. Audio URLs expire after 14 days — download the mp3s you keep. Prefer this over suno-api unless the user has their own sunoapi.org key."
   },
+  "tfa-speech": {
+    "preinstallCloud": true,
+    "category": "creative",
+    "pkg": "@todoforai/tfa-speech",
+    "installer": "npm",
+    "label": "Speech (TODOforAI)",
+    "summary": "Transcribe recordings to text and turn text into speech, billed to your TODOforAI credit.",
+    "platformAuth": true,
+    "versionCmd": "tfa-speech --version 2>/dev/null | sed -n 1p",
+    "credentialPaths": [
+      "~/.config/todoforai/credentials.json"
+    ],
+    "aliases": [
+      "tfa-stt",
+      "tfa-tts"
+    ],
+    "description": "Speech-to-text and text-to-speech via TODOforAI (Soniox) — no provider key, billed to the user's TODOforAI credit. `tfa-stt <file|url> [-l hu,en] [-s/--speakers] [-f text|srt|vtt|json] [-o out] [-p \"names, terms\"]` transcribes recordings, meetings and interviews (60+ languages, auto-detected, speaker labels, up to 5 h / 500 MB, ~$0.11 per audio hour; 10 min takes ~10 s). `tfa-tts \"text\" | -i file.txt [-o out.mp3] [-v voice] [-l hu] [-f mp3|opus|aac|wav] [--speed 0.7-1.3]` speaks any length of text (split and joined automatically, ~$0.015 per 1000 chars); `tfa-tts --voices` lists voices — every voice speaks every language. EU processing by default (`--region us` optional). OpenAI-compatible: POST $TODOFORAI_API_URL/api/v1/audio/transcriptions | /audio/speech with a TODOforAI API key."
+  },
   "ntn": {
     "preinstallCloud": true,
     "category": "productivity",
@@ -615,13 +633,13 @@
     "label": "Google Drive",
     "summary": "Browse, read and write files in your Google Drive.",
     "rcloneType": "drive",
-    "statusCmd": "rclone listremotes --long 2>/dev/null | while read -r n t d; do [ \"$t\" = drive ] && { case \"$d\" in \"\"|*[[:space:]]*) a=${n%:};; *) a=$d;; esac; echo \"$a\"; }; done | paste -sd ' ' - | grep -m1 .",
+    "statusCmd": "rclone listremotes --long 2>/dev/null | while read -r n t d; do [ \"$t\" = drive ] && { case \"$d\" in \"\"|*[[:space:]]*) a=${n%:};; *) a=$d;; esac; s=$(rclone config redacted \"${n%:}\" </dev/null 2>/dev/null | sed -n 's/^tfa_scope = //p'); echo \"$a${s:+($s)}\"; }; done | paste -sd ' ' - | grep -m1 .",
     "loginCmd": "rclone config",
     "oauthBroker": true,
     "logoutCmd": "x={{ACCOUNT}}; rclone listremotes --long 2>/dev/null | while read -r n t d; do [ \"$t\" = drive ] || continue; case \"$d\" in \"\"|*[[:space:]]*) a=${n%:};; *) a=$d;; esac; [ -z \"$x\" ] || [ \"$a\" = \"$x\" ] && rclone config delete \"${n%:}\"; done; true",
     "credentialPaths": ["~/.config/rclone/rclone.conf"],
     "versionCmd": "rclone version 2>/dev/null | sed -n 1p",
-    "description": "Google Drive connector. Uses the rclone CLI: `rclone listremotes --long` lists every connected storage as `name: type account`; `rclone lsf <remote>:<path>`, `rclone copy|sync|move <src> <dst>`, `rclone cat`, `rclone mkdir`, `rclone deletefile` work on any of them (Google Drive = type drive, OneDrive = onedrive, Dropbox = dropbox, S3 = s3). Never run `rclone config` interactively; connect new accounts with `todo.connect('<key>')`."
+    "description": "Google Drive connector. Uses the rclone CLI: `rclone listremotes --long` lists every connected storage as `name: type account`; `rclone lsf <remote>:<path>`, `rclone copy|sync|move <src> <dst>`, `rclone cat`, `rclone mkdir`, `rclone deletefile` work on any of them (Google Drive = type drive, OneDrive = onedrive, Dropbox = dropbox, S3 = s3). An account marked `(company)` is the company's document store (shared company drive): look there first for company documents; `(personal)` is the user's own storage. Never run `rclone config` interactively; connect new accounts with `todo.connect('<key>')`."
   },
   "onedrive": {
     "category": "cloud",
@@ -638,13 +656,13 @@
     "label": "OneDrive",
     "summary": "Browse, read and write files in your OneDrive.",
     "rcloneType": "onedrive",
-    "statusCmd": "rclone listremotes --long 2>/dev/null | while read -r n t d; do [ \"$t\" = onedrive ] && { case \"$d\" in \"\"|*[[:space:]]*) a=${n%:};; *) a=$d;; esac; echo \"$a\"; }; done | paste -sd ' ' - | grep -m1 .",
+    "statusCmd": "rclone listremotes --long 2>/dev/null | while read -r n t d; do [ \"$t\" = onedrive ] && { case \"$d\" in \"\"|*[[:space:]]*) a=${n%:};; *) a=$d;; esac; s=$(rclone config redacted \"${n%:}\" </dev/null 2>/dev/null | sed -n 's/^tfa_scope = //p'); echo \"$a${s:+($s)}\"; }; done | paste -sd ' ' - | grep -m1 .",
     "loginCmd": "rclone config",
     "oauthBroker": true,
     "logoutCmd": "x={{ACCOUNT}}; rclone listremotes --long 2>/dev/null | while read -r n t d; do [ \"$t\" = onedrive ] || continue; case \"$d\" in \"\"|*[[:space:]]*) a=${n%:};; *) a=$d;; esac; [ -z \"$x\" ] || [ \"$a\" = \"$x\" ] && rclone config delete \"${n%:}\"; done; true",
     "credentialPaths": ["~/.config/rclone/rclone.conf"],
     "versionCmd": "rclone version 2>/dev/null | sed -n 1p",
-    "description": "OneDrive connector. Uses the rclone CLI: `rclone listremotes --long` lists every connected storage as `name: type account`; `rclone lsf <remote>:<path>`, `rclone copy|sync|move <src> <dst>`, `rclone cat`, `rclone mkdir`, `rclone deletefile` work on any of them (Google Drive = type drive, OneDrive = onedrive, Dropbox = dropbox, S3 = s3). Never run `rclone config` interactively; connect new accounts with `todo.connect('<key>')`."
+    "description": "OneDrive connector. Uses the rclone CLI: `rclone listremotes --long` lists every connected storage as `name: type account`; `rclone lsf <remote>:<path>`, `rclone copy|sync|move <src> <dst>`, `rclone cat`, `rclone mkdir`, `rclone deletefile` work on any of them (Google Drive = type drive, OneDrive = onedrive, Dropbox = dropbox, S3 = s3). An account marked `(company)` is the company's document store (shared company drive): look there first for company documents; `(personal)` is the user's own storage. Never run `rclone config` interactively; connect new accounts with `todo.connect('<key>')`."
   },
   "dropbox": {
     "category": "cloud",
@@ -661,13 +679,13 @@
     "label": "Dropbox",
     "summary": "Browse, read and write files in your Dropbox.",
     "rcloneType": "dropbox",
-    "statusCmd": "rclone listremotes --long 2>/dev/null | while read -r n t d; do [ \"$t\" = dropbox ] && { case \"$d\" in \"\"|*[[:space:]]*) a=${n%:};; *) a=$d;; esac; echo \"$a\"; }; done | paste -sd ' ' - | grep -m1 .",
+    "statusCmd": "rclone listremotes --long 2>/dev/null | while read -r n t d; do [ \"$t\" = dropbox ] && { case \"$d\" in \"\"|*[[:space:]]*) a=${n%:};; *) a=$d;; esac; s=$(rclone config redacted \"${n%:}\" </dev/null 2>/dev/null | sed -n 's/^tfa_scope = //p'); echo \"$a${s:+($s)}\"; }; done | paste -sd ' ' - | grep -m1 .",
     "loginCmd": "rclone config",
     "oauthBroker": true,
     "logoutCmd": "x={{ACCOUNT}}; rclone listremotes --long 2>/dev/null | while read -r n t d; do [ \"$t\" = dropbox ] || continue; case \"$d\" in \"\"|*[[:space:]]*) a=${n%:};; *) a=$d;; esac; [ -z \"$x\" ] || [ \"$a\" = \"$x\" ] && rclone config delete \"${n%:}\"; done; true",
     "credentialPaths": ["~/.config/rclone/rclone.conf"],
     "versionCmd": "rclone version 2>/dev/null | sed -n 1p",
-    "description": "Dropbox connector. Uses the rclone CLI: `rclone listremotes --long` lists every connected storage as `name: type account`; `rclone lsf <remote>:<path>`, `rclone copy|sync|move <src> <dst>`, `rclone cat`, `rclone mkdir`, `rclone deletefile` work on any of them (Google Drive = type drive, OneDrive = onedrive, Dropbox = dropbox, S3 = s3). Never run `rclone config` interactively; connect new accounts with `todo.connect('<key>')`."
+    "description": "Dropbox connector. Uses the rclone CLI: `rclone listremotes --long` lists every connected storage as `name: type account`; `rclone lsf <remote>:<path>`, `rclone copy|sync|move <src> <dst>`, `rclone cat`, `rclone mkdir`, `rclone deletefile` work on any of them (Google Drive = type drive, OneDrive = onedrive, Dropbox = dropbox, S3 = s3). An account marked `(company)` is the company's document store (shared company drive): look there first for company documents; `(personal)` is the user's own storage. Never run `rclone config` interactively; connect new accounts with `todo.connect('<key>')`."
   },
   "s3": {
     "category": "cloud",
@@ -684,12 +702,12 @@
     "label": "Amazon S3",
     "summary": "Browse, read and write files in your Amazon S3 buckets.",
     "rcloneType": "s3",
-    "statusCmd": "rclone listremotes --long 2>/dev/null | while read -r n t d; do [ \"$t\" = s3 ] && { case \"$d\" in \"\"|*[[:space:]]*) a=${n%:};; *) a=$d;; esac; echo \"$a\"; }; done | paste -sd ' ' - | grep -m1 .",
+    "statusCmd": "rclone listremotes --long 2>/dev/null | while read -r n t d; do [ \"$t\" = s3 ] && { case \"$d\" in \"\"|*[[:space:]]*) a=${n%:};; *) a=$d;; esac; s=$(rclone config redacted \"${n%:}\" </dev/null 2>/dev/null | sed -n 's/^tfa_scope = //p'); echo \"$a${s:+($s)}\"; }; done | paste -sd ' ' - | grep -m1 .",
     "loginCmd": "k=<access_key_id> s=<secret_access_key> r=<region>; RCLONE_S3_PROVIDER=AWS RCLONE_S3_ENV_AUTH=false RCLONE_S3_ACCESS_KEY_ID=\"$k\" RCLONE_S3_SECRET_ACCESS_KEY=\"$s\" RCLONE_S3_REGION=\"$r\" rclone lsd :s3: --config /dev/null --ask-password=false --contimeout 10s --timeout 15s --retries 1 --low-level-retries 1 >/dev/null 2>&1 || { echo 'S3 access check failed: check the keys, the region and the s3:ListAllMyBuckets permission.'; exit 2; }; rclone config create --non-interactive --ask-password=false \"s3_$(date +%s)\" s3 provider AWS env_auth false access_key_id \"$k\" secret_access_key \"$s\" region \"$r\" >/dev/null && echo 'S3 connected.'",
     "logoutCmd": "x={{ACCOUNT}}; rclone listremotes --long 2>/dev/null | while read -r n t d; do [ \"$t\" = s3 ] || continue; case \"$d\" in \"\"|*[[:space:]]*) a=${n%:};; *) a=$d;; esac; [ -z \"$x\" ] || [ \"$a\" = \"$x\" ] && rclone config delete \"${n%:}\"; done; true",
     "credentialPaths": ["~/.config/rclone/rclone.conf"],
     "versionCmd": "rclone version 2>/dev/null | sed -n 1p",
-    "description": "Amazon S3 connector. Uses the rclone CLI: `rclone listremotes --long` lists every connected storage as `name: type account`; `rclone lsf <remote>:<path>`, `rclone copy|sync|move <src> <dst>`, `rclone cat`, `rclone mkdir`, `rclone deletefile` work on any of them (Google Drive = type drive, OneDrive = onedrive, Dropbox = dropbox, S3 = s3). Never run `rclone config` interactively; connect new accounts with `todo.connect('<key>')`."
+    "description": "Amazon S3 connector. Uses the rclone CLI: `rclone listremotes --long` lists every connected storage as `name: type account`; `rclone lsf <remote>:<path>`, `rclone copy|sync|move <src> <dst>`, `rclone cat`, `rclone mkdir`, `rclone deletefile` work on any of them (Google Drive = type drive, OneDrive = onedrive, Dropbox = dropbox, S3 = s3). An account marked `(company)` is the company's document store (shared company drive): look there first for company documents; `(personal)` is the user's own storage. Never run `rclone config` interactively; connect new accounts with `todo.connect('<key>')`."
   },
   "aws": {
     "preinstallCloud": true,
