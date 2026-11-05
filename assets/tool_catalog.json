@@ -1504,8 +1504,9 @@
     "statusCmd": "m365 status --output text 2>/dev/null | tr -d '\"' | grep -vi 'logged out' | grep -m1 .",
     "logoutCmd": "m365 logout",
     "loginCmd": "m365 login --authType browser --appId 14d82eec-204b-4c2f-b7e8-296a70dab67e",
+    "oauthBroker": true,
     "credentialPaths": ["~/.cli-m365-msal.json", "~/.cli-m365-connection.json"],
-    "description": "Microsoft 365 from the shell: `m365 outlook message list`, `m365 teams team list`, `m365 spo site list`. Browser login with a localhost callback (device code is blocked by Entra Security Defaults); add `--output json` for parseable output.",
+    "description": "Microsoft 365 from the shell: `m365 outlook message list`, `m365 teams team list`, `m365 onedrive list`, `m365 todo task list`, `m365 spo site list`; any Graph call: `m365 request --url 'https://graph.microsoft.com/v1.0/me/drive/root/children'`. Signed in through the TODOforAI app (Connect button, no admin needed for mail/calendar/files/Teams chats); admin-only areas (Entra, Exchange admin, tenant settings) return 403 → ask the user. Add `--output json` for parseable output.",
     "versionCmd": "m365 version 2>/dev/null | tr -d '\"' | sed -n 1p"
   },
   "gws": {
