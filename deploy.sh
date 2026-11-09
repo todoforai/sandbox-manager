@@ -156,6 +156,9 @@ Wants=network-online.target
 [Service]
 Type=oneshot
 ExecStart=/usr/local/sbin/backup-homes.sh
+# restic keeps its index/tree cache in \$HOME/.cache/restic; without HOME every
+# run re-reads repo metadata over sftp.
+Environment=HOME=/root
 Nice=10
 IOSchedulingClass=idle
 UNIT
