@@ -161,6 +161,8 @@ ExecStart=/usr/local/sbin/backup-homes.sh
 Environment=HOME=/root
 Nice=10
 IOSchedulingClass=idle
+# Cap page cache from copying ~140G of images so it cannot push VMs to swap.
+MemoryHigh=8G
 UNIT
         cat > /etc/systemd/system/home-backup.timer <<UNIT
 # Managed by sandbox-manager/deploy.sh — do not edit by hand.
