@@ -890,7 +890,20 @@
     "installCmd": "npm install -g @todoforai/tfa-explore",
     "internal": true
   },
-  "tfa-review": {
+  "tfa-question": {
+    "preinstallCloud": true,
+    "category": "todoforai",
+    "pkg": "@todoforai/tfa-question",
+    "installer": "npm",
+    "label": "Question",
+    "summary": "Ask the user a multiple-choice question in the chat.",
+    "platformAuth": true,
+    "description": "Chat question card; exits at once, the answer is the user's next message: end your turn. AskUserQuestion JSON on stdin: `tfa-question <<< '{\"questions\":[{\"question\":\"Ship?\",\"header\":\"Deploy\",\"multiSelect\":false,\"options\":[{\"label\":\"Yes\",\"description\":\"…\"}]}]}'`; free text: `tfa-question \"Q?\"`.",
+    "versionCmd": "tfa-question --version 2>/dev/null | sed -n 1p",
+    "credentialPaths": ["~/.config/todoforai/credentials.json"],
+    "installCmd": "npm install -g @todoforai/tfa-question",
+    "internal": true
+  },  "tfa-review": {
     "preinstallCloud": true,
     "category": "todoforai",
     "pkg": "@todoforai/tfa-review",
@@ -914,6 +927,35 @@
     "description": "Sub-agent summary so raw text never enters your context: `cat big.log | tfa-summary \"what failed?\"`, or `-f <file>` (repeatable).",
     "versionCmd": "tfa-summary --version 2>/dev/null | sed -n 1p",
     "installCmd": "npm install -g @todoforai/tfa-summary",
+    "internal": true
+  },
+
+  "tfa-webfetch": {
+    "preinstallCloud": true,
+    "category": "todoforai",
+    "pkg": "@todoforai/tfa-webfetch",
+    "installer": "npm",
+    "label": "Web Fetch",
+    "summary": "Read a web page and extract what you ask for.",
+    "platformAuth": true,
+    "description": "Read a URL, get only what you ask for (sub-agent extraction, not the raw page; fetched from this machine, no JS): `tfa-webfetch <url> \"what to extract\"`, prompt required. Several in parallel: `tfa-webfetch u1 \"…\" > /tmp/1 & tfa-webfetch u2 \"…\" > /tmp/2 & wait`. Raw bytes/PDF: curl; JS-only pages: agent-browser.",
+    "versionCmd": "tfa-webfetch --version 2>/dev/null | sed -n 1p",
+    "credentialPaths": ["~/.config/todoforai/credentials.json"],
+    "installCmd": "npm install -g @todoforai/tfa-webfetch",
+    "internal": true
+  },
+  "tfa-search": {
+    "preinstallCloud": true,
+    "category": "todoforai",
+    "pkg": "@todoforai/tfa-search",
+    "installer": "npm",
+    "label": "Web Search",
+    "summary": "Google search: title, URL and snippet per result.",
+    "platformAuth": true,
+    "description": "Google search: `tfa-search \"query\"` → title, URL, snippet per result. `-n 5`, `--gl hu --hl hu`. Read a hit: tfa-webfetch.",
+    "versionCmd": "tfa-search --version 2>/dev/null | sed -n 1p",
+    "credentialPaths": ["~/.config/todoforai/credentials.json"],
+    "installCmd": "npm install -g @todoforai/tfa-search",
     "internal": true
   },
   "tfa-cat": {
