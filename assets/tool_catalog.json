@@ -1002,7 +1002,7 @@
     "internal": true,
     "label": "TODOforAI Cloud",
     "summary": "Your TODOforAI cloud files from this computer: attachments, memory and brand page.",
-    "description": "ssh host alias: `ssh tfa-cloud 'command'`, `scp`/`rsync` for files. Same root account, files, tools and logins as the cloud's own bash tool; local and cloud filesystems are separate. Cloud files under `~/.todoforai/mnt/todoforai/`: `todos/\"$TODOFORAI_TODO_ID\"` (this todo's attachments; double quotes: the id expands locally), `memory/` (your memory of this user), `projects/\"$TODOFORAI_PROJECT_ID\"/business-context` (brand page) and `voice-profile` beside it (writing voice, read-only). A stopped VM does not wake on connect.",
+    "description": "ssh host alias: `ssh tfa-cloud 'command'`, `scp`/`rsync` for files. Same root account, files, tools and logins as the cloud's own bash tool; local and cloud filesystems are separate. On the cloud only /root and /home persist; the rest resets on rebuild. Cloud files under `~/.todoforai/mnt/todoforai/`: `todos/\"$TODOFORAI_TODO_ID\"` (this todo's attachments; double quotes: the id expands locally), `memory/` (your memory of this user), `projects/\"$TODOFORAI_PROJECT_ID\"/business-context` (brand page) and `voice-profile` beside it (writing voice, read-only). A stopped VM does not wake on connect.",
     "versionCmd": "sh -c 'ssh -G tfa-cloud 2>/dev/null' | awk '$1==\"hostname\" && $2!=\"tfa-cloud\"{print $2}'",
     "statusCmd": "ssh tfa-cloud hostname 2>/dev/null | tr -d '\\r' | grep -m1 ."
   },

@@ -19,7 +19,8 @@
 set -eu
 
 # Guest-local bridge log (see comment at exec). Truncate at boot so it can't
-# grow across restarts; the rootfs snapshot is small and ephemeral.
+# grow across restarts; the rootfs snapshot is small and ephemeral (only /root
+# and /home persist, see below).
 BRIDGE_LOG=/var/log/todoforai-bridge.log
 : > "$BRIDGE_LOG"
 
@@ -36,6 +37,19 @@ if ! grep -Eqs '^[0-9a-f]{32}$' "$MID_FILE"; then
     mv "$MID_FILE.tmp" "$MID_FILE"
 fi
 cat "$MID_FILE" > /etc/machine-id || echo "machine-id: could not install to /etc" >&2
+
+# /home lives on the persistent home.img too (the rootfs is reset on every
+# recreate: image update, resize, recovery). Seed it once from the image's
+# /home, then bind it over /home. Must not block the boot.
+PERSIST_HOME=${HOME:-/root}/.home
+if ! mountpoint -q /home; then
+    if [ ! -d "$PERSIST_HOME" ]; then
+        rm -rf "$PERSIST_HOME.tmp" && mkdir -p "$PERSIST_HOME.tmp" && cp -a /home/. "$PERSIST_HOME.tmp"/ && mv "$PERSIST_HOME.tmp" "$PERSIST_HOME" \
+            || echo "home: could not seed $PERSIST_HOME" >&2
+    fi
+    [ -d "$PERSIST_HOME" ] && mount --bind "$PERSIST_HOME" /home \
+        || echo "home: bind mount failed, /home is ephemeral" >&2
+fi
 
 # Package caches now live on the rootfs (Dockerfile ENV). Homes created before
 # that still hold old copies that only eat the quota — drop them, every boot
