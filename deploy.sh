@@ -142,6 +142,39 @@ UNIT
             && echo "✅ sandbox-pool.service enabled" \
             || { echo "❌ could not enable sandbox-pool.service"; exit 1; }
 
+        # Nightly off-host backup of the per-user home.img files (VM /root and
+        # /home). No-op until /etc/default/home-backup exists (see the script).
+        echo "Installing home-backup.timer (nightly home.img backup)..."
+        install -m 0755 "$REL_DIR/scripts/backup-homes.sh" /usr/local/sbin/backup-homes.sh
+        cat > /etc/systemd/system/home-backup.service <<UNIT
+# Managed by sandbox-manager/deploy.sh — do not edit by hand.
+[Unit]
+Description=Back up per-user home.img files (restic)
+After=containerd.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/backup-homes.sh
+Nice=10
+IOSchedulingClass=idle
+UNIT
+        cat > /etc/systemd/system/home-backup.timer <<UNIT
+# Managed by sandbox-manager/deploy.sh — do not edit by hand.
+[Unit]
+Description=Nightly home.img backup
+
+[Timer]
+OnCalendar=*-*-* 03:30
+RandomizedDelaySec=15min
+Persistent=true
+
+[Install]
+WantedBy=timers.target
+UNIT
+        systemctl daemon-reload
+        systemctl enable --now home-backup.timer || echo "⚠️ could not enable home-backup.timer"
+
         echo "Reloading sandbox-manager under pm2..."
         cd "$DEPLOY_PATH/current"
         # One-shot migration off the Rust blue/green instances. The Go
