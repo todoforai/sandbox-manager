@@ -208,7 +208,7 @@
     "platformAuth": true,
     "versionCmd": "tfa-imagegen --version 2>/dev/null | sed -n 1p",
     "credentialPaths": ["~/.config/todoforai/credentials.json"],
-    "description": "AI image generation & editing via TODOFORAI backend (gpt-image, nano-banana, nano-banana-pro)"
+    "description": "AI image generation & editing via TODOFORAI backend (gpt-image-2, gpt-image-2.6, nano-banana, nano-banana-pro)"
   },
   "suno-api": {
     "preinstallCloud": true,
@@ -911,7 +911,7 @@
     "label": "Show",
     "summary": "Show files, links and interactive HTML in the chat.",
     "platformAuth": true,
-    "description": "Show in chat: `tfa-show <file|url|->` renders by type; url = live preview. Only way to display local files (markdown `![](path)` 404s). `--title`. Keep/revise: `--alias <name>` updates in place (versioned; `<todoId>:<name>` other todo); `ref|share|unshare|rm <alias>`, `list`; `--card <name>` = project renderer. Interactive HTML, this chat only: `tfa-show - --bare [--wide]`. Body markup only, theme `var(--foreground|card|border|primary|muted-foreground)`, relative src = workspace file, no own frame/header. JS: `todo.exec(cmd)`→{stdout}, `todo.chat(text)` resumes you, `todo.connect(key,{reason})`→{connected}. Secrets: `todo.exec` → `tfa-vault patch`, never chat. More: `--help`.",
+    "description": "Show in chat: `tfa-show <file|url|->` renders by type; url = live preview. Only way to display local files (markdown `![](path)` 404s). `--title`. Keep/revise: `--alias <name>` updates in place (versioned; `<todoId>:<name>` other todo); `ref|share|unshare|rm <alias>`, `list`; `--renderer <name>` = project renderer. Interactive HTML, this chat only: `tfa-show - --bare [--wide]`. Body markup only, theme `var(--foreground|card|border|primary|muted-foreground)`, relative src = workspace file, no own frame/header. JS: `todo.exec(cmd)`→{stdout}, `todo.chat(text)` resumes you, `todo.connect(key,{reason})`→{connected}. Secrets: `todo.exec` → `tfa-vault patch`, never chat. More: `--help`.",
     "versionCmd": "tfa-show --version 2>/dev/null | sed -n 1p",
     "credentialPaths": ["~/.config/todoforai/credentials.json"],
     "installCmd": "npm install -g @todoforai/tfa-show",
@@ -1091,7 +1091,7 @@
     "label": "Surface",
     "summary": "See and control what is on your TODOforAI screen.",
     "platformAuth": true,
-    "description": "The user's live UI from the shell. Everything on screen is a SURFACE holding one ref (a todo id, `<todoId>:<alias>` = a shown artifact, or a url). `describe` lists them (kind, id, ref, focus, embedded-browser CDP URL; `--json`). `open overlay <todoId>` (full page), `open window <ref> [--detached]` (floating; --detached = out of the grid, own size, resizable), `open panel changes|preview|browser|terminal [--url]` (a todo's side panel), `open card <ref> [--title] [--group <slug>]` (a persisted board card every member sees); `close|focus <kind> <id>`. Persistent state (plans, reports, live status) → `show chat.panel <todoId> \"...md\"` (stdin ok; re-show updates in place), `clear` removes; events go in chat. `card add|list|get|rm <name>` = project HTML renderers. Exit 2 = no frontend connected.",
+    "description": "The user's live UI from the shell. Everything on screen is a SURFACE holding one ref (a todo id, `<todoId>:<alias>` = a show, or a url). `describe` lists them (kind, id, ref, focus, embedded-browser CDP URL; `--json`). `open overlay <todoId>` (full page), `open window <ref> [--detached]` (floating; --detached = out of the grid, own size, resizable), `open panel changes|preview|browser|terminal [--url]` (a todo's side panel), `open card <ref> [--title] [--group <slug>]` (a persisted board card every member sees); `close|focus <kind> <id>`. Persistent state (plans, reports, live status) → `show chat.panel <todoId> \"...md\"` (stdin ok; re-show updates in place), `clear` removes; events go in chat. `renderer add|list|get|rm <name>` = project HTML renderers. Exit 2 = no frontend connected.",
     "versionCmd": "tfa-surface --version 2>/dev/null | sed -n 1p",
     "installCmd": "npm install -g @todoforai/tfa-surface",
     "internal": true
