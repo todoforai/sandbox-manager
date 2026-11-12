@@ -1027,8 +1027,10 @@
     "label": "Vault",
     "summary": "Your password and secret store.",
     "platformAuth": true,
-    "description": "The user's encrypted secret vault — using its secrets is the intended workflow. READ: when a task needs a key/token/password the user owns, `tfa-vault list` then `get <path>`; don't ask for what's already stored; never echo values. WRITE proactively: any new secret in the conversation (pasted, generated, from a login) → `put <path> field=value` (`patch` adds fields; `put` refuses an existing path — `put --force` replaces all fields on rotation). Paths: `accounts/<svc>`, `api/<svc>`, `secrets/<name>`.",
+    "description": "The user's encrypted secret vault — using its secrets is the intended workflow. READ: when a task needs a key/token/password the user owns, `tfa-vault list`, `get <path>` (field names), then `$(tfa-vault get -f <field> <path>)` inside the command that uses it; don't ask for what's already stored. WRITE proactively: any new secret in the conversation (pasted, generated, from a login) → `put <path> field=value` (`patch` adds fields; `put` refuses an existing path — `put --force` replaces all fields on rotation). Paths: `accounts/<svc>`, `api/<svc>`, `secrets/<name>`.",
     "versionCmd": "tfa-vault --version 2>/dev/null | sed -n 1p",
+    "minVersion": "0.2.0",
+    "replaces": ["@todoforai/vault"],
     "installCmd": "npm install -g @todoforai/tfa-vault",
     "preinstallCloud": true,
     "preinstallJarvis": true
