@@ -142,6 +142,35 @@ UNIT
             && echo "✅ sandbox-pool.service enabled" \
             || { echo "❌ could not enable sandbox-pool.service"; exit 1; }
 
+        # VM network isolation: keep sandbox VMs off the vSwitch (Dragonfly,
+        # GPU box) and off host-local services. Copied to a stable path for the
+        # same rollback reason as sandbox-pool-up.sh. Applied now and at boot.
+        echo "Installing sandbox-egress.service (VM -> internal network block)..."
+        install -m 0755 "$REL_DIR/scripts/sandbox-egress.sh" /usr/local/sbin/sandbox-egress.sh
+        cat > /etc/systemd/system/sandbox-egress.service <<UNIT
+# Managed by sandbox-manager/deploy.sh — do not edit by hand.
+[Unit]
+Description=Block sandbox VMs from internal networks (nftables)
+After=network-pre.target
+Before=containerd.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/sbin/sandbox-egress.sh
+
+[Install]
+# RequiredBy: if the policy can't load, VMs must not start unprotected.
+RequiredBy=containerd.service
+UNIT
+        systemctl daemon-reload
+        systemctl enable sandbox-egress.service
+        # Apply by running the script, never `systemctl restart`: with
+        # RequiredBy=containerd a restart would bounce containerd too.
+        /usr/local/sbin/sandbox-egress.sh && systemctl start sandbox-egress.service \
+            && echo "✅ sandbox-egress policy applied" \
+            || { echo "❌ sandbox-egress policy failed"; exit 1; }
+
         # Nightly off-host backup of the per-user home.img files (VM /root and
         # /home). No-op until /etc/default/home-backup exists (see the script).
         echo "Installing home-backup.timer (nightly home.img backup)..."
