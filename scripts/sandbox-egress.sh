@@ -14,7 +14,9 @@
 #     internet (ufw decides), and so does api.todofor.ai, where the in-VM
 #     bridge connects.
 #   - IPv6: VMs only have link-local; allow ICMPv6 (NDP), drop the rest.
-# VM<->VM on the same bridge is L2 and never hits these hooks.
+#   - VM<->VM: L2 frames bridged between two VM ports are dropped (bridge
+#     family forward hook). VM<->gateway traffic is bridge input/output, not
+#     forward, so it is unaffected. ARP for the gateway still works.
 #
 # Separate table + priority -10: a drop here is final regardless of the
 # accept rules ufw/docker/CNI put in the iptables-nft tables. Idempotent,
@@ -25,6 +27,8 @@ command -v nft >/dev/null || { echo "ERROR: nft not installed" >&2; exit 1; }
 nft -f - <<'NFT'
 table inet sandbox-egress
 delete table inet sandbox-egress
+table bridge sandbox-isolation
+delete table bridge sandbox-isolation
 table inet sandbox-egress {
 	set vm_ifaces {
 		type ifname
@@ -50,6 +54,12 @@ table inet sandbox-egress {
 		ip daddr @internal counter drop
 		meta l4proto ipv6-icmp accept
 		meta nfproto ipv6 counter drop
+	}
+}
+table bridge sandbox-isolation {
+	chain forward {
+		type filter hook forward priority filter; policy accept;
+		meta ibrname { "cni-sandbox0", "br-sandbox" } counter drop
 	}
 }
 NFT
