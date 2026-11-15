@@ -1072,6 +1072,19 @@
     "preinstallCloud": true,
     "preinstallJarvis": true
   },
+  "tfa-files": {
+    "category": "todoforai",
+    "pkg": "@todoforai/tfa-files",
+    "installer": "npm",
+    "label": "Cloud files",
+    "summary": "Search your TODOforAI files by meaning.",
+    "platformAuth": true,
+    "description": "Search TODOforAI cloud files (projects' memory/, context/, skills/ and your uploads) by meaning and keywords: `search \"<topic>\"` gives one line per file `uri<TAB>date<TAB>passage`; read a hit with `tfa-cat <uri>`. `--project <id>` narrows, `-n` limits, `status` shows indexing progress. Local files: tfa-find; past chats: tfa-memory.",
+    "versionCmd": "tfa-files --version 2>/dev/null | sed -n 1p",
+    "installCmd": "npm install -g @todoforai/tfa-files",
+    "preinstallCloud": true,
+    "preinstallJarvis": true
+  },
   "todoregistry-cli": {
     "category": "todoforai",
     "pkg": "@todoforai/todoregistry-cli",
