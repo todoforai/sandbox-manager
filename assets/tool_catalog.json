@@ -960,17 +960,14 @@
   },
 
   "tfa-webfetch": {
-    "preinstallCloud": true,
     "category": "todoforai",
-    "pkg": "@todoforai/tfa-webfetch",
-    "installer": "npm",
+    "pkg": "tfa-webfetch",
+    "installer": "system",
     "label": "Web Fetch",
     "summary": "Read a web page and extract what you ask for.",
     "platformAuth": true,
-    "description": "Read a URL, get only what you ask for (sub-agent extraction, not the raw page; fetched from this machine, no JS): `tfa-webfetch <url> \"what to extract\"`, prompt required. Several in parallel: `tfa-webfetch u1 \"…\" > /tmp/1 & tfa-webfetch u2 \"…\" > /tmp/2 & wait`. Raw bytes/PDF: curl; JS-only pages: agent-browser.",
+    "description": "Read a URL, get only what you ask for (sub-agent extraction, not the raw page; fetched from this machine, no JS): `tfa-webfetch <url> \"what to extract\"`, prompt required. Several in parallel: `tfa-webfetch u1 \"…\" > /tmp/1 & tfa-webfetch u2 \"…\" > /tmp/2 & wait`. Whole page as Markdown, no sub-agent: `tfa-webfetch --markdown <url>`. Raw bytes/PDF: curl; JS-only pages: agent-browser.",
     "versionCmd": "tfa-webfetch --version 2>/dev/null | sed -n 1p",
-    "credentialPaths": ["~/.config/todoforai/credentials.json"],
-    "installCmd": "npm install -g @todoforai/tfa-webfetch",
     "internal": true
   },
   "tfa-search": {
