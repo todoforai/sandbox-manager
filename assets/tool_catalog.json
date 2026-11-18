@@ -199,10 +199,9 @@
     "versionCmd": "ffmpeg -version 2>/dev/null | sed -n 1p"
   },
   "tfa-imagegen": {
-    "preinstallCloud": true,
     "category": "creative",
-    "pkg": "@todoforai/image-api",
-    "installer": "npm",
+    "pkg": "tfa-imagegen",
+    "installer": "system",
     "label": "Image Gen",
     "summary": "Generate and edit images from a description.",
     "platformAuth": true,
@@ -241,10 +240,9 @@
   },
   "tfa-treg": {
     "internal": true,
-    "preinstallCloud": true,
     "category": "data",
-    "pkg": "@todoforai/tfa-treg",
-    "installer": "npm",
+    "pkg": "tfa-treg",
+    "installer": "system",
     "label": "Data tools (TODOforAI)",
     "summary": "2,000+ paid data APIs (scrapers, SERP, enrichment, social) billed to your TODOforAI credit.",
     "platformAuth": true,
@@ -255,10 +253,9 @@
     "description": "The treg.to tool catalog through TODOforAI — no provider keys, billed to the user's TODOforAI credit at the provider's cost + 20%. `tfa-treg search \"<job>\"` lists endpoint ids with the price per call; `tfa-treg get <id>` shows method, inputs and price; `tfa-treg call <id> -q name=value` (query inputs) or `-d '<json>'` (body) runs it, stdout = the provider's answer, stderr = what was charged. Covers web scraping, Google SERP, people/company enrichment, email/phone find, LinkedIn/TikTok/Instagram/X/YouTube data, SEO. `--max-cost <usd>` caps one call (default $1). Generation tasks (video/image) are not available."
   },
   "tfa-speech": {
-    "preinstallCloud": true,
     "category": "creative",
-    "pkg": "@todoforai/tfa-speech",
-    "installer": "npm",
+    "pkg": "tfa-speech",
+    "installer": "system",
     "label": "Speech (TODOforAI)",
     "summary": "Transcribe recordings to text and turn text into speech, billed to your TODOforAI credit.",
     "platformAuth": true,
@@ -893,43 +890,38 @@
     "preinstallJarvis": true
   },
   "tfa-explore": {
-    "preinstallCloud": true,
     "category": "todoforai",
-    "pkg": "@todoforai/tfa-explore",
-    "installer": "npm",
+    "pkg": "tfa-explore",
+    "installer": "system",
     "label": "Explore",
     "summary": "Send a helper agent to explore a codebase and report back.",
     "platformAuth": true,
     "description": "Sub-agent codebase exploration in its own context, you get only the answer: `tfa-explore \"where is auth handled?\" [--repo <path>]`. Prefer over manual multi-file searching.",
     "versionCmd": "tfa-explore --version 2>/dev/null | sed -n 1p",
-    "installCmd": "npm install -g @todoforai/tfa-explore",
     "internal": true
   },
   "tfa-question": {
-    "preinstallCloud": true,
     "category": "todoforai",
-    "pkg": "@todoforai/tfa-question",
-    "installer": "npm",
+    "pkg": "tfa-question",
+    "installer": "system",
     "label": "Question",
     "summary": "Ask the user a multiple-choice question in the chat.",
     "platformAuth": true,
     "description": "Chat question card; exits at once, the answer is the user's next message: end your turn. AskUserQuestion JSON on stdin: `tfa-question <<< '{\"questions\":[{\"question\":\"Ship?\",\"header\":\"Deploy\",\"multiSelect\":false,\"options\":[{\"label\":\"Yes\",\"description\":\"…\"}]}]}'`; free text: `tfa-question \"Q?\"`.",
     "versionCmd": "tfa-question --version 2>/dev/null | sed -n 1p",
     "credentialPaths": ["~/.config/todoforai/credentials.json"],
-    "installCmd": "npm install -g @todoforai/tfa-question",
     "internal": true
-  },  "tfa-show": {
-    "preinstallCloud": true,
+  },
+  "tfa-show": {
     "category": "todoforai",
-    "pkg": "@todoforai/tfa-show",
-    "installer": "npm",
+    "pkg": "tfa-show",
+    "installer": "system",
     "label": "Show",
     "summary": "Show files, links and interactive HTML in the chat.",
     "platformAuth": true,
     "description": "Show in chat: `tfa-show <file|url|->` renders by type; url = live preview. Only way to display local files (markdown `![](path)` 404s). `--title`. Keep/revise: `--alias <name>` updates in place (versioned; `<todoId>:<name>` other todo); `ref|share|unshare|rm <alias>`, `list`; `--renderer <name>` = project renderer. Interactive HTML, this chat only: `tfa-show - --bare [--wide]`. Body markup only, theme `var(--foreground|card|border|primary|muted-foreground)`, relative src = workspace file, no own frame/header. JS: `todo.exec(cmd)`→{stdout}, `todo.chat(text)` resumes you, `todo.connect(key,{reason})`→{connected}. Secrets: `todo.exec` → `tfa-vault patch`, never chat. More: `--help`.",
     "versionCmd": "tfa-show --version 2>/dev/null | sed -n 1p",
     "credentialPaths": ["~/.config/todoforai/credentials.json"],
-    "installCmd": "npm install -g @todoforai/tfa-show",
     "internal": true
   },
   "tfa-review": {
@@ -946,16 +938,14 @@
     "internal": true
   },
   "tfa-summary": {
-    "preinstallCloud": true,
     "category": "todoforai",
-    "pkg": "@todoforai/tfa-summary",
-    "installer": "npm",
+    "pkg": "tfa-summary",
+    "installer": "system",
     "label": "Summary",
     "summary": "Summarize files or long output with a helper agent.",
     "platformAuth": true,
     "description": "Sub-agent summary so raw text never enters your context: `cat big.log | tfa-summary \"what failed?\"`, or `-f <file>` (repeatable).",
     "versionCmd": "tfa-summary --version 2>/dev/null | sed -n 1p",
-    "installCmd": "npm install -g @todoforai/tfa-summary",
     "internal": true
   },
 
@@ -971,17 +961,15 @@
     "internal": true
   },
   "tfa-search": {
-    "preinstallCloud": true,
     "category": "todoforai",
-    "pkg": "@todoforai/tfa-search",
-    "installer": "npm",
+    "pkg": "tfa-search",
+    "installer": "system",
     "label": "Web Search",
     "summary": "Google search: title, URL and snippet per result.",
     "platformAuth": true,
     "description": "Google search: `tfa-search \"query\"` → title, URL, snippet per result. `-n 5`, `--gl hu --hl hu`. Read a hit: tfa-webfetch.",
     "versionCmd": "tfa-search --version 2>/dev/null | sed -n 1p",
     "credentialPaths": ["~/.config/todoforai/credentials.json"],
-    "installCmd": "npm install -g @todoforai/tfa-search",
     "internal": true
   },
   "tfa-cat": {
@@ -1015,16 +1003,14 @@
     "internal": true
   },
   "tfa-handoff": {
-    "preinstallCloud": true,
     "category": "todoforai",
-    "pkg": "@todoforai/tfa-handoff",
-    "installer": "npm",
+    "pkg": "tfa-handoff",
+    "installer": "system",
     "label": "Handoff",
     "summary": "Turn a long conversation into a short handover note.",
     "platformAuth": true,
     "description": "Compact a conversation into a handoff document for a fresh agent.",
     "versionCmd": "tfa-handoff --version 2>/dev/null | sed -n 1p",
-    "installCmd": "npm install -g @todoforai/tfa-handoff",
     "internal": true
   },
   "tfa-wait": {
@@ -1131,16 +1117,14 @@
     "preinstallJarvis": true
   },
   "tfa-surface": {
-    "preinstallCloud": true,
     "category": "todoforai",
-    "pkg": "@todoforai/tfa-surface",
-    "installer": "npm",
+    "pkg": "tfa-surface",
+    "installer": "system",
     "label": "Surface",
     "summary": "See and control what is on your TODOforAI screen.",
     "platformAuth": true,
     "description": "The user's live UI from the shell. Everything on screen is a SURFACE holding one ref (a todo id, `<todoId>:<alias>` = a show, or a url). `describe` lists them (kind, id, ref, focus, embedded-browser CDP URL; `--json`). `open overlay <todoId>` (full page), `open window <ref> [--detached]` (floating; --detached = out of the grid, own size, resizable), `open panel changes|preview|browser|terminal [--url]` (a todo's side panel), `open card <ref> [--title] [--group <slug>]` (a persisted board card every member sees); `close|focus <kind> <id>`. Persistent state (plans, reports, live status) → `show chat.panel <todoId> \"...md\"` (stdin ok; re-show updates in place), `clear` removes; events go in chat. `renderer add|list|get|rm <name>` = project HTML renderers. Exit 2 = no frontend connected.",
     "versionCmd": "tfa-surface --version 2>/dev/null | sed -n 1p",
-    "installCmd": "npm install -g @todoforai/tfa-surface",
     "internal": true
   },
   "bun": {
