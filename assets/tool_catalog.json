@@ -932,7 +932,7 @@
     "label": "Review",
     "summary": "Send a helper agent to review your code changes.",
     "platformAuth": true,
-    "description": "Sub-agent review of a git diff in its own context: `tfa-review \"<goal>\" [--repo <path>] [--against <ref>]` (default: uncommitted). Run before calling a non-trivial change done.",
+    "description": "Sub-agent review of a git diff in its own context: `tfa-review \"<goal>\"` (staged + unstaged in cwd), or pipe a patch: `git diff main...HEAD | tfa-review`. Run before calling a non-trivial change done.",
     "versionCmd": "tfa-review --version 2>/dev/null | sed -n 1p",
     "installCmd": "npm install -g @todoforai/tfa-review",
     "internal": true
@@ -1622,13 +1622,11 @@
     "summary": "Work with your HubSpot contacts, deals and content.",
     "binName": "hs",
     "statusCmd": "hs account list >/dev/null 2>&1 && echo authenticated",
-    "loginCmd": "hs account auth",
-    "oauthUrlPattern": "(https://app\\.hubspot\\.com/l/personal-access-key\\S+)",
-    "loginNeedsPty": true,
+    "loginCmd": "hs account auth --personal-access-key <personal_access_key> --use-default-name --default",
+    "credentialHint": "Open https://app.hubspot.com/l/personal-access-key, pick the account, generate and copy the `personal access key`.",
     "credentialPaths": ["~/.hscli/config.yml"],
     "description": "Invoked as `hs`. `hs api <endpoint>` makes authenticated calls to any HubSpot API (contacts, deals, companies) — prefer it over raw curl.",
-    "versionCmd": "hs --version 2>/dev/null | sed -n 1p",
-    "canStreamLogin": true
+    "versionCmd": "hs --version 2>/dev/null | sed -n 1p"
   },
   "posthog-cli": {
     "preinstallCloud": true,
