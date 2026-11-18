@@ -244,7 +244,7 @@
     "pkg": "tfa-treg",
     "installer": "system",
     "label": "Data tools (TODOforAI)",
-    "summary": "2,000+ paid data APIs (scrapers, SERP, enrichment, social) billed to your TODOforAI credit.",
+    "summary": "2,000+ paid data APIs (scrapers, SERP, enrichment, social) billed to TODOforAI credit.",
     "platformAuth": true,
     "versionCmd": "tfa-treg --version 2>/dev/null | sed -n 1p",
     "credentialPaths": [
@@ -302,6 +302,24 @@
     "credentialPaths": ["~/.treg/config.json"],
     "versionCmd": "treg --version 2>/dev/null | sed -n 1p",
     "description": "treg.to (\"OpenRouter for agent tools\"): one prepaid balance, 100+ providers (SE Ranking, DataForSEO, Perplexity, CompanyEnrich, ScrapeCreators, TikHub, cloro AI-search scrapes…) metered per call, credentials injected server-side. Find by intent: `treg catalog search \"backlinks for a domain\" --json` (each result shows price + a `call_template`); run: `treg call <endpoint.id> --query k=v --json` or `treg call <endpoint.id> --method POST --data '<json>' --json` (prints one `{result,_treg}` line); money: `treg balance`, `treg topup`; `treg review` rates a call. Own keys/CLIs: `treg secret|tool|skill`, `treg cli run <vendor> …` and `treg <cmd>` inject the team's stored credentials. Team: `treg org ls|use|invite|members`, `treg audit`. `--org <slug>` targets another team. Every catalog call spends real money — check the `cost` field and prefer a connected first-party connector when one exists. Docs: https://treg.to/llms.txt"
+  },
+  "monid": {
+    "category": "research",
+    "pkg": "@monid-ai/cli",
+    "installer": "npm",
+    "binName": "monid",
+    "label": "Monid",
+    "summary": "Run paid web-data scrapers (social, e-commerce, maps, jobs) from one Monid wallet.",
+    "statusCmd": "out=$(monid whoami --json 2>/dev/null) && { printf '%s' \"$out\" | sed -n 's/.*\"email\"[[:space:]]*:[[:space:]]*\"\\([^\"]*\\)\".*/\\1/p' | grep -m1 . || echo authenticated; }",
+    "loginCmd": "monid keys remove --label todoforai --force >/dev/null 2>&1; monid keys add --key <api_key> --label todoforai && monid keys activate --label todoforai",
+    "logoutCmd": "monid keys remove --label todoforai --force",
+    "credentialHint": "No Monid account yet? Sign up at https://monid.ai?fpr=marcell-1fa90e (our partner link: TODOforAI earns a commission, your price is the same). Then open https://app.monid.ai/access/api-keys, create an API key and paste it here. Calls are paid from your Monid wallet (https://app.monid.ai/wallet).",
+    "credentialPaths": [
+      "~/.config/monid/credentials.yaml",
+      "~/.config/monid/config.yaml"
+    ],
+    "versionCmd": "monid --version 2>/dev/null | sed -n 1p",
+    "description": "Monid (monid.ai): official CLI for its catalog of paid data endpoints (scrapers for LinkedIn, X, Instagram, TikTok, Amazon, Google Maps, job boards and more), billed per run to the user's prepaid Monid wallet. Find by intent: `monid discover -q \"<job>\" --json` (endpoints with provider, endpoint and price); details and input schema: `monid inspect -p <provider> -e <endpoint> --json`; run: `monid run -p <provider> -e <endpoint> -i '<body json>' [--query '<json>'] [--path '<json>'] -w 300 --json` (`-w` waits for async runs; `-o out.json` writes the result to a file); past runs: `monid runs`; wallet: `monid balance`; account: `monid whoami`. Report broken results with `monid dispute`. Check the price in `inspect` before running a costly endpoint. If the user has no Monid account, send them to the sign-up link https://monid.ai?fpr=marcell-1fa90e (our partner link), then the API key page https://app.monid.ai/access/api-keys. Without a Monid account, prefer `tfa-treg` (billed to TODOforAI credit)."
   },
   "perplexity-api": {
     "preinstallCloud": true,
