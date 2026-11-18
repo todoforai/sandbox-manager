@@ -209,6 +209,17 @@
     "credentialPaths": ["~/.config/todoforai/credentials.json"],
     "description": "AI image generation & editing via TODOFORAI backend. Default nano-banana ($0.02, Nano Banana 2.1 at 1K); nano-banana-pro for complex scenes; gpt-image-2 / gpt-image-2.6 for text-heavy images and infographics. `tfa-imagegen --help` lists models and prices."
   },
+  "tfa-videogen": {
+    "category": "creative",
+    "pkg": "tfa-videogen",
+    "installer": "system",
+    "label": "Video Gen",
+    "summary": "Generate short videos from a description or images.",
+    "platformAuth": true,
+    "versionCmd": "tfa-videogen --version 2>/dev/null | sed -n 1p",
+    "credentialPaths": ["~/.config/todoforai/credentials.json"],
+    "description": "AI video generation via TODOFORAI backend (Veo 3.1, Seedance 2.0), billed to TODOforAI credit, failures refunded. `tfa-videogen generate \"<prompt>\" -o out.mp4` waits 1-10 min and saves the mp4. Default veo-lite ($0.30/video 720p, 8 s, with sound); veo-fast/veo for quality; seedance-2/-fast per second (4-15 s). `-f first.png [-f last.png]` image-to-video, `-r ref.png` (repeatable) reference images, `--aspect 9:16`, `--resolution 1080p`. Long runs: `--no-wait` prints a task id, `tfa-videogen get <id> -o out.mp4` fetches it. `tfa-videogen --help` lists models and prices."
+  },
   "suno-api": {
     "preinstallCloud": true,
     "category": "creative",
