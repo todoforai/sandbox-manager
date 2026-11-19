@@ -955,10 +955,9 @@
     "internal": true
   },
   "tfa-review": {
-    "preinstallCloud": true,
     "category": "todoforai",
-    "pkg": "@todoforai/tfa-review",
-    "installer": "npm",
+    "pkg": "tfa-review",
+    "installer": "system",
     "label": "Review",
     "summary": "Send a helper agent to review your code changes.",
     "platformAuth": true,
