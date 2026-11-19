@@ -218,7 +218,7 @@
     "platformAuth": true,
     "versionCmd": "tfa-videogen --version 2>/dev/null | sed -n 1p",
     "credentialPaths": ["~/.config/todoforai/credentials.json"],
-    "description": "AI video generation via TODOFORAI backend (Veo 3.1, Seedance 2.0), billed to TODOforAI credit, failures refunded. `tfa-videogen generate \"<prompt>\" -o out.mp4` waits 1-10 min and saves the mp4. Default veo-lite ($0.30/video 720p, 8 s, with sound); veo-fast/veo for quality; seedance-2/-fast per second (4-15 s). `-f first.png [-f last.png]` image-to-video, `-r ref.png` (repeatable) reference images, `--aspect 9:16`, `--resolution 1080p`. Long runs: `--no-wait` prints a task id, `tfa-videogen get <id> -o out.mp4` fetches it. `tfa-videogen --help` lists models and prices."
+    "description": "AI video generation via TODOFORAI backend (Google Flow: Veo 3.1 Lite, Omni 1.2 Flash), billed to TODOforAI credit, failures refunded. `tfa-videogen generate \"<prompt>\" -o out.mp4` waits (usually under 2 min) and saves the mp4. Default veo-lite ($0.40/video, 8 s 720p); omni = $0.12/s 720p or $0.04/s 360p, 3-15 s (seconds past 10 cost double). Always with sound, 16:9 or 9:16 only. `-f img` = start frame (image-to-video); no end frame or reference images. `--no-wait` prints a task id, `tfa-videogen get <id> -o out.mp4` fetches it. `--help` for all flags."
   },
   "suno-api": {
     "preinstallCloud": true,
