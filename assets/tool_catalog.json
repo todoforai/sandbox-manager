@@ -235,15 +235,18 @@
     ],
     "description": "AI music generation, custom lyrics, multiple genres."
   },
-  "tfa-suno": {
+  "tfa-music": {
     "preinstallCloud": true,
     "category": "creative",
     "pkg": "@todoforai/suno-api",
     "installer": "npm",
-    "label": "Suno (TODOforAI)",
+    "label": "Music (TODOforAI)",
     "summary": "Generate music and songs from a prompt, billed to your TODOforAI credit.",
     "platformAuth": true,
-    "versionCmd": "tfa-suno --version 2>/dev/null | sed -n 1p",
+    "versionCmd": "tfa-music --version 2>/dev/null | sed -n 1p",
+    "aliases": [
+      "tfa-suno"
+    ],
     "credentialPaths": [
       "~/.config/todoforai/credentials.json"
     ],
