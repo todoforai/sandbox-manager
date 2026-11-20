@@ -236,21 +236,17 @@
     "description": "AI music generation, custom lyrics, multiple genres."
   },
   "tfa-music": {
-    "preinstallCloud": true,
     "category": "creative",
-    "pkg": "@todoforai/suno-api",
-    "installer": "npm",
+    "pkg": "tfa-music",
+    "installer": "system",
     "label": "Music (TODOforAI)",
     "summary": "Generate music and songs from a prompt, billed to your TODOforAI credit.",
     "platformAuth": true,
     "versionCmd": "tfa-music --version 2>/dev/null | sed -n 1p",
-    "aliases": [
-      "tfa-suno"
-    ],
     "credentialPaths": [
       "~/.config/todoforai/credentials.json"
     ],
-    "description": "Suno music generation via TODOforAI — no Suno key needed, billed to the user's TODOforAI credit (generate $0.12 for 2 songs, refunded if the task fails). Same commands as suno-api: `generate [prompt] [--customMode --lyrics <file> --style --title] [--instrumental] [--model V6]` polls until done and prints audio URLs; `--no-poll` + `details <taskId> [--wait]`; `stems`, `midi`, `lyrics-ts`, `replace-section`. Audio URLs expire after 14 days — download the mp3s you keep. Prefer this over suno-api unless the user has their own sunoapi.org key."
+    "description": "Suno music generation via TODOforAI — no Suno key needed, billed to the user's TODOforAI credit (generate $0.12 for 2 songs, refunded if the task fails). `tfa-music generate \"<idea>\" [--instrumental] [--model V6]` or `generate --customMode --lyrics song.txt --style \"…\" --title \"…\"` polls until done and prints the result JSON + audio URLs; `--no-poll` + `details <taskId> [--wait]`; `stems`, `midi`, `lyrics-ts` (word timings), `replace-section`. Audio URLs expire after 14 days — download the mp3s you keep. Prefer this over suno-api unless the user has their own sunoapi.org key."
   },
   "tfa-treg": {
     "internal": true,
