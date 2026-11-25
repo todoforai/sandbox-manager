@@ -253,8 +253,8 @@
     "category": "data",
     "pkg": "tfa-treg",
     "installer": "system",
-    "label": "Data tools (TODOforAI)",
-    "summary": "2,000+ paid data APIs (scrapers, SERP, enrichment, social) billed to TODOforAI credit.",
+    "label": "Data APIs (TODOforAI)",
+    "summary": "Paid data API marketplace (treg = tool registry, not task templates): social/site scraping, SERP, email/phone finding, people/company enrichment. For data web search/fetch can't reach. Billed to TODOforAI credit.",
     "platformAuth": true,
     "versionCmd": "tfa-treg --version 2>/dev/null | sed -n 1p",
     "credentialPaths": [
