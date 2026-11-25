@@ -290,7 +290,7 @@
     "credentialPaths": [
       "~/.config/todoforai/credentials.json"
     ],
-    "description": "Sound effects from a text description via TODOforAI (ElevenLabs text-to-sound v2) — no provider key, billed to the user's TODOforAI credit (~$0.002 per second of sound). `tfa-sfx \"<description>\" [-d 0.5-30] [--loop] [--influence 0-1] [-o out.mp3]` returns one mp3 in seconds (no polling): impacts, foley, ambience, UI sounds, transitions; `--loop` for seamless background loops. Without `-d` the model picks the length. English descriptions work best. Music and songs: tfa-music."
+    "description": "Sound effects from a text description via TODOforAI (ElevenLabs text-to-sound v2) — no provider key, billed to the user's TODOforAI credit (~$0.002 per second with `-d`, ~$0.01 per clip without). `tfa-sfx \"<description>\" [-d 0.5-30] [--loop] [--influence 0-1] [-o out.mp3]` returns one mp3 in seconds (no polling): impacts, foley, ambience, UI sounds, transitions; `--loop` for seamless background loops. Without `-d` the model picks the length. English descriptions work best. Music and songs: tfa-music."
   },
   "ntn": {
     "preinstallCloud": true,
