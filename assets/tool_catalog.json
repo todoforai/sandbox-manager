@@ -1963,10 +1963,13 @@
     "summary": "Manage your YouTube channel, videos, playlists and comments, and read channel analytics.",
     "statusCmd": "youtube-api whoami 2>/dev/null | sed -n 's/.*\"email\"[[:space:]]*:[[:space:]]*\"\\([^\"]*\\)\".*/\\1/p' | grep -m1 .",
     "loginCmd": "youtube-api auth login",
+    "minVersion": "0.2.0",
+    "oauthBroker": true,
+    "oauthUnverified": true,
     "logoutCmd": "youtube-api auth logout",
     "oauthUrlPattern": "(https://accounts\\.google\\.com/o/oauth2/v2/auth\\S+)",
     "oauthCallbackPort": 8642,
-    "loginTerminalHint": "youtube-api needs a Google OAuth client: in console.cloud.google.com enable YouTube Data API v3 + YouTube Analytics API, create a Desktop-app OAuth client (consent screen External/testing, add yourself as test user) and save its JSON as ~/.config/youtube-api/client_secret.json (gws's ~/.config/gws/client_secret.json is reused automatically), then `youtube-api auth login`.",
+    "loginTerminalHint": "Connect signs in through TODOforAI's Google app (no setup). Manual route, own OAuth client only: youtube-api needs a Google OAuth client: in console.cloud.google.com enable YouTube Data API v3 + YouTube Analytics API, create a Desktop-app OAuth client (consent screen External/testing, add yourself as test user) and save its JSON as ~/.config/youtube-api/client_secret.json (gws's ~/.config/gws/client_secret.json is reused automatically), then `youtube-api auth login`.",
     "credentialPaths": [
       "~/.config/youtube-api/credentials.json",
       "~/.config/youtube-api/client_secret.json"
@@ -1982,10 +1985,12 @@
     "summary": "See how your sites perform in Google Search and manage sitemaps and indexing.",
     "statusCmd": "search-console-api whoami 2>/dev/null | sed -n 's/.*\"email\"[[:space:]]*:[[:space:]]*\"\\([^\"]*\\)\".*/\\1/p' | grep -m1 .",
     "loginCmd": "search-console-api auth login",
+    "minVersion": "0.2.0",
+    "oauthBroker": true,
     "logoutCmd": "search-console-api auth logout",
     "oauthUrlPattern": "(https://accounts\\.google\\.com/o/oauth2/v2/auth\\S+)",
     "oauthCallbackPort": 8643,
-    "loginTerminalHint": "search-console-api needs a Google OAuth client: in console.cloud.google.com enable the Google Search Console API, create a Desktop-app OAuth client (consent screen External/testing, add yourself as test user) and save its JSON as ~/.config/search-console-api/client_secret.json (gws's ~/.config/gws/client_secret.json is reused automatically), then `search-console-api auth login`.",
+    "loginTerminalHint": "Connect signs in through TODOforAI's Google app (no setup). Manual route, own OAuth client only: search-console-api needs a Google OAuth client: in console.cloud.google.com enable the Google Search Console API, create a Desktop-app OAuth client (consent screen External/testing, add yourself as test user) and save its JSON as ~/.config/search-console-api/client_secret.json (gws's ~/.config/gws/client_secret.json is reused automatically), then `search-console-api auth login`.",
     "credentialPaths": [
       "~/.config/search-console-api/credentials.json",
       "~/.config/search-console-api/client_secret.json"
