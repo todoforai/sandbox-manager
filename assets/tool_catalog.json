@@ -1617,7 +1617,6 @@
     "canStreamLogin": true
   },
   "m365": {
-    "preinstallCloud": true,
     "category": "productivity",
     "pkg": "@pnp/cli-microsoft365",
     "installer": "npm",
