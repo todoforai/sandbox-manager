@@ -1,7 +1,8 @@
 {
   "zele": {
     "category": "communication",
-    "pkg": "@todoforai/zele", "binName": "zele",
+    "pkg": "@todoforai/zele",
+    "binName": "zele",
     "installer": "npm",
     "label": "Gmail",
     "voiceChannel": "Gmail",
@@ -9,17 +10,23 @@
     "statusCmd": "zele whoami 2>/dev/null | grep -o 'email: *[^ ]*' | tr -d ' ' | paste -sd ' ' - | grep -m1 .",
     "logoutCmd": "zele logout {{ACCOUNT}} --force",
     "loginNeedsPty": true,
-    "oauthBroker": true, "oauthUnverified": true, "loginCmd": "zele login --method google",
+    "oauthBroker": true,
+    "oauthUnverified": true,
+    "loginCmd": "zele login --method google",
     "oauthUrlPattern": "(https://accounts\\.google\\.com\\S+)",
     "oauthCallbackPort": 8089,
-    "credentialPaths": ["~/.zele/sqlite.db"],
+    "credentialPaths": [
+      "~/.zele/sqlite.db"
+    ],
     "versionCmd": "zele --version 2>/dev/null | sed -n 1p",
     "preinstallCloud": true,
     "preinstallJarvis": true,
     "description": "Gmail (multi-account, OAuth login): inbox, search, send, reply, contacts. Google Calendar via `zele cal`: list/create/update/delete events (Meet links, recurrence), respond to invites, free/busy."
   },
   "zele-calendar": {
-    "subcommands": ["cal"],
+    "subcommands": [
+      "cal"
+    ],
     "preinstallCloud": true,
     "category": "productivity",
     "pkg": "@todoforai/zele",
@@ -30,10 +37,14 @@
     "statusCmd": "zele whoami 2>/dev/null | grep -o 'email: *[^ ]*' | tr -d ' ' | paste -sd ' ' - | grep -m1 .",
     "logoutCmd": "zele logout {{ACCOUNT}} --force",
     "loginNeedsPty": true,
-    "oauthBroker": true, "oauthUnverified": true, "loginCmd": "zele login --method google",
+    "oauthBroker": true,
+    "oauthUnverified": true,
+    "loginCmd": "zele login --method google",
     "oauthUrlPattern": "(https://accounts\\.google\\.com\\S+)",
     "oauthCallbackPort": 8089,
-    "credentialPaths": ["~/.zele/sqlite.db"],
+    "credentialPaths": [
+      "~/.zele/sqlite.db"
+    ],
     "versionCmd": "zele --version 2>/dev/null | sed -n 1p",
     "preinstallJarvis": true,
     "description": "Google Calendar via `zele cal`: list calendars and events, create/update/delete events with Google Meet links, recurrence and reminders, respond to invites, free/busy."
@@ -50,7 +61,9 @@
     "loginTerminalHint": "X needs your own developer app first: create one at developer.x.com (callback `http://localhost:8080/callback`), run `xurl auth apps add tfa --client-id <id> --client-secret <secret>`, then `xurl auth oauth2`.",
     "oauthUrlPattern": "(https://(?:twitter|x)\\.com/i/oauth2\\S+)",
     "oauthCallbackPort": 8080,
-    "credentialPaths": ["~/.xurl"],
+    "credentialPaths": [
+      "~/.xurl"
+    ],
     "description": "Raw X API access via `xurl <method> <path>`.",
     "versionCmd": "xurl version 2>/dev/null | sed -n 1p",
     "preinstallJarvis": true,
@@ -68,7 +81,9 @@
     "loginCmd": "linkedin-api auth <li_at> <jsessionid>",
     "browserCookies": "https://www.linkedin.com",
     "credentialHint": "LinkedIn has no official API for this, so it uses your browser session. Log in at linkedin.com, open DevTools (F12) → Application → Cookies → https://www.linkedin.com, and copy the values of `li_at` and `JSESSIONID`. Re-connect when you log out of LinkedIn or the session expires.",
-    "credentialPaths": ["~/.config/linkedin-api/credentials.json"],
+    "credentialPaths": [
+      "~/.config/linkedin-api/credentials.json"
+    ],
     "description": "LinkedIn Voyager API CLI for profiles, conversations, DMs, and connections.",
     "versionCmd": "linkedin-api --version 2>/dev/null | sed -n 1p"
   },
@@ -81,7 +96,9 @@
     "summary": "Read Figma files, export images and leave comments.",
     "statusCmd": "figma-api me 2>/dev/null | sed -n 's/.*\"email\"[[:space:]]*:[[:space:]]*\"\\([^\"]*\\)\".*/\\1/p' | grep -m10 .",
     "loginCmd": "figma-api auth <token>",
-    "credentialPaths": ["~/.config/figma-api/credentials.json"],
+    "credentialPaths": [
+      "~/.config/figma-api/credentials.json"
+    ],
     "description": "Figma REST API CLI. File commands take a file key or Figma URL. Canvas writes (frames/text/shapes) use `figma-api run` via the plugin bridge. Run `figma-api <cmd> --help` for params.",
     "versionCmd": "figma-api --version 2>/dev/null | sed -n 1p"
   },
@@ -111,7 +128,9 @@
     "statusCmd": "slack-cli auth list 2>&1 | grep 'Team' >/dev/null && echo authenticated",
     "loginCmd": "slack-cli login",
     "loginTerminalHint": "Run `slack-cli login` in a terminal on this host, paste the `/slackauthticket …` command it prints into any Slack channel, then type the challenge code Slack shows you back into the terminal.",
-    "credentialPaths": ["~/.slack/credentials.json"],
+    "credentialPaths": [
+      "~/.slack/credentials.json"
+    ],
     "description": "Invoked as `slack-cli` to avoid colliding with the Slack desktop app’s `slack` binary.",
     "versionCmd": "slack-cli version 2>/dev/null | sed -n 1p",
     "binName": "slack-cli",
@@ -145,21 +164,27 @@
   },
   "telegram-send": {
     "preinstallCloud": true,
-    "packages": ["telegram-send==0.39.2"],
+    "packages": [
+      "telegram-send==0.39.2"
+    ],
     "category": "communication",
     "pkg": "telegram-send",
     "installer": "pip",
     "label": "Telegram",
     "summary": "Send Telegram messages, photos and files.",
     "loginCmd": "t=<bot_token>; c=$(curl -sf \"https://api.telegram.org/bot$t/getUpdates\" | python3 -c \"import json,sys; u=[x for x in json.load(sys.stdin)['result'] if 'message' in x]; print(u[-1]['message']['chat']['id'])\" 2>/dev/null) || { echo \"No message from you yet: open your bot in Telegram, send it any message, then retry\"; exit 1; }; mkdir -p \"$HOME/.config\" && printf '[telegram]\\ntoken = %s\\nchat_id = %s\\n' \"$t\" \"$c\" > \"$HOME/.config/telegram-send.conf\" && telegram-send \"Connected to TODOforAI\"",
-    "credentialPaths": ["~/.config/telegram-send.conf"],
+    "credentialPaths": [
+      "~/.config/telegram-send.conf"
+    ],
     "versionCmd": "telegram-send --version 2>/dev/null | sed -n 1p",
     "statusCmd": "test -f ~/.config/telegram-send.conf && echo authenticated",
     "description": "Send messages, send files & images, send video & audio, Markdown/HTML formatting, channel & group support"
   },
   "meta-ads": {
     "preinstallCloud": true,
-    "packages": ["meta-ads==1.1.0"],
+    "packages": [
+      "meta-ads==1.1.0"
+    ],
     "category": "marketing",
     "pkg": "meta-ads",
     "installer": "pip",
@@ -180,7 +205,9 @@
     "versionCmd": "elevenlabs-api --version 2>/dev/null | sed -n 1p",
     "statusCmd": "test -f ~/.config/todoforai/elevenlabs.json -o -n \"$ELEVENLABS_API_KEY\" && echo authenticated",
     "loginCmd": "elevenlabs-api auth <api_key>",
-    "credentialPaths": ["~/.config/todoforai/elevenlabs.json"],
+    "credentialPaths": [
+      "~/.config/todoforai/elevenlabs.json"
+    ],
     "description": "Text-to-speech, voice cloning, multiple languages."
   },
   "ffmpeg": {
@@ -190,7 +217,9 @@
     "installer": "system",
     "label": "FFmpeg",
     "summary": "Convert, trim and resize video and audio files.",
-    "cloudAptPackages": ["ffmpeg"],
+    "cloudAptPackages": [
+      "ffmpeg"
+    ],
     "preinstallCloud": true,
     "description": "Media swiss-army knife: `ffmpeg -i in.mp4 out.webm`; `ffprobe` for metadata.",
     "versionCmd": "ffmpeg -version 2>/dev/null | sed -n 1p"
@@ -203,7 +232,9 @@
     "summary": "Generate and edit images from a description.",
     "platformAuth": true,
     "versionCmd": "tfa-imagegen --version 2>/dev/null | sed -n 1p",
-    "credentialPaths": ["~/.config/todoforai/credentials.json"],
+    "credentialPaths": [
+      "~/.config/todoforai/credentials.json"
+    ],
     "description": "AI image generation & editing via TODOFORAI backend. Default nano-banana ($0.02, Nano Banana 2.1 at 1K); nano-banana-pro for complex scenes; gpt-image-2 / gpt-image-2.6 for text-heavy images and infographics. `tfa-imagegen --help` lists models and prices."
   },
   "tfa-videogen": {
@@ -214,7 +245,9 @@
     "summary": "Generate short videos from a description or images.",
     "platformAuth": true,
     "versionCmd": "tfa-videogen --version 2>/dev/null | sed -n 1p",
-    "credentialPaths": ["~/.config/todoforai/credentials.json"],
+    "credentialPaths": [
+      "~/.config/todoforai/credentials.json"
+    ],
     "description": "AI video generation via TODOFORAI backend (Google Flow: Veo 3.1 Lite, Omni 1.2 Flash), billed to TODOforAI credit, failures refunded. `tfa-videogen generate \"<prompt>\" -o out.mp4` waits (usually under 2 min) and saves the mp4. Default veo-lite ($0.40/video, 8 s 720p); omni = $0.12/s 720p or $0.04/s 360p, 3-15 s (seconds past 10 cost double). Always with sound, 16:9 or 9:16 only. `-f img` = start frame (image-to-video); no end frame or reference images. `--no-wait` prints a task id, `tfa-videogen get <id> -o out.mp4` fetches it. `--help` for all flags."
   },
   "suno-api": {
@@ -301,16 +334,22 @@
     "loginNeedsPty": true,
     "oauthUrlPattern": "(https://(?:www\\.notion\\.so|app\\.notion\\.com)/workers/cli-login\\S+)",
     "sessionIdPattern": "verificationCode=([A-Z0-9-]{5,12})",
-    "credentialPaths": ["~/.config/notion"],
+    "credentialPaths": [
+      "~/.config/notion"
+    ],
     "versionCmd": "ntn --version 2>/dev/null | sed -n 1p",
     "description": "Official Notion CLI: raw API calls (`ntn api <path>`), page/data-source management, file uploads, Workers deploy."
   },
   "treg": {
     "preinstallCloud": true,
-    "packages": ["tools-registry==0.27.0"],
+    "packages": [
+      "tools-registry==0.27.0"
+    ],
     "category": "research",
     "pkg": "tools-registry",
-    "pipModules": ["treg"],
+    "pipModules": [
+      "treg"
+    ],
     "installer": "pip",
     "label": "treg",
     "summary": "Call 4000+ paid data/SEO/enrichment APIs through one prepaid key, no vendor accounts.",
@@ -319,7 +358,9 @@
     "oauthUrlPattern": "(https://treg\\.to/login\\?\\S+)",
     "sessionIdPattern": "#code=([A-Z0-9]{4,8})",
     "logoutCmd": "treg logout",
-    "credentialPaths": ["~/.treg/config.json"],
+    "credentialPaths": [
+      "~/.treg/config.json"
+    ],
     "versionCmd": "treg --version 2>/dev/null | sed -n 1p",
     "description": "treg.to (\"OpenRouter for agent tools\"): one prepaid balance, 100+ providers (SE Ranking, DataForSEO, Perplexity, CompanyEnrich, ScrapeCreators, TikHub, cloro AI-search scrapes…) metered per call, credentials injected server-side. Find by intent: `treg catalog search \"backlinks for a domain\" --json` (each result shows price + a `call_template`); run: `treg call <endpoint.id> --query k=v --json` or `treg call <endpoint.id> --method POST --data '<json>' --json` (prints one `{result,_treg}` line); money: `treg balance`, `treg topup`; `treg review` rates a call. Own keys/CLIs: `treg secret|tool|skill`, `treg cli run <vendor> …` and `treg <cmd>` inject the team's stored credentials. Team: `treg org ls|use|invite|members`, `treg audit`. `--org <slug>` targets another team. Every catalog call spends real money — check the `cost` field and prefer a connected first-party connector when one exists. Docs: https://treg.to/llms.txt"
   },
@@ -352,7 +393,9 @@
     "versionCmd": "perplexity-api --version 2>/dev/null | sed -n 1p",
     "statusCmd": "test -f ~/.config/todoforai/perplexity.json && echo authenticated || test -n \"$PERPLEXITY_API_KEY\" && echo authenticated",
     "loginCmd": "perplexity-api auth <api_key>",
-    "credentialPaths": ["~/.config/todoforai/perplexity.json"],
+    "credentialPaths": [
+      "~/.config/todoforai/perplexity.json"
+    ],
     "description": "AI-powered web search, chat completions, async chat, embeddings and agent runs"
   },
   "gh": {
@@ -368,7 +411,9 @@
     "deviceCodePattern": "one-time code:\\s*([A-Z0-9]{4}-[A-Z0-9]{4})",
     "canStreamLogin": true,
     "logoutCmd": "gh auth logout --hostname github.com --user {{ACCOUNT}}",
-    "credentialPaths": ["~/.config/gh/hosts.yml"],
+    "credentialPaths": [
+      "~/.config/gh/hosts.yml"
+    ],
     "description": "Prefer `gh` over raw GitHub API calls.",
     "versionCmd": "gh --version 2>/dev/null | sed -n 1p",
     "preinstallJarvis": true
@@ -397,7 +442,9 @@
     "statusCmd": "glab auth status 2>&1 | grep -o 'Logged in to [^ ]* [a-z]* [^ ]*' | paste -sd ' ' - | grep -m1 .",
     "logoutCmd": "glab auth logout --hostname gitlab.com 2>&1 </dev/null",
     "loginCmd": "glab auth login --device",
-    "credentialPaths": ["~/.config/glab-cli/config.yml"],
+    "credentialPaths": [
+      "~/.config/glab-cli/config.yml"
+    ],
     "description": "GitLab equivalent of `gh`.",
     "versionCmd": "glab --version 2>/dev/null | sed -n 1p",
     "deviceCodePattern": "one-time code: ([A-Z0-9-]+)",
@@ -413,7 +460,9 @@
     "summary": "Deploy websites to Vercel and manage them.",
     "statusCmd": "vercel whoami 2>/dev/null | tr -d '\\r' | grep -m1 .",
     "loginCmd": "vercel login",
-    "credentialPaths": ["~/.local/share/com.vercel.cli/auth.json"],
+    "credentialPaths": [
+      "~/.local/share/com.vercel.cli/auth.json"
+    ],
     "description": "`vercel deploy`; manage env vars, domains, preview URLs.",
     "versionCmd": "vercel --version 2>/dev/null | sed -n 1p",
     "deviceCodePattern": "user_code=([A-Z0-9-]+)",
@@ -432,7 +481,9 @@
     "logoutCmd": "eas logout",
     "oauthUrlPattern": "(https://expo\\.dev/(?:sso-)?login\\?\\S+)",
     "canStreamLogin": true,
-    "credentialPaths": ["~/.expo/state.json"],
+    "credentialPaths": [
+      "~/.expo/state.json"
+    ],
     "description": "Expo Application Services for React Native apps: `eas update --channel <c>` ships a JS-only OTA, `eas build -p ios --profile production --auto-submit` (`-p all` for both) makes a native build and sends it to TestFlight / Play. `eas build:list`, `eas update:list` and `eas submit` inspect or re-submit existing builds. An OTA only reaches installs whose runtimeVersion matches, so a native version bump needs a real build. The browser login binds to a RANDOM loopback port, so it only completes in a browser on the same host; on a remote/headless host set EXPO_TOKEN (Account -> Access tokens) instead. EXPO_TOKEN (Account -> Access tokens) works in CI instead of a login.",
     "versionCmd": "eas --version 2>/dev/null | sed -n 1p"
   },
@@ -445,7 +496,9 @@
     "summary": "Deploy websites to Netlify and manage them.",
     "statusCmd": "netlify api getCurrentUser 2>&1 | sed -n 's/.*\"email\"[[:space:]]*:[[:space:]]*\"\\([^\"]*\\)\".*/\\1/p' | grep -m10 .",
     "loginCmd": "netlify login",
-    "credentialPaths": ["~/.netlify/config.json"],
+    "credentialPaths": [
+      "~/.netlify/config.json"
+    ],
     "description": "`netlify deploy --prod` for production; manage env vars, forms, identity.",
     "versionCmd": "netlify --version 2>/dev/null | sed -n 1p",
     "oauthUrlPattern": "(https://app\\.netlify\\.com/authorize\\S+)",
@@ -462,7 +515,9 @@
     "loginCmd": "firebase login --no-localhost --reauth",
     "loginNeedsPty": true,
     "stdinPaste": true,
-    "credentialPaths": ["~/.config/configstore/firebase-tools.json"],
+    "credentialPaths": [
+      "~/.config/configstore/firebase-tools.json"
+    ],
     "description": "Deploy hosting/functions, manage Firestore/RTDB rules and data, auth users, emulators.",
     "versionCmd": "firebase --version 2>/dev/null | sed -n 1p",
     "oauthUrlPattern": "(https://auth\\.firebase\\.tools/login\\S+)",
@@ -477,7 +532,9 @@
     "summary": "Deploy and manage Cloudflare Workers and Pages.",
     "statusCmd": "wrangler whoami 2>&1 | grep -oiE '[[:alnum:]._%+-]+@[[:alnum:].-]+\\.[[:alpha:]]{2,}' | grep -m1 .",
     "loginCmd": "wrangler login",
-    "credentialPaths": ["~/.config/.wrangler/config/default.toml"],
+    "credentialPaths": [
+      "~/.config/.wrangler/config/default.toml"
+    ],
     "description": "Tail logs with `wrangler tail`. Use `cloudflared` for tunnels.",
     "versionCmd": "wrangler --version 2>/dev/null | sed -n 1p",
     "oauthUrlPattern": "(https://dash\\.cloudflare\\.com/oauth2/auth\\S+)",
@@ -495,7 +552,9 @@
     "statusCmd": "stripe config --list 2>/dev/null | sed -n 's/^account_id[[:space:]]*=[[:space:]]*.\\([^'\\'']*\\).*/\\1/p' | grep -m10 .",
     "loginCmd": "stripe login",
     "loginNeedsPty": true,
-    "credentialPaths": ["~/.config/stripe/config.toml"],
+    "credentialPaths": [
+      "~/.config/stripe/config.toml"
+    ],
     "description": "`stripe listen` forwards webhooks locally; `stripe get/post /v1/...` for raw API.",
     "versionCmd": "stripe --version 2>/dev/null | sed -n 1p",
     "oauthUrlPattern": "(https://dashboard\\.stripe\\.com/stripecli/confirm_auth\\S+)"
@@ -511,7 +570,9 @@
     "summary": "Deploy and scale apps on Fly.io.",
     "statusCmd": "flyctl auth whoami 2>/dev/null | tr -d '\\r' | grep -m1 .",
     "loginCmd": "flyctl auth login -t <access_token>",
-    "credentialPaths": ["~/.fly/config.yml"],
+    "credentialPaths": [
+      "~/.fly/config.yml"
+    ],
     "description": "`flyctl deploy` from app dir; manage Postgres/volumes/machines/secrets.",
     "versionCmd": "flyctl version 2>/dev/null | sed -n 1p"
   },
@@ -526,7 +587,9 @@
     "summary": "Manage your Supabase database, auth and storage.",
     "statusCmd": "supabase projects list >/dev/null 2>&1 && echo authenticated",
     "loginCmd": "supabase login --token <access_token>",
-    "credentialPaths": ["~/.config/supabase/access-token"],
+    "credentialPaths": [
+      "~/.config/supabase/access-token"
+    ],
     "description": "Link to cloud project; runs/migrates local Postgres.",
     "versionCmd": "supabase --version 2>/dev/null | sed -n 1p"
   },
@@ -539,7 +602,9 @@
     "summary": "Deploy and manage apps and databases on Railway.",
     "statusCmd": "out=$(RAILWAY_NO_TELEMETRY=1 railway whoami 2>&1); rc=$?; printf '%s\\n' \"$out\" | grep -m1 .; exit $rc",
     "loginCmd": "railway login --browserless",
-    "credentialPaths": ["~/.railway/config.json"],
+    "credentialPaths": [
+      "~/.railway/config.json"
+    ],
     "description": "`railway up` to deploy current dir.",
     "versionCmd": "railway --version 2>/dev/null | sed -n 1p",
     "deviceCodePattern": "user_code=([A-Z0-9-]+)",
@@ -554,7 +619,9 @@
     "label": "Shopify",
     "summary": "Build and manage Shopify stores and themes.",
     "loginCmd": "shopify auth login --alias tfa",
-    "credentialPaths": ["~/.config/shopify-cli-kit-nodejs/config.json"],
+    "credentialPaths": [
+      "~/.config/shopify-cli-kit-nodejs/config.json"
+    ],
     "versionCmd": "shopify version 2>/dev/null | tail -n 1",
     "statusCmd": "python3 -c \"import json,os,sys;p=os.path.expanduser('~/.config/shopify-cli-kit-nodejs/config.json');sys.exit(0 if json.load(open(p)).get('currentSessionId') else 1)\" 2>/dev/null && echo authenticated",
     "logoutCmd": "shopify auth logout",
@@ -593,7 +660,9 @@
     "summary": "Manage Sentry releases and error tracking.",
     "statusCmd": "sentry-cli info --no-defaults >/dev/null 2>&1 && echo authenticated",
     "loginCmd": "sentry-cli login --auth-token <auth_token>",
-    "credentialPaths": ["~/.sentryclirc"],
+    "credentialPaths": [
+      "~/.sentryclirc"
+    ],
     "description": "`sentry-cli releases new <version>`.",
     "versionCmd": "sentry-cli --version 2>/dev/null | sed -n 1p"
   },
@@ -603,12 +672,15 @@
     "installer": "npm",
     "label": "TODOforAI",
     "summary": "Create and follow up on your TODOs, and show results in the chat.",
-    "description": "Manage the user's OWN TODOforAI tasks (not code `// TODO` comments). Delegate/spin off work: `tfa-cli \"prompt\"` creates a real TODO with its own agent and chat (`-n` wait for completion, `--no-watch` fire-and-forget, `--draft` create without starting, `--schedule \"YYYY-MM-DD HH:MM\"|+2h` start later (also with `--template`), `start-now <id>` starts a draft, `--project/--agent/--model`, `--resume <id>`, `addmessage <id> \"text\"`). Inspect: `list [--status open]` (your own todos; `--contributor all` for every member's), `--inspect <id>`. Edit any todo without opening it: `status <id> DONE|READY|CANCELLED|ARCHIVED|DELETED` (close, reopen, stop, archive, trash — `todo restore <id>` undoes a delete) and `todo set <id|-> title=… group=… section=… star=true start=YYYY-MM-DD[ HH:MM] deadline=YYYY-MM-DD[ HH:MM] schedule=\"YYYY-MM-DD HH:MM\"|+2h|now|none agent=… brand=…` (own todo fields); `todo comment <id|-> \"why it's here, where it stands\"` comments on a todo (count on its board row; everyone who sees the todo reads it, no agent does). `todo html <id|-> [file|-]` = the todo's ROW HTML: a bare HTML fragment drawn live inside its board row and atop its open chat (the `tfa-show --bare` harness + `todo.*` bridge; `todo.chat` posts into that todo); no file prints it, a file/stdin replaces it, `--rm` removes it — read, rewrite, keep it current. Space: the row's width (~300–360px desktop, phone full width) minus a 34px indent, max 160px tall (clipped): one line of chips/buttons, a progress bar, a mini stat. Both take ONE id, so a loop over `list --json | jq -r '.items[].id'` is how you close, retitle, refile or archive MANY todos at once; `project set|settings|groups …` (name, settings, todo groups; `project groups set <slug> sections=\"A,B\"` gives a group sections, `todo set <id> section=…` sorts a todo into one, where it stays); `workflow [query]|get|set|on|off|rm` = workflows: ALL standing/repeating automations, cron schedules, watches (including RSS/Atom URLs on machine `engine`), board group feeds, and multi-step flows (boxes = triggers and runs, lines = outcomes like OK / Not OK; `workflow --help` has the JSON and examples), `todo set <id> workflow=\"<workflow>[:<step>]\"` puts a todo into a run or back at a step (a retry), `todo workflow <id|->` shows where a todo stands in its run, `todo next <id|-> [\"outcome\"]` finishes its node, `agent create|update <agent> model=… sysmsg=…` (also permissions=… and judgeSysmsg=…; MCP/device wiring is refused from an agent shell; `agent delete <agent> --yes` removes one). Notes = the note cards on the project board in the app: when the user says \"Notes\"/\"jegyzet\" they mean these, never local files — `notes [query]` lists them, `notes get|append|edit <title> -- \"text\"|-` (`--` keeps a leading `- ` list dash), `notes new \"<title>\" -- \"text\"`; the title matches loosely (dictation typos: \"vibe hack\" finds \"vide hack\"). Widgets = the board cards showing a show `<todoId>:<alias>` (its latest version), a todo or a url: `widgets [query]`, `widgets get <title>` (the show's current bytes; renderer widgets: its data, the HTML template is `tfa-surface card get <name>`), `widgets set <title> <file|->` (new version, the card updates in place), `widgets add <ref|alias> [--title] [--group]`, `widgets rename|rm`; titles match loosely like notes. Show files/HTML in chat: tfa-show. Cloud machine: `machine size` shows its size and price; `machine size --disk 20 [--memory 4] [--cpus 2] [--reason \"…\"]` (or `--plan`, `--for <email>` = a member's on a workspace you own or admin) from an agent shell only posts an approval card (costs credit, restarts the machine): the user's click applies it and their answer is the next message, so end your turn. Notifications: `inbox [needs-you|messages|activity] [--unread]` reads the user's bell feed (what finished/failed/needs them while away), `inbox seen [tab]` marks it read; `notify \"Title\" \"message\" [--href /t/<id>] [--url <link>: tap opens it on the phone, e.g. a Google Maps navigation link]` leaves a note in the user's Messages tab + phone push (shown as from you); `--to <email>` reaches a member of the current project instead (`project members` lists them, 20/day) — nobody else; same text is delivered once, max 10/day to the user, use for things they must see later (not chat replies). `--template` for registry workflows. Project files: `memory sync|path [--project <id>]` requires a project and checks out only projects/<id>/{memory,context} and projects/<id>/me/{memory,context}; legacy global files are read-only recovery. Voice commands use `--scope mine|project` (default mine, private within this project; project is shared).",
+    "description": "Manage the user's OWN TODOforAI tasks (not code `// TODO` comments). Delegate/spin off work: `tfa-cli \"prompt\"` creates a real TODO with its own agent and chat (`-n` wait for completion, `--no-watch` fire-and-forget, `--draft` create without starting, `--schedule \"YYYY-MM-DD HH:MM\"|+2h` start later (also with `--template`), `start-now <id>` starts a draft, `--project/--agent/--model`, `--resume <id>`, `addmessage <id> \"text\"`). Inspect: `list [--status open]` (your own todos; `--contributor all` for every member's), `--inspect <id>`. Edit any todo without opening it: `status <id> DONE|READY|CANCELLED|ARCHIVED|DELETED` (close, reopen, stop, archive, trash — `todo restore <id>` undoes a delete) and `todo set <id|-> title=… group=… section=… star=true start=YYYY-MM-DD[ HH:MM] deadline=YYYY-MM-DD[ HH:MM] schedule=\"YYYY-MM-DD HH:MM\"|+2h|now|none agent=… brand=…` (own todo fields); `todo comment <id|-> \"why it's here, where it stands\"` comments on a todo (count on its board row; everyone who sees the todo reads it, no agent does). `todo html <id|-> [file|-]` = the todo's ROW HTML: a bare HTML fragment drawn live inside its board row and atop its open chat (the `tfa-show --bare` harness + `todo.*` bridge; `todo.chat` posts into that todo); no file prints it, a file/stdin replaces it, `--rm` removes it — read, rewrite, keep it current. Space: the row's width (~300–360px desktop, phone full width) minus a 34px indent, max 160px tall (clipped): one line of chips/buttons, a progress bar, a mini stat. Both take ONE id, so a loop over `list --json | jq -r '.items[].id'` is how you close, retitle, refile or archive MANY todos at once; `project set|settings|groups …` (name, settings, todo groups; `project groups set <slug> sections=\"A,B\"` gives a group sections, `todo set <id> section=…` sorts a todo into one, where it stays); `workflow [query]|get|set|on|off|rm` = workflows: ALL standing/repeating automations, cron schedules, watches (including RSS/Atom URLs on machine `engine`), board group feeds, and multi-step flows (boxes = triggers and runs, lines = outcomes like OK / Not OK; `workflow --help` has the JSON and examples), `todo set <id> workflow=\"<workflow>[:<step>]\"` puts a todo into a run or back at a step (a retry), `todo workflow <id|->` shows where a todo stands in its run, `todo next <id|-> [\"outcome\"]` finishes its node, `agent create|update <agent> model=… sysmsg=…` (also permissions=… and judgeSysmsg=…; MCP/device wiring is refused from an agent shell; `agent delete <agent> --yes` removes one). Notes = the note cards on the project board in the app: when the user says \"Notes\"/\"jegyzet\" they mean these, never local files — `notes [query]` lists them, `notes get|append|edit <title> -- \"text\"|-` (`--` keeps a leading `- ` list dash), `notes new \"<title>\" -- \"text\"`; the title matches loosely (dictation typos: \"vibe hack\" finds \"vide hack\"). Show files/HTML & board widgets: tfa-show. Cloud machine: `machine size` shows its size and price; `machine size --disk 20 [--memory 4] [--cpus 2] [--reason \"…\"]` (or `--plan`, `--for <email>` = a member's on a workspace you own or admin) from an agent shell only posts an approval card (costs credit, restarts the machine): the user's click applies it and their answer is the next message, so end your turn. Notifications: `inbox [--unread]` / `inbox seen` (bell feed); `notify \"Title\" \"msg\"` (Messages tab + phone push, `--to <email>` for a project member; `notify --help`). `--template` for registry workflows. Project files: `memory sync|path [--project <id>]` requires a project and checks out only projects/<id>/{memory,context} and projects/<id>/me/{memory,context}; legacy global files are read-only recovery. Voice commands use `--scope mine|project` (default mine, private within this project; project is shared).",
     "installCmd": "npm install -g @todoforai/cli",
     "versionCmd": "tfa-cli --version 2>/dev/null | sed -n 1p",
     "preinstallCloud": true,
     "preinstallJarvis": true,
-    "aliases": ["todoforai-cli", "todoai"]
+    "aliases": [
+      "todoforai-cli",
+      "todoai"
+    ]
   },
   "curl": {
     "commodity": true,
@@ -645,7 +717,9 @@
     "summary": "Read and manage secrets in HashiCorp Vault.",
     "statusCmd": "vault token lookup >/dev/null 2>&1 && echo authenticated",
     "loginCmd": "vault login <token>",
-    "credentialPaths": ["~/.vault-token"],
+    "credentialPaths": [
+      "~/.vault-token"
+    ],
     "versionCmd": "vault --version 2>/dev/null | sed -n '1s/ (.*//p'",
     "description": "HashiCorp Vault secrets management and dynamic credentials."
   },
@@ -655,16 +729,38 @@
     "installer": "binary",
     "preinstallCloud": true,
     "binary": {
-      "linux-x86_64": { "url": "https://github.com/todoforai/rclone-backend/releases/download/v0.1.9/rclone-linux-amd64.tar.gz", "archive": "tar.gz", "extract": "rclone" },
-      "linux-aarch64": { "url": "https://github.com/todoforai/rclone-backend/releases/download/v0.1.9/rclone-linux-arm64.tar.gz", "archive": "tar.gz", "extract": "rclone" },
-      "darwin-x86_64": { "url": "https://github.com/todoforai/rclone-backend/releases/download/v0.1.9/rclone-darwin-amd64.tar.gz", "archive": "tar.gz", "extract": "rclone" },
-      "darwin-aarch64": { "url": "https://github.com/todoforai/rclone-backend/releases/download/v0.1.9/rclone-darwin-arm64.tar.gz", "archive": "tar.gz", "extract": "rclone" },
-      "windows-x86_64": { "url": "https://github.com/todoforai/rclone-backend/releases/download/v0.1.9/rclone-windows-amd64.zip", "archive": "zip", "extract": "rclone.exe" }
+      "linux-x86_64": {
+        "url": "https://github.com/todoforai/rclone-backend/releases/download/v0.1.9/rclone-linux-amd64.tar.gz",
+        "archive": "tar.gz",
+        "extract": "rclone"
+      },
+      "linux-aarch64": {
+        "url": "https://github.com/todoforai/rclone-backend/releases/download/v0.1.9/rclone-linux-arm64.tar.gz",
+        "archive": "tar.gz",
+        "extract": "rclone"
+      },
+      "darwin-x86_64": {
+        "url": "https://github.com/todoforai/rclone-backend/releases/download/v0.1.9/rclone-darwin-amd64.tar.gz",
+        "archive": "tar.gz",
+        "extract": "rclone"
+      },
+      "darwin-aarch64": {
+        "url": "https://github.com/todoforai/rclone-backend/releases/download/v0.1.9/rclone-darwin-arm64.tar.gz",
+        "archive": "tar.gz",
+        "extract": "rclone"
+      },
+      "windows-x86_64": {
+        "url": "https://github.com/todoforai/rclone-backend/releases/download/v0.1.9/rclone-windows-amd64.zip",
+        "archive": "zip",
+        "extract": "rclone.exe"
+      }
     },
     "internal": true,
     "label": "Cloud Storage",
     "summary": "The rclone program behind the Google Drive, OneDrive, Dropbox and S3 connectors.",
-    "credentialPaths": ["~/.config/rclone/rclone.conf"],
+    "credentialPaths": [
+      "~/.config/rclone/rclone.conf"
+    ],
     "versionCmd": "rclone version 2>/dev/null | sed -n 1p",
     "preinstallJarvis": true,
     "description": "Access Google Drive, OneDrive, Dropbox, S3, and 40+ cloud providers. List, copy, sync, move, and mount files; use `rclone config create <name> <provider>` to connect."
@@ -675,11 +771,31 @@
     "installer": "binary",
     "binName": "rclone",
     "binary": {
-      "linux-x86_64": { "url": "https://github.com/todoforai/rclone-backend/releases/download/v0.1.9/rclone-linux-amd64.tar.gz", "archive": "tar.gz", "extract": "rclone" },
-      "linux-aarch64": { "url": "https://github.com/todoforai/rclone-backend/releases/download/v0.1.9/rclone-linux-arm64.tar.gz", "archive": "tar.gz", "extract": "rclone" },
-      "darwin-x86_64": { "url": "https://github.com/todoforai/rclone-backend/releases/download/v0.1.9/rclone-darwin-amd64.tar.gz", "archive": "tar.gz", "extract": "rclone" },
-      "darwin-aarch64": { "url": "https://github.com/todoforai/rclone-backend/releases/download/v0.1.9/rclone-darwin-arm64.tar.gz", "archive": "tar.gz", "extract": "rclone" },
-      "windows-x86_64": { "url": "https://github.com/todoforai/rclone-backend/releases/download/v0.1.9/rclone-windows-amd64.zip", "archive": "zip", "extract": "rclone.exe" }
+      "linux-x86_64": {
+        "url": "https://github.com/todoforai/rclone-backend/releases/download/v0.1.9/rclone-linux-amd64.tar.gz",
+        "archive": "tar.gz",
+        "extract": "rclone"
+      },
+      "linux-aarch64": {
+        "url": "https://github.com/todoforai/rclone-backend/releases/download/v0.1.9/rclone-linux-arm64.tar.gz",
+        "archive": "tar.gz",
+        "extract": "rclone"
+      },
+      "darwin-x86_64": {
+        "url": "https://github.com/todoforai/rclone-backend/releases/download/v0.1.9/rclone-darwin-amd64.tar.gz",
+        "archive": "tar.gz",
+        "extract": "rclone"
+      },
+      "darwin-aarch64": {
+        "url": "https://github.com/todoforai/rclone-backend/releases/download/v0.1.9/rclone-darwin-arm64.tar.gz",
+        "archive": "tar.gz",
+        "extract": "rclone"
+      },
+      "windows-x86_64": {
+        "url": "https://github.com/todoforai/rclone-backend/releases/download/v0.1.9/rclone-windows-amd64.zip",
+        "archive": "zip",
+        "extract": "rclone.exe"
+      }
     },
     "label": "Google Drive",
     "summary": "Browse, read and write files in your Google Drive.",
@@ -688,7 +804,9 @@
     "loginCmd": "rclone config",
     "oauthBroker": true,
     "logoutCmd": "x={{ACCOUNT}}; rclone listremotes --long 2>/dev/null | while read -r n t d; do [ \"$t\" = drive ] || continue; case \"$d\" in \"\"|*[[:space:]]*) a=${n%:};; *) a=$d;; esac; [ -z \"$x\" ] || [ \"$a\" = \"$x\" ] && rclone config delete \"${n%:}\"; done; true",
-    "credentialPaths": ["~/.config/rclone/rclone.conf"],
+    "credentialPaths": [
+      "~/.config/rclone/rclone.conf"
+    ],
     "versionCmd": "rclone version 2>/dev/null | sed -n 1p",
     "description": "Google Drive connector. Uses the rclone CLI: `rclone listremotes --long` lists every connected storage as `name: type account`; `rclone lsf <remote>:<path>`, `rclone copy|sync|move <src> <dst>`, `rclone cat`, `rclone mkdir`, `rclone deletefile` work on any of them (Google Drive = type drive, OneDrive = onedrive, Dropbox = dropbox, S3 = s3). An account marked `(company)` is the company's document store (shared company drive): look there first for company documents; `(personal)` is the user's own storage. Never run `rclone config` interactively; connect new accounts with `todo.connect('<key>')`."
   },
@@ -698,11 +816,31 @@
     "installer": "binary",
     "binName": "rclone",
     "binary": {
-      "linux-x86_64": { "url": "https://github.com/todoforai/rclone-backend/releases/download/v0.1.9/rclone-linux-amd64.tar.gz", "archive": "tar.gz", "extract": "rclone" },
-      "linux-aarch64": { "url": "https://github.com/todoforai/rclone-backend/releases/download/v0.1.9/rclone-linux-arm64.tar.gz", "archive": "tar.gz", "extract": "rclone" },
-      "darwin-x86_64": { "url": "https://github.com/todoforai/rclone-backend/releases/download/v0.1.9/rclone-darwin-amd64.tar.gz", "archive": "tar.gz", "extract": "rclone" },
-      "darwin-aarch64": { "url": "https://github.com/todoforai/rclone-backend/releases/download/v0.1.9/rclone-darwin-arm64.tar.gz", "archive": "tar.gz", "extract": "rclone" },
-      "windows-x86_64": { "url": "https://github.com/todoforai/rclone-backend/releases/download/v0.1.9/rclone-windows-amd64.zip", "archive": "zip", "extract": "rclone.exe" }
+      "linux-x86_64": {
+        "url": "https://github.com/todoforai/rclone-backend/releases/download/v0.1.9/rclone-linux-amd64.tar.gz",
+        "archive": "tar.gz",
+        "extract": "rclone"
+      },
+      "linux-aarch64": {
+        "url": "https://github.com/todoforai/rclone-backend/releases/download/v0.1.9/rclone-linux-arm64.tar.gz",
+        "archive": "tar.gz",
+        "extract": "rclone"
+      },
+      "darwin-x86_64": {
+        "url": "https://github.com/todoforai/rclone-backend/releases/download/v0.1.9/rclone-darwin-amd64.tar.gz",
+        "archive": "tar.gz",
+        "extract": "rclone"
+      },
+      "darwin-aarch64": {
+        "url": "https://github.com/todoforai/rclone-backend/releases/download/v0.1.9/rclone-darwin-arm64.tar.gz",
+        "archive": "tar.gz",
+        "extract": "rclone"
+      },
+      "windows-x86_64": {
+        "url": "https://github.com/todoforai/rclone-backend/releases/download/v0.1.9/rclone-windows-amd64.zip",
+        "archive": "zip",
+        "extract": "rclone.exe"
+      }
     },
     "label": "OneDrive",
     "summary": "Browse, read and write files in your OneDrive.",
@@ -711,7 +849,9 @@
     "loginCmd": "rclone config",
     "oauthBroker": true,
     "logoutCmd": "x={{ACCOUNT}}; rclone listremotes --long 2>/dev/null | while read -r n t d; do [ \"$t\" = onedrive ] || continue; case \"$d\" in \"\"|*[[:space:]]*) a=${n%:};; *) a=$d;; esac; [ -z \"$x\" ] || [ \"$a\" = \"$x\" ] && rclone config delete \"${n%:}\"; done; true",
-    "credentialPaths": ["~/.config/rclone/rclone.conf"],
+    "credentialPaths": [
+      "~/.config/rclone/rclone.conf"
+    ],
     "versionCmd": "rclone version 2>/dev/null | sed -n 1p",
     "description": "OneDrive connector. Uses the rclone CLI: `rclone listremotes --long` lists every connected storage as `name: type account`; `rclone lsf <remote>:<path>`, `rclone copy|sync|move <src> <dst>`, `rclone cat`, `rclone mkdir`, `rclone deletefile` work on any of them (Google Drive = type drive, OneDrive = onedrive, Dropbox = dropbox, S3 = s3). An account marked `(company)` is the company's document store (shared company drive): look there first for company documents; `(personal)` is the user's own storage. Never run `rclone config` interactively; connect new accounts with `todo.connect('<key>')`."
   },
@@ -721,11 +861,31 @@
     "installer": "binary",
     "binName": "rclone",
     "binary": {
-      "linux-x86_64": { "url": "https://github.com/todoforai/rclone-backend/releases/download/v0.1.9/rclone-linux-amd64.tar.gz", "archive": "tar.gz", "extract": "rclone" },
-      "linux-aarch64": { "url": "https://github.com/todoforai/rclone-backend/releases/download/v0.1.9/rclone-linux-arm64.tar.gz", "archive": "tar.gz", "extract": "rclone" },
-      "darwin-x86_64": { "url": "https://github.com/todoforai/rclone-backend/releases/download/v0.1.9/rclone-darwin-amd64.tar.gz", "archive": "tar.gz", "extract": "rclone" },
-      "darwin-aarch64": { "url": "https://github.com/todoforai/rclone-backend/releases/download/v0.1.9/rclone-darwin-arm64.tar.gz", "archive": "tar.gz", "extract": "rclone" },
-      "windows-x86_64": { "url": "https://github.com/todoforai/rclone-backend/releases/download/v0.1.9/rclone-windows-amd64.zip", "archive": "zip", "extract": "rclone.exe" }
+      "linux-x86_64": {
+        "url": "https://github.com/todoforai/rclone-backend/releases/download/v0.1.9/rclone-linux-amd64.tar.gz",
+        "archive": "tar.gz",
+        "extract": "rclone"
+      },
+      "linux-aarch64": {
+        "url": "https://github.com/todoforai/rclone-backend/releases/download/v0.1.9/rclone-linux-arm64.tar.gz",
+        "archive": "tar.gz",
+        "extract": "rclone"
+      },
+      "darwin-x86_64": {
+        "url": "https://github.com/todoforai/rclone-backend/releases/download/v0.1.9/rclone-darwin-amd64.tar.gz",
+        "archive": "tar.gz",
+        "extract": "rclone"
+      },
+      "darwin-aarch64": {
+        "url": "https://github.com/todoforai/rclone-backend/releases/download/v0.1.9/rclone-darwin-arm64.tar.gz",
+        "archive": "tar.gz",
+        "extract": "rclone"
+      },
+      "windows-x86_64": {
+        "url": "https://github.com/todoforai/rclone-backend/releases/download/v0.1.9/rclone-windows-amd64.zip",
+        "archive": "zip",
+        "extract": "rclone.exe"
+      }
     },
     "label": "Dropbox",
     "summary": "Browse, read and write files in your Dropbox.",
@@ -734,7 +894,9 @@
     "loginCmd": "rclone config",
     "oauthBroker": true,
     "logoutCmd": "x={{ACCOUNT}}; rclone listremotes --long 2>/dev/null | while read -r n t d; do [ \"$t\" = dropbox ] || continue; case \"$d\" in \"\"|*[[:space:]]*) a=${n%:};; *) a=$d;; esac; [ -z \"$x\" ] || [ \"$a\" = \"$x\" ] && rclone config delete \"${n%:}\"; done; true",
-    "credentialPaths": ["~/.config/rclone/rclone.conf"],
+    "credentialPaths": [
+      "~/.config/rclone/rclone.conf"
+    ],
     "versionCmd": "rclone version 2>/dev/null | sed -n 1p",
     "description": "Dropbox connector. Uses the rclone CLI: `rclone listremotes --long` lists every connected storage as `name: type account`; `rclone lsf <remote>:<path>`, `rclone copy|sync|move <src> <dst>`, `rclone cat`, `rclone mkdir`, `rclone deletefile` work on any of them (Google Drive = type drive, OneDrive = onedrive, Dropbox = dropbox, S3 = s3). An account marked `(company)` is the company's document store (shared company drive): look there first for company documents; `(personal)` is the user's own storage. Never run `rclone config` interactively; connect new accounts with `todo.connect('<key>')`."
   },
@@ -744,11 +906,31 @@
     "installer": "binary",
     "binName": "rclone",
     "binary": {
-      "linux-x86_64": { "url": "https://github.com/todoforai/rclone-backend/releases/download/v0.1.9/rclone-linux-amd64.tar.gz", "archive": "tar.gz", "extract": "rclone" },
-      "linux-aarch64": { "url": "https://github.com/todoforai/rclone-backend/releases/download/v0.1.9/rclone-linux-arm64.tar.gz", "archive": "tar.gz", "extract": "rclone" },
-      "darwin-x86_64": { "url": "https://github.com/todoforai/rclone-backend/releases/download/v0.1.9/rclone-darwin-amd64.tar.gz", "archive": "tar.gz", "extract": "rclone" },
-      "darwin-aarch64": { "url": "https://github.com/todoforai/rclone-backend/releases/download/v0.1.9/rclone-darwin-arm64.tar.gz", "archive": "tar.gz", "extract": "rclone" },
-      "windows-x86_64": { "url": "https://github.com/todoforai/rclone-backend/releases/download/v0.1.9/rclone-windows-amd64.zip", "archive": "zip", "extract": "rclone.exe" }
+      "linux-x86_64": {
+        "url": "https://github.com/todoforai/rclone-backend/releases/download/v0.1.9/rclone-linux-amd64.tar.gz",
+        "archive": "tar.gz",
+        "extract": "rclone"
+      },
+      "linux-aarch64": {
+        "url": "https://github.com/todoforai/rclone-backend/releases/download/v0.1.9/rclone-linux-arm64.tar.gz",
+        "archive": "tar.gz",
+        "extract": "rclone"
+      },
+      "darwin-x86_64": {
+        "url": "https://github.com/todoforai/rclone-backend/releases/download/v0.1.9/rclone-darwin-amd64.tar.gz",
+        "archive": "tar.gz",
+        "extract": "rclone"
+      },
+      "darwin-aarch64": {
+        "url": "https://github.com/todoforai/rclone-backend/releases/download/v0.1.9/rclone-darwin-arm64.tar.gz",
+        "archive": "tar.gz",
+        "extract": "rclone"
+      },
+      "windows-x86_64": {
+        "url": "https://github.com/todoforai/rclone-backend/releases/download/v0.1.9/rclone-windows-amd64.zip",
+        "archive": "zip",
+        "extract": "rclone.exe"
+      }
     },
     "label": "Amazon S3",
     "summary": "Browse, read and write files in your Amazon S3 buckets.",
@@ -756,7 +938,9 @@
     "statusCmd": "rclone listremotes --long 2>/dev/null | while read -r n t d; do [ \"$t\" = s3 ] && { case \"$d\" in \"\"|*[[:space:]]*) a=${n%:};; *) a=$d;; esac; s=$(rclone config redacted \"${n%:}\" </dev/null 2>/dev/null | sed -n 's/^tfa_scope = //p'); echo \"$a${s:+($s)}\"; }; done | paste -sd ' ' - | grep -m1 .",
     "loginCmd": "k=<access_key_id> s=<secret_access_key> r=<region>; RCLONE_S3_PROVIDER=AWS RCLONE_S3_ENV_AUTH=false RCLONE_S3_ACCESS_KEY_ID=\"$k\" RCLONE_S3_SECRET_ACCESS_KEY=\"$s\" RCLONE_S3_REGION=\"$r\" rclone lsd :s3: --config /dev/null --ask-password=false --contimeout 10s --timeout 15s --retries 1 --low-level-retries 1 >/dev/null 2>&1 || { echo 'S3 access check failed: check the keys, the region and the s3:ListAllMyBuckets permission.'; exit 2; }; rclone config create --non-interactive --ask-password=false \"s3_$(date +%s)\" s3 provider AWS env_auth false access_key_id \"$k\" secret_access_key \"$s\" region \"$r\" >/dev/null && echo 'S3 connected.'",
     "logoutCmd": "x={{ACCOUNT}}; rclone listremotes --long 2>/dev/null | while read -r n t d; do [ \"$t\" = s3 ] || continue; case \"$d\" in \"\"|*[[:space:]]*) a=${n%:};; *) a=$d;; esac; [ -z \"$x\" ] || [ \"$a\" = \"$x\" ] && rclone config delete \"${n%:}\"; done; true",
-    "credentialPaths": ["~/.config/rclone/rclone.conf"],
+    "credentialPaths": [
+      "~/.config/rclone/rclone.conf"
+    ],
     "versionCmd": "rclone version 2>/dev/null | sed -n 1p",
     "description": "Amazon S3 connector. Uses the rclone CLI: `rclone listremotes --long` lists every connected storage as `name: type account`; `rclone lsf <remote>:<path>`, `rclone copy|sync|move <src> <dst>`, `rclone cat`, `rclone mkdir`, `rclone deletefile` work on any of them (Google Drive = type drive, OneDrive = onedrive, Dropbox = dropbox, S3 = s3). An account marked `(company)` is the company's document store (shared company drive): look there first for company documents; `(personal)` is the user's own storage. Never run `rclone config` interactively; connect new accounts with `todo.connect('<key>')`."
   },
@@ -772,7 +956,11 @@
     "installCmd": "mkdir -p \"$HOME/.todoforai/tools/bin\"; if [ \"$(uname -s)\" = Darwin ]; then curl -fsSL https://awscli.amazonaws.com/AWSCLIV2.pkg -o /tmp/AWSCLIV2.pkg && printf '<?xml version=\"1.0\" encoding=\"UTF-8\"?>\\n<!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">\\n<plist version=\"1.0\"><array><dict><key>choiceAttribute</key><string>customLocation</string><key>attributeSetting</key><string>%s</string><key>choiceIdentifier</key><string>default</string></dict></array></plist>\\n' \"$HOME/.todoforai/tools\" > /tmp/aws-choices.xml && installer -pkg /tmp/AWSCLIV2.pkg -target CurrentUserHomeDirectory -applyChoiceChangesXML /tmp/aws-choices.xml && mkdir -p \"$HOME/.todoforai/tools/bin\" && ln -sf \"$HOME/.todoforai/tools/aws-cli/aws\" \"$HOME/.todoforai/tools/bin/aws\" && ln -sf \"$HOME/.todoforai/tools/aws-cli/aws_completer\" \"$HOME/.todoforai/tools/bin/aws_completer\"; rc=$?; rm -f /tmp/AWSCLIV2.pkg /tmp/aws-choices.xml; exit $rc; else ARCH=$(uname -m); case \"$ARCH\" in arm64|aarch64) ARCH=aarch64;; *) ARCH=x86_64;; esac; curl -fsSL \"https://awscli.amazonaws.com/awscli-exe-linux-$ARCH.zip\" -o /tmp/awscli.zip && rm -rf /tmp/aws && unzip -qo /tmp/awscli.zip -d /tmp && /tmp/aws/install --update --install-dir \"$HOME/.todoforai/tools/aws-cli\" --bin-dir \"$HOME/.todoforai/tools/bin\"; rc=$?; rm -rf /tmp/aws /tmp/awscli.zip; exit $rc; fi",
     "statusCmd": "aws sts get-caller-identity --query Arn --output text 2>/dev/null | sed 's/.*\\///' | grep -m1 .",
     "loginCmd": "aws configure set aws_access_key_id <access_key_id> && aws configure set aws_secret_access_key <secret_access_key> && aws configure set region <region>",
-    "credentialPaths": ["~/.aws/credentials", "~/.aws/config", "~/.aws/sso/cache"],
+    "credentialPaths": [
+      "~/.aws/credentials",
+      "~/.aws/config",
+      "~/.aws/sso/cache"
+    ],
     "description": "Official AWS CLI v2, installed user-locally into ~/.todoforai/tools (no sudo; Linux x86_64/aarch64 + macOS). Auth via `aws configure` (access keys) or `aws configure sso` + `aws sso login` (browser device flow).",
     "versionCmd": "aws --version 2>/dev/null | sed -n 1p",
     "uninstallCmd": "rm -rf \"$HOME/.todoforai/tools/aws-cli\" \"$HOME/.todoforai/tools/bin/aws\" \"$HOME/.todoforai/tools/bin/aws_completer\"; hash -r 2>/dev/null; ! command -v aws >/dev/null 2>&1 || { echo \"aws is still on PATH: $(command -v aws) — not installed by TODOforAI, remove it with the package manager that installed it (snap/apt/brew/sudo)\"; exit 1; }"
@@ -791,7 +979,9 @@
     "loginNeedsPty": true,
     "stdinPaste": true,
     "oauthUrlPattern": "(https://accounts\\.google\\.com/o/oauth2/auth\\S+)",
-    "credentialPaths": ["~/.config/gcloud"],
+    "credentialPaths": [
+      "~/.config/gcloud"
+    ],
     "description": "Official Google Cloud CLI. `gcloud auth login --no-launch-browser` prints the OAuth URL and waits for the pasted verification code.",
     "versionCmd": "gcloud --version 2>/dev/null | sed -n 1p",
     "uninstallCmd": "rm -rf \"$HOME/google-cloud-sdk\" \"$HOME/.todoforai/tools/bin/gcloud\"; hash -r 2>/dev/null; ! command -v gcloud >/dev/null 2>&1 || { echo \"gcloud is still on PATH: $(command -v gcloud)\"; exit 1; }",
@@ -808,7 +998,9 @@
     "statusCmd": "az account show --query user.name -o tsv 2>/dev/null | tr -d '\\r' | grep -m1 .",
     "logoutCmd": "az logout 2>&1; az account clear 2>&1",
     "loginCmd": "az login --allow-no-subscriptions",
-    "credentialPaths": ["~/.azure"],
+    "credentialPaths": [
+      "~/.azure"
+    ],
     "description": "Official Azure CLI. Browser login with a localhost callback (device code is blocked by Entra Security Defaults on new tenants); `--allow-no-subscriptions` so tenants without a subscription still sign in. Azure SQL: `az sql server list -o json`, `az sql db list -s <server> -g <rg>`, `az sql server firewall-rule create …`; run queries with go-sqlcmd (github.com/microsoft/go-sqlcmd): `sqlcmd -S <server>.database.windows.net -d <db> --authentication-method ActiveDirectoryDefault -Q \"SELECT …\"` (reuses the az login) or `-U user -P pass` for SQL auth.",
     "versionCmd": "az version -o tsv 2>/dev/null | cut -f1 | sed -n 1p"
   },
@@ -824,13 +1016,17 @@
     "statusCmd": "doctl account get --format Email --no-header 2>/dev/null | tr -d '\\r' | grep -m1 .",
     "loginCmd": "doctl auth init -t <access_token>",
     "loginNeedsPty": true,
-    "credentialPaths": ["~/.config/doctl/config.yaml"],
+    "credentialPaths": [
+      "~/.config/doctl/config.yaml"
+    ],
     "description": "Official DigitalOcean CLI. `doctl auth init` prompts for an API token from cloud.digitalocean.com/account/api/tokens.",
     "versionCmd": "doctl version 2>/dev/null | sed -n 1p"
   },
   "rdt": {
     "preinstallCloud": true,
-    "packages": ["rdt-cli==0.4.1"],
+    "packages": [
+      "rdt-cli==0.4.1"
+    ],
     "category": "social",
     "pkg": "rdt-cli",
     "installer": "pip",
@@ -839,14 +1035,18 @@
     "statusCmd": "rdt status 2>&1 | sed -n 's/.*\"username\"[[:space:]]*:[[:space:]]*\"\\([^\"]*\\)\".*/\\1/p' | grep -m10 .",
     "loginCmd": "rdt login",
     "loginTerminalHint": "Log in to reddit.com in a browser on this host (Chrome/Firefox), then run `rdt login`: it imports that browser's Reddit cookies.",
-    "credentialPaths": ["~/.config/rdt-cli/credential.json"],
+    "credentialPaths": [
+      "~/.config/rdt-cli/credential.json"
+    ],
     "description": "Reddit CLI. Read: `rdt search \"<query>\" -r <sub> --json -c`, `rdt sub <name>`, `rdt read <postId>`, `rdt user-comments <user>`. Write: `rdt comment <postId> \"<text>\"`, `rdt upvote`, `rdt save`.",
     "versionCmd": "rdt --version 2>/dev/null | sed -n 1p"
   },
   "pymupdf": {
     "category": "documents",
     "pkg": "pymupdf",
-    "packages": ["pymupdf==1.28.2"],
+    "packages": [
+      "pymupdf==1.28.2"
+    ],
     "installer": "pip",
     "label": "PDF",
     "summary": "Read, edit, merge and split PDF files.",
@@ -859,7 +1059,10 @@
   "pyhanko": {
     "category": "documents",
     "pkg": "pyhanko-cli",
-    "packages": ["pyhanko-cli==0.5.0", "pyHanko[pkcs11,image-support,opentype]==0.37.0"],
+    "packages": [
+      "pyhanko-cli==0.5.0",
+      "pyHanko[pkcs11,image-support,opentype]==0.37.0"
+    ],
     "installer": "pip",
     "binName": "pyhanko",
     "label": "PDF Signing",
@@ -948,7 +1151,9 @@
     "platformAuth": true,
     "description": "Chat question card; exits at once, the answer is the user's next message: end your turn. AskUserQuestion JSON on stdin: `tfa-question <<< '{\"questions\":[{\"question\":\"Ship?\",\"header\":\"Deploy\",\"multiSelect\":false,\"options\":[{\"label\":\"Yes\",\"description\":\"…\"}]}]}'`; free text: `tfa-question \"Q?\"`.",
     "versionCmd": "tfa-question --version 2>/dev/null | sed -n 1p",
-    "credentialPaths": ["~/.config/todoforai/credentials.json"],
+    "credentialPaths": [
+      "~/.config/todoforai/credentials.json"
+    ],
     "internal": true
   },
   "tfa-show": {
@@ -958,9 +1163,11 @@
     "label": "Show",
     "summary": "Show files, links and interactive HTML in the chat.",
     "platformAuth": true,
-    "description": "Show in chat: `tfa-show <file|url|->` renders by type; url = live preview. Only way to display local files (markdown `![](path)` 404s). `--title`. Keep/revise: `--alias <name>` updates in place (versioned; `<todoId>:<name>` other todo); `ref|share|unshare|rm <alias>`, `list`; `--renderer <name>` = project renderer. `--panel` also opens it in the side panel beside the chat (stays in view while the chat scrolls; pass once — later re-shows with the same `--alias` update it there in place): for a plan, report or dashboard the user keeps glancing at; one-off results stay inline. Interactive HTML, this chat only: `tfa-show - --bare [--wide]`. Body markup only, theme `var(--foreground|card|border|primary|muted-foreground)`, relative src = workspace file, no own frame/header. JS: `todo.exec(cmd)`→{stdout}, `todo.chat(text)` resumes you. Secrets: `todo.exec` → `tfa-vault patch`, never chat. More: `--help`.",
+    "description": "Show in chat: `tfa-show <file|url|->` renders by type; url = live preview. Only way to display local files (markdown `![](path)` 404s). `--title`. Keep/revise: `--alias <name>` updates in place (versioned; `<todoId>:<name>` other todo); `ref|share|unshare|rm <alias>`, `list`; `--renderer <name>` = project renderer. `--panel` also opens it in the side panel beside the chat (stays in view while the chat scrolls; pass once — later re-shows with the same `--alias` update it there in place): for a plan, report or dashboard the user keeps glancing at; one-off results stay inline. Interactive HTML, this chat only: `tfa-show - --bare [--wide]`. Body markup only, theme `var(--foreground|card|border|primary|muted-foreground)`, relative src = workspace file, no own frame/header. JS: `todo.exec(cmd)`→{stdout}, `todo.chat(text)` resumes you. Secrets: `todo.exec` → `tfa-vault patch`, never chat. Board widgets (cards showing a show/todo/url): `tfa-show widgets [query]|get|set|add|rename|rm` (loose title match; `widgets --help`). More: `--help`.",
     "versionCmd": "tfa-show --version 2>/dev/null | sed -n 1p",
-    "credentialPaths": ["~/.config/todoforai/credentials.json"],
+    "credentialPaths": [
+      "~/.config/todoforai/credentials.json"
+    ],
     "internal": true
   },
   "tfa-review": {
@@ -986,7 +1193,6 @@
     "versionCmd": "tfa-summary --version 2>/dev/null | sed -n 1p",
     "internal": true
   },
-
   "tfa-webfetch": {
     "category": "todoforai",
     "pkg": "tfa-webfetch",
@@ -1007,7 +1213,9 @@
     "platformAuth": true,
     "description": "Google search: `tfa-search \"query\"` → title, URL, snippet per result. `-n 5`, `--gl hu --hl hu`. Read a hit: tfa-webfetch.",
     "versionCmd": "tfa-search --version 2>/dev/null | sed -n 1p",
-    "credentialPaths": ["~/.config/todoforai/credentials.json"],
+    "credentialPaths": [
+      "~/.config/todoforai/credentials.json"
+    ],
     "internal": true
   },
   "tfa-cat": {
@@ -1086,7 +1294,9 @@
     "description": "The user's encrypted secret vault — using its secrets is the intended workflow. READ: when a task needs a key/token/password the user owns, `tfa-vault list`, `get <path>` (field names), then `$(tfa-vault get -f <field> <path>)` inside the command that uses it; don't ask for what's already stored. WRITE proactively: any new secret in the conversation (pasted, generated, from a login) → `put <path> field=value` (`patch` adds fields; `put` refuses an existing path — `put --force` replaces all fields on rotation). Paths: `accounts/<svc>`, `api/<svc>`, `secrets/<name>`.",
     "versionCmd": "tfa-vault --version 2>/dev/null | sed -n 1p",
     "minVersion": "0.2.0",
-    "replaces": ["@todoforai/vault"],
+    "replaces": [
+      "@todoforai/vault"
+    ],
     "installCmd": "npm install -g @todoforai/tfa-vault",
     "preinstallCloud": true,
     "preinstallJarvis": true
@@ -1200,7 +1410,9 @@
     "versionCmd": "node -p 'process.version' 2>/dev/null",
     "preinstallCloud": true,
     "cloudInstallCmd": "curl -fsSL https://deb.nodesource.com/setup_24.x | bash -",
-    "cloudAptPackages": ["nodejs"],
+    "cloudAptPackages": [
+      "nodejs"
+    ],
     "cloudVerifyCmd": "node --version",
     "internal": true,
     "preinstallJarvis": true,
@@ -1215,7 +1427,9 @@
     "summary": "Run Python code.",
     "versionCmd": "{ python3 --version || python --version || py --version; } 2>/dev/null | sed -n 1p",
     "preinstallCloud": true,
-    "cloudAptPackages": ["python3"],
+    "cloudAptPackages": [
+      "python3"
+    ],
     "cloudVerifyCmd": "python3 --version",
     "internal": true,
     "preinstallJarvis": true,
@@ -1249,7 +1463,9 @@
   },
   "pip3": {
     "preinstallCloud": true,
-    "cloudAptPackages": ["python3-pip"],
+    "cloudAptPackages": [
+      "python3-pip"
+    ],
     "cloudVerifyCmd": "pip3 --version",
     "commodity": true,
     "category": "developer",
@@ -1497,7 +1713,9 @@
     "summary": "Read and publish WordPress posts and pages.",
     "statusCmd": "wordpress-api whoami 2>/dev/null | sed -n 's/.*\"slug\"[[:space:]]*:[[:space:]]*\"\\([^\"]*\\)\".*/\\1/p' | grep -m10 .",
     "loginCmd": "wordpress-api auth --site <url> --user <username> --password <app_password>",
-    "credentialPaths": ["~/.config/wordpress-api/credentials.json"],
+    "credentialPaths": [
+      "~/.config/wordpress-api/credentials.json"
+    ],
     "description": "WordPress REST API CLI. `wordpress-api auth --site https://example.com --user <user> --password '<application password>'` (application password, not the login password). Reading published content needs no auth. `posts list|get|create|update|delete`, `pages`, `media`, `categories`. `posts create` saves a draft unless --status publish. On Elementor/JetEngine sites content.rendered comes back empty — fetch the post's public URL for the body.",
     "versionCmd": "wordpress-api --version 2>/dev/null | sed -n 1p"
   },
@@ -1529,7 +1747,9 @@
     "loginCmd": "facebook-pages-api auth --page-id <id> --page-token <token>",
     "oauthBroker": true,
     "logoutCmd": "rm -f ~/.config/facebook-pages-api/credentials.json",
-    "credentialPaths": ["~/.config/facebook-pages-api/credentials.json"],
+    "credentialPaths": [
+      "~/.config/facebook-pages-api/credentials.json"
+    ],
     "description": "Facebook Pages CLI (Meta Graph API). `auth --page-id <id> --page-token <token>` (or env FB_PAGE_ID/FB_PAGE_TOKEN). `feed`, `comments`, `insights`, `conversations`, `media`, and `request <GET|POST|DELETE> <path> [--data <json>]` = any Graph edge with the page token attached (use instead of curl). Writes are live: `feed create --published false` for tests; `comments reply` posts publicly — get human approval. Follower totals: `whoami --fields followers_count,fan_count` (many classic insights metrics are retired). Instagram (linked professional account, same page token): `ig whoami|media|get|stories|tags|limit`, `ig publish --image_url U | --video_url U [--media_type STORIES] | --carousel U1,U2 [--caption …]` (public URLs; container → wait → publish; `--create-only` = dry run; 100 posts/24h), `ig comments list|replies|create|reply|hide|delete|toggle`, `ig insights [media_id]` (needs instagram_manage_insights). `--help` for subcommands.",
     "versionCmd": "facebook-pages-api --version 2>/dev/null | sed -n 1p"
   },
@@ -1542,7 +1762,9 @@
     "statusCmd": "bluesky-api whoami 2>/dev/null | sed -n 's/.*\"handle\"[[:space:]]*:[[:space:]]*\"\\([^\"]*\\)\".*/\\1/p' | grep -m1 .",
     "loginCmd": "bluesky-api auth --identifier <handle> --password <app_password>",
     "logoutCmd": "bluesky-api logout",
-    "credentialPaths": ["~/.config/bluesky-api/credentials.json"],
+    "credentialPaths": [
+      "~/.config/bluesky-api/credentials.json"
+    ],
     "description": "Bluesky / AT Protocol XRPC CLI, JSON out. Auth = App Password (Settings → Privacy and security → App passwords), not the main password: `auth --identifier you.bsky.social --password-stdin` (or env BLUESKY_IDENTIFIER/BLUESKY_APP_PASSWORD; `--pds` for self-hosted). Session cached + auto-refreshed — don't re-run auth in loops (createSession 30/5min). Public reads need NO login: `get <post...>`, `thread <post>`, `search <q> [--sort latest --author h --since ISO]`, `feed <actor>`, `profile <actor>`, `followers <actor>`. Login: `timeline`, `post <text> [--reply-to P] [--quote P] [--image f.jpg --alt t]... [--lang en] [--dry-run]` (300 graphemes, links/#tags/@mentions auto-faceted, images ≤1MB ×4), `like <post>`, `repost <post>`, `delete <at-uri>` (post/like/repost). <post> = bsky.app URL or at:// URI. Raw: `api GET|POST <nsid> --param k=v --data JSON` for any lexicon (e.g. app.bsky.notification.listNotifications). Writes are public immediately.",
     "versionCmd": "bluesky-api --version 2>/dev/null | sed -n 1p"
   },
@@ -1550,13 +1772,17 @@
     "preinstallCloud": true,
     "category": "communication",
     "pkg": "ews-api",
-    "packages": ["ews-api==0.2.0"],
+    "packages": [
+      "ews-api==0.2.0"
+    ],
     "installer": "pip",
     "label": "Exchange (EWS)",
     "summary": "Read and write mail on a company Exchange server.",
     "statusCmd": "ews-api whoami 2>/dev/null | sed -n 's/.*\"email\"[[:space:]]*:[[:space:]]*\"\\([^\"]*\\)\".*/\\1/p' | grep -m10 .",
     "loginCmd": "ews-api auth --email <email> --username <username> --server <server> --password <password>",
-    "credentialPaths": ["~/.config/ews-api/credentials.json"],
+    "credentialPaths": [
+      "~/.config/ews-api/credentials.json"
+    ],
     "description": "On-prem Microsoft Exchange mail over EWS (cloud/M365 → outlook-api). `auth --email <e> --username 'DOMAIN\\\\user' --server <host>` (NTLM; password prompt or `--password-stdin`; --server required). Multi-mailbox: `whoami`, `--account <email>`/EWS_ACCOUNT, `default`, `logout`; EWS_EMAIL/EWS_USERNAME/EWS_PASSWORD/EWS_SERVER for unattended runs. `list`, `search <q>`, `read <id>`, `draft`, `reply <id>` — draft/reply stay in Drafts unless --send. Password stored plaintext in ~/.config/ews-api (0600); re-auth after rotation.",
     "versionCmd": "ews-api --version 2>/dev/null | sed -n 1p",
     "logoutCmd": "ews-api logout {{ACCOUNT}}"
@@ -1573,7 +1799,9 @@
     "logoutCmd": "outlook-api logout",
     "loginCmd": "outlook-api auth --tenant common",
     "oauthBroker": true,
-    "credentialPaths": ["~/.config/outlook-api/config.json"],
+    "credentialPaths": [
+      "~/.config/outlook-api/config.json"
+    ],
     "description": "Outlook/Hotmail/M365 mail and calendar over Microsoft Graph (on-prem Exchange → ews-api). `auth --tenant common` = browser login, redirect to localhost:8644 (`--device` = device code for headless hosts). list/search/read/attachments are read-only; `draft`/`reply` stay in Drafts unless --send; `send <draftId>`. Calendar: `events [--days N|--start|--end] [--tz Europe/Budapest]` (calendarView, recurrences expanded), `event <id>`, `calendars`, `freebusy <emails…>`; writes: `event-create`, `event-respond <id> accept|tentativelyAccept|decline`, `event-delete`. `get <path>` = raw Graph GET. JSON out.",
     "versionCmd": "outlook-api --version 2>/dev/null | sed -n 1p",
     "oauthUrlPattern": "(https://login\\.microsoftonline\\.com/\\S+/oauth2/v2\\.0/authorize\\S+)",
@@ -1581,7 +1809,15 @@
     "canStreamLogin": true
   },
   "outlook-calendar": {
-    "subcommands": ["calendars", "events", "event", "freebusy", "event-create", "event-respond", "event-delete"],
+    "subcommands": [
+      "calendars",
+      "events",
+      "event",
+      "freebusy",
+      "event-create",
+      "event-respond",
+      "event-delete"
+    ],
     "binName": "outlook-api",
     "preinstallCloud": true,
     "category": "productivity",
@@ -1593,7 +1829,9 @@
     "logoutCmd": "outlook-api logout",
     "loginCmd": "outlook-api auth --tenant common",
     "oauthBroker": true,
-    "credentialPaths": ["~/.config/outlook-api/config.json"],
+    "credentialPaths": [
+      "~/.config/outlook-api/config.json"
+    ],
     "description": "Outlook/M365 calendar via `outlook-api`: `events [--days N|--start|--end] [--tz Europe/Budapest]` (calendarView, recurrences expanded), `event <id>`, `calendars`, `freebusy <emails…>` (getSchedule; work/school accounts only); writes: `event-create --subject --start --end [--tz] [--attendee …] [--online]`, `event-respond <id> accept|tentativelyAccept|decline`, `event-delete <id>`. Same sign-in as Outlook mail (`auth`, device code).",
     "versionCmd": "outlook-api --version 2>/dev/null | sed -n 1p",
     "oauthUrlPattern": "(https://login\\.microsoftonline\\.com/\\S+/oauth2/v2\\.0/authorize\\S+)",
@@ -1610,10 +1848,14 @@
     "statusCmd": "test -f ~/.config/neon/credentials.json && neonctl me --output json 2>/dev/null | sed -n 's/.*\"email\"[[:space:]]*:[[:space:]]*\"\\([^\"]*\\)\".*/\\1/p' | grep -m10 .",
     "loginCmd": "neonctl auth",
     "oauthUrlPattern": "(https://oauth2\\.neon\\.tech/oauth2/auth\\S+)",
-    "credentialPaths": ["~/.config/neon/credentials.json"],
+    "credentialPaths": [
+      "~/.config/neon/credentials.json"
+    ],
     "description": "Manage Neon Postgres branches and run SQL: `neonctl projects list`, `neonctl branches create`, `neonctl connection-string`. Aliased as `neon`.",
     "versionCmd": "neonctl --version 2>/dev/null | sed -n 1p",
-    "aliases": ["neon"],
+    "aliases": [
+      "neon"
+    ],
     "canStreamLogin": true
   },
   "m365": {
@@ -1628,7 +1870,10 @@
     "oauthUrlPattern": "open the page (https://\\S+)",
     "deviceCodePattern": "enter the code ([A-Z0-9]+)",
     "oauthBroker": true,
-    "credentialPaths": ["~/.cli-m365-msal.json", "~/.cli-m365-connection.json"],
+    "credentialPaths": [
+      "~/.cli-m365-msal.json",
+      "~/.cli-m365-connection.json"
+    ],
     "description": "Microsoft 365 from the shell. Mail and calendar: always Graph through `m365 request`, never `m365 outlook message list` / `m365 outlook event list` (they download the whole folder, minutes on a real mailbox, no top/sort/search). Latest mail: `m365 request --url 'https://graph.microsoft.com/v1.0/me/mailFolders/inbox/messages?$top=10&$orderby=receivedDateTime%20desc&$select=receivedDateTime,from,subject,bodyPreview,isRead' --output json`; search: `'https://graph.microsoft.com/v1.0/me/messages?$search=\"from:anna@example.com\"&$top=50&$select=receivedDateTime,from,subject,bodyPreview'` ($search can't be combined with $orderby; follow `@odata.nextLink` for more); one body: `'https://graph.microsoft.com/v1.0/me/messages/<id>?$select=body'`; calendar: `'https://graph.microsoft.com/v1.0/me/calendarView?startDateTime=<ISO>&endDateTime=<ISO>&$orderby=start/dateTime&$select=subject,start,end,location'` (times are UTC). Files (OneDrive, SharePoint, Teams files; names and contents): `m365 request --method post --url 'https://graph.microsoft.com/v1.0/search/query' --body '{\"requests\":[{\"entityTypes\":[\"driveItem\"],\"query\":{\"queryString\":\"<words>\"},\"size\":25}]}' --content-type application/json --output json` (KQL: `filetype:pdf`, `filename:…`, `author:…`; work/school accounts), personal OneDrive: `'https://graph.microsoft.com/v1.0/me/drive/root/search(q='<words>')'`; read a hit: `'https://graph.microsoft.com/v1.0/drives/<driveId>/items/<id>/content'`. Other areas: `m365 teams chat list`, `m365 onedrive list`, `m365 todo task list`, `m365 spo site list`, or any Graph URL via `m365 request`. Parse JSON with `jq` or `node` (on Windows `python3` is often the Store stub). Signed in through the TODOforAI app (Connect button, no admin needed for mail/calendar/files/Teams chats). If a command prints a device code or 'login has expired', stop and run `tfa-cli connect m365`; never `m365 login`. Admin-only areas (Entra, Exchange admin, tenant settings) return 403 → ask the user.",
     "versionCmd": "m365 version 2>/dev/null | tr -d '\"' | sed -n 1p"
   },
@@ -1643,7 +1888,9 @@
     "loginCmd": "gws auth login --scopes https://www.googleapis.com/auth/spreadsheets,https://www.googleapis.com/auth/documents,https://www.googleapis.com/auth/presentations,https://www.googleapis.com/auth/drive,https://www.googleapis.com/auth/forms.body,https://www.googleapis.com/auth/forms.responses.readonly,https://www.googleapis.com/auth/tasks,https://www.googleapis.com/auth/contacts,https://www.googleapis.com/auth/chat.spaces,https://www.googleapis.com/auth/chat.messages,https://www.googleapis.com/auth/chat.memberships,https://www.googleapis.com/auth/chat.delete",
     "loginTerminalHint": "gws needs your own Google OAuth client first: in console.cloud.google.com create a Desktop-app OAuth client (consent screen External/testing, add yourself as test user), enable the APIs you need (Sheets/Docs/Slides/Drive/Forms/Tasks/People/Chat), save the JSON as ~/.config/gws/client_secret.json (or run `gws auth setup` if gcloud is logged in), then `gws auth login -s sheets,drive`.",
     "oauthUrlPattern": "(https://accounts\\.google\\.com/o/oauth2/auth\\S+)",
-    "credentialPaths": ["~/.config/gws"],
+    "credentialPaths": [
+      "~/.config/gws"
+    ],
     "description": "Official Google Workspace CLI, generated from Google's Discovery docs — every Workspace REST method as `gws <service> <resource> <method> --params '<query JSON>' --json '<body JSON>'`; JSON out. `gws schema <service.resource.method>` shows params/body. Sheets: `gws sheets spreadsheets create --json '{\"properties\":{\"title\":\"T\"}}'`, `gws sheets spreadsheets values get --params '{\"spreadsheetId\":\"ID\",\"range\":\"Sheet1!A1:D10\"}'`, `gws sheets spreadsheets values append --params '{\"spreadsheetId\":\"ID\",\"range\":\"Sheet1\",\"valueInputOption\":\"USER_ENTERED\"}' --json '{\"values\":[[\"a\",1]]}'`, `values update|clear|batchGet|batchUpdate`, `spreadsheets batchUpdate` (add/delete sheet, formatting); helpers `gws sheets +read` / `+append`. Drive search (names and file contents, Docs/PDF/Office included): `gws drive files list --params '{\"q\":\"fullText contains '\\''<words>'\\'' and trashed = false\",\"pageSize\":20,\"fields\":\"files(id,name,mimeType,modifiedTime,webViewLink)\",\"corpora\":\"allDrives\",\"includeItemsFromAllDrives\":true,\"supportsAllDrives\":true}'` (`name contains` for names only; combine with `and`/`or`, `mimeType = '…'`, `modifiedTime > '2026-01-01'`); read a hit: Docs via `docs documents get`, other files `gws drive files get --params '{\"fileId\":\"ID\",\"alt\":\"media\"}' --output out`, Docs/Sheets as text `gws drive files export --params '{\"fileId\":\"ID\",\"mimeType\":\"text/plain\"}' --output out.txt`. Delete a spreadsheet: `gws drive files delete --params '{\"fileId\":\"ID\"}'`. Docs: `gws docs documents create --json '{\"title\":\"T\"}'`, `documents get --params '{\"documentId\":\"ID\"}'` (text under .body.content), edit via `documents batchUpdate --params '{\"documentId\":\"ID\"}' --json '{\"requests\":[{\"insertText\":{\"location\":{\"index\":1},\"text\":\"hi\"}}]}'`. Slides: `gws slides presentations create|get` (presentationId), `presentations batchUpdate` (createSlide, insertText, replaceAllText). Forms: `gws forms forms create --json '{\"info\":{\"title\":\"T\"}}'` (title only; add questions with `forms batchUpdate` createItem), `forms get` (responderUri), `gws forms forms responses list --params '{\"formId\":\"ID\"}'`. Tasks: `gws tasks tasklists list|insert|delete`, `gws tasks tasks list|insert|patch|delete --params '{\"tasklist\":\"ID\"}'`. Contacts (People API): `gws people people createContact --json '{\"names\":[{\"givenName\":\"A\"}],\"emailAddresses\":[{\"value\":\"a@x.com\"}]}'`, `people get --params '{\"resourceName\":\"people/c…\",\"personFields\":\"names,emailAddresses\"}'`, `people connections list --params '{\"resourceName\":\"people/me\",\"personFields\":\"names\"}'`, `searchContacts` (`readMask`), `deleteContact`. Chat (Workspace accounts only; the OAuth client's GCP project must have a Chat app configured in Console → Chat API → Configuration, else 404 \"Chat app not found\"): `gws chat spaces list`, `spaces create --json '{\"spaceType\":\"SPACE\",\"displayName\":\"N\"}'`, `gws chat spaces messages create --params '{\"parent\":\"spaces/ID\"}' --json '{\"text\":\"hi\"}'`, `messages list`, `spaces delete` (needs chat.delete scope). Docs/Slides/Forms files are deleted with `gws drive files delete`. `--page-all` paginates, `--dry-run` validates. Auth precedence: env GOOGLE_WORKSPACE_CLI_TOKEN (access token) > GOOGLE_WORKSPACE_CLI_CREDENTIALS_FILE (service-account or exported authorized_user JSON) > `gws auth login`. A 403 \"API has not been used in project N\" means enable that API in the OAuth client's GCP project; a 403 \"insufficient authentication scopes\" right after re-login with more scopes → delete ~/.config/gws/token_cache.json (stale access token).",
     "versionCmd": "gws --version 2>/dev/null | sed -n 1p"
   },
@@ -1658,7 +1905,9 @@
     "statusCmd": "hs account list >/dev/null 2>&1 && echo authenticated",
     "loginCmd": "hs account auth --personal-access-key <personal_access_key> --use-default-name --default",
     "credentialHint": "Open https://app.hubspot.com/l/personal-access-key, pick the account, generate and copy the `personal access key`.",
-    "credentialPaths": ["~/.hscli/config.yml"],
+    "credentialPaths": [
+      "~/.hscli/config.yml"
+    ],
     "description": "Invoked as `hs`. `hs api <endpoint>` makes authenticated calls to any HubSpot API (contacts, deals, companies) — prefer it over raw curl.",
     "versionCmd": "hs --version 2>/dev/null | sed -n 1p"
   },
@@ -1672,7 +1921,9 @@
     "statusCmd": "grep -q '\"token\"' \"${POSTHOG_HOME:-$HOME/.posthog}/credentials.json\" 2>/dev/null && echo authenticated",
     "loginCmd": "posthog-cli login",
     "loginTerminalHint": "Interactive only: run `posthog-cli login` in a terminal on this host (it asks for host, project and a personal API key), or set `POSTHOG_CLI_API_KEY` + `POSTHOG_CLI_PROJECT_ID`.",
-    "credentialPaths": ["~/.posthog/credentials.json"],
+    "credentialPaths": [
+      "~/.posthog/credentials.json"
+    ],
     "description": "Official PostHog CLI. `posthog-cli api tools` lists the agent-first API tool catalog, `posthog-cli api call <tool> '<json>'` runs one (SQL queries, insights, flags). Also uploads sourcemaps/dSYM. Env alternative: POSTHOG_CLI_API_KEY + POSTHOG_CLI_PROJECT_ID.",
     "versionCmd": "posthog-cli --version 2>/dev/null | sed -n 1p"
   },
@@ -1687,7 +1938,9 @@
     "loginCmd": "canva login --mode manual --lite",
     "loginNeedsPty": true,
     "stdinPaste": true,
-    "credentialPaths": ["~/.canva-cli/credentials"],
+    "credentialPaths": [
+      "~/.canva-cli/credentials"
+    ],
     "description": "Official Canva CLI — app-development focused: `canva apps create/list/preview`. `canva mcp` starts the Canva Developer MCP server. For design/export automation use the Canva Connect REST API.",
     "versionCmd": "canva --version 2>/dev/null | sed -n 1p",
     "oauthUrlPattern": "OPEN_URL: (https://www\\.canva\\.com/api/oauth/authorize\\S+)"
@@ -1703,7 +1956,9 @@
     "loginCmd": "webflow auth login --skip-update-check",
     "loginNeedsPty": true,
     "oauthUrlPattern": "(https://webflow\\.com/oauth/webflow/initiate\\S+)",
-    "credentialPaths": ["~/.config/webflow"],
+    "credentialPaths": [
+      "~/.config/webflow"
+    ],
     "description": "Manage Webflow sites from the shell: `webflow sites list`, `webflow cms ...`, `webflow assets ...`. Add `--skip-update-check` in scripts.",
     "versionCmd": "webflow --version 2>/dev/null | sed -n 1p"
   },
@@ -1716,7 +1971,9 @@
     "summary": "Search and save articles and highlights in Readwise.",
     "statusCmd": "readwise whoami >/dev/null 2>&1 && readwise whoami 2>/dev/null | sed 's/\\x1b\\[[0-9;]*m//g' | grep -m1 .",
     "loginCmd": "readwise login",
-    "credentialPaths": ["~/.readwise-cli.json"],
+    "credentialPaths": [
+      "~/.readwise-cli.json"
+    ],
     "description": "Official Readwise/Reader CLI. `readwise search <query>`, `readwise list`, `readwise save <url>`; supports JSON output for piping and a read-only mode for agents. Token login for CI: `readwise login-with-token <token>` (get one at readwise.io/access_token).",
     "versionCmd": "readwise --version 2>/dev/null | sed -n 1p",
     "oauthUrlPattern": "OPEN_URL: (https://readwise\\.io/o/authorize\\S+)",
@@ -1734,7 +1991,10 @@
     "loginCmd": "granola auth login",
     "logoutCmd": "granola auth logout",
     "loginTerminalHint": "Imports the Granola desktop app's session: install Granola on this host, sign in there, then run `granola auth login`.",
-    "credentialPaths": ["~/.config/keyring", "~/.config/granola"],
+    "credentialPaths": [
+      "~/.config/keyring",
+      "~/.config/granola"
+    ],
     "versionCmd": "granola --version 2>/dev/null | sed -n 1p",
     "description": "Community Granola CLI (read-only). `granola meeting list [-l N] [--since <date>] [-s <query>] [-a <attendee>] -o json`, `granola meeting notes|enhanced|transcript <id>`, `granola meeting export <id>`; `granola folder list`, `granola workspace list`. `-o json|yaml|toon` for piping. Login imports credentials from the installed Granola desktop app (`granola auth login`) — desktop app must be logged in on the same machine; transcripts need a paid Granola plan."
   },
@@ -1762,7 +2022,10 @@
     "summary": "Build and deploy monday.com apps.",
     "statusCmd": "grep -qsE '[A-Za-z0-9]' ~/.config/mapps/.mappsrc ~/.mappsrc && echo authenticated",
     "loginCmd": "mapps init -t <api_token>",
-    "credentialPaths": ["~/.config/mapps/.mappsrc", "~/.mappsrc"],
+    "credentialPaths": [
+      "~/.config/mapps/.mappsrc",
+      "~/.mappsrc"
+    ],
     "description": "Invoked as `mapps` — app development and monday-code deployments only; `mapps init -t <token>` stores a monday.com API token in ~/.mappsrc. To read/write board DATA use the monday.com GraphQL API (api.monday.com/v2) with that same token.",
     "versionCmd": "mapps --version 2>/dev/null | sed -n 1p"
   },
@@ -1789,13 +2052,18 @@
     "statusCmd": "mobbin auth print-cookie 2>/dev/null | grep -E '[A-Za-z0-9]' >/dev/null && echo authenticated",
     "loginCmd": "mobbin auth save-cookie",
     "loginTerminalHint": "Log in to mobbin.com in a browser on this host, then run `mobbin auth save-cookie`: it imports that browser's cookies.",
-    "credentialPaths": ["~/.config/mobbin/cookie.txt", "~/.config/mobbin/storage-state.json"],
+    "credentialPaths": [
+      "~/.config/mobbin/cookie.txt",
+      "~/.config/mobbin/storage-state.json"
+    ],
     "description": "Unofficial CLI over Mobbin's undocumented web endpoints. `mobbin search --query \"login\" --platform ios`. Auth reuses browser cookies: log into mobbin.com in Chrome, then `mobbin auth save-cookie`.",
     "versionCmd": "mobbin --version 2>/dev/null | sed -n '1,2p' | tr '\\n' ' '"
   },
   "blender-mcp": {
     "preinstallCloud": true,
-    "packages": ["blender-mcp==1.9.1"],
+    "packages": [
+      "blender-mcp==1.9.1"
+    ],
     "category": "creative",
     "pkg": "blender-mcp",
     "installer": "pip",
@@ -1806,7 +2074,9 @@
     "loginTerminalHint": "Needs Blender (blender.org) open on this host: in Blender, Edit → Preferences → Add-ons, enable `Blender MCP`, then press N in the 3D view → BlenderMCP tab → Connect / Start MCP server. Then press Connect here.",
     "loginCmd": "blender-mcp install-addon >/dev/null 2>&1; command -v mcporter >/dev/null 2>&1 || npm install -g --prefix \"$HOME/.local\" mcporter; mcporter config add blender --command blender-mcp --env BLENDER_MCP_DISABLE_TELEMETRY=1 --description 'Blender 3D via ahujasid/blender-mcp addon' --scope home",
     "logoutCmd": "cd ~ && mcporter config remove blender",
-    "credentialPaths": ["~/.mcporter/mcporter.json"],
+    "credentialPaths": [
+      "~/.mcporter/mcporter.json"
+    ],
     "description": "Blender 3D via the ahujasid/blender-mcp server through mcporter: `mcporter list blender --schema`, `mcporter call blender.<tool> key=value` (`code=@file.py`; every tool needs `user_prompt`). Workhorse: execute_blender_code (any bpy Python); also scene/object info, viewport screenshot (`--save-images <dir>`), PolyHaven/Sketchfab import. Needs a GUI Blender with the addon server started (socket :9876; headless has none). 'Could not connect' → `blender-mcp install-addon`, enable in Preferences → Add-ons, N-panel → Start MCP Server (scripted: `blender --python s.py`, s.py registers a `bpy.app.timers` calling `bpy.ops.blendermcp.start_server()`). Code runs unguarded: save first (`bpy.ops.wm.save_mainfile()`), approve destructive ops.",
     "versionCmd": "{ python -c 'import sys; from importlib.metadata import version; print(version(sys.argv[1]))' blender-mcp || python3 -c 'import sys; from importlib.metadata import version; print(version(sys.argv[1]))' blender-mcp; } 2>/dev/null"
   },
@@ -1853,7 +2123,9 @@
     "statusCmd": "gusto auth whoami 2>/dev/null | sed -n 's/.*\"accessible_resources\":\\[{[^}]*\"name\":\"\\([^\"]*\\)\".*\"environment\":\"\\([a-z]*\\)\".*/\\1 (\\2)/p' | grep -m1 .",
     "loginCmd": "gusto auth login --no-browser --no-skills",
     "oauthUrlPattern": "(https://api\\.gusto(?:-demo)?\\.com/v1/mcp/oauth/authorize\\S+)",
-    "credentialPaths": ["~/.config/gusto/credentials.toml"],
+    "credentialPaths": [
+      "~/.config/gusto/credentials.toml"
+    ],
     "versionCmd": "gusto --version 2>/dev/null | sed -n 1p",
     "description": "Official Gusto CLI (payroll/HR), JSON on stdout when piped. Read: `gusto company get`, `employee list|get <uuid>`, `contractor list`, `payroll list|get`, `pay-schedule list`, `department list`, `job`, `compensation`, `ledger`, `report`; `--fields` filters keys, `--all` pages. Writes (payroll prepare/submit, timesheets, pay schedules) need `--confirm` in agent mode — they move real money, confirm with the user first. Production by default; `--env sandbox` (or GUSTO_ENVIRONMENT=sandbox) targets the demo company, each env has its own stored session. Headless auth: `printf '%s' \"$TOKEN\" | gusto <cmd> --token-stdin` or env GUSTO_ACCESS_TOKEN (+ GUSTO_COMPANY_UUID). `gusto api` calls any REST endpoint. GUSTO_CLI_AUTO_UPDATE=off skips self-update."
   },
@@ -1867,7 +2139,9 @@
     "statusCmd": "command -v tableau-mcp-server >/dev/null && mcporter --config \"$HOME/.mcporter/mcporter.json\" config get tableau --json 2>/dev/null | sed -n 's/.*\"SERVER\": \"\\([^\"]*\\)\".*/\\1/p' | grep -m1 .",
     "loginCmd": "command -v mcporter >/dev/null 2>&1 || npm install -g --prefix \"$HOME/.local\" mcporter; mcporter --config \"$HOME/.mcporter/mcporter.json\" config add tableau --command tableau-mcp-server --env SERVER=<server_url> --env SITE_NAME=<site_name> --env PAT_NAME=<pat_name> --env PAT_VALUE=<pat_secret> --description 'Tableau Cloud/Server via official @tableau/mcp-server (PAT)' && { mcporter --config \"$HOME/.mcporter/mcporter.json\" call tableau.list-projects limit=1 >/dev/null 2>&1 || { mcporter --config \"$HOME/.mcporter/mcporter.json\" config remove tableau >/dev/null; echo 'Tableau rejected the server URL, site or personal access token'; exit 1; }; }",
     "logoutCmd": "mcporter --config \"$HOME/.mcporter/mcporter.json\" config remove tableau",
-    "credentialPaths": ["~/.mcporter/mcporter.json"],
+    "credentialPaths": [
+      "~/.mcporter/mcporter.json"
+    ],
     "description": "Tableau Cloud/Server via the official @tableau/mcp-server through mcporter (PAT auth): `mcporter list tableau --schema`, `mcporter call tableau.<tool> key=value`. Tools: search-content, list-workbooks/list-views/list-datasources/list-projects, get-workbook, get-view, get-view-data (CSV), get-view-image (PNG/SVG), get-datasource-metadata, query-datasource (VizQL), download-workbook, Pulse metric tools; admin tools (list-users, list-extract-refresh-tasks, list-jobs) need ADMIN_TOOLS_ENABLED. Hosted alternative: https://mcp.tableau.com (OAuth, no DCR). Credentials: In Tableau: avatar → My Account Settings → Personal Access Tokens → Create. server_url is e.g. https://10ax.online.tableau.com (or your Tableau Server URL), site_name is the part after /site/ in the URL (empty for the Default site).",
     "versionCmd": "node -p \"const f=require('fs'),p=require('path'),n='@tableau/mcp-server',c=process.argv[1];let d=p.dirname(f.realpathSync(c)),r;for(;!r&&d!==p.dirname(d);d=p.dirname(d))try{const j=JSON.parse(f.readFileSync(p.join(d,'package.json')));if(j.name===n)r=j.version}catch{}r||JSON.parse(f.readFileSync(p.join(p.dirname(c),'..',n,'package.json'))).version\" \"$(command -v tableau-mcp-server)\" 2>/dev/null"
   },
@@ -1881,7 +2155,9 @@
     "statusCmd": "command -v xero-mcp-server >/dev/null && mcporter --config \"$HOME/.mcporter/mcporter.json\" config get xero --json 2>/dev/null | sed -n 's/.*\"XERO_CLIENT_ID\": \"\\([^\"]\\{6\\}\\)[^\"]*\".*/custom connection \\1…/p' | grep -m1 .",
     "loginCmd": "command -v mcporter >/dev/null 2>&1 || npm install -g --prefix \"$HOME/.local\" mcporter; mcporter --config \"$HOME/.mcporter/mcporter.json\" config add xero --command xero-mcp-server --env XERO_CLIENT_ID=<client_id> --env XERO_CLIENT_SECRET=<client_secret> --description 'Xero accounting via official @xeroapi/xero-mcp-server (Custom Connection)' && { mcporter --config \"$HOME/.mcporter/mcporter.json\" call xero.list-organisation-details 2>/dev/null | grep 'Name:' || { mcporter --config \"$HOME/.mcporter/mcporter.json\" config remove xero >/dev/null; echo 'Xero rejected the Custom Connection client id/secret'; exit 1; }; }",
     "logoutCmd": "mcporter --config \"$HOME/.mcporter/mcporter.json\" config remove xero",
-    "credentialPaths": ["~/.mcporter/mcporter.json"],
+    "credentialPaths": [
+      "~/.mcporter/mcporter.json"
+    ],
     "description": "Xero accounting via the official @xeroapi/xero-mcp-server through mcporter (Custom Connection client credentials): `mcporter list xero --schema`, `mcporter call xero.<tool> key=value`. 50+ tools: list-/create-/update- invoices, contacts, quotes, credit notes, payments, bank transactions, items, manual journals, tracking categories; list-accounts, list-tax-rates, list-organisation-details; reports (list-profit-and-loss, list-report-balance-sheet, list-trial-balance, aged receivables/payables); payroll (NZ/UK) employees, leave, timesheets. Errors come back as text, not a nonzero exit. Credentials: Create a Custom Connection at https://developer.xero.com/app/manage (New app → Custom connection), select the scopes you need, authorise it for your organisation (free for the Xero Demo Company), then copy its Client id and Client secret.",
     "versionCmd": "node -p \"const f=require('fs'),p=require('path'),n='@xeroapi/xero-mcp-server',c=process.argv[1];let d=p.dirname(f.realpathSync(c)),r;for(;!r&&d!==p.dirname(d);d=p.dirname(d))try{const j=JSON.parse(f.readFileSync(p.join(d,'package.json')));if(j.name===n)r=j.version}catch{}r||JSON.parse(f.readFileSync(p.join(p.dirname(c),'..',n,'package.json'))).version\" \"$(command -v xero-mcp-server)\" 2>/dev/null"
   },
@@ -1897,7 +2173,10 @@
     "statusCmd": "command -v quickbooks-mcp >/dev/null && sed -n 's/^QUICKBOOKS_REALM_ID=\\(..*\\)$/company \\1/p' \"$HOME/.config/quickbooks-mcp/.env\" 2>/dev/null | grep -m1 .",
     "loginCmd": "command -v mcporter >/dev/null 2>&1 || npm install -g --prefix \"$HOME/.local\" mcporter; f=\"$HOME/.config/quickbooks-mcp/.env\"; mkdir -p \"${f%/*}\" && (umask 077; printf 'QUICKBOOKS_CLIENT_ID=%s\\nQUICKBOOKS_CLIENT_SECRET=%s\\nQUICKBOOKS_REFRESH_TOKEN=%s\\nQUICKBOOKS_REALM_ID=%s\\nQUICKBOOKS_ENVIRONMENT=%s\\n' <client_id> <client_secret> <refresh_token> <realm_id> <environment> > \"$f\") && mcporter --config \"$HOME/.mcporter/mcporter.json\" config add quickbooks --command quickbooks-mcp --env QUICKBOOKS_TOKEN_STORE_PATH=\"$f\" --description 'QuickBooks Online via official intuit/quickbooks-online-mcp-server' && { mcporter --config \"$HOME/.mcporter/mcporter.json\" call quickbooks.get_company_info 'params={}' --timeout 45000 2>/dev/null | grep -m1 '\"CompanyName\"' || { mcporter --config \"$HOME/.mcporter/mcporter.json\" config remove quickbooks >/dev/null; rm -f \"$f\"; echo 'QuickBooks rejected the client id/secret, refresh token or company (realm) id'; exit 1; }; }",
     "logoutCmd": "mcporter --config \"$HOME/.mcporter/mcporter.json\" config remove quickbooks; rm -f \"$HOME/.config/quickbooks-mcp/.env\"",
-    "credentialPaths": ["~/.config/quickbooks-mcp/.env", "~/.mcporter/mcporter.json"],
+    "credentialPaths": [
+      "~/.config/quickbooks-mcp/.env",
+      "~/.mcporter/mcporter.json"
+    ],
     "description": "QuickBooks Online via Intuit's official quickbooks-online-mcp-server (not on npm; installed from a pinned GitHub commit) through mcporter: `mcporter list quickbooks --schema`, `mcporter call quickbooks.<tool> 'params={...}'` (every tool takes a single `params` object). Tools: get_company_info; create_/get_/update_/delete_/search_ for customers, vendors, employees, invoices, estimates, bills, bill payments, purchases, payments, deposits, credit memos, journal entries, items, accounts, classes, departments, attachables; reports (profit and loss, balance sheet, cash flow, aged receivables/payables). Set DISABLE_DELETE/DISABLE_UPDATE/DISABLE_WRITE env in the mcporter config to restrict. Credentials: Needs an Intuit developer app (https://developer.intuit.com → Dashboard → Create app → QuickBooks Online, scope com.intuit.quickbooks.accounting). Get client_id/client_secret from Keys & credentials, then use the OAuth 2.0 Playground (https://developer.intuit.com/app/developer/playground) with those keys to authorise your company: it shows the refresh_token and realm_id (company id). environment is sandbox or production. The server rotates and saves the refresh token itself.",
     "versionCmd": "command -v quickbooks-mcp >/dev/null && cut -c1-7 \"$HOME/.todoforai/tools/quickbooks-mcp/COMMIT\" | grep -m1 .",
     "needsNode": true
@@ -2355,7 +2634,9 @@
     "statusCmd": "freshdesk-api whoami 2>/dev/null | sed -n 's/.*\"email\"[[:space:]]*:[[:space:]]*\"\\([^\"]*\\)\".*/\\1/p' | grep -m1 .",
     "loginCmd": "freshdesk-api auth --domain <domain> --api-key <api_key>",
     "logoutCmd": "freshdesk-api logout",
-    "credentialPaths": ["~/.config/freshdesk-api/credentials.json"],
+    "credentialPaths": [
+      "~/.config/freshdesk-api/credentials.json"
+    ],
     "description": "Independent CLI over the Freshdesk REST API v2 (https://<domain>.freshdesk.com/api/v2), JSON out. Auth = API key (Profile settings → View API key) + helpdesk domain: `auth --domain acme --key-stdin` (or env FRESHDESK_API_KEY/FRESHDESK_DOMAIN). Commands for tickets (list/get/create/update/delete/restore, reply, note, conversations, forward, bulk-update, fields), contacts, companies, agents, groups, canned responses, solutions and search (`search tickets --query '\"status:2\"'`); --all pagination; raw `api METHOD /path`. Every write requires --yes; use --dry-run first. Plan limits apply (rate limits per plan; the free plan is discontinued, trial keys expire).",
     "versionCmd": "freshdesk-api --version 2>/dev/null | sed -n 1p"
   },
@@ -2368,7 +2649,9 @@
     "statusCmd": "chatwoot-api whoami 2>/dev/null | sed -n 's/.*\"email\"[[:space:]]*:[[:space:]]*\"\\([^\"]*\\)\".*/\\1/p' | grep -m1 .",
     "loginCmd": "chatwoot-api auth --token <access_token>",
     "logoutCmd": "chatwoot-api logout",
-    "credentialPaths": ["~/.config/chatwoot-api/credentials.json"],
+    "credentialPaths": [
+      "~/.config/chatwoot-api/credentials.json"
+    ],
     "description": "Independent CLI over the Chatwoot Application API, generated from the official swagger (124 endpoints): conversations (list/filter/assign/toggle status/labels), messages, contacts, inboxes, agents, teams, canned responses, labels, custom attributes, webhooks, automation rules, reports. JSON out; --data JSON|@file|-; --all pagination; raw `api METHOD /path`. Auth = user access token (Profile settings → Access token): `auth --token-stdin [--base-url https://chat.example.com] [--account-id N]` (or env CHATWOOT_API_ACCESS_TOKEN/CHATWOOT_BASE_URL/CHATWOOT_ACCOUNT_ID); default base https://app.chatwoot.com, self-hosted supported. On Chatwoot Cloud the user API token needs a paid plan; agent-bot tokens only reach conversation/message endpoints. Every write requires --yes; use --dry-run first.",
     "versionCmd": "chatwoot-api --version 2>/dev/null | sed -n 1p"
   },
@@ -2381,7 +2664,9 @@
     "statusCmd": "discord-api whoami 2>/dev/null | sed -n 's/.*\"username\"[[:space:]]*:[[:space:]]*\"\\([^\"]*\\)\".*/\\1/p' | grep -m1 .",
     "loginCmd": "discord-api auth --token <bot_token>",
     "logoutCmd": "discord-api logout",
-    "credentialPaths": ["~/.config/discord-api/credentials.json"],
+    "credentialPaths": [
+      "~/.config/discord-api/credentials.json"
+    ],
     "description": "Independent CLI over the Discord REST API v10, generated from the official OpenAPI spec (246 operations): channels/messages/reactions/threads, guilds (servers), members, roles, bans, invites, webhooks, application commands, users/DMs. JSON out; --data JSON|@file|-; --all snowflake pagination; raw `api METHOD /path`. Auth = bot token (Developer Portal → Bot → Reset Token): `auth --token-stdin` (or env DISCORD_BOT_TOKEN; `--bearer` / DISCORD_ACCESS_TOKEN for an OAuth2 user token). A bot only sees servers it was added to (authorize URL with scope=bot, opened by a server admin). Webhook token routes need no login. Every write requires --yes; use --dry-run first. REST only (no gateway events); no multipart uploads.",
     "versionCmd": "discord-api --version 2>/dev/null | sed -n 1p"
   },
@@ -2394,7 +2679,9 @@
     "statusCmd": "twitch-api whoami 2>/dev/null | sed -n -e 's/.*\"login\"[[:space:]]*:[[:space:]]*\"\\([^\"]*\\)\".*/1 \\1/p' -e 's/.*\"client_id\"[[:space:]]*:[[:space:]]*\"\\([^\"]*\\)\".*/2 app:\\1/p' | sort | cut -d' ' -f2 | grep -m1 .",
     "loginCmd": "twitch-api auth --token <access_token>",
     "logoutCmd": "twitch-api logout",
-    "credentialPaths": ["~/.config/twitch-api/credentials.json"],
+    "credentialPaths": [
+      "~/.config/twitch-api/credentials.json"
+    ],
     "description": "Independent CLI over the Twitch Helix API, generated from the official reference (149 endpoints): channels (info/modify/followers/editors), users (lookup/block), clips, streams, videos, games, search, chat (send/settings/emotes), moderation (bans/mods/VIPs), subscriptions, polls/predictions, schedule, raids, EventSub subscriptions. JSON out; repeatable query flags (--id 1 --id 2); --all cursor pagination; raw `api METHOD /path`. Auth: personal user access token `auth --token-stdin` (client id read via /oauth2/validate), or device flow `auth --device --client-id <id> --scopes \"...\"` (saves a refresh token; auto-renews on expiry), or app token `auth --client-id <id> --client-secret-stdin` (public data only). Env TWITCH_ACCESS_TOKEN/TWITCH_CLIENT_ID/TWITCH_CLIENT_SECRET. Each command's summary names the token type it needs. Every write requires --yes; use --dry-run first. Not Twitch's own twitch-cli; no IRC/EventSub websocket transport.",
     "versionCmd": "twitch-api --version 2>/dev/null | sed -n 1p"
   },
@@ -2407,7 +2694,9 @@
     "statusCmd": "whatsapp-api whoami 2>/dev/null | sed -n 's/.*\"application\"[[:space:]]*:[[:space:]]*\"\\([^\"]*\\)\".*/\\1/p' | grep -m1 .",
     "loginCmd": "whatsapp-api auth --token <access_token>",
     "logoutCmd": "whatsapp-api logout",
-    "credentialPaths": ["~/.config/whatsapp-api/credentials.json"],
+    "credentialPaths": [
+      "~/.config/whatsapp-api/credentials.json"
+    ],
     "description": "Independent CLI over the WhatsApp Business Platform Cloud API on the Meta Graph API (graph.facebook.com/v23.0; WHATSAPP_API_VERSION overrides), generated from Meta's official OpenAPI spec (111 operations): `phone send-message <Phone-Number-ID>` (text/template/media-by-link/interactive), templates (`waba list-templates|create-template <WABA-ID>`), media (retrieve URL/delete), phone numbers (register/verify/settings/business profile), WABA (details, phone numbers, webhook subscriptions), flows, groups, QR codes, block users. JSON out; --fields on every read; --all cursor pagination; raw `api METHOD /path`. Auth = system-user access token with whatsapp_business_messaging + whatsapp_business_management (or the 24h token from the app's WhatsApp → API Setup page): `auth --token-stdin` (verified via /debug_token) or env WHATSAPP_ACCESS_TOKEN. Messaging outside the 24h customer window needs an approved template; Meta bills per template message. Every write requires --yes; use --dry-run first. No inbound webhooks or multipart upload.",
     "versionCmd": "whatsapp-api --version 2>/dev/null | sed -n 1p"
   },
@@ -3923,7 +4212,10 @@
     "description": "Tunnel: `ngrok http 3000 --log stdout` (public URL in the log; run detached), `ngrok http 3000 --url <reserved-domain>`. API (JSON out): `ngrok api endpoints list`, `ngrok api reserved-domains list|create --domain x`, `ngrok api edges https list|create|get|update|delete <id>`, `ngrok api tunnels list`, `ngrok api <service> --help` for every resource. Authtoken from dashboard.ngrok.com/get-started/your-authtoken, API key from dashboard.ngrok.com/api-keys.",
     "statusCmd": "out=$(ngrok api api-keys list 2>/dev/null) || exit 1; printf '%s\\n' \"$out\" | sed -n 's/.*\"owner_id\": *\"\\([^\"]*\\)\".*/\\1/p' | grep -m1 .",
     "loginCmd": "ngrok config add-authtoken <authtoken> && ngrok config add-api-key <api_key>",
-    "credentialPaths": ["~/.config/ngrok/ngrok.yml", "~/Library/Application Support/ngrok/ngrok.yml"],
+    "credentialPaths": [
+      "~/.config/ngrok/ngrok.yml",
+      "~/Library/Application Support/ngrok/ngrok.yml"
+    ],
     "versionCmd": "ngrok version 2>/dev/null | sed -n 1p",
     "binary": {
       "linux-x86_64": {
@@ -3964,7 +4256,9 @@
     "statusCmd": "hookdeck whoami </dev/null 2>/dev/null | grep 'Logged in as' | grep -m1 .",
     "loginCmd": "hookdeck ci --api-key <api_key>",
     "logoutCmd": "hookdeck logout",
-    "credentialPaths": ["~/.config/hookdeck/config.toml"],
+    "credentialPaths": [
+      "~/.config/hookdeck/config.toml"
+    ],
     "versionCmd": "hookdeck version 2>/dev/null | sed -n 1p"
   },
   "svix": {
@@ -3976,7 +4270,9 @@
     "description": "JSON out by default. `svix application list|create|get`, `svix event-type list|create`, `svix endpoint list|create <app_id>`, `svix message create <app_id> '{\"eventType\":\"x\",\"payload\":{}}'`, `svix message-attempt list-by-msg <app_id> <msg_id>`, `svix listen http://localhost:3000` (detached), `svix signature verify`. API key (region suffix like .eu) from dashboard.svix.com → API Access.",
     "statusCmd": "svix authentication whoami 2>/dev/null | grep -o 'org_[A-Za-z0-9]*' | grep -m1 .",
     "loginCmd": "mkdir -p ~/.config/svix && printf 'auth_token = \"%s\"\\n' <auth_token> > ~/.config/svix/config.toml && svix authentication whoami >/dev/null",
-    "credentialPaths": ["~/.config/svix/config.toml"],
+    "credentialPaths": [
+      "~/.config/svix/config.toml"
+    ],
     "versionCmd": "svix --version 2>/dev/null | sed -n 1p"
   },
   "semgrep": {
@@ -3989,7 +4285,9 @@
     "statusCmd": "semgrep show deployment 2>&1 | grep -o '\"slug\":\"[^\"]*\"' | grep -m1 .",
     "loginCmd": "SEMGREP_APP_TOKEN=<api_token> semgrep login",
     "logoutCmd": "semgrep logout",
-    "credentialPaths": ["~/.semgrep/settings.yml"],
+    "credentialPaths": [
+      "~/.semgrep/settings.yml"
+    ],
     "versionCmd": "semgrep --version 2>/dev/null | sed -n 1p"
   },
   "snyk": {
@@ -4002,7 +4300,9 @@
     "statusCmd": "out=$(snyk whoami --experimental 2>/dev/null) || exit 1; printf '%s\\n' \"$out\" | tr -d '\\r' | grep -m1 .",
     "loginCmd": "snyk auth --auth-type=token <api_token>",
     "logoutCmd": "snyk config unset api",
-    "credentialPaths": ["~/.config/configstore/snyk.json"],
+    "credentialPaths": [
+      "~/.config/configstore/snyk.json"
+    ],
     "versionCmd": "snyk --version 2>/dev/null | sed -n 1p"
   },
   "socket": {
@@ -4016,7 +4316,10 @@
     "statusCmd": "out=$(socket organization list --json --no-banner 2>/dev/null) || exit 1; printf '%s\\n' \"$out\" | sed -n 's/.*\"slug\": *\"\\([^\"]*\\)\".*/\\1/p' | grep -m1 .",
     "loginCmd": "socket config set apiToken <api_token> --no-banner",
     "logoutCmd": "socket logout --no-banner",
-    "credentialPaths": ["~/.local/share/socket/settings/config.json", "~/Library/Application Support/socket/settings/config.json"],
+    "credentialPaths": [
+      "~/.local/share/socket/settings/config.json",
+      "~/Library/Application Support/socket/settings/config.json"
+    ],
     "versionCmd": "socket --version 2>/dev/null | sed -n 1p"
   },
   "deepsource": {
@@ -4028,7 +4331,9 @@
     "description": "Run inside a repo connected to DeepSource: `deepsource issues list --json` (or `--analyzer python`, path args), `deepsource repo status`, `deepsource repo view`, `deepsource report --analyzer test-coverage --key python --value-file coverage.xml` (needs DEEPSOURCE_DSN), `deepsource config generate|validate`. Personal access token from app.deepsource.com → Settings → Tokens.",
     "statusCmd": "deepsource auth status 2>&1 | grep 'Logged in to DeepSource' | grep -m1 .",
     "loginCmd": "deepsource auth login --with-token <access_token>",
-    "credentialPaths": ["~/.deepsource/config.toml"],
+    "credentialPaths": [
+      "~/.deepsource/config.toml"
+    ],
     "versionCmd": "deepsource version 2>/dev/null | sed -n 1p",
     "binary": {
       "linux-x86_64": {
@@ -4068,7 +4373,9 @@
     "statusCmd": "test -s ~/.config/bump/token && echo token saved",
     "loginCmd": "bump --version >/dev/null && mkdir -p ~/.config/bump && printf '%s' <api_token> > ~/.config/bump/token && chmod 600 ~/.config/bump/token",
     "logoutCmd": "rm -f ~/.config/bump/token",
-    "credentialPaths": ["~/.config/bump/token"],
+    "credentialPaths": [
+      "~/.config/bump/token"
+    ],
     "versionCmd": "bump --version 2>/dev/null | sed -n 1p"
   },
   "livekit": {
@@ -4082,7 +4389,9 @@
     "statusCmd": "lk room list -y </dev/null >/dev/null 2>&1 || exit 1; lk project list --json 2>/dev/null | sed -n 's/.*\"URL\": *\"\\([^\"]*\\)\".*/\\1/p' | grep -m1 .",
     "loginCmd": "lk project remove cloud >/dev/null 2>&1; lk project add cloud --url <url> --api-key <api_key> --api-secret <api_secret> --default -y",
     "logoutCmd": "lk project remove cloud",
-    "credentialPaths": ["~/.livekit/cli-config.yaml"],
+    "credentialPaths": [
+      "~/.livekit/cli-config.yaml"
+    ],
     "versionCmd": "lk --version 2>/dev/null | sed -n 1p",
     "binary": {
       "linux-x86_64": {
@@ -4122,7 +4431,10 @@
     "statusCmd": "daytona list -f json </dev/null >/dev/null 2>&1 && echo authenticated",
     "loginCmd": "daytona login --api-key <api_key>",
     "logoutCmd": "daytona logout",
-    "credentialPaths": ["~/.config/daytona/config.json", "~/Library/Application Support/daytona/config.json"],
+    "credentialPaths": [
+      "~/.config/daytona/config.json",
+      "~/Library/Application Support/daytona/config.json"
+    ],
     "versionCmd": "daytona version 2>/dev/null | sed -n 1p",
     "binary": {
       "linux-x86_64": {
@@ -4182,7 +4494,9 @@
     },
     "statusCmd": "DO_NOT_TRACK=1 render whoami -o text 2>/dev/null | grep '^Email' | grep -m1 .",
     "loginCmd": "k=<api_key>; mkdir -p \"$HOME/.render\" && (umask 077; rm -f \"$HOME/.render/cli.yaml\"; printf 'version: 1\\napi:\\n  key: %s\\n' \"$k\" > \"$HOME/.render/cli.yaml\") && DO_NOT_TRACK=1 render whoami -o text",
-    "credentialPaths": ["~/.render/cli.yaml"],
+    "credentialPaths": [
+      "~/.render/cli.yaml"
+    ],
     "versionCmd": "render --version 2>/dev/null | sed -n 1p",
     "description": "Official Render CLI. Login takes an API key (dashboard.render.com/u/settings#api-keys); pick a workspace once with `render workspace set`. Non-interactive: always pass `-o json` and `--confirm`. `render services -o json`, `render deploys create SRV_ID --wait --confirm`, `render logs -r SRV_ID -o text`, `render psql DB_ID`. Docs: render.com/docs/cli"
   },
@@ -4216,7 +4530,9 @@
     },
     "statusCmd": "runpodctl user -o json 2>/dev/null | python3 -c 'import json,sys; print(json.load(sys.stdin)[\"email\"])' 2>/dev/null | grep -m1 .",
     "loginCmd": "k=<api_key>; mkdir -p \"$HOME/.runpod\" && (umask 077; rm -f \"$HOME/.runpod/config.toml\"; printf \"apikey = '%s'\\napiurl = 'https://api.runpod.io/graphql'\\n\" \"$k\" > \"$HOME/.runpod/config.toml\") && runpodctl user",
-    "credentialPaths": ["~/.runpod/config.toml"],
+    "credentialPaths": [
+      "~/.runpod/config.toml"
+    ],
     "versionCmd": "runpodctl version 2>/dev/null | sed -n 1p",
     "description": "Official RunPod CLI. Login takes an API key (runpod.io/console/user/settings → API Keys). JSON output by default. `runpodctl pod list`, `runpodctl pod create --help`, `runpodctl pod stop ID`, `runpodctl serverless list`, `runpodctl gpu list`, `runpodctl network-volume list`, `runpodctl send FILE` / `receive CODE`. Docs: docs.runpod.io/runpodctl/overview"
   },
@@ -4255,7 +4571,9 @@
     },
     "statusCmd": "tnr status --json 2>/dev/null >/dev/null && echo authenticated",
     "loginCmd": "tnr login --token <api_token>",
-    "credentialPaths": ["~/.thunder/cli_config.json"],
+    "credentialPaths": [
+      "~/.thunder/cli_config.json"
+    ],
     "versionCmd": "tnr --version 2>/dev/null | sed -n 1p",
     "description": "Official Thunder Compute CLI. Login takes an API token (console.thundercompute.com → Settings → API tokens). Always pass `--json` (and `-y` for destructive ops) to stay non-interactive: `tnr status --json`, `tnr create --gpu a100 --json`, `tnr connect 0`, `tnr scp`, `tnr delete 0 -y`. Docs: thundercompute.com/docs"
   },
@@ -4294,7 +4612,9 @@
     },
     "statusCmd": "koyeb profile -o json 2>/dev/null | python3 -c 'import json,sys; print(json.load(sys.stdin)[\"user\"][\"email\"])' 2>/dev/null | grep -m1 .",
     "loginCmd": "k=<api_token>; (umask 077; rm -f \"$HOME/.koyeb.yaml\"; printf 'token: %s\\n' \"$k\" > \"$HOME/.koyeb.yaml\") && koyeb profile",
-    "credentialPaths": ["~/.koyeb.yaml"],
+    "credentialPaths": [
+      "~/.koyeb.yaml"
+    ],
     "versionCmd": "koyeb version 2>/dev/null | sed -n 1p",
     "description": "Official Koyeb CLI. Login takes a USER API token (app.koyeb.com/user/settings/api; organization tokens can't run `profile`). `koyeb apps list`, `koyeb services list`, `koyeb deploy . APP/SVC`, `koyeb services logs SVC`, `koyeb secrets create`. Add `-o json` for parseable output. Docs: koyeb.com/docs/build-and-deploy/cli/reference"
   },
@@ -4307,7 +4627,9 @@
     "statusCmd": "heroku auth:whoami 2>/dev/null | tr -d '\\r' | grep -m1 .",
     "logoutCmd": "heroku logout",
     "loginCmd": "k=<api_key>; f=\"$HOME/.netrc\"; (umask 077; touch \"$f\"; chmod 600 \"$f\") && K=\"$k\" python3 -c 'import os,re,sys; f=sys.argv[1]; k=os.environ[\"K\"]; s=re.sub(r\"machine\\s+(api|git)\\.heroku\\.com\\s+login\\s+\\S+\\s+password\\s+\\S+\\s*\", \"\", open(f).read()); open(f, \"w\").write(s + \"\".join(\"machine %s.heroku.com\\n  login token\\n  password %s\\n\" % (h, k) for h in (\"api\", \"git\")))' \"$f\" && heroku auth:whoami",
-    "credentialPaths": ["~/.netrc"],
+    "credentialPaths": [
+      "~/.netrc"
+    ],
     "versionCmd": "heroku --version 2>/dev/null | sed -n 1p",
     "description": "Official Heroku CLI. Login takes an API key (dashboard.heroku.com/account → API Key, or `heroku authorizations:create`) and writes it to ~/.netrc; `heroku apps`, `heroku ps -a APP`, `heroku logs -a APP --tail`, `heroku config:set K=V -a APP`, `heroku releases -a APP`. Raw API: `heroku api GET /apps`. Docs: devcenter.heroku.com/categories/command-line"
   },
@@ -4319,7 +4641,9 @@
     "summary": "Manage Northflank projects, services, jobs and addons.",
     "statusCmd": "northflank list projects -o json >/dev/null 2>&1 && echo authenticated",
     "loginCmd": "northflank login --token <api_token> --name default --override",
-    "credentialPaths": ["~/.northflank/config.json"],
+    "credentialPaths": [
+      "~/.northflank/config.json"
+    ],
     "versionCmd": "northflank --version 2>/dev/null | sed -n 1p",
     "description": "Official Northflank CLI. Login takes a team API token (app.northflank.com → Team settings → API → Tokens). `northflank list projects -o json`, `northflank list services --projectId P`, `northflank get service logs --projectId P --serviceId S`, `northflank start build`, `northflank forward`. Docs: northflank.com/docs/v1/api/use-the-cli"
   },
@@ -4331,7 +4655,9 @@
     "summary": "Manage Linode servers, volumes, domains and Kubernetes clusters.",
     "statusCmd": "linode-cli profile view --text --no-headers --format username 2>/dev/null | tr -d '\\r' | grep -m1 .",
     "loginCmd": "k=<api_token>; mkdir -p \"$HOME/.config\" && (umask 077; rm -f \"$HOME/.config/linode-cli\"; printf '[DEFAULT]\\ndefault-user = me\\n\\n[me]\\ntoken = %s\\nregion = us-east\\ntype = g6-nanode-1\\nimage = linode/ubuntu24.04\\n' \"$k\" > \"$HOME/.config/linode-cli\") && linode-cli profile view --text --no-headers --format username",
-    "credentialPaths": ["~/.config/linode-cli"],
+    "credentialPaths": [
+      "~/.config/linode-cli"
+    ],
     "versionCmd": "linode-cli --version 2>/dev/null | sed -n 1p",
     "description": "Official Akamai/Linode CLI (pip `linode-cli`). Login takes a personal access token (cloud.linode.com/profile/tokens). Output: `--json` or `--text`. `linode-cli linodes list --json`, `linode-cli linodes create --label X --root_pass P`, `linode-cli domains list`, `linode-cli lke clusters-list`, `linode-cli obj ls`. Docs: techdocs.akamai.com/cloud-computing/docs/cli"
   },
@@ -4343,7 +4669,10 @@
     "summary": "Manage Oracle Cloud Infrastructure compute, storage and networking.",
     "statusCmd": "oci os ns get --query data --raw-output 2>/dev/null | tr -d '\\r' | grep -m1 .",
     "loginCmd": "mkdir -p \"$HOME/.oci\" && (umask 077; rm -f \"$HOME/.oci/oci_api_key.pem\" \"$HOME/.oci/config\"; printf '%s\\n' <private_key_pem> > \"$HOME/.oci/oci_api_key.pem\" && printf '[DEFAULT]\\nuser=%s\\nfingerprint=%s\\ntenancy=%s\\nregion=%s\\nkey_file=%s\\n' <user_ocid> <fingerprint> <tenancy_ocid> <region> \"$HOME/.oci/oci_api_key.pem\" > \"$HOME/.oci/config\") && oci os ns get --query data --raw-output",
-    "credentialPaths": ["~/.oci/config", "~/.oci/oci_api_key.pem"],
+    "credentialPaths": [
+      "~/.oci/config",
+      "~/.oci/oci_api_key.pem"
+    ],
     "versionCmd": "oci --version 2>/dev/null | sed -n 1p",
     "description": "Official OCI CLI (pip `oci-cli`). Login takes an API signing key: Console → Profile → API keys → Add API key gives user OCID, tenancy OCID, fingerprint, region and the private key PEM. `oci iam compartment list`, `oci compute instance list -c COMPARTMENT`, `oci os object list -bn BUCKET`, `oci raw-request --http-method GET --target-uri URL`. Docs: docs.oracle.com/iaas/tools/oci-cli/latest"
   },
@@ -4382,7 +4711,9 @@
     },
     "statusCmd": "aliyun sts GetCallerIdentity 2>/dev/null | python3 -c 'import json,sys; print(json.load(sys.stdin)[\"Arn\"])' 2>/dev/null | grep -m1 .",
     "loginCmd": "aliyun configure set --mode AK --access-key-id <access_key_id> --access-key-secret <access_key_secret> --region <region> && aliyun sts GetCallerIdentity",
-    "credentialPaths": ["~/.aliyun/config.json"],
+    "credentialPaths": [
+      "~/.aliyun/config.json"
+    ],
     "versionCmd": "aliyun version 2>/dev/null | sed -n 1p",
     "description": "Official Alibaba Cloud CLI. Login takes a RAM AccessKey pair (ram.console.aliyun.com → AccessKey) and a region such as cn-hangzhou or ap-southeast-1. Calls are `aliyun <product> <Action> --Param v`: `aliyun ecs DescribeInstances --RegionId R`, `aliyun oss ls`, `aliyun fc ListFunctions`. Docs: alibabacloud.com/help/en/cli"
   },
@@ -4422,7 +4753,10 @@
     "statusCmd": "grep -qs access_token ~/.cloud66/cx.json 2>/dev/null && echo authenticated",
     "loginCmd": "cx login",
     "loginTerminalHint": "Run `cx login` in a terminal on this host: it opens app.cloud66.com to approve access and receives the code on 127.0.0.1:34543, so the browser must run on the same machine.",
-    "credentialPaths": ["~/.cloud66/cx.json", "~/.cloud66/cxprofiles.json"],
+    "credentialPaths": [
+      "~/.cloud66/cx.json",
+      "~/.cloud66/cxprofiles.json"
+    ],
     "versionCmd": "cx version 2>/dev/null | sed -n 1p",
     "description": "Official Cloud 66 toolbelt `cx`. `cx stacks list`, `cx redeploy -s STACK`, `cx env-vars list -s STACK`, `cx servers list -s STACK`, `cx run -s STACK --server S 'cmd'`, `cx ssh -s STACK S`. Login is browser OAuth (no personal token flag). Docs: help.cloud66.com/docs/toolbelt/using-cloud66-toolbelt"
   },
@@ -4675,7 +5009,9 @@
     "loginCmd": "influx config rm todoforai >/dev/null 2>&1; influx config create --config-name todoforai --host-url <host> --org <org> --token <token> --active",
     "statusCmd": "influx org list --json 2>/dev/null | sed -n 's/.*\"name\": *\"\\([^\"]*\\)\".*/\\1/p' | grep -m1 .",
     "versionCmd": "influx version 2>/dev/null | sed -n 1p",
-    "credentialPaths": ["~/.influxdbv2/configs"],
+    "credentialPaths": [
+      "~/.influxdbv2/configs"
+    ],
     "binary": {
       "linux-x86_64": {
         "url": "https://dl.influxdata.com/influxdb/releases/influxdb2-client-2.8.0-linux-amd64.tar.gz",
@@ -4717,7 +5053,9 @@
     "loginCmd": "printf '{\"host\":\"%s\",\"token\":\"%s\"}\\n' <host> <token> > ~/.tinyb && cd ~ && tb --cloud workspace current >/dev/null",
     "statusCmd": "cd ~ && tb --cloud workspace current 2>/dev/null | sed -n 's/^name: //p' | grep -m1 .",
     "versionCmd": "tb --version 2>/dev/null | sed -n 1p",
-    "credentialPaths": ["~/.tinyb"]
+    "credentialPaths": [
+      "~/.tinyb"
+    ]
   },
   "xata": {
     "category": "data",
@@ -4729,7 +5067,9 @@
     "loginCmd": "xata auth login --force --api-key <api_key>",
     "statusCmd": "xata organization list --json 2>/dev/null | sed -n 's/.*\"name\": *\"\\([^\"]*\\)\".*/\\1/p' | grep -m1 .",
     "versionCmd": "xata --version 2>/dev/null | sed -n 1p",
-    "credentialPaths": ["~/.config/xata/config.json"],
+    "credentialPaths": [
+      "~/.config/xata/config.json"
+    ],
     "binary": {
       "linux-x86_64": {
         "url": "https://xata-cli-versions.s3.amazonaws.com/versions/1.16.1-latest/xata-linux-x64",
@@ -4823,7 +5163,9 @@
     "loginCmd": "printf '%s\\n' <token> | databricks configure --host <host>",
     "statusCmd": "databricks current-user me -o json 2>/dev/null | sed -n 's/.*\"userName\": *\"\\([^\"]*\\)\".*/\\1/p' | grep -m1 .",
     "versionCmd": "databricks --version 2>/dev/null | sed -n 1p",
-    "credentialPaths": ["~/.databrickscfg"],
+    "credentialPaths": [
+      "~/.databrickscfg"
+    ],
     "binary": {
       "linux-x86_64": {
         "url": "https://github.com/databricks/cli/releases/download/v1.19.0/databricks_cli_1.19.0_linux_amd64.tar.gz",
@@ -4872,7 +5214,9 @@
   "snowflake": {
     "category": "data",
     "pkg": "snowflake-cli",
-    "packages": ["snowflake-cli==3.28.0"],
+    "packages": [
+      "snowflake-cli==3.28.0"
+    ],
     "installer": "pip",
     "binName": "snow",
     "label": "Snowflake",
@@ -4896,7 +5240,9 @@
     "loginCmd": "CONFLUENT_CLOUD_EMAIL=<email> CONFLUENT_CLOUD_PASSWORD=<password> confluent login --save",
     "statusCmd": "confluent organization describe >/dev/null 2>&1 && echo authenticated",
     "versionCmd": "confluent version 2>/dev/null | sed -n 's/^Version: *//p' | grep -m1 .",
-    "credentialPaths": ["~/.confluent/config.json"],
+    "credentialPaths": [
+      "~/.confluent/config.json"
+    ],
     "binary": {
       "linux-x86_64": {
         "url": "https://github.com/confluentinc/cli/releases/download/v4.78.0/confluent_4.78.0_linux_amd64.tar.gz",
@@ -4972,7 +5318,9 @@
     "oauthUrlPattern": "(https://appwrite\\.io/oauth2/device\\S*)",
     "canStreamLogin": true,
     "logoutCmd": "appwrite logout",
-    "credentialPaths": ["~/.appwrite/prefs.json"],
+    "credentialPaths": [
+      "~/.appwrite/prefs.json"
+    ],
     "versionCmd": "appwrite --version 2>/dev/null | sed -n 1p",
     "description": "Official Appwrite CLI (Cloud or self-hosted). `appwrite login` is a device flow (appwrite.io/oauth2/device?user_code=…); self-hosted: `appwrite login --endpoint <url>/v1 --email … --password …`. Account: `appwrite whoami`, `appwrite list-organizations`, `appwrite list-projects --json`. Per project: `appwrite client --project-id <id>` (or `--key <api_key>` for a project API key from Console → Overview → API keys), then `appwrite users list --json`, `appwrite teams create --team-id unique() --name X`, `appwrite tablesdb list-rows|create-row`, `appwrite storage …`, `appwrite functions …`; `appwrite pull|push` sync appwrite.config.json. `-j` JSON, `-R` raw."
   },
@@ -4985,7 +5333,9 @@
     "statusCmd": "doppler me --json 2>/dev/null | sed -n 's/.*\"workplace\":{\"name\":\"\\([^\"]*\\)\".*/workplace: \\1/p' | grep -m1 .",
     "loginCmd": "doppler configure set token=<api_token> --scope /",
     "logoutCmd": "doppler configure unset token --scope /",
-    "credentialPaths": ["~/.doppler/.doppler.yaml"],
+    "credentialPaths": [
+      "~/.doppler/.doppler.yaml"
+    ],
     "versionCmd": "doppler --version 2>/dev/null | sed -n 1p",
     "description": "Official Doppler CLI. Token: dashboard.doppler.com → Tokens → Personal (dp.pt.…; a service token dp.st.… is scoped to one config). `doppler projects --json`, `doppler configs -p <proj> --json`, `doppler secrets -p <proj> -c <config> --json`, `doppler secrets get KEY --plain`, `doppler secrets set KEY=value`, `doppler secrets download --no-file --format env`, `doppler run -p <proj> -c <config> -- <cmd>` injects secrets, `doppler configs tokens create <name> -p … -c …` makes a service token.",
     "binary": {
@@ -5038,7 +5388,9 @@
     "statusCmd": "bw status 2>/dev/null | sed -n 's/.*\"userEmail\":\"\\([^\"]*\\)\".*\"status\":\"\\([^\"]*\\)\".*/\\1 (\\2)/p' | grep -m1 .",
     "loginCmd": "BW_CLIENTID=<client_id> BW_CLIENTSECRET=<client_secret> bw login --apikey",
     "logoutCmd": "bw logout",
-    "credentialPaths": ["~/.config/Bitwarden CLI/data.json"],
+    "credentialPaths": [
+      "~/.config/Bitwarden CLI/data.json"
+    ],
     "versionCmd": "bw --version 2>/dev/null | tail -n 1",
     "description": "Official Bitwarden CLI. API key: vault.bitwarden.com → Settings → Security → Keys → View API key (client_id user.…). Login leaves the vault LOCKED: `export BW_SESSION=$(bw unlock --passwordenv BW_PASSWORD --raw)` (master password from the user) before reading. `bw sync`, `bw list items --search X`, `bw get item|password|totp <id|name>`, `bw create item <base64 json>` (`bw get template item | jq … | bw encode`), `bw list organizations|collections|org-members --organizationid <id>`. Self-hosted: `bw config server <url>` first."
   },
@@ -5053,7 +5405,9 @@
     "oauthUrlPattern": "(https://project\\.console\\.ory\\.com/oauth2/auth\\S+)",
     "canStreamLogin": true,
     "logoutCmd": "ory auth logout",
-    "credentialPaths": ["~/.ory-cloud.json"],
+    "credentialPaths": [
+      "~/.ory-cloud.json"
+    ],
     "versionCmd": "ory version 2>/dev/null | sed -n 's/^Version: *//p'",
     "description": "Official Ory Network CLI. `ory auth` signs in via browser (loopback callback on a random port). Then `ory list workspaces|projects --format json`, `ory use project <id>`, `ory list identities --format json`, `ory create identity`, `ory get identity <id>`, `ory list oauth2-clients`, `ory create oauth2-client --name X --grant-type client_credentials`, `ory list relationships`, `ory revoke` sessions/tokens, `ory get|patch project` config. Headless alternative: ORY_WORKSPACE_API_KEY / ORY_PROJECT_API_KEY env vars (keys from console.ory.com)."
   },
@@ -5093,7 +5447,9 @@
     "statusCmd": "auth0 tenants list --json-compact 2>/dev/null | sed -n 's/.*\"active\":true,\"name\":\"\\([^\"]*\\)\".*/\\1/p' | grep -m1 .",
     "loginCmd": "auth0 login --domain <domain> --client-id <client_id> --client-secret <client_secret>",
     "logoutCmd": "for t in $(auth0 tenants list --json-compact 2>/dev/null | grep -o '\"name\":\"[^\"]*\"' | cut -d'\"' -f4); do auth0 logout \"$t\"; done",
-    "credentialPaths": ["~/.config/auth0/config.json"],
+    "credentialPaths": [
+      "~/.config/auth0/config.json"
+    ],
     "versionCmd": "auth0 --version 2>/dev/null | sed -n 1p",
     "description": "Official Auth0 CLI over the Management API. Machine login: in the tenant create a Machine-to-Machine app authorized for the Auth0 Management API (Dashboard → Applications → APIs → Auth0 Management API → Machine to Machine Applications), then use its domain/client id/secret. User login alternative: `AUTH0_AGENT_MODE=true auth0 login --no-input` prints a device URL+code as JSON. `auth0 users search --query 'email:\"x@y\"' --json`, `auth0 users create|update|delete`, `auth0 roles list`, `auth0 users roles assign <user-id> --roles <id>`, `auth0 logs list --json`, `auth0 apps list --json`, raw: `auth0 api get \"users?q=…\"` / `auth0 api post client-grants --data '{…}'`."
   },
@@ -5136,7 +5492,9 @@
     "summary": "Build and publish Domo custom apps.",
     "statusCmd": "python3 -c \"import glob,os;f=sorted(glob.glob(os.path.expanduser('~/.config/configstore/ryuu/*.json')));print(os.path.basename(f[0])[:-5] if f else '')\" 2>/dev/null | grep -m1 .",
     "loginCmd": "domo login -i <instance> -t <developer_token> --no-upgrade-check",
-    "credentialPaths": ["~/.config/configstore/ryuu"],
+    "credentialPaths": [
+      "~/.config/configstore/ryuu"
+    ],
     "versionCmd": "domo --version 2>/dev/null | tail -n 1",
     "description": "Official Domo App Dev Studio CLI (npm ryuu). Instance like `acme.domo.com`; developer token from Admin → Authentication → Access tokens. `domo ls`, `domo init`, `domo dev`, `domo publish`, `domo download`, `domo owner add <email>`. It only covers custom apps: for datasets/users/groups use the Domo Platform API with curl — client credentials from developer.domo.com → My Account → New Client, `curl -u ID:SECRET 'https://api.domo.com/oauth/token?grant_type=client_credentials&scope=data user'`, then `GET https://api.domo.com/v1/datasets`, `/v1/datasets/<id>/data` (CSV export), `PUT` the same to upload CSV, `POST /v1/datasets/query/execute/<id>` with `{\"sql\":\"SELECT …\"}`, `/v1/users`."
   },
@@ -5150,13 +5508,17 @@
     "statusCmd": "algolia indices list >/dev/null 2>&1 && algolia application current 2>/dev/null | sed -n 's/.*Current application: *//p' | sed 's/\\x1b\\[[0-9;]*m//g' | grep -m1 .",
     "loginCmd": "algolia profile remove default -y >/dev/null 2>&1; algolia profile add --name default --app-id <application_id> --api-key <api_key> --default",
     "logoutCmd": "algolia profile remove default -y",
-    "credentialPaths": ["~/.config/algolia/config.toml"],
+    "credentialPaths": [
+      "~/.config/algolia/config.toml"
+    ],
     "versionCmd": "algolia --version 2>/dev/null | sed -n 1p"
   },
   "cloudinary": {
     "category": "creative",
     "pkg": "cloudinary-cli",
-    "pipSdist": ["cloudinary-cli"],
+    "pipSdist": [
+      "cloudinary-cli"
+    ],
     "installer": "pip",
     "label": "Cloudinary",
     "binName": "cld",
@@ -5165,7 +5527,9 @@
     "statusCmd": "cld admin ping >/dev/null 2>&1 && cld config -j 2>/dev/null | sed -n 's/.*\"cloud_name\": \"\\([^\"]*\\)\".*/cloud: \\1/p' | grep -m1 .",
     "loginCmd": "cld config --from_url cloudinary://<api_key>:<api_secret>@<cloud_name> --set-default",
     "logoutCmd": "rm -rf ~/.cloudinary-cli",
-    "credentialPaths": ["~/.cloudinary-cli/config.json"],
+    "credentialPaths": [
+      "~/.cloudinary-cli/config.json"
+    ],
     "versionCmd": "cld --version 2>/dev/null | sed -n 1p"
   },
   "contentful": {
@@ -5178,7 +5542,9 @@
     "statusCmd": "contentful organization list >/dev/null 2>&1 && echo authenticated",
     "loginCmd": "contentful login --management-token <management_token>",
     "logoutCmd": "contentful config remove --management-token",
-    "credentialPaths": ["~/.contentfulrc.json"],
+    "credentialPaths": [
+      "~/.contentfulrc.json"
+    ],
     "versionCmd": "contentful --version 2>/dev/null | sed -n 1p"
   },
   "csdx": {
@@ -5191,7 +5557,9 @@
     "statusCmd": "csdx auth:whoami 2>/dev/null | grep -oE '[[:alnum:]._%+-]+@[[:alnum:].-]+\\.[[:alpha:]]+' | grep -m1 .",
     "loginCmd": "csdx config:set:region NA >/dev/null 2>&1; csdx auth:login -u <email> -p <password>",
     "logoutCmd": "csdx auth:logout -y",
-    "credentialPaths": ["~/.config/@contentstack/cli-utilities-nodejs/contentstack_cli.json"],
+    "credentialPaths": [
+      "~/.config/@contentstack/cli-utilities-nodejs/contentstack_cli.json"
+    ],
     "versionCmd": "csdx --version 2>/dev/null | sed -n 1p"
   },
   "datocms": {
@@ -5206,7 +5574,9 @@
     "logoutCmd": "datocms logout",
     "oauthUrlPattern": "(https://oauth\\.datocms\\.com/oauth/authorize\\S+)",
     "oauthCallbackPort": 7651,
-    "credentialPaths": ["~/.config/datocms-cli/credentials.json"],
+    "credentialPaths": [
+      "~/.config/datocms-cli/credentials.json"
+    ],
     "versionCmd": "datocms --version 2>/dev/null | sed -n 1p"
   },
   "crowdin": {
@@ -5219,7 +5589,9 @@
     "statusCmd": "command -v crowdin >/dev/null 2>&1 && t=$(sed -n 's/^api_token: *//p' ~/.crowdin.yml 2>/dev/null) && curl -sf -H \"Authorization: Bearer $t\" https://api.crowdin.com/api/v2/user 2>/dev/null | sed -n 's/.*\"username\":\"\\([^\"]*\\)\".*/\\1/p' | grep -m1 .",
     "loginCmd": "printf 'api_token: %s\\n' <api_token> > ~/.crowdin.yml && chmod 600 ~/.crowdin.yml && crowdin --version",
     "logoutCmd": "rm -f ~/.crowdin.yml",
-    "credentialPaths": ["~/.crowdin.yml"],
+    "credentialPaths": [
+      "~/.crowdin.yml"
+    ],
     "versionCmd": "crowdin --version 2>/dev/null | sed -n 1p"
   },
   "lokalise2": {
@@ -5232,7 +5604,9 @@
     "statusCmd": "lokalise2 --config ~/.lokalise.yml team list 2>/dev/null | sed -n 's/.*\"name\": \"\\([^\"]*\\)\".*/\\1/p' | grep -m1 .",
     "loginCmd": "printf 'token: %s\\n' <api_token> > ~/.lokalise.yml && chmod 600 ~/.lokalise.yml && lokalise2 --version",
     "logoutCmd": "rm -f ~/.lokalise.yml",
-    "credentialPaths": ["~/.lokalise.yml"],
+    "credentialPaths": [
+      "~/.lokalise.yml"
+    ],
     "versionCmd": "lokalise2 --version 2>/dev/null | sed -n 1p",
     "binary": {
       "linux-x86_64": {
@@ -5261,7 +5635,9 @@
         "extract": "lokalise2.exe"
       }
     },
-    "aliases": ["lokalise"]
+    "aliases": [
+      "lokalise"
+    ]
   },
   "phrase": {
     "category": "productivity",
@@ -5273,7 +5649,9 @@
     "statusCmd": "phrase users user 2>/dev/null | sed -n 's/.*\"email\": \"\\([^\"]*\\)\".*/\\1/p' | grep -m1 .",
     "loginCmd": "printf 'phrase:\\n  access_token: %s\\n  host: https://api.phrase.com/v2\\n' <access_token> > ~/.phrase.yml && chmod 600 ~/.phrase.yml && phrase version",
     "logoutCmd": "rm -f ~/.phrase.yml",
-    "credentialPaths": ["~/.phrase.yml"],
+    "credentialPaths": [
+      "~/.phrase.yml"
+    ],
     "versionCmd": "phrase version 2>/dev/null | sed -n 1p",
     "binary": {
       "linux-x86_64": {
@@ -5308,7 +5686,9 @@
     "statusCmd": "command -v tx >/dev/null 2>&1 && t=$(sed -n 's/^token *= *//p' ~/.transifexrc 2>/dev/null) && curl -sf -o /dev/null -H \"Authorization: Bearer $t\" https://rest.api.transifex.com/organizations 2>/dev/null && echo authenticated",
     "loginCmd": "printf '[https://app.transifex.com]\\nrest_hostname = https://rest.api.transifex.com\\ntoken = %s\\n' <api_token> > ~/.transifexrc && chmod 600 ~/.transifexrc && tx --version",
     "logoutCmd": "rm -f ~/.transifexrc",
-    "credentialPaths": ["~/.transifexrc"],
+    "credentialPaths": [
+      "~/.transifexrc"
+    ],
     "versionCmd": "tx --version 2>/dev/null | sed -n 1p",
     "binary": {
       "linux-x86_64": {
@@ -5337,7 +5717,9 @@
         "extract": "tx.exe"
       }
     },
-    "aliases": ["transifex"]
+    "aliases": [
+      "transifex"
+    ]
   },
   "configcat": {
     "category": "developer",
@@ -5349,7 +5731,9 @@
     "statusCmd": "configcat p ls --json -ni 2>/dev/null | sed -n 's/.*\"organization\":{[^}]*\"name\":\"\\([^\"]*\\)\".*/org: \\1/p' | grep -m1 .",
     "loginCmd": "configcat setup -H api.configcat.com -u <username> -p <password>",
     "logoutCmd": "rm -f ~/.configcat/cli.json",
-    "credentialPaths": ["~/.configcat/cli.json"],
+    "credentialPaths": [
+      "~/.configcat/cli.json"
+    ],
     "versionCmd": "configcat --version 2>/dev/null | tr -d '\\033' | sed -n 's/^[^0-9]*//p' | grep -m1 .",
     "binary": {
       "linux-x86_64": {
@@ -5566,7 +5950,9 @@
   "python-docx": {
     "category": "documents",
     "pkg": "python-docx",
-    "pipModules": ["docx"],
+    "pipModules": [
+      "docx"
+    ],
     "installer": "pip",
     "label": "Word documents",
     "summary": "Create, read and edit Word documents.",
@@ -5576,7 +5962,9 @@
   "openpyxl": {
     "category": "documents",
     "pkg": "openpyxl",
-    "pipModules": ["openpyxl"],
+    "pipModules": [
+      "openpyxl"
+    ],
     "installer": "pip",
     "label": "Excel workbooks",
     "summary": "Create, read and edit Excel workbooks.",
@@ -5586,7 +5974,9 @@
   "python-pptx": {
     "category": "documents",
     "pkg": "python-pptx",
-    "pipModules": ["pptx"],
+    "pipModules": [
+      "pptx"
+    ],
     "installer": "pip",
     "label": "PowerPoint decks",
     "summary": "Create, read and edit PowerPoint decks.",
@@ -5602,7 +5992,9 @@
     "versionCmd": "modal-h3 --version 2>/dev/null | sed -n 1p",
     "statusCmd": "modal-h3 whoami 2>/dev/null | grep '\"authenticated\": true' >/dev/null && echo authenticated",
     "loginCmd": "printf '%s' <proxy_token> | modal-h3 auth --token-stdin --fl2va-url <fl2va_url> --ref2va-url <ref2va_url>",
-    "credentialPaths": ["~/.config/modal-h3/credentials.json"],
+    "credentialPaths": [
+      "~/.config/modal-h3/credentials.json"
+    ],
     "description": "MiniMax-H3 text/image/reference-to-video+audio on a self-deployed Modal app (SGLang, 4x H200, scale-to-zero). `modal-h3 generate -p '…' [--first @a.png] [--last …] [--ref-image|--ref-video|--ref-audio <url|@file>] [--duration 4-15] [--ratio 16:9|auto] [--quality high] -o out.mp4` (task inferred, retries 503 during cold start, polls, downloads), `warmup`, `status|download|delete <id>`, `list`, `api <METHOD> <path>`. Deploy once with `modal run modal/serve.py::download` + `modal deploy modal/serve.py`. Costs ~$18/h of 4x H200 while a container is up (cold start minutes, ~75 s per 5 s 768p clip warm); every request wakes a container, `whoami` is offline. Jobs live in container memory. 2K needs `minimax-api regenerate`."
   }
 }
