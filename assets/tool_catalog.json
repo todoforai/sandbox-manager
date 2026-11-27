@@ -1036,7 +1036,7 @@
     "installer": "system",
     "label": "Devices",
     "summary": "The machines this run can use, live.",
-    "description": "`tfa-device` lists the machines this run can use right now: shells, browsers (connect URL + live attached tabs), phones (`--json` raw). Run it for a browser's current tabs or when a machine may have connected or left mid-run. `tfa-device tools [query]`: this machine's tools by state (connected / not connected / not installed). `tfa-device connect <key>… --reason \"<why>\"`: sign-in card.",
+    "description": "`tfa-device` lists the machines this run can use right now: shells, browsers (connect URL + live attached tabs), phones (`--json` raw). Run it for a browser's current tabs or when a machine may have connected or left mid-run. `tfa-device tools [query]`: this machine's tools by state (connected / not connected / not installed). `tfa-device connect <key>… --reason \"<why>\"`: sign-in card for this machine (installs if missing); a new connection resumes you. Prefer it over a tool's own login or copying credential files. Ex: `tfa-device connect zele outlook-api`, the user picks.",
     "versionCmd": "tfa-device --version 2>/dev/null | sed -n 1p",
     "internal": true
   },
